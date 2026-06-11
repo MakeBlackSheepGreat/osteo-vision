@@ -1,0 +1,46 @@
+编号,数据集,模态,规模/标注,下载/访问链接,用途,备注
+D001,DENTEX Challenge / DENTEX dataset,牙科全景片,约 1005 张全景片；牙齿识别、编号、诊断相关标注；挑战基准。,https://zenodo.org/records/7812323,训练口腔全景片牙齿/病灶区域定位，作为颌骨 ROI 预处理基准。,公开挑战数据，适合算法演示和评价。
+D002,Tufts Dental Database (TDD),牙科全景片/牙科影像,官方入口描述为研究型牙科影像数据库，含全景 X 光等。,https://tdd.ece.tufts.edu/,牙科影像预训练、牙齿/颌骨结构定位。,需按官网条款访问；NIDCR DDSHub 也收录入口。
+D003,Children’s Dental Panoramic Radiographs Dataset,儿童牙科全景片,公开数据记录；用于牙病检测/分割。,https://springernature.figshare.com/collections/_/6317013,小样本口腔病灶/牙体结构预训练与数据增强。,Springer Nature Figshare 数据集。
+D004,OdontoAI Open Panoramic Radiographs,牙科全景片,公开说明约 4000 张全景片，覆盖儿童和成人。,https://github.com/IvisionLab/OdontoAI-Open-Panoramic-Radiographs,全景片基础模型预训练、牙齿/颌骨结构定位。,访问可能需按仓库说明申请。
+D005,Dental Panoramic X-ray images with Segmented Mandibles,牙科全景片,Mendeley Data；含全景片与下颌分割标注。,https://data.mendeley.com/datasets/hxt48yk462/2,下颌骨区域分割，建立颌骨 ROI 提取模块。,可作为主线 demo 的低成本公开数据。
+D006,BTXRD / Primary Bone Tumor Radiograph Dataset,骨肿瘤 X 线,分类、定位、分割数据集；Scientific Data 数据论文。,https://www.nature.com/articles/s41597-024-04311-y,骨病灶检测/分割预训练，虽非颌骨但病灶形态相关。,用于补足骨病灶公开数据不足。
+D007,Medical Segmentation Decathlon (MSD),多模态 3D 医学影像,10 个医学分割任务，官方基准。,http://medicaldecathlon.com/,验证 nnU-Net/TransUNet/SwinUNETR 等分割框架工程能力。,不直接用于颌骨，但适合作算法能力证明。
+D008,BraTS Challenge datasets,脑肿瘤 MRI,年度 MICCAI/医学影像挑战数据。,https://www.synapse.org/Synapse:syn51156910/wiki/622351,Swin UNETR/UNETR/nnU-Net 等模型参考基准。,用于方法论和报告引用，不是本项目主数据。
+D009,NIDCR DDSHub Head & Neck Imaging Data,头颈部 CT/MRI/PET/口腔相关影像入口,聚合头颈部影像数据源链接。,https://www.ddshub.nih.gov/data-sources/head-neck-imaging-data,寻找头颈/口腔相关术前影像数据。,适合作为后续数据扩展入口。
+D010,The Cancer Imaging Archive - Head-Neck collections,头颈肿瘤 CT/PET/MRI,TCIA 多个头颈癌集合。,https://www.cancerimagingarchive.net/,多模态注册、分割、术前影像融合预训练。,非骨髓炎，但头颈解剖和多模态流程相关。
+D011,DeepLesion,CT 病灶切片,大规模 CT 病灶数据集。,https://nihcc.app.box.com/v/DeepLesion,病灶检测/弱监督定位预训练。,通用病灶检测基准。
+D012,Fluorescence-guided surgery video denoising / OFDVDnet related data,荧光手术视频,开放论文/代码链路，聚焦荧光视频去噪。,https://github.com/zhaozhaozzhao/OFDVDnet,荧光视频噪声抑制、实时显示增强。,与 ICG/近红外视频质量增强相关，需进一步核验数据许可。
+D013,HuggingFace Osteomyelitis Treatment Dataset (ABX-CS-005),临床文本/表格数据,骨髓炎抗生素治疗方案数据。,https://huggingface.co/datasets/ClarusC64/ABX-CS-005_osteomyelitis_treatment_plateau-v0.1,骨髓炎临床决策支持、治疗方案分析。,HuggingFace 数据集；可辅助临床背景论证。
+D014,Panoramic Radiographs for Dental Condition (HuggingFace),牙科全景片,约 27900 张全景片；牙齿状况标注。,https://huggingface.co/datasets/ismaelportog/Panoramic_Radiographs_for_Dental_Condition,全景片预训练、牙齿/颌骨结构检测。,HuggingFace 高质量数据集；42 likes。
+D015,Kaggle Dental Caries Dataset (DCD),牙科全景片,全景片龋齿检测数据集。,https://www.kaggle.com/datasets/humansintheloop/dental-caries-detection,口腔病灶检测预训练、迁移学习。,Kaggle 公开数据集。
+D016,Kaggle Dental X-ray Segmentation Dataset,牙科 X 线,全景片分割标注数据。,https://www.kaggle.com/datasets/prashantdandriyal/dental-x-ray-segmentation-dataset,牙齿/病灶分割模型预训练。,Kaggle 公开数据集。
+D017,Kaggle Bone Fracture Detection Dataset,骨 X 线,骨骨折检测数据集；含标注框。,https://www.kaggle.com/datasets/pkdarabi/bone-fracture-detection-computer-vision,骨病灶检测迁移学习、数据增强。,Kaggle 公开数据集；非骨髓炎但形态相关。
+D018,Kaggle Musculoskeletal Radiographs (MURA),肌骨 X 线,约 40000 张肌骨 X 线；正常/异常标注。,https://stanfordmlgroup.github.io/competitions/mura/,骨科影像异常检测迁移学习。,Stanford 公开数据集；大规模。
+D019,Kaggle Chest X-ray Images (Pneumonia),胸部 X 线,约 5800 张胸部 X 线；肺炎/正常标注。,https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia,感染检测模型预训练；可迁移感染特征。,Kaggle 经典数据集。
+D020,TCIA Bone Metastases Collection,骨转移 CT/PET/MRI,TCIA 骨转移影像集合。,https://www.cancerimagingarchive.net/collection/bone-metastases/,骨病灶分割/检测预训练。,TCIA 公开数据集；需注册。
+D021,ISIC Skin Lesion Analysis (2024 Challenge),皮肤镜图像,大规模皮肤病变分割/分类数据。,https://challenge.isic-archive.com/,病灶分割/边界检测迁移学习。,ISIC 挑战赛数据集；边界模糊病灶。
+D022,REFUGE Retinal Fundus Glaucoma Challenge,眼底图像,视盘/视杯分割数据集。,https://refuge.grand-challenge.org/,边界分割/不确定性量化方法验证。,眼科但分割方法通用。
+D023,PROMISE12 Prostate MRI Segmentation Challenge,前列腺 MRI,前列腺 MRI 分割基准。,https://promise12.grand-challenge.org/,3D 医学分割模型验证。,MICCAI 挑战赛数据集。
+D024,DentVoxel: fully annotated dental CBCT dataset,牙科 CBCT,38 种解剖结构实例标注的牙科 CBCT 数据集。,https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889,3D 颌骨/牙齿分割预训练；可直接迁移为术前 CBCT ROI 提取。,Figshare 公开数据集；DOI:10.6084/m9.figshare.31239889；**高相关**。
+D025,Dental Odontogenic Lesion CBCT and Histopathology Dataset,牙科 CBCT + 病理,牙源性病灶 CBCT 影像与组织病理整合数据集，用于深度学习基准测试。,https://figshare.com/articles/dataset/Dental_Odontogenic_Lesion_CBCT_and_Histopathology_Integrated_Dataset_for_Benchmarking_Deep_Learning_Algorithms/30156622,CBCT 病灶检测/分类/分割；直接对应颌骨病灶 AI 任务。,Figshare 公开数据集；DOI:10.6084/m9.figshare.30156622；**高相关**：含组织病理标签。
+D026,Mandibular Canal Segmentation Dataset,下颌 CBCT,下颌管分割标注数据集。,https://datadryad.org/stash/dataset/doi:10.57702/yhg8esyl,下颌骨管状结构分割；可迁移为颌骨内部结构识别。,Dryad 公开数据集；DOI:10.57702/yhg8esyl；**高相关**。
+D027,OralHybridNet Dental Panoramic Dataset,牙科全景片,多标签分类：全景片中牙科修复体/假体检测数据集。,https://data.mendeley.com/datasets/t6v3thrkrc,全景片多目标检测预训练。,Mendeley Data；DOI:10.17632/t6v3thrkrc。
+D028,PR-LLM-Dataset: Panoramic Radiographs with Reports,牙科全景片,全景片影像 + 对应文字报告数据集。,https://ieee-dataport.org/documents/pr-llm-dataset-collection-panoramic-radiographs-reports,全景片-报告多模态预训练。,IEEE DataPort；DOI:10.21227/dyae-tt87。
+D029,CODE: Comprehensive Oral Mucosa Database with Explanations,口腔黏膜图像,口腔黏膜图像数据库，含专家解释标注。,https://figshare.com/articles/dataset/CODE_-_Comprehensive_Oral_mucosa_Database_with_Explanations/30550889,口腔黏膜异常检测；可迁移为口腔软组织病灶识别。,Figshare 公开数据集；DOI:10.6084/m9.figshare.30550889。
+D030,SMART-OM: Smartphone Oral Mucosa Dataset,口腔黏膜图像,智能手机拍摄口腔黏膜图像，专家标注。,https://figshare.com/articles/dataset/SMART-OM_A_SMARTphone_based_expert_annotated_dataset_of_Oral_Mucosa_images/31341790,移动端口腔病灶检测原型验证。,Figshare 公开数据集；DOI:10.6084/m9.figshare.31341790。
+D031,Dental Clinical Dataset (Figshare),牙科临床图像,牙科临床图像数据集。,https://figshare.com/articles/dataset/dental_clinical_dataset/32219928,牙科临床图像分类/检测预训练。,Figshare；DOI:10.6084/m9.figshare.32219928。
+D032,Wisdom_DS (Figshare),牙科影像,牙科相关数据集。,https://figshare.com/articles/dataset/Wisdom_DS/31989366,牙科 AI 预训练。,Figshare；DOI:10.6084/m9.figshare.31989366。
+D033,Mendeley T2DM Gas Gangrene with Osteomyelitis Dataset,临床表格数据,2 型糖尿病合并气性坏疽伴骨髓炎/骨坏死/Charcot 关节病患者的临床数据。,https://data.mendeley.com/datasets/562fjb2b5y,骨髓炎临床特征分析、并发症预测。,Mendeley Data；DOI:10.17632/562fjb2b5y；虽为足部骨髓炎但临床特征可参考。
+D034,CTI Dataset (Figshare),荧光成像,与 ICG 荧光成像相关的数据集。,https://figshare.com/articles/dataset/CTI_Dataset/28255265,ICG 荧光图像处理/分析。,Figshare；DOI:10.6084/m9.figshare.28255265；需进一步核实内容。
+D035,OFDVDnet Fluorescence Surgery Video Data,荧光手术视频,荧光引导手术视频去噪数据集（含 ICG 相关）。,https://github.com/zhaozhaozzhao/OFDVDnet,术中荧光视频增强/去噪；与赛点一伪彩色增强直接相关。,GitHub 开源；ICG 荧光视频处理 baseline。
+D036,ToothFairy2 Dataset,牙科 CBCT,417+63 卷 CBCT；42 类解剖结构标注（颌骨、牙根管、上颌窦、牙齿等）。,https://toothfairy2.grand-challenge.org/dataset/,3D 颌骨/牙齿多结构分割预训练；MICCAI 2024 挑战赛数据。,**高相关**：nnU-Net 格式；需注册下载。
+D037,MMDental: Multimodal Dental Dataset,牙科 CBCT + 临床病历,660 患者；403 例含 3D CBCT + 专家医疗记录（诊断、治疗方案、随访）。,https://springernature.figshare.com/articles/dataset/MMDental_-_A_multimodal_dataset_of_tooth_CBCT_images_with_expert_medical_records/28505276,CBCT-病历多模态预训练；颌骨病灶诊断辅助。,**高相关**：Figshare；DOI:10.6084/m9.figshare.28505276。
+D038,PhysioNet Multimodal Dental Dataset,牙科 CBCT + 全景片 + 根尖片,329 CBCT + 8 全景片 + 188 根尖片（16203 张）；169 患者。,https://physionet.org/content/multimodal-dental-dataset/,多模态牙科影像预训练；CBCT-全景片-根尖片配对。,PhysioNet；DOI:10.13026/h1tt-fc69；需注册。
+D039,ToothPix Dataset,牙科全景片,8655 张全景片；30186 个像素级标注（多病灶）。,https://www.nature.com/articles/s41597-026-07021-9,全景片多病灶分割预训练；龋齿、阻生牙、根尖病变等。,Scientific Data 2026；DOI:10.1038/s41597-026-07021-9；**大规模**。
+D040,InReDD-Dataset-PAN924,牙科全景片,924 张全景片；牙齿编号+状况标注（14 类状况）；COCO 格式。,https://physionet.org/content/inredd-dataset-pan924/,全景片牙齿检测/分类预训练；巴西人群数据。,PhysioNet；DOI:10.13026/r5nt-we67；需注册。
+D041,Panoramic Dental X-rays with Segmented Mandibles (DatasetNinja),牙科全景片,232 张全景片；下颌骨分割标注。,https://datasetninja.com/dental-panoramic-x-rays,下颌骨分割预训练；与 D005 互补。,CC BY-NC 3.0；330 MB；可直接下载。
+D042,MODID: Multispectral Oral Disease Image Dataset,口腔多光谱成像,243 张多光谱图像（16 波段 460-600nm）；91 名参与者；含分割标注。,https://datadryad.org/dataset/doi%3A10.5061/dryad.nvx0k6dxw,多光谱口腔病灶检测/分类；与赛点一荧光融合相关。,**高相关**：Dryad；DOI:10.5061/dryad.nvx0k6dxw；**多光谱**数据。
+D043,ODSI-DB: Oral and Dental Spectral Image Database,口腔光谱成像,215 张光谱图像；35 类标注；30 名受试者；34 GB。,https://sites.uef.fi/spectral/databases-software/odsi-db/,口腔/牙齿光谱图像分割；高光谱-RGB 对比研究。,CC BY-NC-SA 4.0；含 Zenodo 镜像。
+D044,FGS Video Denoising Dataset,荧光手术视频,34 GB；ICG 荧光手术视频 + 去噪模型；含激光泄漏光模拟。,https://datadryad.org/dataset/doi%3A10.5061/dryad.8gtht76x9,荧光手术视频去噪/增强；与赛点一伪彩色增强直接相关。,**高相关**：Dryad；DOI:10.5061/dryad.8gtht76x9；含预训练模型。
+D045,MMOral: Multimodal Benchmark for Panoramic X-ray,牙科全景片 + 多模态指令数据,20563 张标注图像；130 万指令实例；5 个诊断维度。,https://huggingface.co/datasets/OralGPT/MMOral-OPG-Bench,全景片多模态大模型预训练/微调；NeurIPS 2025。,HuggingFace；CC BY-NC 4.0；含 LVLM 评测基准。

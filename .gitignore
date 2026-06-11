@@ -1,0 +1,47 @@
+# 大型数据集和论文PDF
+datasets/
+output/literature/papers/
+DentVoxel_Dataset/
+*.pdf
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+temp_*.txt
+*.tmp
+*.log
+
+# 模型文件
+*.pt
+*.pth
+*.onnx
+*.pb
+*.h5
+*.pkl
+
+# 数据文件
+*.nii
+*.nii.gz
+*.dcm
+*.mha
+*.nrrd
