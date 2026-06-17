@@ -1,0 +1,13 @@
+# Prototype/runtime dependencies for the first engineering phase.
+# Install PyTorch separately according to local CUDA/CPU hardware.
+gradio>=5.0
+numpy>=1.26
+opencv-python>=4.9
+pillow>=10.0
+scikit-image>=0.23
+matplotlib>=3.8
+pandas>=2.2
+pydicom>=2.4
+SimpleITK>=2.3
+tqdm>=4.66
+pyyaml>=6.0

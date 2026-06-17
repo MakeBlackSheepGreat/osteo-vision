@@ -1,0 +1,133 @@
+paths_config: configs/paths.example.yml
+runtime:
+  model_version: micf-fixture-v0
+  framework_version: v2
+  task_package: configs/tasks/medical_competition_demo.yml
+  default_task_type: classification
+  default_threshold: 0.5
+  low_confidence_margin: 0.1
+  device_policy: auto
+  use_fixture_model: true
+  checkpoint_path: artifacts/checkpoints/demo_model.pt
+  allow_fixture_on_missing_checkpoint: true
+  model_selection_policy: fixture_fallback
+  disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
+  models:
+    - model_id: biomedclip_zero_shot
+      family: vlm_encoder
+      task_types: [classification]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/checkpoints/biomedclip.pt
+      source_url: https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224
+      license: MIT
+      dependency_group: vlm
+      device_policy: auto
+      precision: fp16
+      enabled: true
+      intended_use: biomedical zero-shot or few-shot image classification prototype
+      clinical_claim_allowed: false
+    - model_id: medsam2_promptable
+      family: medsam_like
+      task_types: [segmentation]
+      input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+      spatial_dims: [2, 3]
+      checkpoint_path: artifacts/checkpoints/medsam2.pt
+      source_url: https://arxiv.org/html/2504.03600v1
+      license: research
+      dependency_group: sam
+      device_policy: auto
+      precision: fp16
+      enabled: true
+      intended_use: promptable medical segmentation prototype
+      clinical_claim_allowed: false
+    - model_id: vista3d_foundation
+      family: vista3d_like
+      task_types: [segmentation]
+      input_types: [dicom_series, nifti_volume, npz_roi]
+      spatial_dims: [3]
+      bundle_path: artifacts/checkpoints/vista3d_bundle
+      source_url: https://openaccess.thecvf.com/content/CVPR2025/html/He_VISTA3D_A_Unified_Segmentation_Foundation_Model_For_3D_Medical_Imaging_CVPR_2025_paper.html
+      license: research
+      dependency_group: monai
+      device_policy: auto
+      precision: fp16
+      enabled: true
+      intended_use: 3D medical segmentation foundation model prototype
+      clinical_claim_allowed: false
+    - model_id: nnunet_v2_baseline
+      family: nnunet_v2
+      task_types: [segmentation]
+      input_types: [dicom_series, nifti_volume, npz_roi]
+      spatial_dims: [2, 3]
+      checkpoint_path: artifacts/checkpoints/nnunet_v2
+      source_url: https://github.com/MIC-DKFZ/nnUNet
+      license: Apache-2.0
+      dependency_group: nnunet
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: reproducible segmentation competition baseline
+      clinical_claim_allowed: false
+    - model_id: monai_bundle_baseline
+      family: monai_bundle
+      task_types: [classification, segmentation, detection]
+      input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+      spatial_dims: [2, 3]
+      bundle_path: artifacts/checkpoints/monai_bundle
+      source_url: https://monai.io/model-zoo.html
+      license: model-specific
+      dependency_group: monai
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: MONAI Bundle style portable model package
+      clinical_claim_allowed: false
+    - model_id: fixture_default
+      family: fixture
+      task_types: ['*']
+      input_types: ['*']
+      spatial_dims: [2, 3]
+      source_url: local_fixture
+      license: internal
+      dependency_group: fixture
+      device_policy: cpu
+      precision: deterministic
+      enabled: true
+      intended_use: deterministic fallback for tests and demos
+      clinical_claim_allowed: false
+  tasks:
+    classification:
+      pipeline: classification
+      class_labels:
+        negative: negative
+        positive: positive
+      risk_mapping:
+        low: [0.0, 0.33]
+        medium: [0.33, 0.66]
+        high: [0.66, 1.0]
+    segmentation:
+      pipeline: segmentation
+      mask_threshold: 0.5
+    detection:
+      pipeline: detection
+      max_candidates: 3
+    quantification:
+      pipeline: quantification
+    multitask:
+      pipeline: multitask
+      steps:
+        - classification
+        - segmentation
+        - detection
+        - quantification
+input:
+  accepted_image_extensions: [.png, .jpg, .jpeg, .tif, .tiff]
+  accepted_npz_extensions: [.npz]
+  accepted_dicom_extensions: [.dcm]
+  accepted_nifti_extensions: [.nii, .nii.gz]
+reports:
+  output_dir: artifacts/reports
+  visual_dir: artifacts/visual_evidence
+benchmark:
+  output_dir: artifacts/reports/smoke_benchmark

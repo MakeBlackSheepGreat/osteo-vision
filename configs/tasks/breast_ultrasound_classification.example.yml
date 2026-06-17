@@ -1,0 +1,24 @@
+task_id: breast_ultrasound_classification
+task_name: Breast Ultrasound Classification and ROI Demo
+modality: 2d_image
+input_contract:
+  input_types: [2d_image]
+  accepted_extensions: [.png, .jpg, .jpeg, .tif, .tiff]
+label_contract:
+  type: binary
+  labels: [benign, malignant]
+pipelines: [classification, segmentation, quantification, multitask]
+metrics: [auc, accuracy, sensitivity, specificity, precision, f1, dice, iou]
+demo_outputs: [probability, class_label, segmentation_mask, lesion_evidence, explanation_evidence, report_path]
+benchmark_contract:
+  external_validation_recommended: true
+recommended_models:
+  - model_id: biomedclip_zero_shot
+    family: vlm_encoder
+  - model_id: timm_convnext_tiny
+    family: timm_classifier
+  - model_id: medsam2_promptable
+    family: medsam_like
+safety:
+  disclaimer_required: true
+  clinical_claim_allowed: false

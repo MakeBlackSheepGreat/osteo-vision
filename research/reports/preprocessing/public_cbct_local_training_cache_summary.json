@@ -1,0 +1,181 @@
+{
+  "run_timestamp_utc": "2026-06-16T06:50:10.366318+00:00",
+  "archive_dataset_root": "D:\\projects\\osteo-vision\\research\\datasets\\public-candidates",
+  "project_dataset_root": "research\\datasets\\public-candidates",
+  "target_shape": [
+    64,
+    64,
+    64
+  ],
+  "runtime_policy": "Local derived caches are runtime inputs; archive paths are source provenance only.",
+  "datasets": {
+    "d024": {
+      "dataset_id": "D024",
+      "task_name": "jaw_roi",
+      "source": "existing_local_nnunet_monai_cache",
+      "cache_dir": "research\\datasets\\public-candidates\\d024_dentvoxel\\derived\\nnunet\\monai_cache\\jaw_roi_64",
+      "manifest": {
+        "manifest_path": "research\\datasets\\public-candidates\\d024_dentvoxel\\derived\\local_preprocessed\\jaw_roi_64_manifest.csv",
+        "row_count": 100,
+        "columns": [
+          "case_id",
+          "input_path",
+          "label",
+          "task_type",
+          "input_type",
+          "modality",
+          "mask_path",
+          "split",
+          "fold",
+          "label_source",
+          "dataset_id",
+          "cache_path",
+          "source_image_path",
+          "source_mask_path",
+          "diagnosis_group",
+          "original_shape",
+          "original_spacing",
+          "target_shape",
+          "label_values"
+        ],
+        "missing_columns": [],
+        "optional_columns_present": [
+          "split",
+          "fold",
+          "label_source",
+          "modality",
+          "mask_path"
+        ],
+        "manifest_version": "v2",
+        "label_availability": "binary"
+      },
+      "case_count": 100,
+      "generated_count": 0,
+      "reused_count": 100,
+      "runtime_independent_of_archive": true
+    },
+    "d025": {
+      "dataset_id": "D025",
+      "task_name": "lesion_roi",
+      "archive_raw_source": "D:\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d025_lesion_cbct\\raw\\DOLCHID",
+      "local_cache_dir": "research\\datasets\\public-candidates\\d025_lesion_cbct\\derived\\local_preprocessed\\lesion_roi_64",
+      "pairing": {
+        "case_count_union": 262,
+        "paired_count": 262,
+        "counts_by_group": {
+          "cbct_image": 262,
+          "cbct_label": 262,
+          "hist_image": 262,
+          "hist_label": 262
+        },
+        "missing_by_group_first20": {
+          "cbct_image": [],
+          "cbct_label": [],
+          "hist_image": [],
+          "hist_label": []
+        },
+        "diagnosis_prefix_counts": {
+          "AME": 72,
+          "DC": 44,
+          "KCOT": 92,
+          "RC": 54
+        }
+      },
+      "manifest": {
+        "manifest_path": "research\\datasets\\public-candidates\\d025_lesion_cbct\\derived\\local_preprocessed\\lesion_roi_64\\d025_dolchid_lesion_roi_64_manifest.csv",
+        "row_count": 262,
+        "columns": [
+          "case_id",
+          "input_path",
+          "label",
+          "task_type",
+          "input_type",
+          "modality",
+          "mask_path",
+          "split",
+          "fold",
+          "label_source",
+          "dataset_id",
+          "cache_path",
+          "source_image_path",
+          "source_mask_path",
+          "diagnosis_group",
+          "original_shape",
+          "original_spacing",
+          "target_shape",
+          "label_values"
+        ],
+        "missing_columns": [],
+        "optional_columns_present": [
+          "split",
+          "fold",
+          "label_source",
+          "modality",
+          "mask_path"
+        ],
+        "manifest_version": "v2",
+        "label_availability": "binary"
+      },
+      "case_count": 262,
+      "generated_count": 0,
+      "reused_count": 262,
+      "runtime_independent_of_archive": true
+    },
+    "d036": {
+      "dataset_id": "D036",
+      "task_name": "anatomy_roi",
+      "archive_raw_source": "D:\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d036_toothfairy2\\raw\\Dataset112_ToothFairy2",
+      "local_cache_dir": "research\\datasets\\public-candidates\\d036_toothfairy2\\derived\\local_preprocessed\\anatomy_roi_64",
+      "pairing": {
+        "image_count": 480,
+        "label_count": 480,
+        "paired_count": 480,
+        "missing_labels_for_images": [],
+        "missing_images_for_labels": []
+      },
+      "manifest": {
+        "manifest_path": "research\\datasets\\public-candidates\\d036_toothfairy2\\derived\\local_preprocessed\\anatomy_roi_64\\d036_toothfairy2_anatomy_roi_64_manifest.csv",
+        "row_count": 480,
+        "columns": [
+          "case_id",
+          "input_path",
+          "label",
+          "task_type",
+          "input_type",
+          "modality",
+          "mask_path",
+          "split",
+          "fold",
+          "label_source",
+          "dataset_id",
+          "cache_path",
+          "source_image_path",
+          "source_mask_path",
+          "diagnosis_group",
+          "original_shape",
+          "original_spacing",
+          "target_shape",
+          "label_values"
+        ],
+        "missing_columns": [],
+        "optional_columns_present": [
+          "split",
+          "fold",
+          "label_source",
+          "modality",
+          "mask_path"
+        ],
+        "manifest_version": "v2",
+        "label_availability": "binary"
+      },
+      "case_count": 480,
+      "generated_count": 0,
+      "reused_count": 480,
+      "runtime_independent_of_archive": true
+    }
+  },
+  "reports": {
+    "zh_report": "research\\reports\\preprocessing\\public_cbct_local_training_cache_zh.md",
+    "en_report": "research\\reports\\preprocessing\\public_cbct_local_training_cache_en.md"
+  }
+}

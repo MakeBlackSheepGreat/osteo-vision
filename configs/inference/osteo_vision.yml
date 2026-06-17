@@ -1,0 +1,112 @@
+paths_config: configs/paths.example.yml
+runtime:
+  model_version: osteo-vision-fixture-v0
+  framework_version: v2
+  task_package: configs/tasks/osteo_vision.yml
+  default_task_type: segmentation
+  default_threshold: 0.5
+  low_confidence_margin: 0.15
+  device_policy: auto
+  use_fixture_model: true
+  checkpoint_path: artifacts/checkpoints/osteo_vision/demo_model.pt
+  allow_fixture_on_missing_checkpoint: true
+  model_selection_policy: fixture_fallback
+  disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
+  models:
+    - model_id: nnunet_v2_osteo_baseline
+      family: nnunet_v2
+      task_types: [segmentation]
+      input_types: [dicom_series, nifti_volume, npz_roi]
+      spatial_dims: [2, 3]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/nnunet_v2
+      source_url: https://github.com/MIC-DKFZ/nnUNet
+      license: Apache-2.0
+      dependency_group: nnunet
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: jaw osteomyelitis segmentation baseline
+      clinical_claim_allowed: false
+    - model_id: medsam2_osteo_promptable
+      family: medsam_like
+      task_types: [segmentation]
+      input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+      spatial_dims: [2, 3]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/medsam2.pt
+      source_url: https://arxiv.org/html/2504.03600v1
+      license: research
+      dependency_group: sam
+      device_policy: auto
+      precision: fp16
+      enabled: true
+      intended_use: promptable lesion or necrotic bone ROI segmentation
+      clinical_claim_allowed: false
+    - model_id: biomedclip_osteo_screening
+      family: vlm_encoder
+      task_types: [classification]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/biomedclip.pt
+      source_url: https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224
+      license: MIT
+      dependency_group: vlm
+      device_policy: auto
+      precision: fp16
+      enabled: true
+      intended_use: auxiliary image-level screening prototype
+      clinical_claim_allowed: false
+    - model_id: fixture_default
+      family: fixture
+      task_types: ['*']
+      input_types: ['*']
+      spatial_dims: [2, 3]
+      source_url: local_fixture
+      license: internal
+      dependency_group: fixture
+      device_policy: cpu
+      precision: deterministic
+      enabled: true
+      intended_use: deterministic fallback for tests and demos
+      clinical_claim_allowed: false
+  tasks:
+    classification:
+      pipeline: classification
+      class_labels:
+        negative: viable_or_non_lesion
+        positive: osteomyelitis_or_necrotic_bone
+      risk_mapping:
+        low: [0.0, 0.33]
+        medium: [0.33, 0.66]
+        high: [0.66, 1.0]
+    segmentation:
+      pipeline: segmentation
+      mask_threshold: 0.5
+      min_component_size: 50
+    detection:
+      pipeline: detection
+      max_candidates: 5
+    quantification:
+      pipeline: quantification
+    multitask:
+      pipeline: multitask
+      steps:
+        - segmentation
+        - quantification
+        - classification
+input:
+  accepted_image_extensions: [.png, .jpg, .jpeg, .tif, .tiff]
+  accepted_npz_extensions: [.npz]
+  accepted_dicom_extensions: [.dcm]
+  accepted_nifti_extensions: [.nii, .nii.gz]
+  max_file_size_mb: 1000
+reports:
+  output_dir: artifacts/reports/osteo_vision
+  visual_dir: artifacts/visual_evidence/osteo_vision
+  generate_html: true
+  generate_json: true
+  generate_csv: true
+benchmark:
+  output_dir: artifacts/reports/osteo_vision/benchmark
+  save_predictions: true
+  save_metrics: true
+  save_plots: true

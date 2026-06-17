@@ -1,37 +1,10 @@
-# 大型数据集和论文PDF
-datasets/
-output/literature/papers/
+# 大型数据集、论文 PDF 和模型产物
+research/datasets/**/raw/
+research/datasets/**/derived/
+research/literature/inventory/papers/
 DentVoxel_Dataset/
 *.pdf
 *.zip
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# 临时文件
-temp_*.txt
-*.tmp
-*.log
-
-# 模型文件
 *.pt
 *.pth
 *.onnx
@@ -39,9 +12,81 @@ temp_*.txt
 *.h5
 *.pkl
 
-# 数据文件
+# 医学影像数据
+*.dcm
 *.nii
 *.nii.gz
-*.dcm
 *.mha
+*.mhd
+*.raw
 *.nrrd
+!tests/fixtures/sample_volume.nii.gz
+!tests/fixtures/dicom_series/
+!tests/fixtures/dicom_series/**
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.pytest_tmp/
+pytest_tmp/
+.ruff_cache/
+.mypy_cache/
+env/
+venv/
+.venv/
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+coverage/
+frontend/coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 本地配置与缓存
+configs/paths.local.yml
+data/
+tmp/
+temp_cache/
+temp_*.txt
+*.tmp
+*.log
+output/
+
+# 生成产物
+artifacts/checkpoints/*
+artifacts/experiments/*
+artifacts/logs/*
+artifacts/reports/*
+artifacts/runs/*
+artifacts/visual_evidence/*
+artifacts/release/*
+!artifacts/checkpoints/.gitkeep
+!artifacts/experiments/.gitkeep
+!artifacts/logs/.gitkeep
+!artifacts/reports/.gitkeep
+!artifacts/runs/.gitkeep
+!artifacts/visual_evidence/.gitkeep
+!artifacts/release/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# CodeGraph and Reasonix
+.codegraph/
+.reasonix/

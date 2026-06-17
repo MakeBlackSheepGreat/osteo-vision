@@ -1,0 +1,6 @@
+project_root: .
+artifacts_root: artifacts
+reports_dir: artifacts/reports
+visual_evidence_dir: artifacts/visual_evidence
+checkpoints_dir: artifacts/checkpoints
+release_dir: artifacts/release

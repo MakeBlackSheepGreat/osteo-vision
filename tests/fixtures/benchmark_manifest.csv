@@ -1,0 +1,4 @@
+case_id,input_path,label,task_type,input_type
+case_image,tests/fixtures/sample_image.png,1,classification,2d_image
+case_roi,tests/fixtures/sample_roi.npz,0,multitask,npz_roi
+case_seg,tests/fixtures/sample_image.png,,segmentation,2d_image

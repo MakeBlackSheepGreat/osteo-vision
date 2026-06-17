@@ -1,0 +1,25 @@
+task_id: ct_nodule_risk
+task_name: CT Nodule Risk Grading
+modality: ct_roi_or_dicom
+input_contract:
+  input_types: [npz_roi, dicom_series, nifti_volume]
+  full_volume_requires_detection: true
+label_contract:
+  type: binary_or_ordinal
+  labels: [benign_or_low_risk, malignant_or_high_risk]
+pipelines: [classification, segmentation, detection, quantification, multitask]
+metrics: [auc, accuracy, sensitivity, specificity, precision, f1, dice, candidate_recall]
+demo_outputs: [probability, risk_level, lesion_evidence, quantification, explanation_evidence, report_path]
+benchmark_contract:
+  patient_level_split_required: true
+  external_validation_recommended: true
+recommended_models:
+  - model_id: nnunet_v2_baseline
+    family: nnunet_v2
+  - model_id: vista3d_foundation
+    family: vista3d_like
+  - model_id: monai_bundle_baseline
+    family: monai_bundle
+safety:
+  disclaimer_required: true
+  clinical_claim_allowed: false

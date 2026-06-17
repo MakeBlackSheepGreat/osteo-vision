@@ -1,0 +1,4 @@
+case_id,input_path,label,task_type,input_type,patient_id,split,fold,label_source,modality,metadata_path,mask_path,bbox,model_hint
+case_image_v2,tests/fixtures/sample_image.png,1,classification,2d_image,patient_001,val,0,fixture,generic,,,,fixture_default
+case_roi_v2,tests/fixtures/sample_roi.npz,0,multitask,npz_roi,patient_002,val,0,fixture,generic,,,,
+case_seg_v2,tests/fixtures/sample_image.png,,segmentation,2d_image,patient_003,test,1,fixture,generic,,,,

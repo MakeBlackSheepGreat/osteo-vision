@@ -1,0 +1,26 @@
+task_id: generic_segmentation
+task_name: Generic Medical Segmentation
+modality: image_or_volume
+input_contract:
+  input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+label_contract:
+  type: mask
+  mask_required_for_training: true
+pipelines: [segmentation, quantification, multitask]
+metrics:
+  - dice
+  - iou
+  - hd95
+demo_outputs: [segmentation_mask, lesion_evidence, quantification, report_path]
+benchmark_contract:
+  mask_path_column: mask_path
+recommended_models:
+  - model_id: medsam2_promptable
+    family: medsam_like
+  - model_id: vista3d_foundation
+    family: vista3d_like
+  - model_id: nnunet_v2_baseline
+    family: nnunet_v2
+safety:
+  disclaimer_required: true
+  clinical_claim_allowed: false
