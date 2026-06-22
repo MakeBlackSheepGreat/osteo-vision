@@ -1,4 +1,4 @@
-import type { CaseRecord, ExportResponse, InputChannel, ReviewState } from "@/types/case";
+import type { CaseInputDraft, CaseRecord, ExportResponse, ReviewState } from "@/types/case";
 
 const API_BASE_URL = import.meta.env.VITE_OSTEO_API_URL ?? "http://127.0.0.1:8001";
 
@@ -7,8 +7,16 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly body: unknown,
   ) {
-    super(`API request failed with status ${status}`);
+    super(`接口请求失败，状态码 ${status}`);
   }
+}
+
+export interface UploadResponse {
+  path: string;
+  filename: string;
+  original_filename: string;
+  content_type?: string | null;
+  size_bytes: number;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -36,7 +44,7 @@ export const apiClient = {
   getCase(caseId: string): Promise<CaseRecord> {
     return request<CaseRecord>(`/cases/${caseId}`);
   },
-  addInputs(caseId: string, inputs: Array<{ channel: InputChannel; path: string }>): Promise<CaseRecord> {
+  addInputs(caseId: string, inputs: CaseInputDraft[]): Promise<CaseRecord> {
     return request<CaseRecord>(`/cases/${caseId}/inputs`, {
       method: "POST",
       body: JSON.stringify(inputs),
@@ -65,5 +73,21 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ export_format: "bundle", selected_artifacts: [] }),
     });
+  },
+  async uploadRawImage(file: File): Promise<UploadResponse> {
+    // 上传浏览器选择的真实文件；后端会保存到 artifacts/platform/uploads 并返回可分析路径。
+    const response = await fetch(`${API_BASE_URL}/uploads/raw`, {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "X-Filename": encodeURIComponent(file.name),
+      },
+      body: file,
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(response.status, body);
+    }
+    return response.json() as Promise<UploadResponse>;
   },
 };

@@ -70,6 +70,8 @@ artifacts/reports/*
 artifacts/runs/*
 artifacts/visual_evidence/*
 artifacts/release/*
+artifacts/platform/*
+artifacts/ui/*
 !artifacts/checkpoints/.gitkeep
 !artifacts/experiments/.gitkeep
 !artifacts/logs/.gitkeep

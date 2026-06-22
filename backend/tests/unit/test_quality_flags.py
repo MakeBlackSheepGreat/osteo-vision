@@ -28,3 +28,18 @@ def test_quality_flags_detect_dimension_mismatch(tmp_path: Path) -> None:
 
     assert any(flag.code == "mismatched" for flag in updated.quality_flags)
     assert any(flag.code in {"weak_signal", "underexposed"} for flag in updated.quality_flags)
+
+
+def test_camera_input_is_registered_without_file_validation() -> None:
+    case = CaseRecord(case_id="case_camera", title="camera")
+
+    updated = InputService().add_inputs(
+        case,
+        [InputCreateRequest(channel=InputChannel.VIDEO, path="camera://browser/default")],
+    )
+
+    assert updated.inputs[0].channel == InputChannel.VIDEO
+    assert updated.inputs[0].path == "camera://browser/default"
+    assert updated.inputs[0].metadata["input_type"] == "browser_camera"
+    assert updated.inputs[0].quality_flags == []
+    assert updated.quality_flags == []

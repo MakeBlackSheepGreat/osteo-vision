@@ -41,3 +41,22 @@ def test_case_input_and_analysis_contract(tmp_path: Path, monkeypatch) -> None:
     analyzed_payload = analyzed.json()
     assert analyzed_payload["analysis_runs"]
     assert analyzed_payload["analysis_runs"][-1]["status"] == "completed"
+
+
+def test_raw_upload_returns_backend_readable_path(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    source = Path("tests/fixtures/platform/white.png")
+
+    response = client.post(
+        "/uploads/raw",
+        content=source.read_bytes(),
+        headers={"content-type": "image/png", "x-filename": "white.png"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    uploaded_path = Path(payload["path"])
+    assert uploaded_path.exists()
+    assert uploaded_path.read_bytes() == source.read_bytes()

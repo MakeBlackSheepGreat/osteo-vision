@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 
 import { apiClient } from "@/services/apiClient";
-import type { CaseRecord } from "@/types/case";
+import type { CaseInputDraft, CaseRecord } from "@/types/case";
 
 export const useCaseStore = defineStore("case", {
   state: () => ({
@@ -17,7 +17,7 @@ export const useCaseStore = defineStore("case", {
       try {
         this.currentCase = await apiClient.createCase(title);
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to create case";
+        this.error = error instanceof Error ? error.message : "病例创建失败";
       } finally {
         this.loading = false;
       }
@@ -28,18 +28,19 @@ export const useCaseStore = defineStore("case", {
       try {
         this.currentCase = await apiClient.getCase(caseId);
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to load case";
+        this.error = error instanceof Error ? error.message : "病例加载失败";
       } finally {
         this.loading = false;
       }
     },
-    async importInputs(inputs: Array<{ channel: "white_light" | "fluorescence"; path: string }>) {
+    async importInputs(inputs: CaseInputDraft[]) {
       if (!this.currentCase) return;
       this.loading = true;
+      this.error = "";
       try {
         this.currentCase = await apiClient.addInputs(this.currentCase.case_id, inputs);
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to add inputs";
+        this.error = error instanceof Error ? error.message : "输入写入失败";
       } finally {
         this.loading = false;
       }
@@ -47,10 +48,11 @@ export const useCaseStore = defineStore("case", {
     async runAnalysis(parameters: Record<string, unknown>) {
       if (!this.currentCase) return;
       this.loading = true;
+      this.error = "";
       try {
         this.currentCase = await apiClient.startAnalysis(this.currentCase.case_id, parameters);
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to analyze case";
+        this.error = error instanceof Error ? error.message : "分析运行失败";
       } finally {
         this.loading = false;
       }
@@ -58,11 +60,12 @@ export const useCaseStore = defineStore("case", {
     async exportCase() {
       if (!this.currentCase) return;
       this.loading = true;
+      this.error = "";
       try {
         const result = await apiClient.exportCase(this.currentCase.case_id);
         this.exportPath = result.bundle_path;
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to export case";
+        this.error = error instanceof Error ? error.message : "证据包导出失败";
       } finally {
         this.loading = false;
       }
@@ -70,10 +73,11 @@ export const useCaseStore = defineStore("case", {
     async addReviewEvent(action: string, targetId: string, afterState?: string) {
       if (!this.currentCase) return;
       this.loading = true;
+      this.error = "";
       try {
         this.currentCase = await apiClient.addReviewEvent(this.currentCase.case_id, action, targetId, afterState);
       } catch (error) {
-        this.error = error instanceof Error ? error.message : "Failed to record review event";
+        this.error = error instanceof Error ? error.message : "复核记录写入失败";
       } finally {
         this.loading = false;
       }

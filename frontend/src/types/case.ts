@@ -4,6 +4,13 @@ export type InputChannel = "white_light" | "fluorescence" | "sequence" | "video"
 
 export type ReviewState = "review_required" | "accepted" | "modified" | "rejected";
 
+export interface CaseInputDraft {
+  channel: InputChannel;
+  path: string;
+  mime_type?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
 export interface QualityFlag {
   code: string;
   message: string;

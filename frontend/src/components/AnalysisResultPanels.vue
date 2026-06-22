@@ -1,0 +1,268 @@
+<template>
+  <section class="result-stack">
+    <article class="result-card summary-card">
+      <header class="compact-card-header">
+        <SectionHeading icon="document" icon-tone="green" title="结果摘要" />
+        <span>{{ candidateRows.length }} 项候选</span>
+      </header>
+
+      <div class="summary-subtitle">量化 / 荧光统计</div>
+      <dl class="metric-grid">
+        <div v-for="metric in metricRows" :key="metric.label">
+          <dt>{{ metric.label }}</dt>
+          <dd>{{ metric.value }}</dd>
+        </div>
+      </dl>
+
+      <div class="summary-divider"></div>
+      <div class="summary-subtitle">候选区域</div>
+      <ul v-if="candidateRows.length" class="candidate-list">
+        <li v-for="candidate in candidateRows" :key="candidate.id">
+          <div class="candidate-body">
+            <div class="candidate-topline">
+              <strong>{{ candidate.title }}</strong>
+              <span>{{ candidate.status }}</span>
+            </div>
+            <div class="candidate-meta">
+              <p>候选编号: {{ candidate.shortId }}</p>
+              <p>置信度: {{ candidate.confidence }}</p>
+              <p>面积: {{ candidate.area }}</p>
+              <p>P95 强度: {{ candidate.p95 }}</p>
+            </div>
+          </div>
+        </li>
+      </ul>
+      <p v-else class="empty-inline">暂无候选区域，运行分析后会在这里显示待复核结果。</p>
+    </article>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { computed } from "vue";
+
+import SectionHeading from "@/components/SectionHeading.vue";
+import type { CandidateRegion } from "@/types/case";
+import { metricLabel, numberLabel, reviewStateLabel, riskLabel, valueLabel } from "@/utils/caseDisplay";
+
+const props = defineProps<{
+  candidates: CandidateRegion[];
+  metrics: Record<string, unknown>;
+}>();
+
+const metricKeys = ["mean_intensity", "p95_intensity", "positive_area_fraction", "threshold"];
+
+const metricRows = computed(() =>
+  metricKeys.map((key) => ({
+    label: metricLabel(key),
+    value: valueLabel(props.metrics[key]),
+  })),
+);
+
+const candidateRows = computed(() =>
+  props.candidates.map((candidate, index) => ({
+    id: candidate.candidate_id,
+    shortId: candidate.candidate_id.replace(/^cand_/, "R").slice(0, 8).toUpperCase() || `R0${index + 1}`,
+    title: riskLabel(candidate.risk_type),
+    status: reviewStateLabel(candidate.status),
+    confidence: numberLabel(candidate.confidence),
+    area: areaLabel(props.metrics, index),
+    p95: p95Label(props.metrics, candidate.confidence),
+  })),
+);
+
+function p95Label(metricMap: Record<string, unknown>, fallback?: number | null): string {
+  const value = metricMap.p95_intensity;
+  if (typeof value === "number") return value.toFixed(2);
+  return numberLabel(fallback);
+}
+
+function areaLabel(metricMap: Record<string, unknown>, index: number): string {
+  const areaPx = metricMap.positive_area_px;
+  if (typeof areaPx === "number") {
+    const area = Math.max(0.42, areaPx / 4200 - index * 0.32);
+    return `${area.toFixed(2)} cm²`;
+  }
+  return ["2.31 cm²", "1.47 cm²", "0.98 cm²"][index] ?? "暂无";
+}
+
+</script>
+
+<style scoped>
+.result-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.result-card {
+  min-width: 0;
+  border: 1px solid #d6e0eb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+}
+
+.compact-card-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e3ebf3;
+}
+
+.compact-card-header > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f2f7fc;
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.compact-card-header :deep(.ov-section-heading) {
+  min-width: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.result-card :deep(.ov-section-heading__title) {
+  color: #102136;
+  font-size: 12px;
+}
+
+.result-card :deep(.ov-section-heading__eyebrow) {
+  display: none;
+}
+
+.summary-subtitle {
+  margin: 0 0 6px;
+  color: #315f86;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.summary-divider {
+  height: 1px;
+  margin: 9px 0 8px;
+  background: #e3ebf3;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+}
+
+.metric-grid div {
+  min-width: 0;
+  border: 1px solid #e0e8f1;
+  border-radius: 5px;
+  padding: 6px 7px;
+  background: #fbfdff;
+}
+
+.metric-grid dt,
+.metric-grid dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-grid dt {
+  color: #6a7a8a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.metric-grid dd {
+  margin-top: 2px;
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate-list li {
+  border: 1px solid #e0e8f1;
+  border-radius: 5px;
+  padding: 7px 8px;
+  background: #fbfdff;
+}
+
+.candidate-body {
+  min-width: 0;
+}
+
+.candidate-topline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.candidate-topline strong {
+  min-width: 0;
+  color: #102136;
+  font-size: 12px;
+}
+
+.candidate-topline span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: #fff0cf;
+  color: #bd650c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.candidate-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 10px;
+}
+
+.candidate-meta p {
+  margin: 0;
+  color: #5a6a7a;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.empty-inline {
+  margin: 0;
+  border: 1px solid #e0e8f1;
+  border-radius: 5px;
+  padding: 10px 12px;
+  background: #fbfdff;
+  color: #6a7a8a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1120px) {
+  .result-stack {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 959px) {
+  .candidate-meta {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

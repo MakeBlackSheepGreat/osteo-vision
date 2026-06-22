@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from backend.src.api import analysis_runs, cases, exports, inputs, regions, review_events
+from backend.src.api import analysis_runs, cases, exports, inputs, regions, review_events, uploads
 from backend.src.core.settings import Settings
 from backend.src.domains.cases.repository import JsonCaseRepository
 from backend.src.services.analysis_service import AnalysisService
@@ -34,4 +34,5 @@ def build_router(settings: Settings) -> APIRouter:
     router.include_router(regions.router(repo, review_service), tags=["review"])
     router.include_router(review_events.router(repo, review_service), tags=["review"])
     router.include_router(exports.router(repo, export_service), tags=["exports"])
+    router.include_router(uploads.router(settings), tags=["uploads"])
     return router

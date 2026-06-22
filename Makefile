@@ -1,7 +1,7 @@
 # Medical Imaging Competition Framework - Makefile
 # 常用命令快捷方式
 
-.PHONY: help install install-dev test test-unit test-integration test-smoke lint format type-check clean docs platform-backend platform-frontend
+.PHONY: help install install-dev test test-unit test-integration test-smoke lint format type-check clean docs platform platform-backend platform-frontend
 
 # 默认目标
 help: ## 显示帮助信息
@@ -81,6 +81,9 @@ run-experiment: ## 运行实验（用法：make run-experiment SPEC=path/to/expe
 	python scripts/run_experiment.py --spec $(SPEC)
 
 # Demo 相关
+platform: ## 一键启动 V1 FastAPI 后端和 Vue 前端
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1
+
 platform-backend: ## 启动 V1 FastAPI 后端（默认 http://127.0.0.1:8001）
 	python -m backend.src.main
 

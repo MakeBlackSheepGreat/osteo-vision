@@ -22,6 +22,21 @@ class InputService:
         return case.model_copy(update={"inputs": assets, "quality_flags": quality_flags, "status": status})
 
     def _asset_from_request(self, item: InputCreateRequest) -> CaseInputAsset:
+        if item.channel == InputChannel.VIDEO and item.path.startswith("camera://"):
+            metadata = {
+                "input_type": "browser_camera",
+                "metadata_status": "live_preview",
+                **item.metadata,
+            }
+            return CaseInputAsset(
+                input_id=f"input_{uuid4().hex[:10]}",
+                channel=item.channel,
+                path=item.path,
+                mime_type=item.mime_type or "application/x-browser-camera",
+                dimensions=[],
+                metadata=metadata,
+                quality_flags=[],
+            )
         summary = validate_input(item.path)
         metadata: dict[str, Any] = {**summary.metadata, **item.metadata}
         flags = [_warning_to_flag(warning) for warning in summary.warnings]

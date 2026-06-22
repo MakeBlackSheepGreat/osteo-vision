@@ -30,6 +30,37 @@ class AnalysisService:
         output_dir = case_artifact_dir(artifacts["visual"] / "cases", case.case_id)
         run_id = f"run_{uuid4().hex[:10]}"
         run = AnalysisRun(run_id=run_id, case_id=case.case_id, method_id=self._method_id(), parameters=parameters, status="running")
+        if parameters.get("mode") == "realtime_video":
+            warnings = [
+                {
+                    "code": "realtime_stream_not_connected",
+                    "message": "Realtime browser camera preview is registered; streaming AI inference is not connected in this prototype.",
+                    "blocking": False,
+                }
+            ]
+            run = run.model_copy(
+                update={
+                    "status": "completed",
+                    "fused_outputs": {
+                        "mode": "realtime_video",
+                        "source_path": parameters.get("source_path", "camera://browser/default"),
+                        "disclaimer_context": disclaimer_context(),
+                    },
+                    "quantitative_summary": {},
+                    "warnings": warnings,
+                }
+            )
+            updated = case.model_copy(
+                update={
+                    "analysis_runs": [*case.analysis_runs, run],
+                    "status": CaseStatus.ANALYZED,
+                    "warnings": [*case.warnings, *warnings],
+                }
+            )
+            updated = updated.model_copy(update={"review_summary": self._review_summary(updated)})
+            self.repo.save(updated)
+            return updated
+
         fused_outputs: dict[str, Any] = {}
         warnings: list[dict[str, Any]] = []
         candidate_regions: list[CandidateRegion] = []
