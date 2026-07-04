@@ -37,13 +37,49 @@ conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 conda run -n osteo-vision python tools/check_project_readiness.py
 ```
 
-比赛演示主验收：
+赛题对齐演示自查：
 
 ```powershell
-conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
+conda run -n osteo-vision python tools\run_competition_flow_demo_check.py
 ```
 
-该命令默认生成 4K JPEG/MP4 代理输入，并通过真实后端接口跑完上传、白光/ICG 融合、MP4 关键帧分析、医生复核和 evidence bundle 导出。输出目录为 `artifacts/platform_smoke/competition_acceptance_*`。
+该命令默认生成 4K JPEG/MP4 代理输入，并通过真实后端接口跑完上传、白光/ICG 融合、MP4 关键帧分析、医生复核和 evidence bundle 导出。它只用于按赛题官方技术文档做工程自查，不是赛题方验收。输出目录为 `artifacts/platform_smoke/competition_demo_check_*`。
+
+## 训练 2D Keyframe 分割模型
+
+从公开 MP4/图片代理数据生成 keyframe + 伪 mask manifest：
+
+```powershell
+conda run -n osteo-vision python tools\build_keyframe_segmentation_proxy_manifest.py --input research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\raw --output-dir research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705 --dataset-id d046_mp4_proxy --input-domain public_fluorescence_or_osteomyelitis_proxy_mp4 --fluorescence-attribute mixed_fluorescence_and_non_fluorescence --max-frames-per-video 4 --max-samples 200 --threshold 0.62 --min-component-area 32 --min-positive-area-fraction 0.0005 --max-positive-area-fraction 0.6 --preview-sample-count 40 --review-seed-sample-count 50
+```
+
+训练当前主线 2D ConvNeXt-style keyframe 代理分割 checkpoint：
+
+```powershell
+conda run -n osteo-vision python scripts\train_keyframe_segmentation_proxy.py --manifest research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705\keyframe_segmentation_proxy_manifest.csv --output-checkpoint artifacts\checkpoints\osteo_vision\keyframe_convnext2d_proxy.pt --image-shape 128x192 --max-train-batches 80 --batch-size 4 --base-channels 8 --learning-rate 0.001 --threshold 0.5 --device auto --report-stamp 20260705
+```
+
+该模型是可运行的软件闭环模型，训练标签来自荧光强度伪标注或代理数据；当前 20260705 manifest 为 200 条代理 keyframe，并另有 50 条人工复核种子集。相关 Dice/IoU 只能作为代理伪标签验证结果，不能作为真实术中 ICG 颌骨骨髓炎分割性能。
+
+从 evidence bundle 导出的医生复核 manifest 生成下一轮训练 manifest：
+
+```powershell
+conda run -n osteo-vision python tools\build_keyframe_training_manifest_from_review.py --input <export_dir>\<case_id>_review_manifest.json --output-dir research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\review_feedback_20260705 --dataset-id review_feedback --input-domain reviewed_proxy_keyframe_non_target_domain --fluorescence-attribute proxy_or_unknown_fluorescence
+```
+
+该命令默认只提升 `accepted` / `modified` 复核样本，输出仍属于代理或非目标域训练反馈。若需要把 `rejected` 候选区作为低权重负例或错误分析样本，可显式加入：
+
+```powershell
+conda run -n osteo-vision python tools\build_keyframe_training_manifest_from_review.py --input <export_dir>\<case_id>_review_manifest.json --output-dir research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\review_feedback_20260705 --dataset-id review_feedback --input-domain reviewed_proxy_keyframe_non_target_domain --fluorescence-attribute proxy_or_unknown_fluorescence --review-states accepted,modified,rejected --accepted-weight 3.0 --modified-weight 4.0 --rejected-weight 0.5
+```
+
+训练脚本支持把原始 proxy manifest 与复核反馈 manifest 合并，并按 `sample_weight` 加权 loss：
+
+```powershell
+conda run -n osteo-vision python scripts\train_keyframe_segmentation_proxy.py --manifest research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705\keyframe_segmentation_proxy_manifest.csv research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\review_feedback_20260705\keyframe_training_manifest_from_review.csv --output-checkpoint artifacts\checkpoints\osteo_vision\keyframe_convnext2d_proxy.pt --image-shape 128x192 --max-train-batches 80 --batch-size 4 --base-channels 8 --learning-rate 0.001 --threshold 0.5 --device auto --report-stamp 20260705_review_feedback
+```
+
+进入下一轮训练前，需要确认样本已脱敏且复核来源可追溯；这些权重只代表复核可信度或错误分析优先级，不等同于真实术中 ICG 颌骨骨髓炎像素级医生标注。
 
 ## 使用 Makefile（推荐）
 
@@ -255,10 +291,10 @@ npm --prefix frontend run test:e2e
 conda run -n osteo-vision python tools\run_platform_smoke.py
 conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
 conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
-conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
+conda run -n osteo-vision python tools\run_competition_flow_demo_check.py
 ```
 
-`run_platform_smoke.py` 覆盖 JPEG/MP4 上传、分析 job、复核导出和 evidence bundle。`run_official_4k_pressure_smoke.py` 覆盖官方 4K JPEG/MP4 代理输入。`run_mp4_edge_case_smoke.py` 覆盖低分辨率 warning、坏签名 415 和不可解码 MP4 422。`run_competition_flow_acceptance.py` 是当前比赛演示主验收入口，会检查 4K JPEG 融合、4K MP4 关键帧分析、医生复核、导出格式和主线模型可用性。所有 smoke 视频均为合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+`run_platform_smoke.py` 覆盖 JPEG/MP4 上传、分析 job、复核导出和 evidence bundle。`run_official_4k_pressure_smoke.py` 覆盖官方 4K JPEG/MP4 代理输入。`run_mp4_edge_case_smoke.py` 覆盖低分辨率 warning、坏签名 415 和不可解码 MP4 422。`run_competition_flow_demo_check.py` 是当前比赛演示的赛题对齐自查入口，会检查 4K JPEG 融合、4K MP4 关键帧分析、医生复核、导出格式和主线模型可用性；它不是赛题方验收。所有 smoke 视频均为合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
 
 导出证据包字段见 [Export Schema V1](export_schema_v1.md)。
 

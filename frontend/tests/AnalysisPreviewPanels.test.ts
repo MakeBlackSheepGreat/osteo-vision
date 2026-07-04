@@ -14,7 +14,7 @@ import {
 } from "../src/components/analysisPreview";
 
 describe("analysis preview panels", () => {
-  it("prioritizes MP4 hotspot overlay and mask outputs over plain keyframes", () => {
+  it("prioritizes MP4 segmentation overlay and mask outputs over plain keyframes", () => {
     const run = {
       fused_outputs: {
         keyframes: [{ frame_index: 1, timestamp_sec: 0.1, path: "frame.jpg" }],
@@ -35,7 +35,7 @@ describe("analysis preview panels", () => {
     const panels = videoPreviewPanelsFromRun(run, (path) => `/preview?path=${path}`);
 
     expect(hotspotOutputsFromRun(run)).toHaveLength(1);
-    expect(panels.map((panel) => panel.title)).toEqual(["关键帧", "热点叠加", "热点掩膜"]);
+    expect(panels.map((panel) => panel.title)).toEqual(["关键帧", "分割叠加", "分割掩膜"]);
     expect(panels.map((panel) => panel.path)).toEqual(["evidence_frame.jpg", "hotspot_overlay.png", "hotspot_mask.png"]);
     expect(panels[1].previewSrc).toBe("/preview?path=hotspot_overlay.png");
 

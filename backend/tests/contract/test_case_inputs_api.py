@@ -312,13 +312,37 @@ def test_video_input_analysis_extracts_keyframes(tmp_path: Path, monkeypatch) ->
     assert Path(latest["fused_outputs"]["timeline_manifest_path"]).exists()
     assert latest["fused_outputs"]["timeline_summary"]["selected_frame_count"] == 3
     assert Path(latest["fused_outputs"]["frame_details_manifest_path"]).exists()
+    assert Path(latest["fused_outputs"]["video_segmentation_manifest_path"]).exists()
+    assert Path(latest["fused_outputs"]["segmentation_review_video_path"]).exists()
+    assert Path(latest["fused_outputs"]["mask_review_video_path"]).exists()
+    segmentation_manifest = json.loads(
+        Path(latest["fused_outputs"]["video_segmentation_manifest_path"]).read_text(encoding="utf-8")
+    )
+    assert segmentation_manifest["schema_version"] == "osteo-vision-video-segmentation-manifest-v1"
+    assert segmentation_manifest["summary"]["analysis_scope"] == "selected_mp4_keyframes"
+    assert segmentation_manifest["summary"]["temporal_stability"]["smoothing_applied_to_mask"] is False
+    assert segmentation_manifest["frames"][0]["segmentation_result"]["mask_path"]
+    assert segmentation_manifest["frames"][0]["segmentation_result"]["probability_path"]
+    assert segmentation_manifest["frames"][0]["fluorescence_overlay_result"]["overlay_path"]
+    assert segmentation_manifest["frames"][0]["spatial_mapping"]["source_coordinate_space"] == "source_video_pixels"
+    assert segmentation_manifest["frames"][0]["spatial_mapping"]["source_video_width"] == 80
+    assert segmentation_manifest["frames"][0]["candidate_result"]["top_component_bbox_source_xyxy"]
+    assert segmentation_manifest["frames"][0]["temporal_stability"]["smoothing_applied_to_mask"] is False
     frame_details = latest["fused_outputs"]["frame_details"]
     assert len(frame_details) == 3
     assert frame_details[0]["frame_key"]
     assert frame_details[0]["overlay_path"]
     assert frame_details[0]["top_component_bbox_xyxy"]
+    assert frame_details[0]["spatial_mapping"]["top_component_bbox_source_normalized"]["type"] == "rect"
+    assert frame_details[0]["temporal_stability"]["positive_area_fraction_smoothed"] >= 0
+    assert latest["fused_outputs"]["temporal_stability_summary"]["frame_count"] == 3
+    assert "hotspot_temporal_instability_frame_count" in latest["quantitative_summary"]
+    assert candidate["metadata"]["source_bbox_xyxy"]
+    assert candidate["metadata"]["spatial_mapping"]["source_video_height"] == 60
     assert Path(latest["fused_outputs"]["keyframes"][0]["evidence_path"]).exists()
     assert Path(latest["fused_outputs"]["hotspot_outputs"][0]["segmentation_mask"]["path"]).exists()
+    artifact_kinds = {artifact["kind"] for artifact in analyzed.json()["artifacts"]}
+    assert {"video_overlay", "video_mask", "video_segmentation_manifest", "probability_map"} <= artifact_kinds
 
     reviewed = client.patch(
         f"/cases/{case_id}/candidate-regions/{candidate['candidate_id']}",

@@ -122,8 +122,8 @@ export function videoPreviewPanelsFromRun(
     const timestamp = formatSeconds(selectedHotspot.timestamp_sec);
     const panels = [
       panelFromPath("关键帧", `帧序号: ${frameIndex}`, `时间: ${timestamp}`, "MP4", sourcePath, previewUrl),
-      panelFromPath("热点叠加", `帧序号: ${frameIndex}`, "候选区叠加预览", "mask + frame", overlayPath, previewUrl),
-      panelFromPath("热点掩膜", `帧序号: ${frameIndex}`, "二值 ROI 掩膜", "threshold", maskPath || pseudoColorPath, previewUrl),
+      panelFromPath("分割叠加", `帧序号: ${frameIndex}`, "荧光伪彩 + 分割候选", "mask + frame", overlayPath, previewUrl),
+      panelFromPath("分割掩膜", `帧序号: ${frameIndex}`, "二值 ROI 掩膜", "threshold", maskPath || pseudoColorPath, previewUrl),
     ];
     return panels.filter((item): item is AnalysisPreviewPanel => item !== null);
   }

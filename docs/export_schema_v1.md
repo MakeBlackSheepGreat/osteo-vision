@@ -59,14 +59,31 @@
 - `report_md`
 - `dicom_secondary_capture`
 - `quantification_csv`
+- `review_manifest_json`
+- `review_manifest_csv`
 - `bundle_manifest`
 - `evidence_bundle`
 - `overlay`
+- `video_overlay`
+- `video_mask`
+- `video_segmentation_manifest`
+- `probability_map`
 - `heatmap`
 - `normalized_fluorescence`
 - `colorbar`
 - `roi_mask`
 - `keyframe`
+
+其中 MP4 关键帧分割闭环会额外输出：
+
+- `video_segmentation_manifest`：记录源 MP4、抽取关键帧、每帧二值掩膜、概率图、伪彩/叠加图、候选区和医学边界。
+- `video_overlay`：由关键帧荧光伪彩叠加图串成的复核 MP4，便于快速浏览“分割 + 荧光叠加”效果。
+- `video_mask`：由关键帧二值 mask 串成的复核 MP4，便于检查模型/规则分割区域。
+
+`video_segmentation_manifest.frames[]` 还应保留：
+
+- `spatial_mapping`：mask/evidence/source video 的坐标空间、宽高、mask 到源视频坐标的缩放比例、源视频像素坐标 bbox 和归一化 bbox。
+- `temporal_stability`：三帧滑动统计、阳性面积波动、bbox 中心漂移和闪烁风险。该字段只用于复核稳定性提示，当前不会修改 mask。
 
 ## Bundle Manifest
 
@@ -79,6 +96,8 @@ ZIP 内的 `reports/{case_id}_bundle_manifest.json` 记录 evidence bundle 的�
 | `report_md` | string | Markdown 报告路径。 |
 | `dicom_secondary_capture` | string | DICOM SC 路径。 |
 | `quantification_csv` | string | CSV 路径。 |
+| `review_manifest_json` | string | 医生复核/候选区沉淀 manifest JSON 路径。 |
+| `review_manifest_csv` | string | 医生复核/候选区沉淀 manifest CSV 路径。 |
 | `included_artifacts` | array | 纳入 bundle 的病例 artifacts。 |
 | `disclaimer` | object | 研究原型免责声明和版本。 |
 
@@ -106,6 +125,29 @@ CSV 由 `backend/src/reports/quantification_csv.py` 写出。当前每个 analys
 
 后续若进入正式多 ROI 量化，应将每个 ROI 的指标拆成独立行，并补充 `roi_id`、`candidate_id`、`review_state` 和 reviewer 事件关联。
 
+## Review Manifest
+
+导出时会额外生成：
+
+- `{case_id}_review_manifest.json`
+- `{case_id}_review_manifest.csv`
+
+它们用于把 AI 候选区、医生 ROI 和复核事件沉淀为可追溯的训练反馈/错误分析材料。该 manifest 不是临床标注金标准；只有经过医生明确复核、脱敏和数据治理后，才可进入后续模型再训练。
+
+JSON 顶层字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `schema_version` | string | 当前为 `osteo-vision-review-manifest-v1`。 |
+| `case_id` | string | 病例 ID。 |
+| `training_use` | object | 是否可用于原型再训练、是否需要医生复核、非目标域风险说明。 |
+| `summary` | object | ROI、候选区、复核事件数量统计。 |
+| `candidates` | array | AI 候选区，包含 `candidate_id`、`run_id`、分数、帧索引、bbox、mask/overlay 路径和时序稳定性元数据。 |
+| `rois` | array | 医生或 AI 推广生成的 ROI，包含 `roi_id`、`candidate_id`、`geometry`、`label`、`review_state` 和指标。 |
+| `review_events` | array | 医生复核动作事件，包含动作、目标、前后状态、时间戳和备注。 |
+
+CSV 每行按 `record_type` 区分 `candidate_region`、`roi` 和 `review_event`，关键字段包括 `roi_id`、`candidate_id`、`review_state`、`label`、`frame_index`、`timestamp_sec`、`bbox_xyxy`、`geometry`、`mask_path`、`overlay_path` 和 `medical_boundary`。
+
 ## DICOM Boundary
 
 当前 `dicom_secondary_capture` 是 DICOM Secondary Capture：
@@ -116,7 +158,7 @@ CSV 由 `backend/src/reports/quantification_csv.py` 写出。当前每个 analys
 - 当前不是 DICOM Structured Report，也不是 DICOM SEG。
 - 不承载临床诊断、分割标签标准编码或 PACS 级互操作承诺。
 
-下一阶段若要增强赛点三，应新增：
+下一阶段若要把标准化输出作为扩展亮点，应新增：
 
 - DICOM SR 字段映射草案。
 - DICOM SEG mask 映射草案。

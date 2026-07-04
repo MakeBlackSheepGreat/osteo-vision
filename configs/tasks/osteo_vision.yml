@@ -69,6 +69,11 @@ recommended_models:
     task_types: [segmentation]
     input_types: [2d_image]
     priority: 8
+  - model_id: convnext2d_keyframe_proxy_segmenter
+    family: convnext2d_keyframe_segmenter
+    task_types: [segmentation]
+    input_types: [2d_image]
+    priority: 7
   - model_id: d025_lesion_smoke_segmenter
     family: d025_lesion_segmenter
     task_types: [segmentation]

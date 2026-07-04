@@ -74,7 +74,7 @@ OFDVDnet `data.zip` 已下载，但尚未解压、三视图拆分、抽帧、建
 
 `paper_inventory.csv` 的 60 条旧论文现在只保留链接，不再声称本地 PDF 已落地；项目内实际可读资料目前只有 `local_paper_assets_20260703.csv` 记录的 5 个 PDF 和 3 个 HTML。后续正式报告引用必须优先基于真实存在的 PDF/HTML，旧清单需要按优先级重新下载或剔除。
 
-### P1：赛点三仍是雏形
+### P1：扩展输出能力仍是雏形
 
 当前可以导出结构化 JSON、Markdown 报告和证据文件，但 DICOM Secondary Capture、DICOM SR、远程协作/会诊仍停留在规划层。比赛方案里可以写扩展雏形，不能写成已完整实现。
 
@@ -89,7 +89,7 @@ OFDVDnet `data.zip` 已下载，但尚未解压、三视图拆分、抽帧、建
 3. 解压并整理 OFDVDnet，生成 reference/fluorescence/overlay 三视图 manifest，用于赛点一。
 4. 在 D025 上优先跑病灶代理模型基线；D024/D036 作为解剖先验，不把 anatomy Dice 写成骨髓炎性能。
 5. 补论文：以 `local_paper_assets_20260703.csv` 为当前真实资料基线，优先补下载旧清单中仍有价值的 PDF。
-6. 赛点三先完成结构化证据包，再开发 DICOM SC/SR 或远程协作雏形。
+6. 扩展输出能力先完成结构化证据包，再开发 DICOM SC/SR 或远程协作雏形；不得把该项当作完整赛题原文的核心答题要求。
 
 ## 5. 表述边界
 

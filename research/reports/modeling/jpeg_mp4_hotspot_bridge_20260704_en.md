@@ -46,7 +46,7 @@ Verified under the real config:
 
 ### MP4 / Keyframes
 
-MP4 analysis now extracts keyframes and runs hotspot segmentation on each keyframe. The result is recorded in:
+MP4 analysis now extracts keyframes, runs hotspot segmentation on each keyframe, and writes the competition-facing "segmentation result + fluorescence overlay result" contract:
 
 - `fused_outputs.hotspot_outputs`
 - `quantitative_summary.hotspot_frame_count`
@@ -54,6 +54,16 @@ MP4 analysis now extracts keyframes and runs hotspot segmentation on each keyfra
 - `quantitative_summary.hotspot_max_positive_area_fraction`
 - `candidate_regions` as `video_keyframe_hotspot`
 - ROI mask / heatmap / overlay artifacts
+- `fused_outputs.video_segmentation_manifest_path`
+- `fused_outputs.segmentation_review_video_path`
+- `fused_outputs.mask_review_video_path`
+- `fused_outputs.temporal_stability_summary`
+- exported `video_segmentation_manifest` / `video_overlay` / `video_mask` artifacts
+
+The MP4 manifest now also records two engineering metadata groups:
+
+- 4K coordinate remapping: each frame-level `spatial_mapping` records mask/evidence/source-video dimensions, mask-to-source scaling, `top_component_bbox_source_xyxy`, and normalized source coordinates for future patch-based 4K inference and physician ROI review.
+- Temporal stability: each frame-level `temporal_stability` and the run-level `temporal_stability_summary` record three-frame moving statistics, bounding-box center drift, and flicker risk. These fields are review metadata only; they do not alter binary masks and are not diagnostic.
 
 ## Medical Boundary
 
@@ -63,4 +73,4 @@ This bridge uses intensity enhancement, thresholding, and connected-component an
 
 1. Use the OFDVDnet baseline manifest to generate more JPEG/frame-sequence inputs and analyze threshold stability.
 2. Use hotspot candidates as prompts for MedSAM or a more formal 2D segmentation adapter.
-3. Upgrade the frontend MP4 result panel from keyframes only to keyframes plus masks, candidates, and quantification.
+3. When replacing the heuristic keyframe segmenter with a trainable 2D model, keep the same output contract: `mask_path`, `overlay_path`, `video_segmentation_manifest_path`, `segmentation_review_video_path`, `spatial_mapping`, and `temporal_stability_summary`.

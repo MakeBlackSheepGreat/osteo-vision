@@ -1,9 +1,10 @@
-"""Run the competition demo acceptance flow end to end.
+"""Run the competition demo alignment check end to end.
 
 This script intentionally uses the real FastAPI routes through TestClient. It
 creates proxy official-device 4K JPEG/MP4 inputs, runs fusion and keyframe
 analysis, records a physician-review event, exports the evidence bundle, and
-writes a compact auditable summary.
+writes a compact auditable summary. It is an internal engineering check aligned
+to the official technical document, not an official competition acceptance.
 """
 
 from __future__ import annotations
@@ -31,8 +32,8 @@ DISCLAIMER_TEXT = "Research prototype only; not a clinical diagnosis and physici
 T = TypeVar("T")
 
 
-def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
-    output_dir = Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"competition_acceptance_{timestamp()}"
+def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
+    output_dir = Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"competition_demo_check_{timestamp()}"
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
     os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")
@@ -81,9 +82,9 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
             client.post(
                 "/cases",
                 json={
-                    "title": "competition acceptance demo",
+                    "title": "competition demo alignment check",
                     "metadata": {
-                        "purpose": "competition_flow_acceptance",
+                        "purpose": "competition_flow_demo_check",
                         "input_domain": "synthetic_proxy_not_real_patient_data",
                     },
                 },
@@ -201,12 +202,16 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
         "evidence_bundle",
         "overlay",
         "heatmap",
+        "probability_map",
         "roi_mask",
         "keyframe",
+        "video_overlay",
+        "video_mask",
+        "video_segmentation_manifest",
     }
     formats = set((export_payload.get("summary") or {}).get("formats") or [])
     available_models = available_model_ids(model_inventory)
-    acceptance = {
+    demo_check = {
         "jpeg_fusion_completed": (fusion_run or {}).get("status") == "completed",
         "mp4_analysis_completed": (video_run or {}).get("status") == "completed",
         "physician_review_recorded": bool(review_result.get("review_event_count", 0) >= 1 and review_result.get("roi_count", 0) >= 1),
@@ -215,23 +220,24 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
         "missing_required_formats": sorted(required_formats - formats),
         "mainline_models_available": all(
             model_id in available_models
-            for model_id in ["convnext3d_d025_proxy_segmenter", "fluorescence_hotspot_2d_segmenter"]
+            for model_id in ["convnext3d_d025_proxy_segmenter", "convnext2d_keyframe_proxy_segmenter"]
         ),
         "clinical_claim_allowed": False,
         "non_target_domain_disclosed": True,
+        "not_official_competition_acceptance": True,
     }
-    acceptance["pass"] = (
-        acceptance["jpeg_fusion_completed"]
-        and acceptance["mp4_analysis_completed"]
-        and acceptance["physician_review_recorded"]
-        and acceptance["bundle_exists"]
-        and not acceptance["missing_required_formats"]
-        and acceptance["mainline_models_available"]
-        and acceptance["non_target_domain_disclosed"]
+    demo_check["pass"] = (
+        demo_check["jpeg_fusion_completed"]
+        and demo_check["mp4_analysis_completed"]
+        and demo_check["physician_review_recorded"]
+        and demo_check["bundle_exists"]
+        and not demo_check["missing_required_formats"]
+        and demo_check["mainline_models_available"]
+        and demo_check["non_target_domain_disclosed"]
     )
 
     summary = {
-        "schema_version": "osteo-vision-competition-flow-acceptance-v1",
+        "schema_version": "osteo-vision-competition-flow-demo-check-v1",
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "case_id": case_id,
         "output_dir": str(output_dir),
@@ -256,7 +262,8 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
         "models": {
             "available_model_ids": sorted(available_models),
             "mainline_npz_roi_model": "convnext3d_d025_proxy_segmenter",
-            "mainline_2d_keyframe_model": "fluorescence_hotspot_2d_segmenter",
+            "mainline_2d_keyframe_model": "convnext2d_keyframe_proxy_segmenter",
+            "fallback_2d_keyframe_model": "fluorescence_hotspot_2d_segmenter",
             "segresnetds_status": "trained comparison baseline only; not wired into mainline runtime config",
             "inventory": model_inventory,
         },
@@ -274,13 +281,13 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
         "review": review_result,
         "export": {
             "bundle_path": export_payload.get("bundle_path"),
-            "bundle_exists": acceptance["bundle_exists"],
+            "bundle_exists": demo_check["bundle_exists"],
             "report_path": export_payload.get("report_path"),
             "manifest_path": export_payload.get("manifest_path"),
             "dicom_path": export_payload.get("dicom_path"),
             "summary": export_payload.get("summary", {}),
         },
-        "acceptance": acceptance,
+        "demo_check": demo_check,
         "timings": timings,
         "medical_boundary": {
             "disclaimer": DISCLAIMER_TEXT,
@@ -289,8 +296,8 @@ def run_acceptance(args: argparse.Namespace) -> dict[str, Any]:
             "clinical_claim_allowed": False,
         },
     }
-    summary_path = output_dir / "competition_flow_acceptance_summary.json"
-    report_path = output_dir / "competition_flow_acceptance_report.md"
+    summary_path = output_dir / "competition_flow_demo_check_summary.json"
+    report_path = output_dir / "competition_flow_demo_check_report.md"
     summary["summary_path"] = str(summary_path)
     summary["report_path"] = str(report_path)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -401,7 +408,7 @@ def review_first_candidate(client: TestClient, case: dict[str, Any]) -> dict[str
                 "review_state": "accepted",
                 "geometry": geometry,
                 "label": "physician_confirmed_proxy_hotspot",
-                "reviewer_notes": "Competition acceptance smoke: candidate accepted for demo workflow evidence.",
+                "reviewer_notes": "Competition demo check: candidate accepted for demo workflow evidence.",
             },
         )
     )
@@ -415,7 +422,7 @@ def review_first_candidate(client: TestClient, case: dict[str, Any]) -> dict[str
                 "target_id": roi_id,
                 "before_state": "review_required",
                 "after_state": "accepted",
-                "notes": "Competition acceptance smoke physician-review event.",
+                "notes": "Competition demo check physician-review event.",
             },
         )
     )
@@ -473,6 +480,9 @@ def run_record(run: dict[str, Any] | None) -> dict[str, Any]:
         "overlay_path": (outputs.get("outputs") or {}).get("overlay_path"),
         "timeline_manifest_path": outputs.get("timeline_manifest_path"),
         "frame_details_manifest_path": outputs.get("frame_details_manifest_path"),
+        "video_segmentation_manifest_path": outputs.get("video_segmentation_manifest_path"),
+        "segmentation_review_video_path": outputs.get("segmentation_review_video_path"),
+        "mask_review_video_path": outputs.get("mask_review_video_path"),
         "warnings": run.get("warnings") or [],
     }
 
@@ -534,15 +544,15 @@ def trim_job(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def render_report(summary: dict[str, Any]) -> str:
-    acceptance = summary["acceptance"]
+    demo_check = summary["demo_check"]
     export_summary = summary["export"].get("summary") or {}
     analysis = summary["analysis"]
     lines = [
-        "# Osteo Vision Competition Flow Acceptance Report",
+        "# Osteo Vision Competition Flow Demo Check Report",
         "",
         "## Verdict",
         "",
-        f"- Pass: `{acceptance['pass']}`",
+        f"- Pass: `{demo_check['pass']}`",
         f"- Case ID: `{summary['case_id']}`",
         f"- Evidence bundle: `{summary['export'].get('bundle_path')}`",
         f"- Report JSON: `{summary['export'].get('report_path')}`",
@@ -553,6 +563,8 @@ def render_report(summary: dict[str, Any]) -> str:
         f"- 4K JPEG dual-channel fusion status: `{analysis['fusion_run'].get('status')}`",
         f"- 4K MP4 keyframe analysis status: `{analysis['video_run'].get('status')}`",
         f"- Keyframes extracted: `{analysis['video_run'].get('keyframes_extracted')}`",
+        f"- Segmentation manifest: `{analysis['video_run'].get('video_segmentation_manifest_path')}`",
+        f"- Segmentation overlay video: `{analysis['video_run'].get('segmentation_review_video_path')}`",
         f"- Candidate regions reviewed: `{summary['review'].get('review_event_count')}` review event(s), `{summary['review'].get('roi_count')}` ROI(s)",
         f"- Export formats: `{', '.join(export_summary.get('formats') or [])}`",
         "",
@@ -562,11 +574,12 @@ def render_report(summary: dict[str, Any]) -> str:
         f"- Mainline 2D/keyframe model: `{summary['models']['mainline_2d_keyframe_model']}`",
         f"- SegResNetDS: {summary['models']['segresnetds_status']}",
         "",
-        "## Acceptance Checks",
+        "## Demo Checks",
         "",
-        f"- Missing required formats: `{', '.join(acceptance['missing_required_formats']) or 'none'}`",
-        f"- Mainline models available: `{acceptance['mainline_models_available']}`",
-        f"- Non-target-domain disclosure included: `{acceptance['non_target_domain_disclosed']}`",
+        f"- Missing required formats: `{', '.join(demo_check['missing_required_formats']) or 'none'}`",
+        f"- Mainline models available: `{demo_check['mainline_models_available']}`",
+        f"- Non-target-domain disclosure included: `{demo_check['non_target_domain_disclosed']}`",
+        f"- Official competition acceptance: `{not demo_check['not_official_competition_acceptance']}`",
         "",
         "## Medical Boundary",
         "",
@@ -591,8 +604,8 @@ def timestamp() -> str:
 
 
 def main() -> int:
-    summary = run_acceptance(parse_args())
-    return 0 if summary.get("acceptance", {}).get("pass") else 1
+    summary = run_demo_check(parse_args())
+    return 0 if summary.get("demo_check", {}).get("pass") else 1
 
 
 if __name__ == "__main__":

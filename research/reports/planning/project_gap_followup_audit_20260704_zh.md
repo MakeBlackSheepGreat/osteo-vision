@@ -4,6 +4,12 @@
 
 本轮按当前约束处理：真实项目病例、真实术中白光/ICG MP4/JPEG、医生关键帧/ROI 标注暂时做不了，继续作为外部数据依赖和一级风险记录；本报告只列其他仍能推进、修复或验证的缺口。
 
+## 2026-07-04 后续更新：2D keyframe 分割模型已接入
+
+本报告早期段落中多处写到“MP4/JPEG 关键帧仍只有 hotspot baseline”。该判断在后续实现后已经更新：当前 `configs/inference/osteo_vision.yml` 已新增 `convnext2d_keyframe_proxy_segmenter`，`backend/src/services/analysis_service.py` 的 MP4 keyframe 分析会优先调用该可训练 PyTorch adapter，输出 `png_binary_mask`、probability、pseudo-color、overlay、候选连通区和量化结果；模型不可用时才回退到 `fluorescence_hotspot_2d_segmenter`。
+
+当前边界不变：该 2D 模型使用合成/伪标注荧光代理帧训练，属于工程闭环代理模型，不代表真实术中 ICG 颌骨骨髓炎目标域性能。
+
 ## 0. 当前可推进缺口总表
 
 本节用于快速决策，刻意排除“真实项目病例”和“医生关键帧/ROI 标注”这两个当前外部不可控前置项。
@@ -16,8 +22,8 @@
 | 视频关键帧 | 关键帧抽取已从单一 uniform sampling 升级为默认 `quality_peak`，已支持上传预抽帧复用、候选帧 trace、轻量重复帧去重、`timeline_manifest.json`、当前帧详情和当前帧单帧重算；仍不等同医生关键帧。 | P1 | 下一步做真实/代理 4K 长视频压力测试、真实逐帧进度和更完整的时间轴详情抽屉。 |
 | 荧光融合 | 双通道融合仍是 resize + 归一化 + alpha blend；ROI 约束量化已接入，但缺真正配准、背景扣除、颜色标尺和时序峰值分析。 | P0 | 先做可解释的 V2 融合报告，再做配准算法和颜色标尺。 |
 | ROI 交互 | `RoiCanvas` 已从占位升级为可保存的矩形 ROI 画布，并能写入病例 `rois` 与复核事件；已保存 ROI 会作为 `roi_hints` 进入后续分析，约束双通道融合 ROI 量化、候选区评分和 MP4 hotspot 候选筛选。 | P1 | 下一步把 ROI 继续接入关键帧选择、promptable model 和更完整的人工编辑历史。 |
-| 模型主线 | 可用模型仍是 D025/ConvNeXt3D 代理和 2D hotspot baseline；已补模型 checkpoint manifest，但 nnU-Net、MedSAM、BiomedCLIP 未真正可用。 | P0 | 固定一个可训练主线：ConvNeXt/MedNeXt 或 nnU-Net，继续补正式训练、失败样本和实验对比表。 |
-| MP4 AI 结果 | MP4 已能输出 hotspot、展示关键帧热点时间轴，把 top hotspot bbox 写入候选 metadata，医生复核页可一键转为 AI ROI，并已支持在 ROI 画布中编辑候选 bbox 后写回复核事件；工作台预览图可叠加 ROI/候选框；热点时间轴已支持点击切换四宫格当前帧、条件筛选、当前帧详情、timeline manifest 摘要和当前帧单帧重算。 | P0 | 继续补完整时间轴详情抽屉、真实训练模型和 4K 压力证据。 |
+| 模型主线 | 可用模型包括 D025/ConvNeXt3D CBCT ROI 代理、`convnext2d_keyframe_proxy_segmenter` 训练型 keyframe 代理分割、hotspot 回退、MedSAM-like prompt fallback 和 fixture；nnU-Net、BiomedCLIP 仍未真正可用。 | P0 | 继续补正式目标域/近域数据、失败样本和实验对比表；nnU-Net/DynUNet 作为下一阶段 3D 基线。 |
+| MP4 AI 结果 | MP4 已能抽关键帧并优先调用 2D ConvNeXt-style 代理分割模型，输出 mask、probability、伪彩、overlay、video segmentation manifest、overlay/mask review MP4、候选 metadata 和医生复核 ROI；模型不可用时回退 hotspot baseline。 | P0 | 继续补完整时间轴详情抽屉、真实训练模型、真实/代理 4K 长视频压力证据和更稳定的失败态报告。 |
 | 前端评审体验 | 公开视频候选已具备详情卡、来源链接、数据边界、关键帧缩略图、视频规格、荧光/非荧光筛选、训练用途筛选和独立视频库页；Playwright 浏览器级闭环已覆盖建病例、双通道分析、候选区接受、ROI 复核、导出、MP4 上传分析、热点时间轴筛选/点击切换、公开视频导入、移动端工作台和全屏分析截图。剩余缺口是批量预览/导入、失败态截图和可交付操作录像。 | P2 | 增加批量预览/导入、失败态截图和演示录像。 |
 | 导出规范 | 当前是 evidence bundle + Secondary Capture 雏形，不是正式 DICOM SR，也缺稳定 schema 文档。 | P1 | 固定 bundle schema v1，后续再做 DICOM SR。 |
 | 数据治理 | 视频库和 OFDVDnet 可支撑代理实验，但目标域边界很强；论文 PDF 证据链不完整。 | P1 | 把每个数据源标注为目标域/非目标域/仅演示/可训练。 |
@@ -1187,7 +1193,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 | B-05 | 病例仓库仍是整条 JSON payload 存 SQLite。 | `backend/src/domains/cases/repository.py` 有 version 乐观锁，但 ROI/run/artifact/review event 未拆表。 | 阶段性可用；正式协作前拆子表或补冲突合并流程。 |
 | B-06 | API 错误对前端不够友好。 | 后端 409/429/415 有 detail，但 `frontend/src/utils/caseDisplay.ts` 只显示 `接口请求失败，状态码 xxx`。 | 解析 `ApiError.body.detail.message` 并映射中文可操作提示。 |
 | B-07 | 文件下载/预览没有远程协作权限模型。 | `backend/src/api/files.py` 限制 artifact root 和后缀，但没有 token、审计、一次性链接。 | 单机 Demo 可接受；远程会诊前补 token 与下载日志。 |
-| B-08 | DICOM 只做到 Secondary Capture。 | `backend/src/services/export_service.py` 输出 `dicom_secondary_capture`，不是 DICOM SR/SEG。 | 赛点三短期保留结构化 JSON/CSV + Secondary Capture；下一阶段补 DICOM SR/SEG。 |
+| B-08 | DICOM 只做到 Secondary Capture。 | `backend/src/services/export_service.py` 输出 `dicom_secondary_capture`，不是 DICOM SR/SEG。 | 扩展输出能力短期保留结构化 JSON/CSV + Secondary Capture；下一阶段补 DICOM SR/SEG，但不得替代造影剂、融合处理和 AI 判读三项核心答题要求。 |
 | B-09 | 图像质量判断仍偏粗。 | `src/preprocess/image_quality.py` 主要做文件存在、空文件、视频可解码；JPEG 质量主要检查官方 profile。 | 补过曝、欠曝、模糊、弱荧光、通道错配的可量化质量分级。 |
 
 ### 24.5 前端代码缺口
@@ -1325,7 +1331,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 | P1 | 上传和任务队列仍是本地原型级。 | `backend/src/api/uploads.py` 整文件流式写入，MP4 上限 1GB；`backend/src/services/job_service.py` 使用 JSON registry。 | 长视频并发、断点续传、跨进程任务可靠性不足。 | 先补失败码和进度面板；随后改分片上传、SQLite job queue 或正式后台队列。 |
 | P1 | 前端分析查看深度不够。 | timeline summary、trace、筛选已有；colorbar 已进 artifact/export，但主界面未作为独立查看卡片展示。 | 演示可看，但评审深挖算法证据时信息不够顺手。 | 在分析面板显示荧光色标、V2 配准/背景扣除元数据、完整 frame detail 抽屉和 artifact 快速预览。 |
 | P1 | 医生复核交互还停在矩形重画。 | `RoiCanvas` 能保存 ROI、候选框能回写 geometry，但没有角点 handle、边线拖拽和修改前后对比。 | 可完成闭环，但不像成熟审阅工作台。 | 补 bbox handle 编辑、before/after 对比和复核事件可视化。 |
-| P1 | 证据导出还不是完整 DICOM 标准方案。 | 目前导出含 JSON/CSV/Markdown/ZIP 和 `dicom_secondary_capture`。 | 赛点三能交代雏形，但还不能说 DICOM SR/SEG 完整实现。 | 短期写清 Secondary Capture 边界；中期补 DICOM SR/SEG schema 和兼容说明。 |
+| P1 | 证据导出还不是完整 DICOM 标准方案。 | 目前导出含 JSON/CSV/Markdown/ZIP 和 `dicom_secondary_capture`。 | 可作为扩展输出雏形，但还不能说 DICOM SR/SEG 完整实现，也不能写成完整赛题原文核心赛点。 | 短期写清 Secondary Capture 边界；中期补 DICOM SR/SEG schema 和兼容说明。 |
 | P1 | 版本治理未冻结。 | `git status --short` 仍有大量 modified/untracked 文件。 | 后续 review、提交、答辩版本和回滚风险高。 | 按后端平台、前端工作台、模型/数据、报告/文献四组拆分 review 与提交。 |
 
 ### 27.3 后端代码剩余问题

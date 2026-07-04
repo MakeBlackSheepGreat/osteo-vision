@@ -37,6 +37,7 @@ def build_model_checkpoint_manifest(config_path: str | Path) -> dict[str, Any]:
                 "enabled": spec.get("enabled"),
                 "available": status.get("available"),
                 "status_reasons": status.get("reasons") or [],
+                "status_warnings": status.get("warnings") or [],
                 "task_types": spec.get("task_types") or [],
                 "input_types": spec.get("input_types") or [],
                 "checkpoint": checkpoint,
@@ -109,7 +110,7 @@ def render_manifest_report(payload: dict[str, Any], *, language: str) -> str:
             "",
             "## 边界",
             "",
-            "当前可用模型仍以 CBCT ROI 代理和 2D 荧光热点启发式为主，不得写成真实术中 ICG 颌骨骨髓炎临床性能。该 manifest 只用于说明工程链路、checkpoint 来源、可用性和缺失项。",
+            "当前可用模型包括 CBCT ROI 代理、可训练 2D keyframe 代理分割、2D 荧光热点回退和 MedSAM-like prompt fallback。所有 2D/3D 分割结果仍是合成、伪标注或非目标域工程证据，不得写成真实术中 ICG 颌骨骨髓炎临床性能或真实 MedSAM2 checkpoint 推理性能。该 manifest 只用于说明工程链路、checkpoint 来源、可用性和缺失项。",
         ]
     else:
         lines = [
@@ -132,7 +133,7 @@ def render_manifest_report(payload: dict[str, Any], *, language: str) -> str:
             "",
             "## Boundary",
             "",
-            "The currently available models are CBCT ROI proxy and 2D fluorescence hotspot heuristic baselines. They must not be reported as real intraoperative ICG jaw osteomyelitis clinical performance. This manifest documents engineering readiness, checkpoint provenance, availability, and gaps.",
+            "The currently available models include a CBCT ROI proxy, trainable 2D keyframe proxy segmentation, 2D fluorescence hotspot fallback, and MedSAM-like prompt fallback. All 2D/3D segmentation results are still synthetic, pseudo-labeled, or non-target-domain engineering evidence. They must not be reported as real intraoperative ICG jaw osteomyelitis clinical performance or real MedSAM2 checkpoint inference. This manifest documents engineering readiness, checkpoint provenance, availability, and gaps.",
         ]
     return "\n".join(lines) + "\n"
 
@@ -198,6 +199,10 @@ def _medical_boundary(spec: dict[str, Any]) -> str:
         return "D025 CBCT lesion ROI proxy; not target-domain intraoperative ICG jaw osteomyelitis evidence."
     if family == "fluorescence_hotspot_segmenter":
         return "Heuristic 2D fluorescence hotspot baseline; not trained target-domain diagnosis."
+    if family == "convnext2d_keyframe_segmenter":
+        return "Trainable 2D JPEG/MP4 keyframe proxy segmenter; synthetic or pseudo-labeled non-target-domain evidence."
+    if family == "medsam_like":
+        return "Prompt-contract fallback if enabled; not real MedSAM/SAM2 checkpoint inference or target-domain diagnosis."
     if family == "fixture":
         return "Deterministic fixture fallback for tests and demos only."
     return "Configured candidate model; availability depends on adapter implementation, dependencies, and weights."
@@ -228,14 +233,21 @@ def _model_lines(rows: list[dict[str, Any]], *, language: str) -> list[str]:
     for row in rows:
         checkpoint = row.get("checkpoint") or {}
         reasons = row.get("status_reasons") or []
+        warnings = row.get("status_warnings") or []
         reasons_text = "; ".join(str(item) for item in reasons) if reasons else ("无" if language == "zh" else "none")
+        warning_codes = [
+            str(item.get("code"))
+            for item in warnings
+            if isinstance(item, dict) and item.get("code")
+        ]
+        warnings_text = "; ".join(warning_codes) if warning_codes else ("无" if language == "zh" else "none")
         if language == "zh":
             lines.append(
-                f"- `{row.get('model_id')}` / `{row.get('family')}`：checkpoint 存在={checkpoint.get('exists')}；临床声明={row.get('clinical_claim_allowed')}；原因：{reasons_text}。"
+                f"- `{row.get('model_id')}` / `{row.get('family')}`：checkpoint 存在={checkpoint.get('exists')}；临床声明={row.get('clinical_claim_allowed')}；原因：{reasons_text}；warning：{warnings_text}。"
             )
         else:
             lines.append(
-                f"- `{row.get('model_id')}` / `{row.get('family')}`: checkpoint exists={checkpoint.get('exists')}; clinical claim={row.get('clinical_claim_allowed')}; reasons: {reasons_text}."
+                f"- `{row.get('model_id')}` / `{row.get('family')}`: checkpoint exists={checkpoint.get('exists')}; clinical claim={row.get('clinical_claim_allowed')}; reasons: {reasons_text}; warnings: {warnings_text}."
             )
     return lines
 
@@ -254,6 +266,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "manifest_model_id_matches",
         "clinical_claim_allowed",
         "status_reasons",
+        "status_warnings",
         "medical_boundary",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -275,6 +288,11 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                     "manifest_model_id_matches": row.get("manifest_model_id_matches"),
                     "clinical_claim_allowed": row.get("clinical_claim_allowed"),
                     "status_reasons": "; ".join(str(item) for item in row.get("status_reasons") or []),
+                    "status_warnings": "; ".join(
+                        str(item.get("code"))
+                        for item in row.get("status_warnings") or []
+                        if isinstance(item, dict) and item.get("code")
+                    ),
                     "medical_boundary": row.get("medical_boundary"),
                 }
             )

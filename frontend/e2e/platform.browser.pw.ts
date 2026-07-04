@@ -74,8 +74,8 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
 
   await page.getByLabel("关键时间点（秒）").fill("0, 0.2, 0.4");
   await page.getByRole("button", { name: "MP4关键帧" }).click();
-  await expect(page.getByText(/MP4 分析完成，已抽取 [1-9]\d* 帧，生成 [1-9]\d* 个热点候选区。/)).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByText("MP4 热点时间轴")).toBeVisible();
+  await expect(page.getByText(/MP4 分割分析完成，已抽取 [1-9]\d* 帧，生成 [1-9]\d* 个候选区。/)).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText("MP4 分割时间轴")).toBeVisible();
   await expect(page.getByLabel("时间轴 Manifest")).toContainText("全时长低频索引");
   await expect(page.getByLabel("时间轴 Manifest")).toContainText("候选 Trace");
   await expect(page.locator(".hotspot-timeline-item").first()).toBeVisible();

@@ -124,7 +124,77 @@ class NnUNetV2Adapter(BaseModelAdapter):
 
 
 class MedSAMLikeAdapter(BaseModelAdapter):
-    pass
+    implements_inference = True
+
+    def warmup(self) -> AdapterStatus:
+        if self.spec.extra.get("prompt_fallback_enabled"):
+            warnings: list[dict[str, Any]] = []
+            if self.spec.checkpoint_path and not Path(self.spec.checkpoint_path).exists():
+                warnings.append(
+                    warning(
+                        "medsam_checkpoint_missing_prompt_fallback",
+                        (
+                            f"Missing checkpoint for {self.spec.model_id}; using deterministic prompt-contract "
+                            "fallback instead of real MedSAM/SAM2 inference."
+                        ),
+                    )
+                )
+            return AdapterStatus(
+                model_id=self.spec.model_id,
+                family=self.spec.family,
+                available=self.spec.enabled,
+                enabled=self.spec.enabled,
+                warnings=warnings,
+            )
+        return super().warmup()
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        if request.input_type != "2d_image":
+            unsupported_warning = warning(
+                "unsupported_input_for_medsam_prompt_fallback",
+                f"Model {self.spec.model_id} currently supports only 2d_image prompt fallback inputs.",
+                True,
+            )
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "unsupported input for MedSAM-like prompt fallback"},
+                warnings=status.warnings + [unsupported_warning],
+            )
+        from src.core.paths import resolve_path
+        from src.models.prompt_segmenter import segment_2d_prompt_mask
+
+        payload = segment_2d_prompt_mask(
+            request.input_path,
+            output_dir=resolve_path(
+                self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/prompt_masks")
+            ),
+            case_id=request.case_id,
+            model_id=self.spec.model_id,
+            prompts=list(request.metadata.get("prompts") or request.metadata.get("prompt_hints") or []),
+            roi_hints=list(request.metadata.get("roi_hints") or []),
+            point_radius_px=int(self.spec.extra.get("point_radius_px", 12)),
+        )
+        boundary_warning = warning(
+            "medsam_like_prompt_fallback_non_diagnostic",
+            (
+                "MedSAM-like prompt fallback is a deterministic bbox/point mask contract for annotation workflow; "
+                "it is not real MedSAM/SAM2 checkpoint inference and is not diagnostic."
+            ),
+        )
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload["prediction"],
+            score=payload["score"],
+            segmentation_mask=payload["segmentation_mask"],
+            lesion_evidence=payload["lesion_evidence"],
+            quantification=payload["quantification"],
+            warnings=status.warnings + [boundary_warning],
+        )
 
 
 class D025LesionSegmenterAdapter(BaseModelAdapter):
@@ -262,6 +332,81 @@ class FluorescenceHotspotSegmenterAdapter(BaseModelAdapter):
         )
 
 
+class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        if request.input_type != "2d_image":
+            unsupported_warning = warning(
+                "unsupported_input_for_keyframe_segmenter",
+                f"Model {self.spec.model_id} only supports 2d_image inputs in this prototype.",
+                True,
+            )
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "unsupported input for keyframe segmenter"},
+                warnings=status.warnings + [unsupported_warning],
+            )
+        if self._model is None:
+            self._load_model()
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import predict_keyframe_image, select_torch_device
+
+        assert self._model is not None
+        payload = predict_keyframe_image(
+            self._model,
+            request.input_path,
+            device=select_torch_device(self.spec.device_policy),
+            output_dir=resolve_path(
+                self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/keyframe_model_masks")
+            ),
+            case_id=request.case_id,
+            threshold=float(self.spec.extra.get("threshold", 0.5)),
+            model_id=self.spec.model_id,
+            tile_size=_optional_int(self.spec.extra.get("tile_size")),
+            tile_overlap=int(self.spec.extra.get("tile_overlap", 64)),
+            force_tiled=bool(self.spec.extra.get("force_tiled", False)),
+            max_whole_pixels=int(self.spec.extra.get("max_whole_pixels", 1024 * 1024)),
+        )
+        boundary_warning = warning(
+            "convnext2d_keyframe_proxy_non_target_domain",
+            (
+                "Trainable 2D keyframe segmenter is trained on synthetic or pseudo-labeled fluorescence proxy frames; "
+                "it is not real intraoperative ICG jaw osteomyelitis clinical evidence."
+            ),
+        )
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload["prediction"],
+            score=payload["score"],
+            segmentation_mask=payload["segmentation_mask"],
+            lesion_evidence=payload["lesion_evidence"],
+            quantification=payload["quantification"],
+            warnings=[boundary_warning],
+        )
+
+    def _load_model(self) -> None:
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import load_keyframe_segmenter_checkpoint, select_torch_device
+
+        self._model, self._metadata = load_keyframe_segmenter_checkpoint(
+            resolve_path(self.spec.checkpoint_path),
+            device=select_torch_device(self.spec.device_policy),
+        )
+
+
 class Vista3DLikeAdapter(BaseModelAdapter):
     pass
 
@@ -279,6 +424,7 @@ ADAPTER_CLASSES = {
     "d025_lesion_segmenter": D025LesionSegmenterAdapter,
     "convnext3d_segmenter": ConvNeXt3DLesionSegmenterAdapter,
     "fluorescence_hotspot_segmenter": FluorescenceHotspotSegmenterAdapter,
+    "convnext2d_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
     "vista3d_like": Vista3DLikeAdapter,
     "vlm_encoder": VLMEncoderAdapter,
 }
@@ -365,3 +511,9 @@ def _risk_level(probability: float) -> str:
     if probability >= 0.33:
         return "medium"
     return "low"
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)

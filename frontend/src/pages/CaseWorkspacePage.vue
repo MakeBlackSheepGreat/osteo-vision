@@ -530,7 +530,7 @@ async function runVideoFileAnalysis() {
   const count = countLabel(latest?.quantitative_summary?.keyframes_extracted);
   const hotspotCount = countLabel(latest?.quantitative_summary?.hotspot_candidate_count);
   setOperationMessage(
-    store.error || `MP4 分析完成，已抽取 ${count} 帧，生成 ${hotspotCount} 个热点候选区。`,
+    store.error || `MP4 分割分析完成，已抽取 ${count} 帧，生成 ${hotspotCount} 个候选区。`,
     store.error ? "error" : "info",
   );
 }
@@ -547,7 +547,7 @@ async function reanalyzeSelectedHotspotFrame() {
   }
   const detail = selectedHotspotFrameDetail.value;
   if (!detail) {
-    setOperationMessage("请先在 MP4 热点时间轴中选择需要重算的帧。", "error");
+    setOperationMessage("请先在 MP4 分割时间轴中选择需要重算的帧。", "error");
     return;
   }
   const imported = await importVideoInput();

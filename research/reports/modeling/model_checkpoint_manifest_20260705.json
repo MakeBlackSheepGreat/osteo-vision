@@ -1,6 +1,6 @@
 {
   "schema_version": "osteo-vision-model-checkpoint-manifest-v1",
-  "generated_at_utc": "2026-07-04T15:56:10.292184+00:00",
+  "generated_at_utc": "2026-07-04T17:23:07.598377+00:00",
   "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\inference\\osteo_vision.yml",
   "model_version": "osteo-vision-convnext3d-proxy-v0",
   "model_count": 8,
@@ -128,8 +128,8 @@
       "checkpoint": {
         "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy.pt",
         "exists": true,
-        "sha256": "05656146ffdefc042a065eef1e1a99473b15e7d8d02f0f91e373fd6a09defbe8",
-        "size_bytes": 169381,
+        "sha256": "04940739eaef4a69aa85cbc8408405d74957c7b7b467981224015feeeb8fd716",
+        "size_bytes": 171749,
         "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy_manifest.json",
         "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy_model_card.json"
       },
@@ -139,10 +139,10 @@
         "model_family": "convnext2d_keyframe_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 2,
-          "foreground_mean_dice": 0.7670142540526628,
-          "foreground_mean_iou": 0.6222106534154029,
-          "prediction_positive_fraction": 0.23140462239583331,
+          "case_count": 37,
+          "foreground_mean_dice": 0.8636595770576261,
+          "foreground_mean_iou": 0.760799087719719,
+          "prediction_positive_fraction": 0.20555980785472971,
           "threshold": 0.5
         },
         "warnings": [
@@ -156,10 +156,10 @@
         "model_family": "convnext2d_keyframe_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 2,
-          "foreground_mean_dice": 0.7670142540526628,
-          "foreground_mean_iou": 0.6222106534154029,
-          "prediction_positive_fraction": 0.23140462239583331,
+          "case_count": 37,
+          "foreground_mean_dice": 0.8636595770576261,
+          "foreground_mean_iou": 0.760799087719719,
+          "prediction_positive_fraction": 0.20555980785472971,
           "threshold": 0.5
         },
         "warnings": [

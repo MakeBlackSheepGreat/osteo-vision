@@ -8,6 +8,7 @@ import torch
 
 from src.core.schemas import AdapterRequest
 from src.models.adapters import build_adapters, inventory_from_adapters, select_adapter
+from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D
 from src.models.lesion_segmenter import TinyLesionSegmenter3D
 
 
@@ -210,6 +211,120 @@ def test_fluorescence_hotspot_segmenter_predicts_2d_image(tmp_path: Path) -> Non
     assert any(warning["code"] == "heuristic_hotspot_segmenter_non_diagnostic" for warning in result.warnings)
 
 
+def test_convnext2d_keyframe_segmenter_predicts_2d_image(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "keyframe.pt"
+    _write_tiny_keyframe_checkpoint(checkpoint_path, model_id="keyframe_test")
+    image_path = tmp_path / "keyframe.png"
+    image = np.zeros((32, 48, 3), dtype=np.uint8)
+    image[8:24, 16:36, 1] = 220
+    image[10:20, 20:30, 0] = 40
+    Image.fromarray(image).save(image_path)
+    adapters = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "keyframe_test",
+                    "family": "convnext2d_keyframe_segmenter",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                    "checkpoint_path": str(checkpoint_path),
+                    "dependency_group": "torch",
+                    "device_policy": "cpu",
+                    "extra": {
+                        "output_dir": str(tmp_path / "keyframe_masks"),
+                        "threshold": 0.0,
+                        "force_tiled": True,
+                        "tile_size": 16,
+                        "tile_overlap": 4,
+                    },
+                }
+            ]
+        }
+    )
+    result = adapters[0].predict(
+        AdapterRequest(
+            case_id="case",
+            input_path=str(image_path),
+            input_type="2d_image",
+            task_type="segmentation",
+            modality="surgical_keyframe",
+        )
+    )
+
+    assert result.model_family == "convnext2d_keyframe_segmenter"
+    assert result.prediction["adapter_mode"] == "trainable_convnext2d_keyframe_segmenter"
+    assert result.prediction["inference_mode"] == "tiled"
+    assert result.segmentation_mask["format"] == "png_binary_mask"
+    assert result.segmentation_mask["inference"]["tile_count"] > 1
+    assert Path(result.segmentation_mask["path"]).exists()
+    assert Path(result.lesion_evidence["probability_path"]).exists()
+    assert Path(result.lesion_evidence["pseudo_color_path"]).exists()
+    assert Path(result.lesion_evidence["overlay_path"]).exists()
+    assert result.quantification["available"] is True
+    assert result.quantification["positive_area_px"] > 0
+    assert result.lesion_evidence["candidates"]
+    assert any(warning["code"] == "convnext2d_keyframe_proxy_non_target_domain" for warning in result.warnings)
+
+
+def test_medsam_like_prompt_fallback_predicts_bbox_mask(tmp_path: Path) -> None:
+    image_path = tmp_path / "keyframe.png"
+    image = np.zeros((50, 80, 3), dtype=np.uint8)
+    image[10:30, 20:50, 1] = 180
+    Image.fromarray(image).save(image_path)
+    adapters = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "medsam_prompt_contract",
+                    "family": "medsam_like",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                    "checkpoint_path": str(tmp_path / "missing_medsam.pt"),
+                    "dependency_group": "sam",
+                    "extra": {
+                        "prompt_fallback_enabled": True,
+                        "output_dir": str(tmp_path / "prompt_masks"),
+                        "point_radius_px": 5,
+                    },
+                }
+            ]
+        }
+    )
+    status = adapters[0].warmup()
+    assert status.available is True
+    assert any(warning["code"] == "medsam_checkpoint_missing_prompt_fallback" for warning in status.warnings)
+
+    result = adapters[0].predict(
+        AdapterRequest(
+            case_id="case",
+            input_path=str(image_path),
+            input_type="2d_image",
+            task_type="segmentation",
+            modality="surgical_keyframe",
+            metadata={
+                "prompts": [{"bbox_xyxy": [20, 10, 50, 30], "source": "hotspot_candidate"}],
+                "roi_hints": [
+                    {
+                        "roi_id": "doctor_roi_1",
+                        "geometry": {"type": "rect", "x": 0.1, "y": 0.2, "width": 0.2, "height": 0.2},
+                    }
+                ],
+            },
+        )
+    )
+
+    assert result.model_family == "medsam_like"
+    assert result.prediction["adapter_mode"] == "prompt_contract_fallback"
+    assert result.prediction["prompt_count"] == 2
+    assert result.segmentation_mask["format"] == "png_binary_mask"
+    assert result.segmentation_mask["prompt_defined"] is True
+    assert Path(result.segmentation_mask["path"]).exists()
+    assert result.quantification["positive_area_px"] > 0
+    assert len(result.lesion_evidence["candidates"]) == 2
+    assert result.lesion_evidence["prompt_contract"]["fallback_mode"] is True
+    assert any(warning["code"] == "medsam_like_prompt_fallback_non_diagnostic" for warning in result.warnings)
+
+
 def _write_tiny_checkpoint(path: Path, *, model_id: str, model_family: str) -> None:
     model = TinyLesionSegmenter3D(base_channels=2)
     torch.save(
@@ -219,6 +334,20 @@ def _write_tiny_checkpoint(path: Path, *, model_id: str, model_family: str) -> N
             "model_config": {"in_channels": 1, "out_channels": 2, "base_channels": 2},
             "state_dict": model.state_dict(),
             "threshold": 0.5,
+        },
+        path,
+    )
+
+
+def _write_tiny_keyframe_checkpoint(path: Path, *, model_id: str) -> None:
+    model = TinyKeyframeSegmenter2D(base_channels=2)
+    torch.save(
+        {
+            "model_id": model_id,
+            "model_family": "convnext2d_keyframe_segmenter",
+            "model_config": {"in_channels": 3, "out_channels": 2, "base_channels": 2},
+            "state_dict": model.state_dict(),
+            "threshold": 0.0,
         },
         path,
     )

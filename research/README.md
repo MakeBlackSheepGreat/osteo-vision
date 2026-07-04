@@ -26,13 +26,20 @@ research/
 ## 当前索引
 
 - 项目记录整合：`research/reports/planning/project_records_integrated_20260704_zh.md`
+- 完整赛题原文复核：`research/reports/planning/official_competition_problem_alignment_20260704_zh.md`
 - 官方技术文档对齐：`research/reports/planning/official_technical_document_alignment_zh.md`
+- 四环素/骨自发荧光价值评估：`research/reports/planning/tetracycline_autofluorescence_value_assessment_20260704_zh.md`
+- DeepSeek 头脑风暴复用评估：`research/reports/planning/deepseek_brainstorm_reuse_assessment_20260704_zh.md`
 - 比赛演示闭环说明：`research/reports/planning/competition_demo_closed_loop_20260704_zh.md`
 - 模型训练数据来源：`research/reports/modeling/model_training_data_sources_zh.md`
-- 模型 checkpoint 清单：`research/reports/modeling/model_checkpoint_manifest_20260704_zh.md`
+- 模型 checkpoint 清单：`research/reports/modeling/model_checkpoint_manifest_20260705_zh.md`
 - D025 代理模型评估：`research/reports/modeling/d025_proxy_model_evaluation_20260704_zh.md`
 - D025 代理模型续训提升：`research/reports/modeling/d025_lesion_continue_training_promotion_20260704_zh.md`
 - D025 SegResNetDS 训练：`research/reports/modeling/d025_monai_segresnetds_training_20260704_zh.md`
 - D025 代理模型对比：`research/reports/modeling/d025_proxy_model_comparison_20260704_zh.md`
+- 2D Keyframe ConvNeXt 代理分割模型：`research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260705_zh.md`
+- 医生复核反馈转训练 manifest 工具：`tools/build_keyframe_training_manifest_from_review.py`，输出可带 `sample_weight`，用于下一轮合并 proxy manifest 的加权训练。
+- MedSAM-like prompt 分割接口：`research/reports/modeling/medsam_prompt_contract_20260704_zh.md`
+- DentalSegmentator 颌骨 ROI 预处理契约：`research/reports/modeling/dentalsegmentator_roi_contract_20260704_zh.md`
 - 视频下载状态：`research/reports/modeling/video_download_status_20260703_zh.md`
 - 历史交付物归档：`research/reports/legacy/`

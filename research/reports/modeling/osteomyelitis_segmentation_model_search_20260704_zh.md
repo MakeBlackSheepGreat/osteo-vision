@@ -20,7 +20,7 @@
 | MRONJ CBCT nnU-Net v2 | 无公开训练集/checkpoint 迹象 | 证明颌骨坏死类 CBCT 病灶可用 nnU-Net v2 分割 | 把 nnU-Net v2 作为正式 CBCT 病灶 baseline；报告引用其指标作为目标参照。 |
 | 良性颌骨病灶 nnU-Net v2 | 未发现公开 checkpoint | 与 D025 牙源性病灶代理最接近 | 继续优化 D025 lesion proxy，按类别/病灶类型做失败分析。 |
 | PET-CT 骨感染分割 | 论文公开，未确认公开代码/checkpoint | 提供骨髓炎/骨感染本体的边界模糊和多模态融合证据 | 报告中用于论证骨感染分割难点；暂不接入工程主线。 |
-| DentalSegmentator | 有公开模型和 Slicer 扩展 | 颌骨、牙齿、下颌管解剖先验 | 后续可下载并接入为术前 CBCT ROI/解剖先验模块。 |
+| DentalSegmentator | 有公开模型和 Slicer 扩展 | 颌骨、牙齿、下颌管解剖先验 | 已先落地本地 CBCT ROI 预处理 contract；真实 checkpoint 下载和推理接入待后续。 |
 | 通用骨/骨肿瘤分割模型 | 多数非感染、非颌骨 | 可做方法参考 | 不作为主线。 |
 
 ## 3. 与我们当前训练结果的比较
@@ -48,7 +48,7 @@
 
 ### P1：继续冲模型
 
-1. 下载/接入 DentalSegmentator 预训练模型，先做颌骨/牙齿/下颌管自动 ROI。
+1. 基于已新增的 `src/preprocess/cbct_roi.py`，先批量生成 CBCT ROI manifest；后续再下载/接入 DentalSegmentator 预训练模型，产出颌骨/牙齿/下颌管自动 mask。
 2. 把 D025 训练从 64³ ROI 升级到高分辨率 patch，优先跑 nnU-Net v2 或 MONAI SegResNetDS baseline。
 3. 对失败样本 `DC_9`、`RC_11`、`RC_3`、`RC_52`、`KCOT_68`、`DC_35`、`RC_25`、`DC_26` 做病例级错误分析。
 4. 把 MRONJ/骨感染论文中的“边界模糊、不一致标注、多源监督”迁移为本项目的不确定性提示和医生复核设计。

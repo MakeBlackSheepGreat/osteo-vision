@@ -100,8 +100,8 @@ function panelIcon(title: string): AppIconName {
   const icons: Record<string, AppIconName> = {
     融合图: "layers",
     热图: "target",
-    热点叠加: "target",
-    热点掩膜: "document",
+    分割叠加: "target",
+    分割掩膜: "document",
     归一化图: "document",
   };
   return icons[title] ?? "file";

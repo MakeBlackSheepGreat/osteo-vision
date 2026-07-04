@@ -51,6 +51,27 @@ runtime:
         colormap: green
         alpha: 0.45
         output_dir: artifacts/visual_evidence/osteo_vision/hotspot_masks
+    - model_id: convnext2d_keyframe_proxy_segmenter
+      family: convnext2d_keyframe_segmenter
+      task_types: [segmentation]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/keyframe_convnext2d_proxy.pt
+      source_url: local://synthetic-and-pseudo-labeled-fluorescence-keyframe-proxy
+      license: internal
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: trainable 2D JPEG/MP4 keyframe segmentation proxy for engineering validation
+      clinical_claim_allowed: false
+      extra:
+        threshold: 0.5
+        output_dir: artifacts/visual_evidence/osteo_vision/keyframe_model_masks
+        training_data_boundary: synthetic_or_pseudo_labeled_non_target_domain
+        tile_size: 512
+        tile_overlap: 64
+        max_whole_pixels: 1048576
     - model_id: d025_lesion_smoke_segmenter
       family: d025_lesion_segmenter
       task_types: [segmentation]
@@ -94,8 +115,12 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: promptable lesion or necrotic bone ROI segmentation
+      intended_use: promptable lesion or necrotic bone ROI segmentation contract; fallback is not real MedSAM2 checkpoint inference
       clinical_claim_allowed: false
+      extra:
+        prompt_fallback_enabled: true
+        point_radius_px: 12
+        output_dir: artifacts/visual_evidence/osteo_vision/prompt_masks
     - model_id: biomedclip_osteo_screening
       family: vlm_encoder
       task_types: [classification]

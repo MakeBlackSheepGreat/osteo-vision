@@ -175,13 +175,13 @@
       </a>
     </section>
 
-    <section v-if="hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 热点时间轴">
+    <section v-if="hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
       <header>
         <AppIcon name="video" />
-        <strong>MP4 热点时间轴</strong>
+        <strong>MP4 分割时间轴</strong>
         <span>{{ hotspotTimelineItems.length }} / {{ hotspotTimelineTotalCount }} 帧</span>
       </header>
-      <div class="hotspot-filter-group" aria-label="热点时间轴筛选">
+      <div class="hotspot-filter-group" aria-label="分割时间轴筛选">
         <button
           v-for="option in hotspotTimelineFilterOptions"
           :key="option.value"
@@ -567,6 +567,10 @@ function artifactKindLabel(kind: string): string {
     evidence_bundle: "证据包 ZIP",
     bundle_manifest: "Bundle Manifest",
     overlay: "融合图",
+    video_overlay: "分割叠加视频",
+    video_mask: "分割掩膜视频",
+    video_segmentation_manifest: "MP4 分割 Manifest",
+    probability_map: "概率图",
     heatmap: "热图",
     colorbar: "荧光色标",
     roi_mask: "ROI 掩膜",
