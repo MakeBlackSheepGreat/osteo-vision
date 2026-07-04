@@ -8,44 +8,48 @@ This report evaluates the currently runnable D025 CBCT lesion ROI proxy checkpoi
 
 - Manifest: `C:\Users\876762330\Desktop\projects\osteo-vision\research\datasets\public-candidates\d025_lesion_cbct\derived\local_preprocessed\lesion_roi_64\d025_dolchid_lesion_roi_64_manifest.csv`
 - Checkpoint: `C:\Users\876762330\Desktop\projects\osteo-vision\artifacts\checkpoints\osteo_vision\d025_lesion_smoke.pt`
-- Checkpoint SHA256: `c7a840a9266c6434a1fb96321bfa103dd0fd1011570c8a28e9ee5e38f16d97e1`
+- Checkpoint SHA256: `56473aae9980da7ecfe2e720b8522a9ad5a6a825f00a314818fef07b9b15920d`
 - Evaluation split: `val`; cases: 53.
 - Device: `cuda`; PyTorch: `2.11.0+cu128`.
 
 ## Best Threshold Summary
 
-- Best threshold: 0.6000
-- Mean Dice: 0.1363
-- Mean IoU: 0.0787
-- Mean HD95: 71.0074
-- Mean NSD: 0.0454
-- Lesion sensitivity: 0.4979
-- Lesion precision: 0.0837
+- Best threshold: 0.2000
+- Mean Dice: 0.6266
+- Mean IoU: 0.5183
+- Mean HD95: 17.6413
+- Mean NSD: 0.4227
+- Lesion sensitivity: 0.6756
+- Lesion precision: 0.6932
 
 ## Threshold Sweep
 
 | Threshold | Mean Dice | Mean IoU | Mean HD95 | Mean NSD | Sensitivity | Precision |
 |---:|---:|---:|---:|---:|---:|---:|
-| 0.3000 | 0.0764 | 0.0411 | 78.8490 | 0.0199 | 0.8789 | 0.0412 |
-| 0.4000 | 0.0903 | 0.0493 | 76.7364 | 0.0278 | 0.8032 | 0.0497 |
-| 0.5000 | 0.1085 | 0.0604 | 74.4368 | 0.0359 | 0.6910 | 0.0615 |
-| 0.6000 | 0.1363 | 0.0787 | 71.0074 | 0.0454 | 0.4979 | 0.0837 |
-| 0.7000 | 0.0433 | 0.0240 | 46.8874 | 0.0082 | 0.0267 | 0.1425 |
+| 0.2000 | 0.6266 | 0.5183 | 17.6413 | 0.4227 | 0.6756 | 0.6932 |
+| 0.3000 | 0.6224 | 0.5164 | 16.7775 | 0.4354 | 0.6613 | 0.6998 |
+| 0.4000 | 0.6219 | 0.5179 | 14.5247 | 0.4432 | 0.6508 | 0.7135 |
+| 0.5000 | 0.6180 | 0.5157 | 14.1909 | 0.4451 | 0.6397 | 0.7240 |
+| 0.6000 | 0.6134 | 0.5135 | 15.4929 | 0.4436 | 0.6292 | 0.7279 |
+| 0.7000 | 0.6103 | 0.5121 | 14.9053 | 0.4442 | 0.6193 | 0.7385 |
+| 0.8000 | 0.6050 | 0.5083 | 15.5881 | 0.4430 | 0.6066 | 0.7477 |
 
 ## Low-Scoring Cases
 
-- Case `RC_11` (RC): Dice=0.0000, IoU=0.0000, HD95=81.8805; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\RC_11_failure_preview.png`
-- Case `RC_25` (RC): Dice=0.0000, IoU=0.0000, HD95=73.1764; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\RC_25_failure_preview.png`
-- Case `RC_39` (RC): Dice=0.0000, IoU=0.0000, HD95=65.3198; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\RC_39_failure_preview.png`
-- Case `RC_52` (RC): Dice=0.0000, IoU=0.0000, HD95=74.6375; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\RC_52_failure_preview.png`
-- Case `DC_9` (DC): Dice=0.0022, IoU=0.0011, HD95=77.9555; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\DC_9_failure_preview.png`
-- Case `RC_34` (RC): Dice=0.0028, IoU=0.0014, HD95=82.5481; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z\RC_34_failure_preview.png`
+- Case `DC_9` (DC): Dice=0.0000, IoU=0.0000, HD95=39.2162; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\DC_9_failure_preview.png`
+- Case `RC_11` (RC): Dice=0.0000, IoU=0.0000, HD95=N/A; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\RC_11_failure_preview.png`
+- Case `RC_3` (RC): Dice=0.0000, IoU=0.0000, HD95=43.0093; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\RC_3_failure_preview.png`
+- Case `RC_52` (RC): Dice=0.0000, IoU=0.0000, HD95=N/A; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\RC_52_failure_preview.png`
+- Case `KCOT_68` (KCOT): Dice=0.0055, IoU=0.0027, HD95=55.8689; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\KCOT_68_failure_preview.png`
+- Case `DC_35` (DC): Dice=0.0220, IoU=0.0111, HD95=10.5080; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\DC_35_failure_preview.png`
+- Case `RC_25` (RC): Dice=0.0600, IoU=0.0309, HD95=61.1381; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\RC_25_failure_preview.png`
+- Case `DC_26` (DC): Dice=0.0756, IoU=0.0393, HD95=81.4045; preview=`C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z\DC_26_failure_preview.png`
 
 ## Outputs
 
 - JSON: `C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\d025_proxy_model_evaluation_20260704.json`
 - CSV: `C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\d025_proxy_model_evaluation_20260704_per_case.csv`
-- Preview directory: `C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T011243Z`
+- Preview directory: `C:\Users\876762330\Desktop\projects\osteo-vision\research\reports\modeling\assets\d025_proxy_eval_20260704T091114Z`
 
 ## Medical Boundary
 

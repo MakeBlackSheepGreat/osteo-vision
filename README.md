@@ -98,6 +98,14 @@ conda run -n osteo-vision python check_env.py
 conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 ```
 
+比赛演示一键验收：
+
+```powershell
+conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
+```
+
+该命令会生成 4K JPEG/MP4 代理输入，通过后端真实接口完成上传、双通道融合、MP4 关键帧分析、医生复核和 evidence bundle 导出。输出默认写入 `artifacts/platform_smoke/competition_acceptance_*`，不进入 Git。
+
 legacy Gradio Demo：
 
 ```powershell
@@ -124,11 +132,12 @@ npm --prefix frontend run test:e2e
 conda run -n osteo-vision python tools\run_platform_smoke.py
 conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
 conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
+conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
 conda run -n osteo-vision python scripts\model_inventory.py --config configs\inference\osteo_vision.yml
 conda run -n osteo-vision python tools\check_project_readiness.py
 ```
 
-这些命令覆盖代码质量、前端构建、浏览器 E2E、JPEG/MP4 上传、4K 代理输入、关键帧分析、荧光融合、复核导出和 evidence bundle。所有 MP4 smoke 都是合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+这些命令覆盖代码质量、前端构建、浏览器 E2E、JPEG/MP4 上传、4K 代理输入、关键帧分析、荧光融合、复核导出和 evidence bundle。`run_competition_flow_acceptance.py` 是当前比赛故事线的主验收入口。所有 MP4 smoke 都是合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
 
 ## 资料入口
 
@@ -137,6 +146,7 @@ conda run -n osteo-vision python tools\check_project_readiness.py
 - 数据获取计划：`research/planning/data_acquisition_plan.md`
 - 外部模型快照：`research/model-snapshots/code/`
 - 导出证据包 schema：`docs/export_schema_v1.md`
+- 比赛演示闭环说明：`research/reports/planning/competition_demo_closed_loop_20260704_zh.md`
 - 当前缺口审计：`research/reports/planning/project_gap_followup_audit_20260704_zh.md`
 
 ## 自检

@@ -54,6 +54,10 @@ pnpm-debug.log*
 frontend/test-results/
 frontend/playwright-report/
 
+# .NET / document generator build outputs
+**/bin/
+**/obj/
+
 # 本地配置与缓存
 configs/paths.local.yml
 data/
@@ -76,6 +80,7 @@ artifacts/platform/*
 artifacts/platform_smoke/*
 artifacts/e2e/*
 artifacts/ui/*
+artifacts/research_search/*
 !artifacts/checkpoints/.gitkeep
 !artifacts/experiments/.gitkeep
 !artifacts/logs/.gitkeep

@@ -37,6 +37,14 @@ conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 conda run -n osteo-vision python tools/check_project_readiness.py
 ```
 
+比赛演示主验收：
+
+```powershell
+conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
+```
+
+该命令默认生成 4K JPEG/MP4 代理输入，并通过真实后端接口跑完上传、白光/ICG 融合、MP4 关键帧分析、医生复核和 evidence bundle 导出。输出目录为 `artifacts/platform_smoke/competition_acceptance_*`。
+
 ## 使用 Makefile（推荐）
 
 框架提供了 Makefile 来简化常用命令：
@@ -247,9 +255,10 @@ npm --prefix frontend run test:e2e
 conda run -n osteo-vision python tools\run_platform_smoke.py
 conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
 conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
+conda run -n osteo-vision python tools\run_competition_flow_acceptance.py
 ```
 
-`run_platform_smoke.py` 覆盖 JPEG/MP4 上传、分析 job、复核导出和 evidence bundle。`run_official_4k_pressure_smoke.py` 覆盖官方 4K JPEG/MP4 代理输入。`run_mp4_edge_case_smoke.py` 覆盖低分辨率 warning、坏签名 415 和不可解码 MP4 422。所有 smoke 视频均为合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+`run_platform_smoke.py` 覆盖 JPEG/MP4 上传、分析 job、复核导出和 evidence bundle。`run_official_4k_pressure_smoke.py` 覆盖官方 4K JPEG/MP4 代理输入。`run_mp4_edge_case_smoke.py` 覆盖低分辨率 warning、坏签名 415 和不可解码 MP4 422。`run_competition_flow_acceptance.py` 是当前比赛演示主验收入口，会检查 4K JPEG 融合、4K MP4 关键帧分析、医生复核、导出格式和主线模型可用性。所有 smoke 视频均为合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
 
 导出证据包字段见 [Export Schema V1](export_schema_v1.md)。
 

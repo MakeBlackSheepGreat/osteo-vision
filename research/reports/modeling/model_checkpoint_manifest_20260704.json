@@ -1,6 +1,6 @@
 {
   "schema_version": "osteo-vision-model-checkpoint-manifest-v1",
-  "generated_at_utc": "2026-07-04T01:14:52.647968+00:00",
+  "generated_at_utc": "2026-07-04T11:50:18.076717+00:00",
   "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\inference\\osteo_vision.yml",
   "model_version": "osteo-vision-convnext3d-proxy-v0",
   "model_count": 7,
@@ -23,8 +23,8 @@
       "checkpoint": {
         "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
         "exists": true,
-        "sha256": "c7a840a9266c6434a1fb96321bfa103dd0fd1011570c8a28e9ee5e38f16d97e1",
-        "size_bytes": 130789,
+        "sha256": "3b6cd68118626d6204f091295c563b7175773959a583269af3cdfb2c94a08a34",
+        "size_bytes": 821797,
         "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_manifest.json",
         "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_model_card.json"
       },
@@ -34,17 +34,17 @@
         "model_family": "d025_lesion_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 32,
-          "foreground_mean_dice": 0.13241683577436866,
-          "foreground_mean_iou": 0.07393435534021123,
-          "lesion_sensitivity": 0.8391267434808976,
-          "lesion_precision": 0.07944852485220961,
-          "prediction_positive_fraction": 0.05190539360046387,
-          "target_positive_fraction": 0.004914402961730957,
-          "threshold": 0.5
+          "case_count": 53,
+          "foreground_mean_dice": 0.6452435833966753,
+          "foreground_mean_iou": 0.5488023961453478,
+          "lesion_sensitivity": 0.7881745626244296,
+          "lesion_precision": 0.7981017965140135,
+          "prediction_positive_fraction": 0.004034438223209021,
+          "target_positive_fraction": 0.00408525286980395,
+          "threshold": 0.6
         },
         "warnings": [
-          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
           "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
         ]
       },
@@ -54,17 +54,17 @@
         "model_family": "d025_lesion_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 32,
-          "foreground_mean_dice": 0.13241683577436866,
-          "foreground_mean_iou": 0.07393435534021123,
-          "lesion_sensitivity": 0.8391267434808976,
-          "lesion_precision": 0.07944852485220961,
-          "prediction_positive_fraction": 0.05190539360046387,
-          "target_positive_fraction": 0.004914402961730957,
-          "threshold": 0.5
+          "case_count": 53,
+          "foreground_mean_dice": 0.6452435833966753,
+          "foreground_mean_iou": 0.5488023961453478,
+          "lesion_sensitivity": 0.7881745626244296,
+          "lesion_precision": 0.7981017965140135,
+          "prediction_positive_fraction": 0.004034438223209021,
+          "target_positive_fraction": 0.00408525286980395,
+          "threshold": 0.6
         },
         "warnings": [
-          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
           "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
         ]
       },
@@ -125,8 +125,8 @@
       "checkpoint": {
         "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
         "exists": true,
-        "sha256": "c7a840a9266c6434a1fb96321bfa103dd0fd1011570c8a28e9ee5e38f16d97e1",
-        "size_bytes": 130789,
+        "sha256": "3b6cd68118626d6204f091295c563b7175773959a583269af3cdfb2c94a08a34",
+        "size_bytes": 821797,
         "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_manifest.json",
         "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_model_card.json"
       },
@@ -136,17 +136,17 @@
         "model_family": "d025_lesion_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 32,
-          "foreground_mean_dice": 0.13241683577436866,
-          "foreground_mean_iou": 0.07393435534021123,
-          "lesion_sensitivity": 0.8391267434808976,
-          "lesion_precision": 0.07944852485220961,
-          "prediction_positive_fraction": 0.05190539360046387,
-          "target_positive_fraction": 0.004914402961730957,
-          "threshold": 0.5
+          "case_count": 53,
+          "foreground_mean_dice": 0.6452435833966753,
+          "foreground_mean_iou": 0.5488023961453478,
+          "lesion_sensitivity": 0.7881745626244296,
+          "lesion_precision": 0.7981017965140135,
+          "prediction_positive_fraction": 0.004034438223209021,
+          "target_positive_fraction": 0.00408525286980395,
+          "threshold": 0.6
         },
         "warnings": [
-          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
           "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
         ]
       },
@@ -156,17 +156,17 @@
         "model_family": "d025_lesion_segmenter",
         "clinical_claim_allowed": false,
         "metrics": {
-          "case_count": 32,
-          "foreground_mean_dice": 0.13241683577436866,
-          "foreground_mean_iou": 0.07393435534021123,
-          "lesion_sensitivity": 0.8391267434808976,
-          "lesion_precision": 0.07944852485220961,
-          "prediction_positive_fraction": 0.05190539360046387,
-          "target_positive_fraction": 0.004914402961730957,
-          "threshold": 0.5
+          "case_count": 53,
+          "foreground_mean_dice": 0.6452435833966753,
+          "foreground_mean_iou": 0.5488023961453478,
+          "lesion_sensitivity": 0.7881745626244296,
+          "lesion_precision": 0.7981017965140135,
+          "prediction_positive_fraction": 0.004034438223209021,
+          "target_positive_fraction": 0.00408525286980395,
+          "threshold": 0.6
         },
         "warnings": [
-          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
           "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
         ]
       },

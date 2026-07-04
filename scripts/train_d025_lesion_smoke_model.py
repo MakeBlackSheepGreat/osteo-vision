@@ -84,7 +84,11 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
     if not split["train"]:
         raise ValueError("No D025 training rows available")
     device = select_torch_device(args.device)
-    model = TinyLesionSegmenter3D(base_channels=args.base_channels).to(device)
+    resume_record = _load_resume_record(args.resume_checkpoint, device=device) if args.resume_checkpoint else None
+    model_config = _model_config_from_args(args, resume_record)
+    model = TinyLesionSegmenter3D(**model_config).to(device)
+    if resume_record:
+        model.load_state_dict(resume_record["state_dict"])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
     class_weight = torch.tensor([1.0, args.positive_class_weight], dtype=torch.float32, device=device)
     loader = DataLoader(
@@ -117,9 +121,8 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
     elapsed = round(time.perf_counter() - started, 3)
     checkpoint_path = resolve_path(args.output_checkpoint)
     ensure_dir(checkpoint_path.parent)
-    model_config = {"in_channels": 1, "out_channels": 2, "base_channels": args.base_channels}
     checkpoint_payload = {
-        "model_id": "d025_lesion_smoke_segmenter",
+        "model_id": args.model_id,
         "model_family": "d025_lesion_segmenter",
         "model_config": model_config,
         "threshold": args.threshold,
@@ -135,6 +138,11 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
             "seed": args.seed,
             "elapsed_seconds": elapsed,
             "mean_train_loss": float(np.mean(losses)) if losses else None,
+            "resume_checkpoint": resume_record["checkpoint_path"] if resume_record else None,
+            "resume_checkpoint_sha256": resume_record["checkpoint_sha256"] if resume_record else None,
+            "previous_completed_train_batches": resume_record["previous_completed_train_batches"] if resume_record else 0,
+            "total_completed_train_batches": completed_batches
+            + (resume_record["previous_completed_train_batches"] if resume_record else 0),
         },
         "metrics": metrics,
         "medical_boundary": "D025 CBCT lesion-mask proxy; not intraoperative ICG jaw osteomyelitis evidence.",
@@ -148,7 +156,7 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoint_sha256": digest,
         "model_id": checkpoint_payload["model_id"],
         "model_family": checkpoint_payload["model_family"],
-        "runtime_allowed": True,
+        "runtime_allowed": bool(args.runtime_allowed),
         "clinical_claim_allowed": False,
         "training": checkpoint_payload["training"],
         "metrics": metrics,
@@ -157,8 +165,8 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
             "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance.",
         ],
     }
-    manifest_path = checkpoint_path.with_name("d025_lesion_smoke_manifest.json")
-    model_card_path = checkpoint_path.with_name("d025_lesion_smoke_model_card.json")
+    manifest_path = checkpoint_path.with_name(f"{checkpoint_path.stem}_manifest.json")
+    model_card_path = checkpoint_path.with_name(f"{checkpoint_path.stem}_model_card.json")
     write_json(manifest_path, artifact_manifest)
     write_json(
         model_card_path,
@@ -182,6 +190,7 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
             "manifest_path": str(manifest_path),
             "model_card_path": str(model_card_path),
             "checkpoint_sha256": digest,
+            "runtime_allowed": bool(args.runtime_allowed),
             "training": checkpoint_payload["training"],
             "metrics": metrics,
             "environment": {
@@ -192,6 +201,7 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
             "medical_boundary": checkpoint_payload["medical_boundary"],
         },
         report_dir=args.report_dir,
+        report_name=args.report_name,
     )
     return {
         "checkpoint_path": str(checkpoint_path),
@@ -200,6 +210,40 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
         "report_paths": report_paths,
         "metrics": metrics,
     }
+
+
+def _load_resume_record(resume_checkpoint: str | Path, *, device: torch.device) -> dict[str, Any]:
+    checkpoint_path = resolve_path(resume_checkpoint)
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Missing resume checkpoint: {checkpoint_path}")
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+    if not isinstance(checkpoint, dict):
+        raise ValueError(f"Unsupported resume checkpoint payload: {checkpoint_path}")
+    state_dict = checkpoint.get("state_dict")
+    if not isinstance(state_dict, dict):
+        raise ValueError(f"Resume checkpoint missing state_dict: {checkpoint_path}")
+    training = checkpoint.get("training") if isinstance(checkpoint.get("training"), dict) else {}
+    return {
+        "checkpoint_path": str(checkpoint_path),
+        "checkpoint_sha256": checkpoint_sha256(checkpoint_path),
+        "state_dict": state_dict,
+        "model_config": dict(checkpoint.get("model_config") or {}),
+        "previous_completed_train_batches": int(training.get("total_completed_train_batches") or training.get("completed_train_batches") or 0),
+    }
+
+
+def _model_config_from_args(args: argparse.Namespace, resume_record: dict[str, Any] | None) -> dict[str, int]:
+    if resume_record:
+        model_config = dict(resume_record.get("model_config") or {})
+        return {
+            "in_channels": int(model_config.get("in_channels", 1)),
+            "out_channels": int(model_config.get("out_channels", 2)),
+            "base_channels": int(model_config.get("base_channels", args.base_channels)),
+        }
+    return {"in_channels": 1, "out_channels": 2, "base_channels": int(args.base_channels)}
 
 
 def foreground_dice_loss(logits: torch.Tensor, target: torch.Tensor, *, smooth: float = 1e-5) -> torch.Tensor:
@@ -277,11 +321,13 @@ def safe_div(numerator: float | int, denominator: float | int) -> float | None:
     return float(numerator) / denominator_float
 
 
-def write_reports(payload: dict[str, Any], *, report_dir: str | Path) -> dict[str, str]:
+def write_reports(payload: dict[str, Any], *, report_dir: str | Path, report_name: str) -> dict[str, str]:
     date_stamp = datetime.now(UTC).strftime("%Y%m%d")
     out_dir = ensure_dir(resolve_path(report_dir))
-    zh_path = out_dir / f"d025_lesion_smoke_model_{date_stamp}_zh.md"
-    en_path = out_dir / f"d025_lesion_smoke_model_{date_stamp}_en.md"
+    safe_name = "".join(char if char.isalnum() or char in {"_", "-"} else "_" for char in report_name).strip("_")
+    safe_name = safe_name or "d025_lesion_smoke_model"
+    zh_path = out_dir / f"{safe_name}_{date_stamp}_zh.md"
+    en_path = out_dir / f"{safe_name}_{date_stamp}_en.md"
     zh_path.write_text(render_report(payload, language="zh"), encoding="utf-8")
     en_path.write_text(render_report(payload, language="en"), encoding="utf-8")
     return {"zh_report": str(zh_path), "en_report": str(en_path)}
@@ -303,8 +349,11 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             f"- Checkpoint：`{payload['checkpoint_path']}`",
             f"- Manifest：`{payload['manifest_path']}`",
             f"- Model card：`{payload['model_card_path']}`",
+            f"- Runtime allowed：{payload.get('runtime_allowed')}",
             f"- 训练病例：{training['train_cases']}；验证病例：{training['val_cases']}。",
             f"- 训练 batch：{training['completed_train_batches']}；batch size：{training['batch_size']}。",
+            f"- 续训来源：`{training.get('resume_checkpoint') or 'None'}`。",
+            f"- 累计训练 batch：{training.get('total_completed_train_batches', training['completed_train_batches'])}。",
             f"- 平均训练 loss：{_fmt(training['mean_train_loss'])}。",
             f"- 设备：{payload['environment']['device']}；PyTorch：{payload['environment']['torch_version']}。",
             "",
@@ -334,8 +383,11 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             f"- Checkpoint: `{payload['checkpoint_path']}`",
             f"- Manifest: `{payload['manifest_path']}`",
             f"- Model card: `{payload['model_card_path']}`",
+            f"- Runtime allowed: {payload.get('runtime_allowed')}",
             f"- Train cases: {training['train_cases']}; validation cases: {training['val_cases']}.",
             f"- Training batches: {training['completed_train_batches']}; batch size: {training['batch_size']}.",
+            f"- Resume source: `{training.get('resume_checkpoint') or 'None'}`.",
+            f"- Total training batches: {training.get('total_completed_train_batches', training['completed_train_batches'])}.",
             f"- Mean train loss: {_fmt(training['mean_train_loss'])}.",
             f"- Device: {payload['environment']['device']}; PyTorch: {payload['environment']['torch_version']}.",
             "",
@@ -376,7 +428,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a tiny D025 CBCT lesion ROI smoke segmentation model.")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--output-checkpoint", default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--resume-checkpoint", default="")
     parser.add_argument("--report-dir", default=DEFAULT_REPORT_DIR)
+    parser.add_argument("--report-name", default="d025_lesion_smoke_model")
+    parser.add_argument("--model-id", default="d025_lesion_smoke_segmenter")
+    parser.add_argument("--runtime-allowed", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--max-train-cases", type=int, default=32)
     parser.add_argument("--max-val-cases", type=int, default=4)
     parser.add_argument("--max-train-batches", type=int, default=2)
