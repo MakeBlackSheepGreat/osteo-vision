@@ -41,6 +41,10 @@
             <dd>{{ currentStatusLabel }}</dd>
           </div>
           <div>
+            <dt>病例版本</dt>
+            <dd>{{ displayCaseVersion }}</dd>
+          </div>
+          <div>
             <dt>复核版本</dt>
             <dd>{{ disclaimerVersionLabel(store.currentCase?.disclaimer_version) }}</dd>
           </div>
@@ -119,6 +123,7 @@ const canLoadCase = computed(() => Boolean(loadCaseId.value.trim() || store.curr
 const currentStatusLabel = computed(() => caseStatusLabel(store.currentCase?.status));
 const displayCaseTitle = computed(() => store.currentCase?.title ?? "未载入病例");
 const displayCaseId = computed(() => store.currentCase?.case_id ?? "待创建或加载");
+const displayCaseVersion = computed(() => (store.currentCase ? `v${store.currentCase.version}` : "待创建"));
 const displayRunId = computed(() => latestRun.value?.run_id ?? "暂无运行记录");
 
 const inputRows = computed(() =>

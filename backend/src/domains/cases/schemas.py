@@ -5,7 +5,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.src.domains.cases.enums import ArtifactKind, CaseStatus, InputChannel, QualityFlagCode, RegionSource, ReviewState
+from backend.src.domains.cases.enums import (
+    ArtifactKind,
+    CaseStatus,
+    InputChannel,
+    QualityFlagCode,
+    RegionSource,
+    ReviewState,
+)
 
 
 def _utc_now() -> datetime:
@@ -38,6 +45,7 @@ class CandidateRegion(BaseModel):
     confidence: float | None = None
     status: ReviewState = ReviewState.REVIEW_REQUIRED
     explanation: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RegionOfInterest(BaseModel):
@@ -92,6 +100,7 @@ class CaseRecord(BaseModel):
     case_id: str
     title: str
     status: CaseStatus = CaseStatus.DRAFT
+    version: int = 1
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
     disclaimer_version: str = "research-prototype-v1"
@@ -150,4 +159,6 @@ class ExportResponse(BaseModel):
     report_path: str
     manifest_path: str
     case_id: str
-
+    dicom_path: str | None = None
+    summary: dict[str, Any] = Field(default_factory=dict)
+    artifact_entries: list[dict[str, Any]] = Field(default_factory=list)

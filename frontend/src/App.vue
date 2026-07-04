@@ -15,6 +15,7 @@ import AppNavPills from "@/components/AppNavPills.vue";
 const navItems = [
   { to: "/case", label: "病例工作台", icon: "target" as const },
   { to: "/cases", label: "病例档案", icon: "case" as const },
+  { to: "/data", label: "视频库", icon: "video" as const },
   { to: "/review", label: "医生复核", icon: "review" as const },
   { to: "/report", label: "报告导出", icon: "report" as const },
 ];

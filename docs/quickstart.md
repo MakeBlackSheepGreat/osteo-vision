@@ -11,6 +11,12 @@ conda env create -f environment.yml
 conda activate osteo-vision
 ```
 
+本项目固定使用 Conda 环境 `osteo-vision`。如果当前终端不方便激活环境，所有 Python 命令都应显式使用：
+
+```powershell
+conda run -n osteo-vision python <script-or-module>
+```
+
 ### 使用 pip
 
 ```powershell
@@ -26,9 +32,9 @@ pip install -e ".[dev]"
 ## 验证环境
 
 ```powershell
-python check_env.py
-python -m pytest tests/unit tests/smoke tests/integration
-python check_all.py
+conda run -n osteo-vision python check_env.py
+conda run -n osteo-vision python -m pytest tests/unit tests/smoke
+conda run -n osteo-vision python tools/check_project_readiness.py
 ```
 
 ## 使用 Makefile（推荐）
@@ -99,7 +105,7 @@ make clean
 后端：
 
 ```powershell
-python -m backend.src.main
+conda run -n osteo-vision python -m backend.src.main
 ```
 
 默认健康检查地址：`http://127.0.0.1:8001/health`
@@ -122,7 +128,7 @@ npm --prefix frontend run dev
 ## 运行 Legacy Gradio Demo
 
 ```powershell
-python app/main.py --config configs/inference/osteo_vision.yml
+conda run -n osteo-vision python app/main.py --config configs/inference/osteo_vision.yml
 ```
 
 或者使用 Makefile：
@@ -136,7 +142,7 @@ make demo
 ## 运行基准测试
 
 ```powershell
-python scripts/benchmark.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest.csv --output artifacts/runs
+conda run -n osteo-vision python scripts/benchmark.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest.csv --output artifacts/runs
 ```
 
 或者使用 Makefile：
@@ -157,17 +163,17 @@ make benchmark
 ## V2 脚手架命令
 
 ```powershell
-python scripts/model_inventory.py --config configs/inference/osteo_vision.yml
-python scripts/new_task.py --task-id my_competition --template classification --output-dir configs/tasks
-python scripts/compare_models.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest_v2.csv --output artifacts/runs/model_comparison --models fixture_default
+conda run -n osteo-vision python scripts/model_inventory.py --config configs/inference/osteo_vision.yml
+conda run -n osteo-vision python scripts/new_task.py --task-id my_competition --template classification --output-dir configs/tasks
+conda run -n osteo-vision python scripts/compare_models.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest_v2.csv --output artifacts/runs/model_comparison --models fixture_default
 ```
 
 ## V3 实验命令
 
 ```powershell
-python scripts/new_experiment.py --experiment-id my_competition_fixture --manifest tests/fixtures/benchmark_manifest_v2.csv
-python scripts/run_experiment.py --spec artifacts/experiments/my_competition_fixture/experiment.yml
-python scripts/promote_model.py --run-dir artifacts/runs/<run_id>
+conda run -n osteo-vision python scripts/new_experiment.py --experiment-id my_competition_fixture --manifest tests/fixtures/benchmark_manifest_v2.csv
+conda run -n osteo-vision python scripts/run_experiment.py --spec artifacts/experiments/my_competition_fixture/experiment.yml
+conda run -n osteo-vision python scripts/promote_model.py --run-dir artifacts/runs/<run_id>
 ```
 
 实验输出：
@@ -223,8 +229,29 @@ pre-commit run --all-files
 ## 配置验证
 
 ```powershell
-python -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
+conda run -n osteo-vision python -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
 ```
+
+## 当前闭环验证
+
+以下命令用于复现当前“上传/分析/复核/导出”的可运行闭环：
+
+```powershell
+conda run -n osteo-vision python -m ruff check src backend tests scripts tools --output-format concise
+conda run -n osteo-vision python -m mypy src backend --hide-error-context --no-error-summary
+conda run -n osteo-vision python -m pytest -q
+npm --prefix frontend run typecheck
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+conda run -n osteo-vision python tools\run_platform_smoke.py
+conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
+conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
+```
+
+`run_platform_smoke.py` 覆盖 JPEG/MP4 上传、分析 job、复核导出和 evidence bundle。`run_official_4k_pressure_smoke.py` 覆盖官方 4K JPEG/MP4 代理输入。`run_mp4_edge_case_smoke.py` 覆盖低分辨率 warning、坏签名 415 和不可解码 MP4 422。所有 smoke 视频均为合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+
+导出证据包字段见 [Export Schema V1](export_schema_v1.md)。
 
 ## 日志系统
 

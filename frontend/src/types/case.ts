@@ -36,6 +36,7 @@ export interface CandidateRegion {
   confidence?: number | null;
   status: ReviewState;
   explanation?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AnalysisRun {
@@ -58,6 +59,7 @@ export interface RegionOfInterest {
   label?: string | null;
   metrics: Record<string, unknown>;
   review_state: ReviewState;
+  candidate_id?: string | null;
 }
 
 export interface EvidenceArtifact {
@@ -73,6 +75,7 @@ export interface CaseRecord {
   case_id: string;
   title: string;
   status: CaseStatus;
+  version: number;
   disclaimer_version: string;
   review_summary: Record<string, unknown>;
   inputs: CaseInputAsset[];
@@ -89,4 +92,68 @@ export interface ExportResponse {
   report_path: string;
   manifest_path: string;
   case_id: string;
+  dicom_path?: string | null;
+  summary?: ExportSummary;
+  artifact_entries?: ExportArtifactEntry[];
+}
+
+export interface ExportSummary {
+  schema_version?: string;
+  case_id?: string;
+  analysis_run_count?: number;
+  candidate_region_count?: number;
+  core_artifact_count?: number;
+  included_artifact_count?: number;
+  total_artifact_count?: number;
+  quantification_row_count?: number;
+  bundle_size_bytes?: number | null;
+  formats?: string[];
+  dicom_included?: boolean;
+}
+
+export interface ExportArtifactEntry {
+  artifact_id?: string;
+  kind: string;
+  path: string;
+  checksum?: string | null;
+  exists?: boolean;
+  size_bytes?: number | null;
+  extra?: Record<string, unknown>;
+}
+
+export interface VideoCandidate {
+  record_id: string;
+  group: string;
+  title: string;
+  source_page_original_link: string;
+  direct_download_link: string;
+  local_path: string;
+  fluorescence: boolean | null;
+  medical_scene: string;
+  usable_for_training: string;
+  notes: string;
+  download_status: string;
+  error_or_note: string;
+  size_bytes?: number | null;
+  sha256: string;
+  downloaded_at_utc: string;
+  exists: boolean;
+  system_readable: boolean;
+  input_type: string;
+  domain_boundary: string;
+  preview_path?: string | null;
+  preview_status?: string;
+  preview_error?: string;
+  preview_frame_index?: number | null;
+  width?: number | null;
+  height?: number | null;
+  fps?: number | null;
+  duration_sec?: number | null;
+}
+
+export interface VideoCandidateList {
+  manifest_path: string;
+  exists: boolean;
+  count: number;
+  items: VideoCandidate[];
 }

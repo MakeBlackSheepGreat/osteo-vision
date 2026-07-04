@@ -51,6 +51,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+frontend/test-results/
+frontend/playwright-report/
 
 # 本地配置与缓存
 configs/paths.local.yml
@@ -71,6 +73,8 @@ artifacts/runs/*
 artifacts/visual_evidence/*
 artifacts/release/*
 artifacts/platform/*
+artifacts/platform_smoke/*
+artifacts/e2e/*
 artifacts/ui/*
 !artifacts/checkpoints/.gitkeep
 !artifacts/experiments/.gitkeep

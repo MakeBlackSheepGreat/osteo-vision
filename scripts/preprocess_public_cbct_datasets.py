@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import json
-import math
 import re
 import shutil
 import sys

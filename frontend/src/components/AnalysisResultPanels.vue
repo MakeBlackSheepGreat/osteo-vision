@@ -49,10 +49,16 @@ const props = defineProps<{
   metrics: Record<string, unknown>;
 }>();
 
-const metricKeys = ["mean_intensity", "p95_intensity", "positive_area_fraction", "threshold"];
+const fluorescenceMetricKeys = ["mean_intensity", "p95_intensity", "positive_area_fraction", "threshold"];
+const videoMetricKeys = [
+  "hotspot_frame_count",
+  "hotspot_candidate_count",
+  "hotspot_max_positive_area_fraction",
+  "hotspot_mean_positive_area_fraction",
+];
 
 const metricRows = computed(() =>
-  metricKeys.map((key) => ({
+  selectedMetricKeys().map((key) => ({
     label: metricLabel(key),
     value: valueLabel(props.metrics[key]),
   })),
@@ -65,10 +71,17 @@ const candidateRows = computed(() =>
     title: riskLabel(candidate.risk_type),
     status: reviewStateLabel(candidate.status),
     confidence: numberLabel(candidate.confidence),
-    area: areaLabel(props.metrics, index),
+    area: areaLabel(props.metrics, index, candidate.score),
     p95: p95Label(props.metrics, candidate.confidence),
   })),
 );
+
+function selectedMetricKeys(): string[] {
+  if (videoMetricKeys.some((key) => key in props.metrics)) {
+    return videoMetricKeys;
+  }
+  return fluorescenceMetricKeys;
+}
 
 function p95Label(metricMap: Record<string, unknown>, fallback?: number | null): string {
   const value = metricMap.p95_intensity;
@@ -76,7 +89,14 @@ function p95Label(metricMap: Record<string, unknown>, fallback?: number | null):
   return numberLabel(fallback);
 }
 
-function areaLabel(metricMap: Record<string, unknown>, index: number): string {
+function areaLabel(metricMap: Record<string, unknown>, index: number, candidateScore?: number | null): string {
+  if (typeof candidateScore === "number" && Number.isFinite(candidateScore) && candidateScore >= 0 && candidateScore <= 1) {
+    return `${(candidateScore * 100).toFixed(2)}%`;
+  }
+  const hotspotFraction = metricMap.hotspot_max_positive_area_fraction;
+  if (typeof hotspotFraction === "number") {
+    return `${(Math.max(0, hotspotFraction - index * 0.004) * 100).toFixed(2)}%`;
+  }
   const areaPx = metricMap.positive_area_px;
   if (typeof areaPx === "number") {
     const area = Math.max(0.42, areaPx / 4200 - index * 0.32);

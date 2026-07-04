@@ -38,7 +38,84 @@
     <div v-if="loading" class="state-message">正在处理，请等待后端返回结果。</div>
     <div v-else-if="error" class="state-message error">{{ error }}</div>
     <div v-else-if="!hasCase" class="state-message muted">空白预览态，运行后同步真实输出。</div>
-    <p v-if="exportPath" class="export-path export-path--inline">证据包已导出：{{ exportPath }}</p>
+    <div v-if="activeAnalysisJobId" class="job-panel" :class="{ timeout: lastAnalysisJobTimedOut }">
+      <div class="job-panel-copy">
+        <strong>后台分析任务</strong>
+        <span>{{ activeAnalysisJobId }} · {{ jobStatusLabel(activeAnalysisJobStatus) }}</span>
+        <div class="job-progress" role="progressbar" :aria-valuenow="jobProgressPercent(activeAnalysisJobProgress)" aria-valuemin="0" aria-valuemax="100">
+          <span :style="{ width: `${jobProgressPercent(activeAnalysisJobProgress)}%` }"></span>
+        </div>
+        <small v-if="jobProgressMessage(activeAnalysisJobProgress)">
+          {{ jobProgressMessage(activeAnalysisJobProgress) }} · {{ jobProgressPercent(activeAnalysisJobProgress) }}%
+        </small>
+        <small v-if="activeAnalysisJobError">{{ activeAnalysisJobError }}</small>
+        <small v-else-if="lastAnalysisJobTimedOut">任务可能仍在后台运行，可继续查询状态。</small>
+      </div>
+      <div class="job-panel-actions">
+        <AppButton
+          variant="ghost"
+          size="sm"
+          icon="load"
+          :disabled="loading"
+          @click="emit('refreshJob')"
+        >
+          继续查询
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          icon="stop"
+          :disabled="!canCancelJob(activeAnalysisJobStatus)"
+          @click="emit('cancelJob')"
+        >
+          取消
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          icon="play"
+          :disabled="loading || !canRetryJob(activeAnalysisJobStatus, lastAnalysisJobTimedOut)"
+          @click="emit('retryJob')"
+        >
+          重试
+        </AppButton>
+      </div>
+    </div>
+    <div v-if="exportPath" class="export-panel">
+      <div class="export-panel-title">
+        <AppIcon name="download" />
+        <strong>证据包已导出</strong>
+      </div>
+      <div v-if="exportLinks.length" class="export-link-list">
+        <a
+          v-for="link in exportLinks"
+          :key="link.path"
+          :href="link.href"
+          class="export-link"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span>{{ link.label }}</span>
+          <strong>下载</strong>
+        </a>
+      </div>
+      <dl v-if="exportSummaryItems.length" class="export-summary-grid" aria-label="导出摘要">
+        <div v-for="item in exportSummaryItems" :key="item.label">
+          <dt>{{ item.label }}</dt>
+          <dd>{{ item.value }}</dd>
+        </div>
+      </dl>
+      <div v-if="exportArtifactEntries.length" class="export-artifact-list">
+        <strong>证据文件</strong>
+        <ul>
+          <li v-for="entry in exportArtifactEntries.slice(0, 8)" :key="`${entry.kind}-${entry.path}`">
+            <span>{{ artifactKindLabel(entry.kind) }}</span>
+            <small>{{ formatBytes(entry.size_bytes) }}</small>
+          </li>
+        </ul>
+      </div>
+      <p class="export-path export-path--inline">{{ exportPath }}</p>
+    </div>
 
     <AnalysisQuadGrid
       :panels="previewPanels"
@@ -46,6 +123,292 @@
       :camera-active="cameraActive"
       :camera-status-label="cameraStatusLabel"
     />
+
+    <section v-if="fusionEvidenceSummary" class="fusion-evidence-panel" aria-label="荧光融合 V2 证据">
+      <header>
+        <div>
+          <AppIcon name="layers" />
+          <strong>荧光融合证据</strong>
+        </div>
+        <span>{{ fusionEvidenceSummary.algorithmVersionLabel }}</span>
+      </header>
+      <div class="fusion-evidence-body">
+        <figure v-if="fusionEvidenceSummary.colorbarPreviewSrc" class="fusion-colorbar">
+          <img :src="fusionEvidenceSummary.colorbarPreviewSrc" alt="荧光色标" />
+          <figcaption>阈值 {{ fusionEvidenceSummary.thresholdLabel }} · Alpha {{ fusionEvidenceSummary.alphaLabel }}</figcaption>
+        </figure>
+        <dl class="fusion-evidence-grid">
+          <div>
+            <dt>融合方法</dt>
+            <dd>{{ fusionEvidenceSummary.methodLabel }}</dd>
+          </div>
+          <div>
+            <dt>背景扣除</dt>
+            <dd>{{ fusionEvidenceSummary.backgroundLabel }}</dd>
+          </div>
+          <div>
+            <dt>配准状态</dt>
+            <dd>{{ fusionEvidenceSummary.registrationLabel }}</dd>
+          </div>
+          <div>
+            <dt>平移估计</dt>
+            <dd>{{ fusionEvidenceSummary.translationLabel }}</dd>
+          </div>
+          <div>
+            <dt>配准响应</dt>
+            <dd>{{ fusionEvidenceSummary.responseLabel }}</dd>
+          </div>
+          <div>
+            <dt>输入尺寸</dt>
+            <dd>{{ fusionEvidenceSummary.resizeLabel }}</dd>
+          </div>
+        </dl>
+      </div>
+      <a
+        v-if="fusionEvidenceSummary.colorbarPath"
+        class="fusion-colorbar-link"
+        :href="fusionEvidenceSummary.colorbarPreviewSrc"
+        target="_blank"
+        rel="noreferrer"
+      >
+        查看色标文件
+      </a>
+    </section>
+
+    <section v-if="hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 热点时间轴">
+      <header>
+        <AppIcon name="video" />
+        <strong>MP4 热点时间轴</strong>
+        <span>{{ hotspotTimelineItems.length }} / {{ hotspotTimelineTotalCount }} 帧</span>
+      </header>
+      <div class="hotspot-filter-group" aria-label="热点时间轴筛选">
+        <button
+          v-for="option in hotspotTimelineFilterOptions"
+          :key="option.value"
+          type="button"
+          :class="{ selected: hotspotTimelineFilter === option.value }"
+          :aria-pressed="hotspotTimelineFilter === option.value"
+          @click="emit('updateHotspotTimelineFilter', option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+      <section v-if="timelineManifestSummary" class="timeline-manifest-panel" aria-label="时间轴 Manifest">
+        <header>
+          <div>
+            <AppIcon name="document" />
+            <strong>时间轴 Manifest</strong>
+          </div>
+          <a
+            v-if="timelineManifestSummary.manifestHref"
+            :href="timelineManifestSummary.manifestHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            下载 JSON
+          </a>
+        </header>
+        <dl class="timeline-summary-grid">
+          <div>
+            <dt>覆盖范围</dt>
+            <dd>{{ timelineManifestSummary.scopeLabel }}</dd>
+          </div>
+          <div>
+            <dt>采样策略</dt>
+            <dd>{{ timelineManifestSummary.samplingLabel }}</dd>
+          </div>
+          <div>
+            <dt>视频帧数</dt>
+            <dd>{{ timelineManifestSummary.frameCountLabel }}</dd>
+          </div>
+          <div>
+            <dt>时长</dt>
+            <dd>{{ timelineManifestSummary.durationLabel }}</dd>
+          </div>
+          <div>
+            <dt>FPS</dt>
+            <dd>{{ timelineManifestSummary.fpsLabel }}</dd>
+          </div>
+          <div>
+            <dt>索引步长</dt>
+            <dd>{{ timelineManifestSummary.coverageLabel }}</dd>
+          </div>
+          <div>
+            <dt>选中关键帧</dt>
+            <dd>{{ timelineManifestSummary.selectedFrameCountLabel }}</dd>
+          </div>
+          <div>
+            <dt>候选帧</dt>
+            <dd>{{ timelineManifestSummary.candidateFrameCountLabel }}</dd>
+          </div>
+          <div>
+            <dt>重复候选</dt>
+            <dd>{{ timelineManifestSummary.duplicateCountLabel }}</dd>
+          </div>
+          <div>
+            <dt>跳过重复</dt>
+            <dd>{{ timelineManifestSummary.skippedDuplicateCountLabel }}</dd>
+          </div>
+        </dl>
+        <div v-if="timelineManifestSummary.traceItems.length" class="timeline-trace-list">
+          <strong>候选 Trace</strong>
+          <ul>
+            <li v-for="item in timelineManifestSummary.traceItems" :key="item.key">
+              <span>{{ item.frameLabel }}</span>
+              <small>{{ item.rankLabel }} · score {{ item.scoreLabel }} · {{ item.statusLabel }}</small>
+            </li>
+          </ul>
+        </div>
+        <div v-if="timelineManifestSummary.duplicateItems.length" class="timeline-trace-list duplicate">
+          <strong>重复帧组</strong>
+          <ul>
+            <li v-for="item in timelineManifestSummary.duplicateItems" :key="item.key">
+              <span>{{ item.frameLabel }}</span>
+              <small>{{ item.duplicateLabel }}</small>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <div v-if="hotspotTimelineItems.length" class="hotspot-timeline-list">
+        <button
+          v-for="item in hotspotTimelineItems"
+          :key="item.key"
+          class="hotspot-timeline-item"
+          :class="{ selected: selectedHotspotTimelineKey === item.key }"
+          type="button"
+          :aria-pressed="selectedHotspotTimelineKey === item.key"
+          @click="emit('selectHotspotFrame', item.key)"
+        >
+          <img v-if="item.previewSrc" :src="item.previewSrc" :alt="item.frameLabel" />
+          <div class="hotspot-timeline-copy">
+            <strong>{{ item.frameLabel }}</strong>
+            <span>{{ item.timestampLabel }} · {{ item.candidateCountLabel }}</span>
+            <dl>
+              <div>
+                <dt>阳性面积</dt>
+                <dd>{{ item.positiveAreaLabel }}</dd>
+              </div>
+              <div>
+                <dt>ROI 命中</dt>
+                <dd>{{ item.roiAreaLabel }}</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="hotspot-score-bar" aria-hidden="true">
+            <span :style="{ width: `${Math.min(100, Math.max(0, item.score * 100))}%` }"></span>
+          </div>
+        </button>
+      </div>
+      <p v-else class="hotspot-empty-state">当前筛选下没有匹配帧。</p>
+
+      <section v-if="selectedHotspotFrameDetail" class="hotspot-frame-detail" aria-label="当前帧详情">
+        <header>
+          <div>
+            <AppIcon name="document" />
+            <strong>当前帧详情</strong>
+          </div>
+          <div class="hotspot-frame-actions">
+            <span>{{ selectedHotspotFrameDetail.frameLabel }} · {{ selectedHotspotFrameDetail.timestampLabel }}</span>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              icon="load"
+              :disabled="loading"
+              @click="emit('reanalyzeHotspotFrame')"
+            >
+              重算当前帧
+            </AppButton>
+          </div>
+        </header>
+        <dl>
+          <div>
+            <dt>候选数量</dt>
+            <dd>{{ selectedHotspotFrameDetail.candidateCountLabel }}</dd>
+          </div>
+          <div>
+            <dt>阳性面积</dt>
+            <dd>{{ selectedHotspotFrameDetail.positiveAreaLabel }}</dd>
+          </div>
+          <div>
+            <dt>ROI 命中</dt>
+            <dd>{{ selectedHotspotFrameDetail.roiAreaLabel }}</dd>
+          </div>
+          <div>
+            <dt>Top BBox</dt>
+            <dd>{{ selectedHotspotFrameDetail.topBBoxLabel }}</dd>
+          </div>
+        </dl>
+        <div class="hotspot-frame-links">
+          <a
+            v-if="selectedHotspotFrameDetail.evidenceHref"
+            :href="selectedHotspotFrameDetail.evidenceHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            证据帧
+          </a>
+          <a
+            v-if="selectedHotspotFrameDetail.overlayHref"
+            :href="selectedHotspotFrameDetail.overlayHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            叠加图
+          </a>
+          <a
+            v-if="selectedHotspotFrameDetail.maskHref"
+            :href="selectedHotspotFrameDetail.maskHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            掩膜
+          </a>
+          <span>{{ selectedHotspotFrameDetail.evidenceLabel }}</span>
+        </div>
+        <p>{{ selectedHotspotFrameDetail.domainBoundary }}</p>
+      </section>
+
+      <details v-if="hotspotFrameDetails.length" class="hotspot-frame-drawer">
+        <summary>
+          <span>逐帧详情</span>
+          <strong>{{ hotspotFrameDetails.length }} 帧</strong>
+        </summary>
+        <div class="hotspot-frame-table" aria-label="逐帧详情列表">
+          <button
+            v-for="detail in hotspotFrameDetails"
+            :key="detail.key"
+            type="button"
+            class="hotspot-frame-row"
+            :class="{ selected: selectedHotspotTimelineKey === detail.key }"
+            @click="emit('selectHotspotFrame', detail.key)"
+          >
+            <span class="frame-row-main">
+              <strong>{{ detail.frameLabel }}</strong>
+              <small>{{ detail.timestampLabel }}</small>
+            </span>
+            <span>
+              <small>候选</small>
+              <strong>{{ detail.candidateCountLabel }}</strong>
+            </span>
+            <span>
+              <small>阳性面积</small>
+              <strong>{{ detail.positiveAreaLabel }}</strong>
+            </span>
+            <span>
+              <small>ROI</small>
+              <strong>{{ detail.roiAreaLabel }}</strong>
+            </span>
+            <span>
+              <small>Top BBox</small>
+              <strong>{{ detail.topBBoxLabel }}</strong>
+            </span>
+            <span class="frame-row-status" :class="{ review: detail.reviewRequired }">
+              {{ detail.reviewRequired ? "需复核" : "低风险" }}
+            </span>
+          </button>
+        </div>
+      </details>
+    </section>
 
   </section>
 
@@ -85,10 +448,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+
 import AnalysisQuadGrid from "@/components/AnalysisQuadGrid.vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
-import type { AnalysisPreviewPanel } from "@/components/analysisPreview";
+import {
+  hotspotTimelineFilterOptions,
+  type AnalysisPreviewPanel,
+  type FusionEvidenceSummary,
+  type HotspotFrameDetail,
+  type HotspotTimelineFilter,
+  type HotspotTimelineItem,
+  type TimelineManifestSummary,
+} from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 
 // 分析视图组件只接收已经整理好的展示数据，避免把 store 和业务副作用带进展示层。
@@ -103,10 +476,26 @@ const props = defineProps<{
   error: string;
   hasCase: boolean;
   exportPath: string;
+  exportLinks: Array<{ label: string; path: string; href: string }>;
+  exportSummary: Record<string, unknown>;
+  exportArtifactEntries: Array<{ kind: string; path: string; size_bytes?: number | null }>;
+  activeAnalysisJobId: string;
+  activeAnalysisJobStatus: string;
+  activeAnalysisJobError: string;
+  activeAnalysisJobProgress: Record<string, unknown>;
+  lastAnalysisJobTimedOut: boolean;
   latestRunStatusLabel: string;
   analysisStatusClass: string;
   kpiItems: AnalysisKpiItem[];
   previewPanels: AnalysisPreviewPanel[];
+  hotspotTimelineItems: HotspotTimelineItem[];
+  hotspotTimelineTotalCount: number;
+  hotspotTimelineFilter: HotspotTimelineFilter;
+  selectedHotspotTimelineKey: string;
+  selectedHotspotFrameDetail: HotspotFrameDetail | null;
+  hotspotFrameDetails: HotspotFrameDetail[];
+  timelineManifestSummary: TimelineManifestSummary | null;
+  fusionEvidenceSummary: FusionEvidenceSummary | null;
   cameraStream: MediaStream | null;
   cameraActive: boolean;
   cameraStatusLabel: string;
@@ -115,9 +504,82 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   export: [];
+  refreshJob: [];
+  cancelJob: [];
+  retryJob: [];
+  reanalyzeHotspotFrame: [];
+  selectHotspotFrame: [key: string];
+  updateHotspotTimelineFilter: [filter: HotspotTimelineFilter];
   openFullscreen: [];
   closeFullscreen: [];
 }>();
+
+function jobStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    queued: "排队中",
+    running: "运行中",
+    completed: "已完成",
+    failed: "失败",
+    canceled: "已取消",
+  };
+  return labels[status] ?? (status || "未启动");
+}
+
+function canCancelJob(status: string): boolean {
+  return status === "queued" || status === "running";
+}
+
+function canRetryJob(status: string, timedOut: boolean): boolean {
+  return timedOut || status === "failed" || status === "canceled";
+}
+
+function jobProgressPercent(progress: Record<string, unknown>): number {
+  const percent = progress.percent;
+  if (typeof percent !== "number" || !Number.isFinite(percent)) return 0;
+  return Math.max(0, Math.min(100, Math.round(percent)));
+}
+
+function jobProgressMessage(progress: Record<string, unknown>): string {
+  return typeof progress.message === "string" ? progress.message : "";
+}
+
+const exportSummaryItems = computed(() => {
+  const summary = props.exportSummary;
+  const items = [
+    ["分析次数", summary.analysis_run_count],
+    ["候选区", summary.candidate_region_count],
+    ["证据文件", summary.total_artifact_count],
+    ["量化行", summary.quantification_row_count],
+    ["ZIP 大小", formatBytes(summary.bundle_size_bytes)],
+    ["DICOM", summary.dicom_included === true ? "已包含" : "未包含"],
+  ];
+  return items
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .map(([label, value]) => ({ label: String(label), value: String(value) }));
+});
+
+function artifactKindLabel(kind: string): string {
+  const labels: Record<string, string> = {
+    report_json: "JSON 报告",
+    report_md: "Markdown 报告",
+    dicom_secondary_capture: "DICOM 二次捕获",
+    quantification_csv: "量化 CSV",
+    evidence_bundle: "证据包 ZIP",
+    bundle_manifest: "Bundle Manifest",
+    overlay: "融合图",
+    heatmap: "热图",
+    colorbar: "荧光色标",
+    roi_mask: "ROI 掩膜",
+  };
+  return labels[kind] ?? kind;
+}
+
+function formatBytes(value: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "暂无";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(2)} MB`;
+}
 </script>
 
 <style scoped>
@@ -260,6 +722,194 @@ const emit = defineEmits<{
   color: #6a7a8a;
 }
 
+.job-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 10px;
+  border: 1px solid #d6e4f2;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f7fbff;
+}
+
+.job-panel.timeout {
+  border-color: #e7cf9f;
+  background: #fffaf0;
+}
+
+.job-panel-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.job-panel-copy strong {
+  color: #102136;
+  font-size: 12px;
+}
+
+.job-panel-copy span,
+.job-panel-copy small {
+  min-width: 0;
+  color: #5a6a7a;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.job-progress {
+  position: relative;
+  width: min(100%, 360px);
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbe8f4;
+}
+
+.job-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2c7ec0, #35a26b);
+}
+
+.job-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.export-panel {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 10px;
+  border: 1px solid #cfe0ef;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f6fbff;
+}
+
+.export-panel-title {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #2f638a;
+  font-size: 12px;
+}
+
+.export-panel-title :deep(.app-icon) {
+  width: 15px;
+  height: 15px;
+}
+
+.export-link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-link {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid #bad4ea;
+  border-radius: 5px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: #1f5f93;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.export-link strong {
+  color: #102136;
+  font-size: 11px;
+}
+
+.export-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.export-summary-grid div {
+  min-width: 0;
+  border: 1px solid #dbe8f4;
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: #ffffff;
+}
+
+.export-summary-grid dt,
+.export-summary-grid dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-summary-grid dt {
+  color: #6a7a8a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.export-summary-grid dd {
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.export-artifact-list {
+  display: grid;
+  gap: 5px;
+}
+
+.export-artifact-list > strong {
+  color: #2f638a;
+  font-size: 12px;
+}
+
+.export-artifact-list ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.export-artifact-list li {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+  border: 1px solid #dbe8f4;
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: #ffffff;
+}
+
+.export-artifact-list span,
+.export-artifact-list small {
+  min-width: 0;
+  overflow: hidden;
+  color: #405060;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-artifact-list span {
+  font-weight: 800;
+}
+
 .export-path {
   margin: 10px 0 0;
   color: #5a6a7a;
@@ -269,12 +919,130 @@ const emit = defineEmits<{
 }
 
 .export-path--inline {
-  margin: 0 0 10px;
-  border: 1px solid #cfe0ef;
-  border-radius: 5px;
-  padding: 8px 10px;
-  background: #f6fbff;
+  margin: 0;
   color: #2f638a;
+}
+
+.fusion-evidence-panel {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  border: 1px solid #d4e2f0;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #fbfdff;
+}
+
+.fusion-evidence-panel header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fusion-evidence-panel header div {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  color: #102136;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.fusion-evidence-panel header :deep(.app-icon) {
+  width: 15px;
+  height: 15px;
+  color: #2c7ec0;
+}
+
+.fusion-evidence-panel header > span {
+  flex: 0 0 auto;
+  border: 1px solid #d3e2f1;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f2f7fc;
+  color: #4d6780;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.fusion-evidence-body {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  gap: 9px;
+  align-items: stretch;
+}
+
+.fusion-colorbar {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid #dbe8f4;
+  border-radius: 5px;
+  padding: 7px;
+  background: #ffffff;
+}
+
+.fusion-colorbar img {
+  width: 100%;
+  height: 32px;
+  object-fit: fill;
+  border-radius: 3px;
+  background: #0f1720;
+}
+
+.fusion-colorbar figcaption {
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.fusion-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.fusion-evidence-grid div {
+  min-width: 0;
+  border: 1px solid #dbe8f4;
+  border-radius: 5px;
+  padding: 6px 7px;
+  background: #ffffff;
+}
+
+.fusion-evidence-grid dt,
+.fusion-evidence-grid dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fusion-evidence-grid dt {
+  color: #6a7a8a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fusion-evidence-grid dd {
+  margin-top: 2px;
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.fusion-colorbar-link {
+  justify-self: start;
+  color: #1f5f93;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .analysis-fullscreen {
@@ -305,6 +1073,529 @@ const emit = defineEmits<{
   box-shadow: none;
 }
 
+.hotspot-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  border: 1px solid #d6e4f2;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #f8fbfe;
+}
+
+.hotspot-timeline header {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #102136;
+  font-size: 13px;
+}
+
+.hotspot-timeline header :deep(.app-icon) {
+  width: 15px;
+  height: 15px;
+  color: #2c7ec0;
+}
+
+.hotspot-timeline header span {
+  margin-left: auto;
+  color: #5a6a7a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hotspot-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.hotspot-filter-group button {
+  min-height: 28px;
+  border: 1px solid #c9dae8;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #ffffff;
+  color: #426078;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.hotspot-filter-group button.selected {
+  border-color: #1c75b7;
+  background: #eaf5ff;
+  color: #145d91;
+}
+
+.hotspot-filter-group button:focus-visible {
+  outline: 2px solid rgba(44, 126, 192, 0.52);
+  outline-offset: 2px;
+}
+
+.timeline-manifest-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #dbe8f4;
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: #ffffff;
+}
+
+.timeline-manifest-panel header,
+.timeline-manifest-panel header div {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+}
+
+.timeline-manifest-panel header {
+  justify-content: space-between;
+}
+
+.timeline-manifest-panel header a {
+  flex: 0 0 auto;
+  border: 1px solid #c9dae8;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f8fbfe;
+  color: #145d91;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.timeline-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.timeline-summary-grid div {
+  min-width: 0;
+  border: 1px solid #e0e8f1;
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: #f8fbfe;
+}
+
+.timeline-summary-grid dt,
+.timeline-summary-grid dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-summary-grid dt {
+  color: #748494;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.timeline-summary-grid dd {
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.timeline-trace-list {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.timeline-trace-list > strong {
+  color: #2f638a;
+  font-size: 12px;
+}
+
+.timeline-trace-list.duplicate > strong {
+  color: #8a5b1f;
+}
+
+.timeline-trace-list ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-trace-list li {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  border: 1px solid #e0e8f1;
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: #fbfdff;
+}
+
+.timeline-trace-list span,
+.timeline-trace-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-trace-list span {
+  color: #102136;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.timeline-trace-list small {
+  color: #5a6a7a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hotspot-timeline-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hotspot-timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid #dbe8f4;
+  border-radius: 6px;
+  padding: 7px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.hotspot-timeline-item:hover {
+  transform: translateY(-1px);
+  border-color: #2c7ec0;
+  box-shadow: 0 8px 18px rgba(20, 86, 138, 0.12);
+}
+
+.hotspot-timeline-item.selected {
+  border-color: #1c75b7;
+  background: #f0f8ff;
+  box-shadow:
+    0 0 0 1px rgba(28, 117, 183, 0.18) inset,
+    0 8px 20px rgba(20, 86, 138, 0.12);
+}
+
+.hotspot-timeline-item:focus-visible {
+  outline: 2px solid rgba(44, 126, 192, 0.52);
+  outline-offset: 2px;
+}
+
+.hotspot-timeline-item img {
+  width: 78px;
+  height: 62px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #0f1720;
+}
+
+.hotspot-timeline-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hotspot-timeline-copy strong,
+.hotspot-timeline-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotspot-timeline-copy strong {
+  color: #102136;
+  font-size: 12px;
+}
+
+.hotspot-timeline-copy span {
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.hotspot-timeline-copy dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+}
+
+.hotspot-timeline-copy dt,
+.hotspot-timeline-copy dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotspot-timeline-copy dt {
+  color: #748494;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.hotspot-timeline-copy dd {
+  color: #102136;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.hotspot-score-bar {
+  position: absolute;
+  right: 7px;
+  bottom: 5px;
+  left: 93px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbe8f4;
+}
+
+.hotspot-score-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2c7ec0, #35a26b);
+}
+
+.hotspot-frame-detail {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #dbe8f4;
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: #ffffff;
+}
+
+.hotspot-frame-detail header,
+.hotspot-frame-detail header div,
+.hotspot-frame-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+}
+
+.hotspot-frame-detail header {
+  justify-content: space-between;
+}
+
+.hotspot-frame-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.hotspot-frame-actions span {
+  color: #5a6a7a;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.hotspot-frame-detail dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.hotspot-frame-detail dt,
+.hotspot-frame-detail dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hotspot-frame-detail dt {
+  color: #748494;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.hotspot-frame-detail dd {
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hotspot-frame-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.hotspot-frame-links a {
+  border: 1px solid #c9dae8;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f8fbfe;
+  color: #145d91;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.hotspot-frame-links span {
+  min-width: 0;
+  overflow: hidden;
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotspot-frame-detail p {
+  margin: 0;
+  color: #5a6a7a;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.hotspot-frame-drawer {
+  border: 1px solid #dbe8f4;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.hotspot-frame-drawer summary {
+  display: flex;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 9px;
+  color: #102136;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hotspot-frame-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.hotspot-frame-drawer summary strong {
+  color: #5a6a7a;
+  font-size: 11px;
+}
+
+.hotspot-frame-table {
+  display: grid;
+  gap: 6px;
+  max-height: 310px;
+  overflow: auto;
+  border-top: 1px solid #e4edf6;
+  padding: 8px;
+}
+
+.hotspot-frame-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 1.2fr) repeat(4, minmax(68px, 1fr)) minmax(58px, 0.55fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #edf3f8;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #f9fcff;
+  color: inherit;
+  text-align: left;
+}
+
+.hotspot-frame-row:hover,
+.hotspot-frame-row.selected {
+  border-color: #8bb9da;
+  background: #eef7ff;
+}
+
+.hotspot-frame-row:focus-visible {
+  outline: 2px solid #2c7ec0;
+  outline-offset: 2px;
+}
+
+.hotspot-frame-row span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.hotspot-frame-row small,
+.hotspot-frame-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hotspot-frame-row small {
+  color: #748494;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.hotspot-frame-row strong {
+  color: #102136;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.frame-row-main strong {
+  font-size: 12px;
+}
+
+.frame-row-status {
+  justify-self: end;
+  border: 1px solid #c9dae8;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.frame-row-status.review {
+  border-color: #f0c27a;
+  background: #fff8ea;
+  color: #8a560b;
+}
+
+.hotspot-empty-state {
+  margin: 0;
+  border: 1px dashed #cbd9e7;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #ffffff;
+  color: #5a6a7a;
+  font-size: 12px;
+}
+
 @media (max-width: 959px) {
   .analysis-header,
   .fullscreen-header {
@@ -323,6 +1614,35 @@ const emit = defineEmits<{
 
   .analysis-fullscreen-panel {
     padding: 12px;
+  }
+
+  .fusion-evidence-body {
+    grid-template-columns: 1fr;
+  }
+
+  .fusion-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hotspot-timeline-list {
+    grid-template-columns: 1fr;
+  }
+
+  .hotspot-frame-detail dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hotspot-frame-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .frame-row-status {
+    justify-self: start;
+  }
+
+  .timeline-summary-grid,
+  .timeline-trace-list ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

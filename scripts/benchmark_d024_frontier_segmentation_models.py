@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -474,7 +473,10 @@ class WindowAttentionUNet3D(GenericUNet3D):
 class MambaProxyUNet3D(GenericUNet3D):
     def __init__(self, in_channels: int, out_channels: int, *, base_channels: int, placement: str) -> None:
         bottleneck_channels = base_channels * 8
-        block_factory = lambda channels: nn.Sequential(ConvNeXtBlock3D(channels), GatedSequenceMixing3D(channels))
+
+        def block_factory(channels: int) -> nn.Module:
+            return nn.Sequential(ConvNeXtBlock3D(channels), GatedSequenceMixing3D(channels))
+
         super().__init__(
             in_channels,
             out_channels,

@@ -6,8 +6,10 @@ from PIL import Image
 from src.preprocess.fluorescence import (
     apply_fluorescence_colormap,
     fluorescence_quantification,
+    fluorescence_colorbar,
     fuse_white_light_fluorescence,
     normalize_fluorescence,
+    subtract_fluorescence_background,
 )
 
 
@@ -47,6 +49,25 @@ def test_fluorescence_quantification_counts_positive_area() -> None:
     assert quantification["positive_area_fraction"] == 0.5
 
 
+def test_subtract_fluorescence_background_reports_baseline() -> None:
+    image = np.array([[10, 10], [10, 90]], dtype=np.float32)
+
+    corrected, report = subtract_fluorescence_background(image, percentile=5)
+
+    assert report["method"] == "percentile_floor_subtraction"
+    assert report["applied"] is True
+    assert corrected.min() == 0
+    assert corrected.max() > 0
+
+
+def test_fluorescence_colorbar_adds_threshold_marker() -> None:
+    colorbar = fluorescence_colorbar(colormap="green", threshold=0.5, width=64, height=16)
+
+    assert colorbar.shape == (16, 64, 3)
+    assert colorbar.dtype == np.uint8
+    assert colorbar[:, 31:34].max() == 255
+
+
 def test_fuse_white_light_fluorescence_writes_visual_outputs(tmp_path) -> None:
     white = np.zeros((16, 16, 3), dtype=np.uint8)
     white[..., 0] = 110
@@ -69,8 +90,13 @@ def test_fuse_white_light_fluorescence_writes_visual_outputs(tmp_path) -> None:
     )
 
     assert report["case_id"] == "case_001"
+    assert report["fusion"]["algorithm_version"] == "fluorescence_fusion_v2"
+    assert report["fusion"]["registration"] == "phase_correlation_translation"
+    assert "registration_details" in report["fusion"]
+    assert report["fusion"]["background_correction"]["method"] == "percentile_floor_subtraction"
     assert report["fusion"]["fluorescence_resized_to_white_light"]
     assert report["quantification"]["positive_area_px"] > 0
+    assert report["outputs"]["colorbar_path"].endswith("_fluorescence_colorbar.png")
     assert report["outputs"]["markdown_report_path"].endswith(".md")
     for output_path in report["outputs"].values():
         assert output_path

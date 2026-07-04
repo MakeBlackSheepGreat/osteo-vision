@@ -96,7 +96,7 @@ def fluorescence_warning_markdown(report: dict[str, Any] | None) -> str:
         warnings.append(
             {
                 "code": "resize_only_initial_demo",
-                "message": "Fluorescence image was resized to match the white-light image for this V1 demo.",
+                "message": "Fluorescence image was resized to match the white-light image before V2 fusion.",
             }
         )
     warnings.append(

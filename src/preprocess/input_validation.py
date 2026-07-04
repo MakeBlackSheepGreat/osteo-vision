@@ -8,6 +8,7 @@ from src.core.warnings import STATUS_INVALID_INPUT, warning
 from src.io.dicom_io import dicom_summary, is_dicom_path
 from src.io.image_io import image_metadata, is_image_path
 from src.io.nifti_io import is_nifti_path
+from src.io.video_io import is_video_path, video_metadata
 from src.preprocess.image_quality import assess_basic_quality
 
 
@@ -15,6 +16,8 @@ def detect_input_type(path: str | Path) -> str:
     p = Path(path)
     if p.is_dir() and is_dicom_path(p):
         return "dicom_series"
+    if is_video_path(p):
+        return "video_file"
     if is_image_path(p):
         return "2d_image"
     if p.suffix.lower() == ".npz":
@@ -34,6 +37,10 @@ def validate_input(path: str | Path) -> InputSummary:
     metadata: dict[str, Any] = {}
     if input_type == "2d_image" and p.exists():
         metadata.update(image_metadata(p))
+        warnings.extend(metadata.get("quality_warnings", []))
+    elif input_type == "video_file" and p.exists():
+        metadata.update(video_metadata(p))
+        warnings.extend(metadata.get("quality_warnings", []))
     elif input_type == "dicom_series" and p.exists():
         metadata.update(dicom_summary(p))
     elif input_type == "npz_roi":

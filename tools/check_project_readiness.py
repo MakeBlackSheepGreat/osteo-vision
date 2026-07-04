@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import csv
+import json
 import subprocess
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -109,6 +109,29 @@ def check_code_snapshots() -> None:
         check_file(item)
 
 
+def check_model_evidence() -> None:
+    manifest_path = ROOT / "research/reports/modeling/model_checkpoint_manifest_20260704.json"
+    if not manifest_path.exists():
+        print("MISSING  research/reports/modeling/model_checkpoint_manifest_20260704.json")
+        return
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"WARN     model checkpoint manifest is not valid JSON: {exc}")
+        return
+    summary = payload.get("summary") if isinstance(payload, dict) else {}
+    missing = summary.get("models_with_missing_checkpoint") if isinstance(summary, dict) else []
+    print(
+        "OK       research/reports/modeling/model_checkpoint_manifest_20260704.json "
+        f"models={payload.get('model_count')} available={payload.get('available_model_count')} "
+        f"missing_checkpoints={len(missing or [])}"
+    )
+    check_file("research/reports/modeling/model_checkpoint_manifest_20260704_zh.md")
+    check_file("research/reports/modeling/model_checkpoint_manifest_20260704_en.md")
+    if missing:
+        print(f"INFO     model checkpoints still missing for {', '.join(str(item) for item in missing)}")
+
+
 def check_gitignore_rules() -> None:
     target = ROOT / ".gitignore"
     if not target.exists():
@@ -125,6 +148,7 @@ def check_gitignore_rules() -> None:
         "research/datasets/**/derived/",
         "artifacts/reports/*",
         "artifacts/visual_evidence/*",
+        "artifacts/platform_smoke/*",
         "node_modules/",
         "frontend/dist/",
     ]
@@ -152,6 +176,7 @@ def main() -> None:
         "research/literature/inventory/paper_inventory.csv",
         "research/literature/inventory/dataset_inventory.csv",
         "research/planning/requirements-prototype.txt",
+        "tools/run_platform_smoke.py",
     ]:
         check_file(path)
 
@@ -179,6 +204,9 @@ def main() -> None:
     check_dir("research/model-snapshots/code/egnet")
     check_dir("research/model-snapshots/code/frs_loss")
     check_code_snapshots()
+
+    print_section("Model Evidence")
+    check_model_evidence()
 
     print_section("Platform Workspace")
     for path in [

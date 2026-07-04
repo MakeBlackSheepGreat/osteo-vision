@@ -2,7 +2,13 @@ task_id: osteo_vision
 task_name: Osteomyelitis Intelligent Fluorescence Diagnosis and Treatment
 modality: generic
 input_contract:
-  input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+  input_types: [2d_image, video_file, video_stream, npz_roi, dicom_series, nifti_volume]
+  official_device:
+    source: official technical document
+    image_resolution: 3840x2160
+    image_format: jpeg
+    video_format: mp4
+    storage: USB3.0
   required_manifest_columns: [case_id, input_path, label, task_type, input_type]
   optional_manifest_columns:
     - patient_id
@@ -14,10 +20,16 @@ input_contract:
     - mask_path
     - white_light_path
     - fluorescence_path
+    - video_path
+    - stream_uri
+    - frame_timestamp
+    - frame_index
     - dicom_series_path
     - cbct_path
     - roi_path
     - device
+    - device_resolution
+    - acquisition_mode
     - acquisition_time
 label_contract:
   type: binary_or_missing
@@ -47,6 +59,21 @@ benchmark_contract:
   submission_format: csv
   submission_columns: [case_id, prediction, probability, mask_path, report_path]
 recommended_models:
+  - model_id: convnext3d_d025_proxy_segmenter
+    family: convnext3d_segmenter
+    task_types: [segmentation]
+    input_types: [npz_roi]
+    priority: 9
+  - model_id: fluorescence_hotspot_2d_segmenter
+    family: fluorescence_hotspot_segmenter
+    task_types: [segmentation]
+    input_types: [2d_image]
+    priority: 8
+  - model_id: d025_lesion_smoke_segmenter
+    family: d025_lesion_segmenter
+    task_types: [segmentation]
+    input_types: [npz_roi]
+    priority: 10
   - model_id: nnunet_v2_osteo_baseline
     family: nnunet_v2
     task_types: [segmentation]
@@ -55,7 +82,7 @@ recommended_models:
   - model_id: medsam2_osteo_promptable
     family: medsam_like
     task_types: [segmentation]
-    input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+    input_types: [2d_image, video_file, video_stream, npz_roi, dicom_series, nifti_volume]
     priority: 2
   - model_id: biomedclip_osteo_screening
     family: vlm_encoder

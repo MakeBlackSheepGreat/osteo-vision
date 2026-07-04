@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.schemas import CheckpointManifest, ExperimentSpec, ModelCard, PromotionRecord
+from src.core.schemas import CheckpointManifest, ModelCard, PromotionRecord
 from src.experiments.promotion import evaluate_promotion_gate
 from src.experiments.spec import experiment_spec_from_mapping
 from src.experiments.splits import assign_splits

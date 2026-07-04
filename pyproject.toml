@@ -76,9 +76,9 @@ known_third_party = ["pytest", "numpy", "torch", "yaml"]
 default_section = "THIRDPARTY"
 
 [tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true

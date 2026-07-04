@@ -6,6 +6,36 @@
 
 当前项目原则和固定边界见 `AGENTS.md` 与 `.specify/memory/constitution.md`。项目目标是做成一个面向颌骨骨髓炎术中辅助决策的纯软件平台，优先覆盖白光/ICG 融合、AI + 医生复核和结果导出三层。
 
+## 当前可运行闭环
+
+当前 V1 平台已经能跑通一个中规中矩的研究/比赛原型闭环：
+
+1. 创建病例。
+2. 上传或登记官方边界内的 JPEG 图片、MP4 视频，优先按 4K `3840x2160`、JPEG、MP4 处理。
+3. 对白光/ICG 图片执行伪彩增强、背景扣除、轻量配准、融合、色标生成和 ROI 定量。
+4. 对 MP4 抽取关键帧，并运行可解释的 2D fluorescence hotspot baseline。
+5. 展示候选区域、荧光融合证据、时间线摘要、医生复核状态和导出证据。
+6. 导出 JSON、Markdown、CSV、DICOM Secondary Capture 和 ZIP evidence bundle。
+
+医学边界保持不变：当前输出是科研和竞赛原型结果，不能作为临床诊断结论；ICG 信号主要反映灌注和组织活性差异，不是颌骨骨髓炎特异性探针。
+
+## 当前模型状态
+
+当前可运行模型/规则：
+
+- `convnext3d_d025_proxy_segmenter`：D025 CBCT ROI 代理分割模型，用于工程闭环验证。
+- `d025_lesion_smoke_segmenter`：同一 D025 代理 checkpoint 的 smoke/兼容入口。
+- `fluorescence_hotspot_2d_segmenter`：MP4/JPEG keyframe 的阈值和连通域 hotspot baseline，不是训练型病灶模型。
+- `fixture_default`：测试和兜底 fixture。
+
+当前不可声称已完成的模型：
+
+- `nnunet_v2_osteo_baseline`：缺 checkpoint 和 adapter inference。
+- `medsam2_osteo_promptable`：缺 checkpoint、prompt contract 和 adapter inference。
+- `biomedclip_osteo_screening`：缺 `open_clip`、checkpoint 和 adapter inference。
+
+最新 D025 代理模型评估见 `research/reports/modeling/d025_proxy_model_evaluation_20260704_zh.md`。该评估不是术中 ICG 颌骨骨髓炎目标域性能。
+
 ## 当前目录
 
 ```text
@@ -64,8 +94,8 @@ npm --prefix frontend run dev
 基础检查：
 
 ```powershell
-python check_env.py
-python -m pytest tests/unit tests/smoke
+conda run -n osteo-vision python check_env.py
+conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 ```
 
 legacy Gradio Demo：
@@ -79,17 +109,40 @@ python app/main.py --config configs/inference/osteo_vision.yml
 - `configs/tasks/osteo_vision.yml`
 - `configs/inference/osteo_vision.yml`
 
+## 复现当前闭环验证
+
+推荐在固定 Conda 环境 `osteo-vision` 中运行：
+
+```powershell
+conda run -n osteo-vision python -m ruff check src backend tests scripts tools --output-format concise
+conda run -n osteo-vision python -m mypy src backend --hide-error-context --no-error-summary
+conda run -n osteo-vision python -m pytest -q
+npm --prefix frontend run typecheck
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+conda run -n osteo-vision python tools\run_platform_smoke.py
+conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
+conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
+conda run -n osteo-vision python scripts\model_inventory.py --config configs\inference\osteo_vision.yml
+conda run -n osteo-vision python tools\check_project_readiness.py
+```
+
+这些命令覆盖代码质量、前端构建、浏览器 E2E、JPEG/MP4 上传、4K 代理输入、关键帧分析、荧光融合、复核导出和 evidence bundle。所有 MP4 smoke 都是合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+
 ## 资料入口
 
 - 文献与数据集清单：`research/literature/inventory/`
 - 工程准备路线：`research/planning/engineering_preparation.md`
 - 数据获取计划：`research/planning/data_acquisition_plan.md`
 - 外部模型快照：`research/model-snapshots/code/`
+- 导出证据包 schema：`docs/export_schema_v1.md`
+- 当前缺口审计：`research/reports/planning/project_gap_followup_audit_20260704_zh.md`
 
 ## 自检
 
 ```powershell
-python tools/check_project_readiness.py
+conda run -n osteo-vision python tools/check_project_readiness.py
 ```
 
 该脚本只做只读检查，用于确认资料归档、候选数据集目录、开发框架和本机工具是否就绪。

@@ -1,18 +1,73 @@
 paths_config: configs/paths.example.yml
 runtime:
-  model_version: osteo-vision-fixture-v0
+  model_version: osteo-vision-convnext3d-proxy-v0
   framework_version: v2
   task_package: configs/tasks/osteo_vision.yml
   default_task_type: segmentation
-  default_threshold: 0.5
+  default_threshold: 0.6
   low_confidence_margin: 0.15
   device_policy: auto
   use_fixture_model: true
-  checkpoint_path: artifacts/checkpoints/osteo_vision/demo_model.pt
+  checkpoint_path: artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
   disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
   models:
+    - model_id: convnext3d_d025_proxy_segmenter
+      family: convnext3d_segmenter
+      task_types: [segmentation]
+      input_types: [npz_roi]
+      spatial_dims: [3]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt
+      source_url: local://d025-dolchid-cbct-lesion-roi-proxy-cache
+      license: research
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: ConvNeXt-style 3D CBCT lesion ROI proxy segmentation for engineering validation
+      clinical_claim_allowed: false
+      extra:
+        threshold: 0.6
+        output_dir: artifacts/visual_evidence/osteo_vision/model_masks
+        proxy_dataset: D025_DOLCHID_CBCT_lesion_roi_64
+        architecture_note: tiny_3d_unet_with_convnext_style_depthwise_residual_blocks
+    - model_id: fluorescence_hotspot_2d_segmenter
+      family: fluorescence_hotspot_segmenter
+      task_types: [segmentation]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      source_url: local://fluorescence-hotspot-threshold-baseline
+      license: internal
+      dependency_group: core
+      device_policy: cpu
+      precision: deterministic
+      enabled: true
+      intended_use: heuristic 2D fluorescence hotspot mask for JPEG/keyframe prototype evidence
+      clinical_claim_allowed: false
+      extra:
+        threshold: 0.6
+        min_component_area: 25
+        colormap: green
+        alpha: 0.45
+        output_dir: artifacts/visual_evidence/osteo_vision/hotspot_masks
+    - model_id: d025_lesion_smoke_segmenter
+      family: d025_lesion_segmenter
+      task_types: [segmentation]
+      input_types: [npz_roi]
+      spatial_dims: [3]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt
+      source_url: local://d025-dolchid-cbct-lesion-roi-proxy-cache
+      license: research
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: engineering smoke model for CBCT lesion ROI proxy segmentation
+      clinical_claim_allowed: false
+      extra:
+        threshold: 0.6
+        output_dir: artifacts/visual_evidence/osteo_vision/model_masks
     - model_id: nnunet_v2_osteo_baseline
       family: nnunet_v2
       task_types: [segmentation]
@@ -30,7 +85,7 @@ runtime:
     - model_id: medsam2_osteo_promptable
       family: medsam_like
       task_types: [segmentation]
-      input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
+      input_types: [2d_image, video_file, video_stream, npz_roi, dicom_series, nifti_volume]
       spatial_dims: [2, 3]
       checkpoint_path: artifacts/checkpoints/osteo_vision/medsam2.pt
       source_url: https://arxiv.org/html/2504.03600v1
@@ -95,6 +150,10 @@ runtime:
         - classification
 input:
   accepted_image_extensions: [.png, .jpg, .jpeg, .tif, .tiff]
+  accepted_video_extensions: [.mp4]
+  official_video_resolution: [3840, 2160]
+  official_image_format: jpeg
+  accepted_stream_schemes: [camera, rtsp, http, https]
   accepted_npz_extensions: [.npz]
   accepted_dicom_extensions: [.dcm]
   accepted_nifti_extensions: [.nii, .nii.gz]

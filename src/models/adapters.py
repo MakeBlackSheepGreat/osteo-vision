@@ -11,6 +11,7 @@ from src.models.classifier import DeterministicClassifier
 DEPENDENCY_MODULES = {
     "core": [],
     "fixture": [],
+    "torch": ["torch"],
     "timm": ["timm"],
     "monai": ["monai"],
     "nnunet": ["nnunetv2"],
@@ -30,6 +31,8 @@ class ModelAdapter(Protocol):
 
 
 class BaseModelAdapter:
+    implements_inference = False
+
     def __init__(self, spec: ModelSpec) -> None:
         self.spec = spec
 
@@ -47,6 +50,8 @@ class BaseModelAdapter:
         warnings: list[dict[str, Any]] = []
         if not self.spec.enabled:
             reasons.append("model disabled")
+        if not self.implements_inference:
+            reasons.append("adapter inference not implemented")
         for module in DEPENDENCY_MODULES.get(self.spec.dependency_group, []):
             if importlib.util.find_spec(module) is None:
                 reasons.append(f"missing dependency: {module}")
@@ -80,12 +85,16 @@ class BaseModelAdapter:
 
 
 class FixtureAdapter(BaseModelAdapter):
+    implements_inference = True
+
     def __init__(self, spec: ModelSpec) -> None:
         super().__init__(spec)
         self.classifier = DeterministicClassifier()
 
     def warmup(self) -> AdapterStatus:
-        return AdapterStatus(model_id=self.spec.model_id, family=self.spec.family, available=self.spec.enabled, enabled=self.spec.enabled)
+        return AdapterStatus(
+            model_id=self.spec.model_id, family=self.spec.family, available=self.spec.enabled, enabled=self.spec.enabled
+        )
 
     def predict(self, request: AdapterRequest) -> AdapterResult:
         probability = self.classifier.predict_probability(request.input_path, request.metadata)
@@ -118,6 +127,141 @@ class MedSAMLikeAdapter(BaseModelAdapter):
     pass
 
 
+class D025LesionSegmenterAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        if request.input_type != "npz_roi":
+            unavailable_warning = warning(
+                "unsupported_input_for_proxy_model",
+                f"Model {self.spec.model_id} only supports npz_roi inputs in this prototype.",
+                True,
+            )
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "unsupported input for D025 proxy segmenter"},
+                warnings=status.warnings + [unavailable_warning],
+            )
+        if self._model is None:
+            self._load_model()
+        from src.core.paths import resolve_path
+        from src.models.lesion_segmenter import predict_npz_roi, select_torch_device
+
+        device = select_torch_device(self.spec.device_policy)
+        output_dir = resolve_path(
+            self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/model_masks")
+        )
+        threshold = float(self.spec.extra.get("threshold", 0.5))
+        assert self._model is not None
+        payload = predict_npz_roi(
+            self._model,
+            request.input_path,
+            device=device,
+            output_dir=output_dir,
+            case_id=request.case_id,
+            threshold=threshold,
+            model_id=self.spec.model_id,
+        )
+        boundary_warning = self._boundary_warning()
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload["prediction"],
+            score=payload["score"],
+            segmentation_mask=payload["segmentation_mask"],
+            lesion_evidence=payload["lesion_evidence"],
+            quantification=payload["quantification"],
+            warnings=[boundary_warning],
+        )
+
+    def _load_model(self) -> None:
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.lesion_segmenter import load_lesion_segmenter_checkpoint, select_torch_device
+
+        device = select_torch_device(self.spec.device_policy)
+        self._model, self._metadata = load_lesion_segmenter_checkpoint(
+            resolve_path(self.spec.checkpoint_path), device=device
+        )
+
+    def _boundary_warning(self) -> dict[str, Any]:
+        return warning(
+            "proxy_model_non_target_domain",
+            "D025 checkpoint is a CBCT lesion ROI proxy and is not intraoperative ICG jaw osteomyelitis evidence.",
+        )
+
+
+class ConvNeXt3DLesionSegmenterAdapter(D025LesionSegmenterAdapter):
+    """ConvNeXt-style 3D lesion segmenter adapter for CBCT proxy segmentation."""
+
+    def _boundary_warning(self) -> dict[str, Any]:
+        return warning(
+            "convnext3d_proxy_model_non_target_domain",
+            "ConvNeXt-style 3D checkpoint is trained on CBCT lesion ROI proxy data and is not target-domain intraoperative ICG jaw osteomyelitis evidence.",
+        )
+
+
+class FluorescenceHotspotSegmenterAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        if request.input_type != "2d_image":
+            unsupported_warning = warning(
+                "unsupported_input_for_hotspot_segmenter",
+                f"Model {self.spec.model_id} only supports 2d_image inputs in this prototype.",
+                True,
+            )
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "unsupported input for fluorescence hotspot segmenter"},
+                warnings=status.warnings + [unsupported_warning],
+            )
+        from src.core.paths import resolve_path
+        from src.models.hotspot_segmenter import segment_2d_fluorescence_hotspots
+
+        payload = segment_2d_fluorescence_hotspots(
+            request.input_path,
+            output_dir=resolve_path(
+                self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/hotspot_masks")
+            ),
+            case_id=request.case_id,
+            threshold=float(self.spec.extra.get("threshold", 0.6)),
+            min_component_area=int(self.spec.extra.get("min_component_area", 25)),
+            colormap=str(self.spec.extra.get("colormap", "green")),
+            alpha=float(self.spec.extra.get("alpha", 0.45)),
+            model_id=self.spec.model_id,
+            roi_hints=list(request.metadata.get("roi_hints") or []),
+        )
+        boundary_warning = warning(
+            "heuristic_hotspot_segmenter_non_diagnostic",
+            "2D fluorescence hotspot segmentation is a heuristic prototype baseline and is not target-domain clinical diagnosis.",
+        )
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload["prediction"],
+            score=payload["score"],
+            segmentation_mask=payload["segmentation_mask"],
+            lesion_evidence=payload["lesion_evidence"],
+            quantification=payload["quantification"],
+            warnings=[boundary_warning],
+        )
+
+
 class Vista3DLikeAdapter(BaseModelAdapter):
     pass
 
@@ -132,6 +276,9 @@ ADAPTER_CLASSES = {
     "monai_bundle": MonaiBundleAdapter,
     "nnunet_v2": NnUNetV2Adapter,
     "medsam_like": MedSAMLikeAdapter,
+    "d025_lesion_segmenter": D025LesionSegmenterAdapter,
+    "convnext3d_segmenter": ConvNeXt3DLesionSegmenterAdapter,
+    "fluorescence_hotspot_segmenter": FluorescenceHotspotSegmenterAdapter,
     "vista3d_like": Vista3DLikeAdapter,
     "vlm_encoder": VLMEncoderAdapter,
 }
@@ -164,7 +311,9 @@ def build_adapter(spec: ModelSpec) -> BaseModelAdapter:
 
 
 def build_adapters(runtime: dict[str, Any]) -> list[BaseModelAdapter]:
-    specs = runtime.get("models") or [{"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"]}]
+    specs = runtime.get("models") or [
+        {"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"]}
+    ]
     return [build_adapter(model_spec_from_mapping(spec)) for spec in specs]
 
 
@@ -187,7 +336,9 @@ def select_adapter(
     explicit_model_id: str | None = None,
 ) -> tuple[BaseModelAdapter | None, list[AdapterStatus]]:
     statuses: list[AdapterStatus] = []
-    candidates = [adapter for adapter in adapters if not explicit_model_id or adapter.describe().model_id == explicit_model_id]
+    candidates = [
+        adapter for adapter in adapters if not explicit_model_id or adapter.describe().model_id == explicit_model_id
+    ]
     for adapter in candidates:
         if not adapter.supports(task_type, input_type, modality):
             continue

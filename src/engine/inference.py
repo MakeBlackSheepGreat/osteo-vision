@@ -17,7 +17,13 @@ from src.core.warnings import (
     STATUS_SEGMENTATION_UNAVAILABLE,
     warning,
 )
-from src.models.registry import build_adapters, checkpoint_warning, inventory_from_adapters, load_fixture_models, select_adapter
+from src.models.registry import (
+    build_adapters,
+    checkpoint_warning,
+    inventory_from_adapters,
+    load_fixture_models,
+    select_adapter,
+)
 from src.pipelines.base import PipelineContext
 from src.pipelines.classification import ClassificationPipeline
 from src.pipelines.detection import DetectionPipeline
@@ -102,7 +108,7 @@ class MedicalImagingInferenceService:
             adapter_result = adapter_result_obj.to_dict()
             adapter_warnings = adapter_result_obj.warnings
             warnings.extend(adapter_warnings)
-        base = {
+        base: dict[str, Any] = {
             "case_id": case,
             "input_type": summary.input_type,
             "task_type": selected_task,
@@ -123,7 +129,11 @@ class MedicalImagingInferenceService:
             result = PredictionResult(status=STATUS_INVALID_INPUT, **base)
             return self._with_report(result)
         if adapter_result and adapter_result.get("prediction", {}).get("available") is False:
-            status = STATUS_SEGMENTATION_UNAVAILABLE if selected_task == "segmentation" else STATUS_CLASSIFICATION_UNAVAILABLE
+            status = (
+                STATUS_SEGMENTATION_UNAVAILABLE
+                if selected_task == "segmentation"
+                else STATUS_CLASSIFICATION_UNAVAILABLE
+            )
             result = PredictionResult(status=status, prediction=adapter_result.get("prediction", {}), **base)
             result.timing_ms["total"] = round((time.perf_counter() - start) * 1000, 3)
             return self._with_report(result)

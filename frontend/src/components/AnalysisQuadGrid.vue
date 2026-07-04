@@ -21,8 +21,29 @@
         <AppIcon :name="panelIcon(panel.title)" />
         <span>{{ panel.title }}</span>
       </header>
-      <div class="analysis-quad-viewport output-viewport">
-        <div class="empty-preview-copy">
+      <div class="analysis-quad-viewport output-viewport" :class="{ 'has-image': panel.previewSrc }">
+        <img v-if="panel.previewSrc" :src="panel.previewSrc" :alt="panel.title" />
+        <svg
+          v-if="panel.previewSrc && panel.overlays?.length"
+          class="preview-overlay"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-label="ROI 与候选区叠加"
+        >
+          <rect
+            v-for="overlay in panel.overlays"
+            :key="overlay.key"
+            :class="['preview-overlay-rect', `preview-overlay-rect--${overlay.tone}`]"
+            :x="overlay.x"
+            :y="overlay.y"
+            :width="overlay.width"
+            :height="overlay.height"
+            vector-effect="non-scaling-stroke"
+          >
+            <title>{{ overlay.label }}</title>
+          </rect>
+        </svg>
+        <div v-if="!panel.previewSrc" class="empty-preview-copy">
           <strong>空白预览区</strong>
           <span>运行分析后显示真实输出</span>
         </div>
@@ -75,9 +96,12 @@ watch(
 );
 
 function panelIcon(title: string): AppIconName {
+  if (title.startsWith("关键帧")) return "video";
   const icons: Record<string, AppIconName> = {
     融合图: "layers",
     热图: "target",
+    热点叠加: "target",
+    热点掩膜: "document",
     归一化图: "document",
   };
   return icons[title] ?? "file";
@@ -186,6 +210,43 @@ function panelIcon(title: string): AppIconName {
 
 .camera-viewport.active video {
   opacity: 1;
+}
+
+.output-viewport.has-image {
+  background: #0f1720;
+}
+
+.output-viewport img {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: contain;
+}
+
+.preview-overlay {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.preview-overlay-rect {
+  fill: rgba(228, 155, 63, 0.1);
+  stroke-width: 2;
+}
+
+.preview-overlay-rect--candidate {
+  stroke: #e49b3f;
+}
+
+.preview-overlay-rect--roi {
+  fill: rgba(44, 126, 192, 0.1);
+  stroke: #2c7ec0;
+  stroke-dasharray: 7 5;
 }
 
 .empty-preview-copy {

@@ -38,7 +38,7 @@ def validate_task_config(config: dict[str, Any]) -> list[str]:
         if not isinstance(contract, dict):
             errors.append("input_contract must be a dictionary")
         elif "input_types" in contract:
-            valid_types = ["2d_image", "npz_roi", "dicom_series", "nifti_volume"]
+            valid_types = ["2d_image", "video_file", "video_stream", "npz_roi", "dicom_series", "nifti_volume"]
             for t in contract["input_types"]:
                 if t not in valid_types:
                     errors.append(f"Invalid input type: {t}")
@@ -83,7 +83,7 @@ def validate_model_config(config: dict[str, Any]) -> list[str]:
     
     # Validate input_types
     if "input_types" in config:
-        valid_types = ["2d_image", "npz_roi", "dicom_series", "nifti_volume", "*"]
+        valid_types = ["2d_image", "video_file", "video_stream", "npz_roi", "dicom_series", "nifti_volume", "*"]
         for t in config["input_types"]:
             if t not in valid_types:
                 errors.append(f"Invalid input type: {t}")

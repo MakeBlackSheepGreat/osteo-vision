@@ -23,7 +23,7 @@ class InputService:
 
     def _asset_from_request(self, item: InputCreateRequest) -> CaseInputAsset:
         if item.channel == InputChannel.VIDEO and item.path.startswith("camera://"):
-            metadata = {
+            camera_metadata = {
                 "input_type": "browser_camera",
                 "metadata_status": "live_preview",
                 **item.metadata,
@@ -34,11 +34,11 @@ class InputService:
                 path=item.path,
                 mime_type=item.mime_type or "application/x-browser-camera",
                 dimensions=[],
-                metadata=metadata,
+                metadata=camera_metadata,
                 quality_flags=[],
             )
         summary = validate_input(item.path)
-        metadata: dict[str, Any] = {**summary.metadata, **item.metadata}
+        metadata: dict[str, Any] = {"input_type": summary.input_type, **summary.metadata, **item.metadata}
         flags = [_warning_to_flag(warning) for warning in summary.warnings]
         if item.channel == InputChannel.FLUORESCENCE:
             flags.extend(_fluorescence_intensity_flags(item.path))
@@ -72,11 +72,17 @@ class InputService:
 
 
 def _warning_to_flag(warning: dict[str, Any]) -> QualityFlag:
+    code = str(warning.get("code") or "")
+    flag_code = (
+        QualityFlagCode.OFFICIAL_PROFILE_MISMATCH
+        if code.startswith("official_") or code == "ffprobe_unavailable"
+        else QualityFlagCode.UNUSABLE
+    )
     return QualityFlag(
-        code=QualityFlagCode.UNUSABLE,
+        code=flag_code,
         message=str(warning.get("message") or "Input cannot be used."),
         blocking=bool(warning.get("blocking")),
-        details=dict(warning.get("details") or {}),
+        details={"source_warning_code": code, **dict(warning.get("details") or {})},
     )
 
 
@@ -101,9 +107,23 @@ def _fluorescence_intensity_flags(path: str | Path) -> list[QualityFlag]:
     p95 = float(np.percentile(array, 95))
     flags: list[QualityFlag] = []
     if p95 < 0.08:
-        flags.append(QualityFlag(code=QualityFlagCode.WEAK_SIGNAL, message="Fluorescence signal is weak.", details={"p95": p95}))
+        flags.append(
+            QualityFlag(code=QualityFlagCode.WEAK_SIGNAL, message="Fluorescence signal is weak.", details={"p95": p95})
+        )
     if mean > 0.92:
-        flags.append(QualityFlag(code=QualityFlagCode.OVEREXPOSED, message="Fluorescence image appears overexposed.", details={"mean": mean}))
+        flags.append(
+            QualityFlag(
+                code=QualityFlagCode.OVEREXPOSED,
+                message="Fluorescence image appears overexposed.",
+                details={"mean": mean},
+            )
+        )
     if mean < 0.02:
-        flags.append(QualityFlag(code=QualityFlagCode.UNDEREXPOSED, message="Fluorescence image appears underexposed.", details={"mean": mean}))
+        flags.append(
+            QualityFlag(
+                code=QualityFlagCode.UNDEREXPOSED,
+                message="Fluorescence image appears underexposed.",
+                details={"mean": mean},
+            )
+        )
     return flags

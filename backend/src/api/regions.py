@@ -17,4 +17,24 @@ def router(repo: CaseRepository, service: ReviewService) -> APIRouter:
             raise HTTPException(status_code=404, detail="Case not found")
         return service.update_region(case, region_id, request)
 
+    @api.post("/cases/{case_id}/regions/from-candidate/{candidate_id}", response_model=CaseRecord)
+    def add_region_from_candidate(case_id: str, candidate_id: str) -> CaseRecord:
+        case = repo.get(case_id)
+        if case is None:
+            raise HTTPException(status_code=404, detail="Case not found")
+        try:
+            return service.add_candidate_roi(case, candidate_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @api.patch("/cases/{case_id}/candidate-regions/{candidate_id}", response_model=CaseRecord)
+    def update_candidate_region(case_id: str, candidate_id: str, request: RegionUpdateRequest) -> CaseRecord:
+        case = repo.get(case_id)
+        if case is None:
+            raise HTTPException(status_code=404, detail="Case not found")
+        try:
+            return service.update_candidate_region(case, candidate_id, request)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     return api

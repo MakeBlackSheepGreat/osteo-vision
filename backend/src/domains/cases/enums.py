@@ -28,6 +28,7 @@ class QualityFlagCode(StrEnum):
     BLURRED = "blurred"
     OCCLUDED = "occluded"
     LOW_CONFIDENCE = "low_confidence"
+    OFFICIAL_PROFILE_MISMATCH = "official_profile_mismatch"
     UNUSABLE = "unusable"
 
 
@@ -44,11 +45,14 @@ class RegionSource(StrEnum):
 
 
 class ArtifactKind(StrEnum):
+    KEYFRAME = "keyframe"
     OVERLAY = "overlay"
     HEATMAP = "heatmap"
     NORMALIZED_FLUORESCENCE = "normalized_fluorescence"
+    COLORBAR = "colorbar"
     ROI_MASK = "roi_mask"
     QUANTIFICATION_CSV = "quantification_csv"
     REPORT_JSON = "report_json"
     REPORT_MD = "report_md"
+    DICOM_SECONDARY_CAPTURE = "dicom_secondary_capture"
     EVIDENCE_BUNDLE = "evidence_bundle"

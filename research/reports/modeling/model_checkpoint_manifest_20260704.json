@@ -1,0 +1,358 @@
+{
+  "schema_version": "osteo-vision-model-checkpoint-manifest-v1",
+  "generated_at_utc": "2026-07-04T01:14:52.647968+00:00",
+  "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\inference\\osteo_vision.yml",
+  "model_version": "osteo-vision-convnext3d-proxy-v0",
+  "model_count": 7,
+  "available_model_count": 4,
+  "runtime_fixture_fallback_enabled": true,
+  "model_selection_policy": "fixture_fallback",
+  "models": [
+    {
+      "model_id": "convnext3d_d025_proxy_segmenter",
+      "family": "convnext3d_segmenter",
+      "enabled": true,
+      "available": true,
+      "status_reasons": [],
+      "task_types": [
+        "segmentation"
+      ],
+      "input_types": [
+        "npz_roi"
+      ],
+      "checkpoint": {
+        "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
+        "exists": true,
+        "sha256": "c7a840a9266c6434a1fb96321bfa103dd0fd1011570c8a28e9ee5e38f16d97e1",
+        "size_bytes": 130789,
+        "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_manifest.json",
+        "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_model_card.json"
+      },
+      "artifact_manifest": {
+        "exists": true,
+        "model_id": "d025_lesion_smoke_segmenter",
+        "model_family": "d025_lesion_segmenter",
+        "clinical_claim_allowed": false,
+        "metrics": {
+          "case_count": 32,
+          "foreground_mean_dice": 0.13241683577436866,
+          "foreground_mean_iou": 0.07393435534021123,
+          "lesion_sensitivity": 0.8391267434808976,
+          "lesion_precision": 0.07944852485220961,
+          "prediction_positive_fraction": 0.05190539360046387,
+          "target_positive_fraction": 0.004914402961730957,
+          "threshold": 0.5
+        },
+        "warnings": [
+          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+        ]
+      },
+      "model_card": {
+        "exists": true,
+        "model_id": "d025_lesion_smoke_segmenter",
+        "model_family": "d025_lesion_segmenter",
+        "clinical_claim_allowed": false,
+        "metrics": {
+          "case_count": 32,
+          "foreground_mean_dice": 0.13241683577436866,
+          "foreground_mean_iou": 0.07393435534021123,
+          "lesion_sensitivity": 0.8391267434808976,
+          "lesion_precision": 0.07944852485220961,
+          "prediction_positive_fraction": 0.05190539360046387,
+          "target_positive_fraction": 0.004914402961730957,
+          "threshold": 0.5
+        },
+        "warnings": [
+          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+        ]
+      },
+      "manifest_model_id_matches": false,
+      "intended_use": "ConvNeXt-style 3D CBCT lesion ROI proxy segmentation for engineering validation",
+      "clinical_claim_allowed": false,
+      "source_url": "local://d025-dolchid-cbct-lesion-roi-proxy-cache",
+      "license": "research",
+      "dependency_group": "torch",
+      "medical_boundary": "D025 CBCT lesion ROI proxy; not target-domain intraoperative ICG jaw osteomyelitis evidence."
+    },
+    {
+      "model_id": "fluorescence_hotspot_2d_segmenter",
+      "family": "fluorescence_hotspot_segmenter",
+      "enabled": true,
+      "available": true,
+      "status_reasons": [],
+      "task_types": [
+        "segmentation"
+      ],
+      "input_types": [
+        "2d_image"
+      ],
+      "checkpoint": {
+        "path": null,
+        "exists": false,
+        "sha256": null,
+        "size_bytes": null,
+        "artifact_manifest_path": null,
+        "model_card_path": null
+      },
+      "artifact_manifest": {
+        "exists": false
+      },
+      "model_card": {
+        "exists": false
+      },
+      "manifest_model_id_matches": null,
+      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe prototype evidence",
+      "clinical_claim_allowed": false,
+      "source_url": "local://fluorescence-hotspot-threshold-baseline",
+      "license": "internal",
+      "dependency_group": "core",
+      "medical_boundary": "Heuristic 2D fluorescence hotspot baseline; not trained target-domain diagnosis."
+    },
+    {
+      "model_id": "d025_lesion_smoke_segmenter",
+      "family": "d025_lesion_segmenter",
+      "enabled": true,
+      "available": true,
+      "status_reasons": [],
+      "task_types": [
+        "segmentation"
+      ],
+      "input_types": [
+        "npz_roi"
+      ],
+      "checkpoint": {
+        "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
+        "exists": true,
+        "sha256": "c7a840a9266c6434a1fb96321bfa103dd0fd1011570c8a28e9ee5e38f16d97e1",
+        "size_bytes": 130789,
+        "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_manifest.json",
+        "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke_model_card.json"
+      },
+      "artifact_manifest": {
+        "exists": true,
+        "model_id": "d025_lesion_smoke_segmenter",
+        "model_family": "d025_lesion_segmenter",
+        "clinical_claim_allowed": false,
+        "metrics": {
+          "case_count": 32,
+          "foreground_mean_dice": 0.13241683577436866,
+          "foreground_mean_iou": 0.07393435534021123,
+          "lesion_sensitivity": 0.8391267434808976,
+          "lesion_precision": 0.07944852485220961,
+          "prediction_positive_fraction": 0.05190539360046387,
+          "target_positive_fraction": 0.004914402961730957,
+          "threshold": 0.5
+        },
+        "warnings": [
+          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+        ]
+      },
+      "model_card": {
+        "exists": true,
+        "model_id": "d025_lesion_smoke_segmenter",
+        "model_family": "d025_lesion_segmenter",
+        "clinical_claim_allowed": false,
+        "metrics": {
+          "case_count": 32,
+          "foreground_mean_dice": 0.13241683577436866,
+          "foreground_mean_iou": 0.07393435534021123,
+          "lesion_sensitivity": 0.8391267434808976,
+          "lesion_precision": 0.07944852485220961,
+          "prediction_positive_fraction": 0.05190539360046387,
+          "target_positive_fraction": 0.004914402961730957,
+          "threshold": 0.5
+        },
+        "warnings": [
+          "This checkpoint is for engineering smoke validation on D025 CBCT lesion ROI proxy data only.",
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+        ]
+      },
+      "manifest_model_id_matches": true,
+      "intended_use": "engineering smoke model for CBCT lesion ROI proxy segmentation",
+      "clinical_claim_allowed": false,
+      "source_url": "local://d025-dolchid-cbct-lesion-roi-proxy-cache",
+      "license": "research",
+      "dependency_group": "torch",
+      "medical_boundary": "D025 CBCT lesion ROI proxy; not target-domain intraoperative ICG jaw osteomyelitis evidence."
+    },
+    {
+      "model_id": "nnunet_v2_osteo_baseline",
+      "family": "nnunet_v2",
+      "enabled": true,
+      "available": false,
+      "status_reasons": [
+        "adapter inference not implemented",
+        "missing checkpoint: artifacts/checkpoints/osteo_vision/nnunet_v2"
+      ],
+      "task_types": [
+        "segmentation"
+      ],
+      "input_types": [
+        "dicom_series",
+        "nifti_volume",
+        "npz_roi"
+      ],
+      "checkpoint": {
+        "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\nnunet_v2",
+        "exists": false,
+        "sha256": null,
+        "size_bytes": null,
+        "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\nnunet_v2_manifest.json",
+        "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\nnunet_v2_model_card.json"
+      },
+      "artifact_manifest": {
+        "exists": false
+      },
+      "model_card": {
+        "exists": false
+      },
+      "manifest_model_id_matches": null,
+      "intended_use": "jaw osteomyelitis segmentation baseline",
+      "clinical_claim_allowed": false,
+      "source_url": "https://github.com/MIC-DKFZ/nnUNet",
+      "license": "Apache-2.0",
+      "dependency_group": "nnunet",
+      "medical_boundary": "Configured candidate model; availability depends on adapter implementation, dependencies, and weights."
+    },
+    {
+      "model_id": "medsam2_osteo_promptable",
+      "family": "medsam_like",
+      "enabled": true,
+      "available": false,
+      "status_reasons": [
+        "adapter inference not implemented",
+        "missing checkpoint: artifacts/checkpoints/osteo_vision/medsam2.pt"
+      ],
+      "task_types": [
+        "segmentation"
+      ],
+      "input_types": [
+        "2d_image",
+        "video_file",
+        "video_stream",
+        "npz_roi",
+        "dicom_series",
+        "nifti_volume"
+      ],
+      "checkpoint": {
+        "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\medsam2.pt",
+        "exists": false,
+        "sha256": null,
+        "size_bytes": null,
+        "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\medsam2_manifest.json",
+        "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\medsam2_model_card.json"
+      },
+      "artifact_manifest": {
+        "exists": false
+      },
+      "model_card": {
+        "exists": false
+      },
+      "manifest_model_id_matches": null,
+      "intended_use": "promptable lesion or necrotic bone ROI segmentation",
+      "clinical_claim_allowed": false,
+      "source_url": "https://arxiv.org/html/2504.03600v1",
+      "license": "research",
+      "dependency_group": "sam",
+      "medical_boundary": "Configured candidate model; availability depends on adapter implementation, dependencies, and weights."
+    },
+    {
+      "model_id": "biomedclip_osteo_screening",
+      "family": "vlm_encoder",
+      "enabled": true,
+      "available": false,
+      "status_reasons": [
+        "adapter inference not implemented",
+        "missing dependency: open_clip",
+        "missing checkpoint: artifacts/checkpoints/osteo_vision/biomedclip.pt"
+      ],
+      "task_types": [
+        "classification"
+      ],
+      "input_types": [
+        "2d_image"
+      ],
+      "checkpoint": {
+        "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\biomedclip.pt",
+        "exists": false,
+        "sha256": null,
+        "size_bytes": null,
+        "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\biomedclip_manifest.json",
+        "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\biomedclip_model_card.json"
+      },
+      "artifact_manifest": {
+        "exists": false
+      },
+      "model_card": {
+        "exists": false
+      },
+      "manifest_model_id_matches": null,
+      "intended_use": "auxiliary image-level screening prototype",
+      "clinical_claim_allowed": false,
+      "source_url": "https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
+      "license": "MIT",
+      "dependency_group": "vlm",
+      "medical_boundary": "Configured candidate model; availability depends on adapter implementation, dependencies, and weights."
+    },
+    {
+      "model_id": "fixture_default",
+      "family": "fixture",
+      "enabled": true,
+      "available": true,
+      "status_reasons": [],
+      "task_types": [
+        "*"
+      ],
+      "input_types": [
+        "*"
+      ],
+      "checkpoint": {
+        "path": null,
+        "exists": false,
+        "sha256": null,
+        "size_bytes": null,
+        "artifact_manifest_path": null,
+        "model_card_path": null
+      },
+      "artifact_manifest": {
+        "exists": false
+      },
+      "model_card": {
+        "exists": false
+      },
+      "manifest_model_id_matches": null,
+      "intended_use": "deterministic fallback for tests and demos",
+      "clinical_claim_allowed": false,
+      "source_url": "local_fixture",
+      "license": "internal",
+      "dependency_group": "fixture",
+      "medical_boundary": "Deterministic fixture fallback for tests and demos only."
+    }
+  ],
+  "summary": {
+    "available_model_ids": [
+      "convnext3d_d025_proxy_segmenter",
+      "fluorescence_hotspot_2d_segmenter",
+      "d025_lesion_smoke_segmenter",
+      "fixture_default"
+    ],
+    "unavailable_model_ids": [
+      "nnunet_v2_osteo_baseline",
+      "medsam2_osteo_promptable",
+      "biomedclip_osteo_screening"
+    ],
+    "checkpointed_model_ids": [
+      "convnext3d_d025_proxy_segmenter",
+      "d025_lesion_smoke_segmenter"
+    ],
+    "models_with_missing_checkpoint": [
+      "nnunet_v2_osteo_baseline",
+      "medsam2_osteo_promptable",
+      "biomedclip_osteo_screening"
+    ],
+    "models_allowing_clinical_claims": []
+  }
+}
