@@ -68,7 +68,7 @@
 | `medsam2_osteo_promptable` | 缺 checkpoint，adapter 推理未实现。 |
 | `biomedclip_osteo_screening` | 缺依赖 `open_clip` 和 checkpoint。 |
 
-模型记录以 `research/reports/modeling/model_checkpoint_manifest_20260704.*` 为准。比赛表述应继续强调：现有模型是科研/竞赛原型和代理验证，不是临床诊断模型。
+模型记录以 `research/reports/modeling/model_checkpoint_manifest_20260704.*` 为准。比赛表述应继续强调：现有模型是研发验证版平台和代理验证，不是临床诊断模型。
 
 本轮新增训练候选：
 
@@ -134,6 +134,6 @@
 
 1. 论文 PDF 证据链不足：60 条论文清单仍以链接为主。
 2. 数据集许可和下载状态需要继续分层：尤其是 MODID、FGS video、OFDVDnet 和公开视频。
-3. 真实目标域数据缺失仍是一级风险：没有真实 4K MP4/JPEG + 医生 ROI 标注，赛点二只能做原型验证。
+3. 真实目标域数据缺失仍是一级风险：没有真实 4K MP4/JPEG + 医生 ROI 标注，赛点二只能做工程验证。
 4. 模型记录已经补上 D025 ConvNeXt-style 与 MONAI SegResNetDS 的代理训练/评估对比；下一步应转向 nnU-Net v2/DynUNet 高分辨率或 patch 级路线，并继续保留训练日志、评估表和失败样本。
 5. DICOM 输出当前是 Secondary Capture 雏形，DICOM SR/SEG 仍应列为后续扩展。

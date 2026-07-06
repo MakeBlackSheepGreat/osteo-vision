@@ -94,7 +94,7 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 - What happens when white-light and fluorescence inputs are mismatched, missing, overexposed, underexposed, blurred, or low-signal?
-- How does the feature communicate low confidence, review-required states, and research-prototype limitations?
+- How does the feature communicate low confidence, review-required states, and platform safety-boundary limitations?
 
 ## Requirements *(mandatory)*
 
@@ -111,7 +111,7 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 - **FR-006**: System MUST preserve traceable outputs for generated images, JSON/CSV data, reports, and physician review states when applicable.
-- **FR-007**: System MUST include research-prototype disclaimers and avoid automatic diagnosis language in user-facing outputs when applicable.
+- **FR-007**: System MUST include platform safety-boundary disclaimers and avoid automatic diagnosis language in user-facing outputs when applicable.
 
 *Example of marking unclear requirements:*
 

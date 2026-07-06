@@ -1,10 +1,10 @@
-# V1 Demonstrable Prototype Closure Plan
+# V1 Demonstrable Platform Closure Plan
 
 Generated on: 2026-06-15
 
 ## 1. Goal
 
-This stage moves the project from research organization into a demonstrable prototype: white-light image plus ICG fluorescence image in, pseudo-color fusion, heatmap, normalized fluorescence, ROI intensity statistics, and case report out.
+This stage moves the project from research organization into a demonstrable platform workflow: white-light image plus ICG fluorescence image in, pseudo-color fusion, heatmap, normalized fluorescence, ROI intensity statistics, and case report out.
 
 The V1 demo does not require GPU, trained weights, or changes to the public task/model adapter contracts.
 

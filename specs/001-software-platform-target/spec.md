@@ -15,7 +15,7 @@
 **Competition Value**: supports pseudo-color fluorescence enhancement, AI-assisted review,
 and standardized output/collaboration
 
-**Medical Safety Boundary**: the platform remains a research and competition prototype,
+**Medical Safety Boundary**: the platform remains a research and competition validation platform,
 keeps physician review as the final decision layer, and avoids automatic diagnosis or
 unsupported clinical claims
 
@@ -109,7 +109,7 @@ system includes the warnings and low-confidence state in the exported output.
   reflects the reviewed state.
 - **FR-006**: The platform MUST export an evidence bundle that includes visual outputs, quantitative
   summaries, and a structured report for each completed case.
-- **FR-007**: The platform MUST include research-prototype disclaimers and MUST avoid language that
+- **FR-007**: The platform MUST include platform safety-boundary disclaimers and MUST avoid language that
   presents the output as automatic diagnosis or definitive surgical instruction.
 - **FR-008**: The platform MUST preserve the same user-facing case workflow when an approved analysis
   method is replaced with another approved analysis method.
@@ -142,7 +142,7 @@ system includes the warnings and low-confidence state in the exported output.
 - **SC-003**: Reviewers can accept, modify, or reject candidate regions, and the exported report
   reflects the final review state.
 - **SC-004**: Every exported case includes fused visual evidence, a quantitative summary, a review
-  record, and a research-prototype disclaimer.
+  record, and a platform safety-boundary disclaimer.
 - **SC-005**: No checked output contains unsupported automatic diagnosis language or claims of
   definitive clinical decision-making.
 

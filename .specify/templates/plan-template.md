@@ -38,7 +38,7 @@
 
 **Osteo Vision Layer**: [fluorescence_analysis / ai_physician_review / result_export / cross_cutting]
 
-**Medical Safety Boundary**: [How the feature preserves research-prototype status, physician review, and conservative ICG claims]
+**Medical Safety Boundary**: [How the feature preserves platform safety-boundary status, physician review, and conservative ICG claims]
 
 **Input/Output Contract**: [Expected input channels, accepted formats, output artifacts, and report fields]
 
@@ -49,7 +49,7 @@
 - **Competition scope**: Feature serves fluorescence analysis, AI + physician
   review, result export, or a justified cross-cutting need. Out-of-scope device,
   hospital system, or clinical workflow work is explicitly excluded or justified.
-- **Medical safety**: Outputs remain research/competition prototype evidence;
+- **Medical safety**: Outputs remain research/competition validation evidence produced by the platform;
   ICG is treated as a perfusion/viability signal; physician review states and
   disclaimers are preserved.
 - **Configurable architecture**: New behavior enters through YAML config,

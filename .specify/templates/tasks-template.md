@@ -74,7 +74,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T008 Configure error handling and logging infrastructure
 - [ ] T009 Setup environment configuration management
 - [ ] T0XX [P] Verify feature enters through YAML config, manifest, adapter, pipeline, preprocessing, or report boundaries
-- [ ] T0XX [P] Add or update research-prototype disclaimer and physician review state handling where user-facing outputs are generated
+- [ ] T0XX [P] Add or update platform safety-boundary disclaimer and physician review state handling where user-facing outputs are generated
 - [ ] T0XX [P] Document artifact retention, provenance, and Git exclusion behavior for generated files
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel

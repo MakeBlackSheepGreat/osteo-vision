@@ -1,4 +1,4 @@
-# Prototype/runtime dependencies for the first engineering phase.
+# Platform validation/runtime dependencies for the first engineering phase.
 # Install PyTorch separately according to local CUDA/CPU hardware.
 gradio>=5.0
 numpy>=1.26

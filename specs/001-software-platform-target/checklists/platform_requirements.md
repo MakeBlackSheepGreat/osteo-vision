@@ -39,7 +39,7 @@
 
 ## Medical Safety And Review Boundary
 
-- [x] CHK013 Are all user-facing and report-facing outputs required to include research-prototype disclaimers? [Completeness, Spec §FR-007, Constitution §II]
+- [x] CHK013 Are all user-facing and report-facing outputs required to include platform safety-boundary disclaimers? [Completeness, Spec §FR-007, Constitution §II]
   - Evidence: backend disclaimers are included in case creation, reports, Markdown output, DICOM Secondary Capture, and schema docs.
 - [x] CHK014 Are prohibited claims specified clearly enough to prevent automatic diagnosis, definitive surgical instruction, and unsupported clinical performance wording? [Clarity, Spec §FR-007, Spec §SC-005]
   - Evidence: AGENTS and spec require research/competition wording and prohibit automatic diagnosis claims.
@@ -85,7 +85,7 @@
 - [ ] CHK030 Are performance targets expressed as measurable limits for representative case loading, ROI interaction, and export? [Gap, Plan §Performance Goals]
   - Remaining gap: smoke timing exists, but formal limits are not set.
 - [x] CHK031 Are privacy, de-identification, and minimum-retention requirements explicitly tied to case inputs, metadata, exports, and logs? [Completeness, Constitution §IV, Tasks §Clarification Assumption]
-  - Evidence: AGENTS excludes raw medical data/checkpoints from Git; DICOM SC marks identity removed; export schema keeps prototype/de-identification boundaries.
+  - Evidence: AGENTS excludes raw medical data/checkpoints from Git; DICOM SC marks identity removed; export schema keeps platform safety/de-identification boundaries.
 - [ ] CHK032 Are accessibility and basic usability requirements defined for reviewer-facing image inspection and ROI controls? [Gap, Spec §User Scenarios]
   - Remaining gap: frontend tests cover framing and mobile viewport, but accessibility and detailed ROI usability requirements are not written.
 - [x] CHK033 Are auditability requirements defined for review history, provenance, analysis run parameters, and export timestamps? [Completeness, Spec §FR-005, Spec §Key Entities]

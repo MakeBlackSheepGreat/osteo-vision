@@ -7,11 +7,11 @@ architecture rather than a single monolithic demo.
 
 **Rationale**: The project target needs a realistic software surface for case
 review, physician interaction, and evidence export while still staying small
-enough to deliver as a pure software prototype.
+enough to deliver as a pure software platform.
 
 **Alternatives considered**:
 
-- Gradio-only demo. Faster to prototype, but too narrow for the target workflow.
+- Gradio-only demo. Faster to validate, but too narrow for the target workflow.
 - Electron desktop shell. Feels product-like, but adds packaging complexity.
 - PySide6/Qt. Strong for local tools, but less aligned with the chosen web stack.
 
@@ -80,7 +80,7 @@ integration without changing the case-level workflow.
 
 **Decision**: Keep Gradio as a temporary bridge only.
 
-**Rationale**: It is useful for smokeable prototypes and competition demos, but
+**Rationale**: It is useful for smoke-testable platform workflows and competition demos, but
 the target architecture should be a Vue frontend plus Python backend.
 
 **Alternatives considered**:

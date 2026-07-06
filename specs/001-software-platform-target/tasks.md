@@ -45,7 +45,7 @@ description: "Task list for Osteo Vision software platform target"
 - [X] T010 Create case domain dataclasses or Pydantic schemas in `backend/src/domains/cases/schemas.py`
 - [X] T011 Create quality flag and review-state enums in `backend/src/domains/cases/enums.py`
 - [X] T012 Create local artifact path manager in `backend/src/core/artifacts.py`
-- [X] T013 Create research-prototype disclaimer constants in `backend/src/core/disclaimers.py`
+- [X] T013 Create platform safety-boundary disclaimer constants in `backend/src/core/disclaimers.py`
 - [X] T014 Create case repository interface for local filesystem/SQLite-backed metadata in `backend/src/domains/cases/repository.py`
 - [X] T015 Create analysis service interface that wraps existing shared `src/preprocess/` and `src/pipelines/` boundaries in `backend/src/services/analysis_service.py`
 - [X] T016 Create report/export service interface in `backend/src/services/export_service.py`
@@ -87,7 +87,7 @@ description: "Task list for Osteo Vision software platform target"
 - [X] T036 [US1] Implement frontend fusion viewer in `frontend/src/components/FusionViewer.vue`
 - [X] T037 [US1] Implement frontend quality flag panel in `frontend/src/components/QualityFlagPanel.vue`
 - [X] T038 [US1] Wire case loading state into `frontend/src/stores/caseStore.ts`
-- [X] T039 [US1] Add user-facing research-prototype disclaimer to `frontend/src/components/MedicalDisclaimer.vue`
+- [X] T039 [US1] Add user-facing platform safety-boundary disclaimer to `frontend/src/components/MedicalDisclaimer.vue`
 
 **Checkpoint**: User Story 1 can be demonstrated independently with sample inputs and no export dependency.
 
@@ -129,7 +129,7 @@ description: "Task list for Osteo Vision software platform target"
 
 **Goal**: A researcher or platform administrator can export reviewed case evidence with visuals, metrics, review states, warnings, and disclaimers.
 
-**Independent Test**: Complete a reviewed sample case and verify that the evidence bundle includes visual artifacts, structured data, review state, warnings, and research-prototype wording.
+**Independent Test**: Complete a reviewed sample case and verify that the evidence bundle includes visual artifacts, structured data, review state, warnings, and platform safety-boundary wording.
 
 ### Tests for User Story 3
 
@@ -243,7 +243,7 @@ Task: T060 Report safety wording test in tests/unit/test_platform_report_safety.
 
 1. Complete Phase 1 and Phase 2.
 2. Implement only Phase 3.
-3. Validate that a representative dual-channel case opens, shows fusion outputs, displays quality flags, and preserves research-prototype wording.
+3. Validate that a representative dual-channel case opens, shows fusion outputs, displays quality flags, and preserves platform safety-boundary wording.
 4. Demo US1 before building ROI review or export.
 
 ### Incremental Delivery

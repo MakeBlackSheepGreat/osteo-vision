@@ -78,7 +78,7 @@
 
 新增 `LocalJobWorker` 后，queued job 在服务重启后会保留，可由 `conda run -n osteo-vision python tools/run_job_worker_once.py --limit N` 处理；`OSTEO_JOB_EXECUTION_MODE=worker` 可让 API 只入队、不用 FastAPI BackgroundTasks 立即执行。`JobRegistry` 读取时会刷新落盘状态，因此 API 能看到本地 worker 写回的 completed/failed 结果。
 
-剩余架构问题是它仍是 JSON 文件级本地队列，不是常驻 worker 服务，也没有优先级、延迟重试、并发 worker 锁租约和可观测性面板。服务重启后 running job 仍会标记 failed，这是合理的本地原型策略，但还不是正式任务队列。
+剩余架构问题是它仍是 JSON 文件级本地队列，不是常驻 worker 服务，也没有优先级、延迟重试、并发 worker 锁租约和可观测性面板。服务重启后 running job 仍会标记 failed，这是合理的本地平台验证策略，但还不是正式任务队列。
 
 优先级：P1。
 
@@ -661,7 +661,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 |---|---|---|---:|---|
 | M-01 | 当前 7 个模型中只有 4 个可用；nnU-Net、MedSAM-like、BiomedCLIP 均不可用。 | `scripts/model_inventory.py` 输出、`research/reports/modeling/model_checkpoint_manifest_20260704.json` | P0 | 先选一个正式主线训练，不要继续只堆候选名。 |
 | M-02 | 可用的 `convnext3d_d025_proxy_segmenter` 和 `d025_lesion_smoke_segmenter` 复用 D025 CBCT ROI 代理 checkpoint，不是术中 ICG MP4/JPEG 目标域模型。 | `configs/inference/osteo_vision.yml`、`src/models/adapters.py` | P0 | 把 ConvNeXt/MedNeXt 作为 CBCT 代理主线训练，报告中严格写“代理模型”。 |
-| M-03 | `fluorescence_hotspot_2d_segmenter` 是阈值/连通区启发式 baseline，不是训练模型；只能支撑赛点一/二原型展示。 | `src/models/hotspot_segmenter.py`、`src/models/adapters.py` | P0 | 用公开荧光视频帧做自监督增强或弱监督分割 baseline，再和阈值 baseline 对比。 |
+| M-03 | `fluorescence_hotspot_2d_segmenter` 是阈值/连通区启发式 baseline，不是训练模型；只能支撑赛点一/二平台展示。 | `src/models/hotspot_segmenter.py`、`src/models/adapters.py` | P0 | 用公开荧光视频帧做自监督增强或弱监督分割 baseline，再和阈值 baseline 对比。 |
 | M-04 | MedSAM-like adapter 仍未实现推理，也未定义 point/box/mask prompt 数据合同；ROI 画布还未接入 promptable model。 | `src/models/adapters.py`、`frontend/src/components/RoiCanvas.vue` | P1 | 若走 MedSAM，先实现 2D frame box prompt 最小闭环。 |
 | M-05 | nnU-Net adapter 未实现，checkpoint 目录缺失；CBCT 代理数据还没转成 nnU-Net 标准 dataset + train/infer 流程。 | `src/models/adapters.py`、`configs/inference/osteo_vision.yml` | P1 | 做 D025/ToothFairy2 到 nnU-Net 格式转换和最小训练脚本。 |
 | M-06 | BiomedCLIP 缺 `open_clip` 与 checkpoint，且对分割帮助有限，当前更适合后置为图像级检索/说明，不宜做主线。 | `configs/inference/osteo_vision.yml`、`src/models/adapters.py` | P2 | 暂不作为近期主线；等分割闭环稳定后再接。 |
@@ -941,7 +941,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 
 - 当前 timeline manifest 是“整段视频时长覆盖 + 候选帧/选中帧详尽记录”的低频索引，不对长视频每一帧都做质量推理；真实 4K 长视频压力测试后再决定是否扩大逐帧索引。
 - 后续还需将 timeline manifest 从摘要面板扩展为可筛选详情抽屉，并继续验证更长 4K 视频上的交互性能。
-- 重复帧去重仍是轻量 thumbnail 相似度方法，后续可以替换为 SSIM/光流/场景切换检测，但当前足够支撑比赛原型的关键帧去重。
+- 重复帧去重仍是轻量 thumbnail 相似度方法，后续可以替换为 SSIM/光流/场景切换检测，但当前足够支撑比赛版平台的关键帧去重。
 
 ## 19. 2026-07-04 本轮缺口修复记录：MP4 当前帧单帧重算
 
@@ -1328,7 +1328,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 | P0 | MP4/JPEG 关键帧没有训练型病灶模型。 | 视频分析仍主要依赖 `fluorescence_hotspot_2d_segmenter` 强度阈值、连通域和 ROI 规则。 | 对官方 4K MP4 可以产出热点，但只能叫可解释 hotspot baseline。 | 建立 2D keyframe 数据集清单、弱标注/伪标注流程和最小训练脚本；输出仍标注非目标域代理。 |
 | P1 | 4K MP4 只做了 6 帧代理 smoke。 | `run_official_4k_pressure_smoke.py --frames 6 --keyframes 3` 通过，但 `ffprobe_unavailable`，且不是长手术视频。 | 答辩可能追问 1-10 分钟视频、异常编码、旋转 metadata、码率和超大文件。 | 补 1-10 分钟代理 MP4、旋转 metadata、异常 codec、不可解码视频、超大文件和更明确失败分级。 |
 | P1 | 实时视频仍是接口预留。 | `backend/src/services/analysis_service.py` 对 `mode=realtime_video` 返回 `realtime_stream_not_connected`。 | 前端“实时预览”容易被误解为实时 AI 已完成。 | 保持文案边界，或做低帧率抽样 + hotspot baseline 的最小实时链路。 |
-| P1 | 上传和任务队列仍是本地原型级。 | `backend/src/api/uploads.py` 整文件流式写入，MP4 上限 1GB；`backend/src/services/job_service.py` 使用 JSON registry。 | 长视频并发、断点续传、跨进程任务可靠性不足。 | 先补失败码和进度面板；随后改分片上传、SQLite job queue 或正式后台队列。 |
+| P1 | 上传和任务队列仍是本地本地验证级。 | `backend/src/api/uploads.py` 整文件流式写入，MP4 上限 1GB；`backend/src/services/job_service.py` 使用 JSON registry。 | 长视频并发、断点续传、跨进程任务可靠性不足。 | 先补失败码和进度面板；随后改分片上传、SQLite job queue 或正式后台队列。 |
 | P1 | 前端分析查看深度不够。 | timeline summary、trace、筛选已有；colorbar 已进 artifact/export，但主界面未作为独立查看卡片展示。 | 演示可看，但评审深挖算法证据时信息不够顺手。 | 在分析面板显示荧光色标、V2 配准/背景扣除元数据、完整 frame detail 抽屉和 artifact 快速预览。 |
 | P1 | 医生复核交互还停在矩形重画。 | `RoiCanvas` 能保存 ROI、候选框能回写 geometry，但没有角点 handle、边线拖拽和修改前后对比。 | 可完成闭环，但不像成熟审阅工作台。 | 补 bbox handle 编辑、before/after 对比和复核事件可视化。 |
 | P1 | 证据导出还不是完整 DICOM 标准方案。 | 目前导出含 JSON/CSV/Markdown/ZIP 和 `dicom_secondary_capture`。 | 可作为扩展输出雏形，但还不能说 DICOM SR/SEG 完整实现，也不能写成完整赛题原文核心赛点。 | 短期写清 Secondary Capture 边界；中期补 DICOM SR/SEG schema 和兼容说明。 |
@@ -1551,7 +1551,7 @@ Python 质量门通过，但模型路线依赖仍未收束：nnU-Net、MedSAM、
 |---|---:|---|---|---|
 | B-01 | P0 | 实时视频 AI 仍未接入。 | `backend/src/services/analysis_service.py` 对 realtime 入口仍是预留语义。 | 比赛版明确标为“低帧率抽样/离线上传优先”；若要演示实时，先做 1-2 FPS keyframe hotspot baseline。 |
 | B-02 | P0 | 长视频上传缺 multipart/resumable 能力。 | `backend/src/api/uploads.py` 已有流式写入、大小上限、签名和内容校验，但仍是单请求上传。 | 补分片上传、断点续传、取消、重试、临时文件清理和前端进度协议。 |
-| B-03 | P1 | 后台任务仍偏本地原型。 | `backend/src/services/job_service.py` 使用本地 registry；smoke 可跑，但不适合多进程/多用户可靠队列。 | 比赛版可保留；正式版改 SQLite/RQ/Celery，增加租约、心跳、重试和失败恢复。 |
+| B-03 | P1 | 后台任务仍偏本地平台验证。 | `backend/src/services/job_service.py` 使用本地 registry；smoke 可跑，但不适合多进程/多用户可靠队列。 | 比赛版可保留；正式版改 SQLite/RQ/Celery，增加租约、心跳、重试和失败恢复。 |
 | B-04 | P1 | 病例、ROI、run、artifact 持久化还未完全规范化。 | 当前 repository 已能支持演示，但协作冲突、版本合并、审计查询仍弱。 | 设计病例库 schema，把 ROI、run、artifact、review event 拆表或补版本合并策略。 |
 | B-05 | P1 | 文件访问权限和远程协作安全边界不足。 | `backend/src/api/files.py` 主要做 artifact root 和后缀限制。 | 补 token/会话权限、下载审计、一次性链接、过期策略和脱敏策略文档。 |
 | B-06 | P1 | DICOM 仍是 Secondary Capture 雏形。 | `backend/src/reports/dicom_secondary_capture.py` 和导出 summary 可生成 DICOM SC。 | 短期写清 SC 边界；下一阶段补 DICOM SR/SEG schema、字段映射和兼容测试。 |

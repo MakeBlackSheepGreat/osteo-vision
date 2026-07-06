@@ -7,7 +7,7 @@
 ```text
 research/
 ├── literature/inventory/  # 论文清单、数据集清单、可行性报告、PDF 资料
-├── planning/              # 工程准备、数据获取、下载状态和原型依赖说明
+├── planning/              # 工程准备、数据获取、下载状态和平台验证依赖说明
 ├── reports/               # 规划、预处理、建模报告和 legacy DOCX/XLSX 项目资料
 ├── model-snapshots/code/  # 外部模型代码快照，仅作参考或后续迁移来源
 ├── datasets/              # 公开候选数据集目录，大文件不进入 Git
@@ -38,6 +38,7 @@ research/
 - D025 SegResNetDS 训练：`research/reports/modeling/d025_monai_segresnetds_training_20260704_zh.md`
 - D025 代理模型对比：`research/reports/modeling/d025_proxy_model_comparison_20260704_zh.md`
 - 2D Keyframe ConvNeXt 代理分割模型：`research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260705_zh.md`
+- 4K keyframe tiling 分割自查：`tools/run_keyframe_tiling_smoke.py`，用于直接检查主线 2D keyframe adapter 的 mask、probability map、伪彩叠加和 tiled inference 元数据。
 - 医生复核反馈转训练 manifest 工具：`tools/build_keyframe_training_manifest_from_review.py`，输出可带 `sample_weight`，用于下一轮合并 proxy manifest 的加权训练。
 - MedSAM-like prompt 分割接口：`research/reports/modeling/medsam_prompt_contract_20260704_zh.md`
 - DentalSegmentator 颌骨 ROI 预处理契约：`research/reports/modeling/dentalsegmentator_roi_contract_20260704_zh.md`

@@ -8,7 +8,7 @@
 
 ## 当前可运行闭环
 
-当前 V1 平台已经能跑通一个中规中矩的研究/比赛原型闭环：
+当前 V1 平台已经能跑通一个中规中矩的研发验证版平台闭环：
 
 1. 创建病例。
 2. 上传或登记官方边界内的 JPEG 图片、MP4 视频，优先按 4K `3840x2160`、JPEG、MP4 处理。
@@ -17,7 +17,7 @@
 5. 展示候选区域、荧光融合证据、时间线摘要、医生复核状态和导出证据。
 6. 导出 JSON、Markdown、CSV、DICOM Secondary Capture 和 ZIP evidence bundle。
 
-医学边界保持不变：当前输出是科研和竞赛原型结果，不能作为临床诊断结论；ICG 信号主要反映灌注和组织活性差异，不是颌骨骨髓炎特异性探针。
+医学边界保持不变：当前输出是研发验证版平台结果，不能作为临床诊断结论；ICG 信号主要反映灌注和组织活性差异，不是颌骨骨髓炎特异性探针。
 
 ## 当前模型状态
 
@@ -26,7 +26,7 @@
 - `convnext3d_d025_proxy_segmenter`：D025 CBCT ROI 代理分割模型，用于工程闭环验证。
 - `d025_lesion_smoke_segmenter`：同一 D025 代理 checkpoint 的 smoke/兼容入口。
 - `convnext2d_keyframe_proxy_segmenter`：MP4/JPEG keyframe 的可训练 2D ConvNeXt-style 代理分割模型，当前训练数据为合成/伪标注荧光代理帧，不代表真实术中 ICG 颌骨骨髓炎性能。
-- 该 keyframe 模型默认支持 4K 友好的 patch/tiling 推理，超过配置阈值的关键帧会分块聚合概率图并记录 tile 元数据。
+- 该 keyframe 模型默认支持 4K 友好的 patch/tiling 推理，超过配置阈值的关键帧会分块聚合概率图并记录 tile 元数据；若模型输出空 mask，MP4 分析会回退到 fluorescence hotspot baseline，避免医生复核候选区完全中断。
 - `fluorescence_hotspot_2d_segmenter`：MP4/JPEG keyframe 的阈值和连通域 hotspot baseline，作为回退和可解释对照。
 - `medsam2_osteo_promptable`：MedSAM/SAM2 风格 prompt contract fallback，可用医生 ROI/bbox/point 生成可复核 mask；缺真实 MedSAM2 checkpoint，不能写成真实 MedSAM2 推理。
 - `fixture_default`：测试和兜底 fixture。
@@ -37,17 +37,26 @@
 - `biomedclip_osteo_screening`：缺 `open_clip`、checkpoint 和 adapter inference。
 
 最新 D025 代理模型评估见 `research/reports/modeling/d025_proxy_model_evaluation_20260704_zh.md`。该评估不是术中 ICG 颌骨骨髓炎目标域性能。
-2D keyframe 代理分割模型报告见 `research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260705_zh.md`。
+2D keyframe 代理分割模型报告见 `research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260705_threshold_calibrated_zh.md`；阈值扫描报告见 `research/reports/modeling/keyframe_threshold_eval_20260705/keyframe_threshold_eval_zh.md`。
 MedSAM-like prompt fallback 说明见 `research/reports/modeling/medsam_prompt_contract_20260704_zh.md`。
 
 当前 2D MP4/JPEG keyframe segmentation path is runnable end to end:
 
 ```powershell
 conda run -n osteo-vision python tools\build_keyframe_segmentation_proxy_manifest.py --input research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\raw --output-dir research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705 --dataset-id d046_mp4_proxy --input-domain public_fluorescence_or_osteomyelitis_proxy_mp4 --fluorescence-attribute mixed_fluorescence_and_non_fluorescence --max-frames-per-video 4 --max-samples 200 --threshold 0.62 --min-component-area 32 --min-positive-area-fraction 0.0005 --max-positive-area-fraction 0.6 --preview-sample-count 40 --review-seed-sample-count 50
-conda run -n osteo-vision python scripts\train_keyframe_segmentation_proxy.py --manifest research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705\keyframe_segmentation_proxy_manifest.csv --output-checkpoint artifacts\checkpoints\osteo_vision\keyframe_convnext2d_proxy.pt --image-shape 128x192 --max-train-batches 80 --batch-size 4 --base-channels 8 --learning-rate 0.001 --threshold 0.5 --device auto --report-stamp 20260705
+conda run -n osteo-vision python scripts\train_keyframe_segmentation_proxy.py --manifest research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705\keyframe_segmentation_proxy_manifest.csv --output-checkpoint artifacts\checkpoints\osteo_vision\keyframe_convnext2d_proxy.pt --image-shape 160x256 --max-train-batches 160 --batch-size 4 --base-channels 12 --learning-rate 0.0007 --threshold 0.15 --device auto --report-stamp 20260705_threshold_calibrated
+conda run -n osteo-vision python scripts\evaluate_keyframe_segmentation_proxy.py --checkpoint artifacts\checkpoints\osteo_vision\keyframe_convnext2d_proxy.pt --manifest research\datasets\public-candidates\d046_fluorescence_osteomyelitis_videos\derived\mp4_keyframe_segmentation_proxy_20260705\keyframe_segmentation_proxy_manifest.csv --output-dir research\reports\modeling\keyframe_threshold_eval_20260705 --image-shape 160x256 --split val --device auto
 ```
 
-This builds a 200-sample pseudo-mask manifest from public MP4/image proxy data, creates a 50-row review seed set, and trains the mainline `convnext2d_keyframe_proxy_segmenter` checkpoint. Exported `review_manifest_json/csv` files can be converted back into the next training manifest with `tools\build_keyframe_training_manifest_from_review.py`; accepted/modified rows receive higher `sample_weight`, and rejected candidates can be kept as low-weight negative/error-analysis rows when explicitly requested. `scripts\train_keyframe_segmentation_proxy.py` now accepts multiple manifests under one `--manifest` flag and applies `sample_weight` during loss computation. Extracted frames, masks, review seeds, and checkpoints are local artifacts and are not committed to Git.
+This builds a 200-sample pseudo-mask manifest from public MP4/image proxy data, creates a 50-row review seed set, trains the mainline `convnext2d_keyframe_proxy_segmenter` checkpoint, and scans runtime thresholds for empty-mask/over-segmentation risk. The current calibrated proxy result uses threshold `0.15` with validation Dice `0.9093` and IoU `0.8340` on D046 pseudo labels. Exported `review_manifest_json/csv` files can be converted back into the next training manifest with `tools\build_keyframe_training_manifest_from_review.py`; accepted/modified rows receive higher `sample_weight`, and rejected candidates can be kept as low-weight negative/error-analysis rows when explicitly requested. Extracted frames, masks, review seeds, and checkpoints are local artifacts and are not committed to Git.
+
+The direct 4K/tiling keyframe segmentation path can be checked separately:
+
+```powershell
+conda run -n osteo-vision python tools\run_keyframe_tiling_smoke.py --width 3840 --height 2160
+```
+
+This calls the mainline `convnext2d_keyframe_proxy_segmenter` adapter and verifies mask, probability map, pseudocolor overlay, and tiled inference metadata. Outputs are written under `artifacts/platform_smoke/keyframe_tiling_*` and are not committed to Git.
 
 ## 当前目录
 
@@ -145,12 +154,13 @@ npm --prefix frontend run test:e2e
 conda run -n osteo-vision python tools\run_platform_smoke.py
 conda run -n osteo-vision python tools\run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
 conda run -n osteo-vision python tools\run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
+conda run -n osteo-vision python tools\run_keyframe_tiling_smoke.py --width 3840 --height 2160
 conda run -n osteo-vision python tools\run_competition_flow_demo_check.py
 conda run -n osteo-vision python scripts\model_inventory.py --config configs\inference\osteo_vision.yml
 conda run -n osteo-vision python tools\check_project_readiness.py
 ```
 
-这些命令覆盖代码质量、前端构建、浏览器 E2E、JPEG/MP4 上传、4K 代理输入、关键帧分析、荧光融合、复核导出和 evidence bundle。`run_competition_flow_demo_check.py` 是当前比赛故事线的赛题对齐演示自查入口，不是赛题方验收。所有 MP4 smoke 都是合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
+这些命令覆盖代码质量、前端构建、浏览器 E2E、JPEG/MP4 上传、4K 代理输入、关键帧分析、4K keyframe tiling 分割、荧光融合、复核导出和 evidence bundle。`run_competition_flow_demo_check.py` 是当前比赛故事线的赛题对齐演示自查入口，不是赛题方验收。所有 MP4 smoke 都是合成代理视频，不代表真实术中 ICG 颌骨骨髓炎视频。
 
 ## 资料入口
 

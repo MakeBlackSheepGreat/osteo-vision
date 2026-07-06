@@ -22,7 +22,7 @@
 
 ## 2. 最终项目目标
 
-最终目标是做成一个面向颌骨骨髓炎术中辅助决策的科研/竞赛原型系统。
+最终目标是做成一个面向颌骨骨髓炎术中辅助决策的研发验证版平台系统。
 
 系统要解决的问题：
 
@@ -59,7 +59,7 @@
 | 图像处理 | OpenCV、Pillow、matplotlib | 覆盖配准、伪彩、可视化和报告图生成 |
 | 数据分析 | numpy、pandas、scikit-learn | 清单、指标、统计和传统 ML 基线所需 |
 | 配置 | YAML | 当前 task / inference 配置均使用 YAML |
-| Demo | Gradio | 适合比赛原型、快速演示和本地部署 |
+| Demo | Gradio | 适合比赛版平台、快速演示和本地部署 |
 | 工程质量 | pytest、mypy、ruff、black、isort | 保持可测、可维护、可审查 |
 | 编排 | pyproject.toml、Makefile、scripts/、tests/、artifacts/ | 与当前仓库结构一致 |
 
@@ -118,7 +118,7 @@
 ### V4：比赛交付包
 
 - 技术方案报告。
-- 软件原型。
+- 平台软件。
 - 演示视频或病例包。
 - 模型/数据/评估报告。
 - 安全声明、许可说明和复核边界。

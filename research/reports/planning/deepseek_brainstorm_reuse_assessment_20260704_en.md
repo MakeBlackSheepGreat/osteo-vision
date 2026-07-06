@@ -33,7 +33,7 @@ The brainstorm suggested using CT/CBCT as the realistic data path. This matches 
 - Lesion sensitivity: 0.6756
 - Lesion precision: 0.6932
 
-It is suitable as a preoperative CBCT proxy lesion segmentation model and AI interpretation prototype. It should not be described as a real intraoperative ICG video model.
+It is suitable as a preoperative CBCT proxy lesion segmentation model and AI interpretation platform capability. It should not be described as a real intraoperative ICG video model.
 
 ### 3. OFDVDnet Fluorescence Proxy Videos
 
@@ -122,7 +122,7 @@ AI section:
 D025 CBCT proxy lesion segmentation + 2D fluorescence hotspot segmentation + MedSAM/SAM2 interactive correction plan
 
 Clinical boundary:
-Research/competition prototype only; missing target-domain samples remain a first-order risk
+Research/competition validation platform; physician review required; missing target-domain samples remain a first-order risk
 ```
 
 ## Action List

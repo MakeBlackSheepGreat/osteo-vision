@@ -2,7 +2,7 @@
 
 This directory is the formal development project for intelligent fluorescence diagnosis and treatment of jaw osteomyelitis. It is based on a reusable medical-imaging competition framework and provides classification, segmentation, detection, quantification, explainability, reports, Demo, and Benchmark workflows.
 
-This repository is a research and competition prototype. Outputs are not clinical diagnosis and must not replace physician review.
+This repository is platform software for research and competition validation. Outputs are not clinical diagnosis and must not replace physician review.
 
 ## What Is Included
 

@@ -17,7 +17,7 @@
 
 因此本轮演示自查脚本默认生成 4K JPEG 白光图、4K JPEG ICG 图和 4K MP4 代理视频，并通过后端真实 FastAPI 路由完成上传、分析、复核和导出。
 
-完整赛题原文另有更高优先级要求：参赛方案必须回答“新型荧光造影剂设计、多模态医学图像融合与处理、AI 辅助显微成像判读”三项内容。下面的软件闭环只覆盖第二、三项的工程原型，并不能替代第一项造影剂设计方案。
+完整赛题原文另有更高优先级要求：参赛方案必须回答“新型荧光造影剂设计、多模态医学图像融合与处理、AI 辅助显微成像判读”三项内容。下面的软件闭环只覆盖第二、三项的工程闭环，并不能替代第一项造影剂设计方案。
 
 ## 四条比赛演示路径
 
@@ -121,7 +121,7 @@ conda run -n osteo-vision python tools\run_competition_flow_demo_check.py
 - 必需格式：`report_json`、`report_md`、`dicom_secondary_capture`、`quantification_csv`、`bundle_manifest`、`evidence_bundle`、`overlay`、`heatmap`、`roi_mask`、`keyframe` 均存在。
 - 主线模型：`convnext3d_d025_proxy_segmenter` 和 `convnext2d_keyframe_proxy_segmenter` 均可用；`fluorescence_hotspot_2d_segmenter` 保留为 2D keyframe 回退和可解释对照。
 - 2026-07-04 后续小型复核：`tools\run_competition_flow_demo_check.py --width 320 --height 180 --frames 3 --keyframes 2 --fps 3` 通过；`video_segmentation_manifest.json` 显示 `summary.model_id=convnext2d_keyframe_proxy_segmenter`，每帧 `analysis_method=trainable_keyframe_segmenter`，overlay/mask review MP4 均存在。
-- 医学边界：已写入科研/竞赛原型免责声明，`clinical_claim_allowed=false`。
+- 医学边界：已写入研发验证版平台免责声明，`clinical_claim_allowed=false`。
 
 ## 当前缺口
 

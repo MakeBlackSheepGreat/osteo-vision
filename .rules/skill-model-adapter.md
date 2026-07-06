@@ -243,7 +243,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: research prototype
+      intended_use: platform validation workflow
       clinical_claim_allowed: false
 ```
 

@@ -53,7 +53,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/demo_model.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  disclaimer: Research prototype only...
+  disclaimer: Platform software for research and competition validation...
   models:
     - model_id: biomedclip_zero_shot
       family: vlm_encoder
@@ -240,7 +240,7 @@ runtime:
   pin_memory: true
   
   # 声明
-  disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
+  disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
   
   # 模型列表
   models:
@@ -256,7 +256,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: research prototype
+      intended_use: platform validation workflow
       clinical_claim_allowed: false
   
   # 任务配置

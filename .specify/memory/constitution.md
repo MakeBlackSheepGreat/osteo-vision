@@ -39,7 +39,7 @@ white-light/ICG dual-channel observation workflow, while the current delivery
 must stay small enough to finish as pure software.
 
 ### II. Medical Safety and Physician Review
-All outputs MUST be framed as research and competition prototype evidence. ICG
+All outputs MUST be framed as research and competition validation evidence produced by the platform. ICG
 MUST be described as a perfusion, vascular permeability, and tissue-viability
 signal, not as a jaw osteomyelitis-specific probe. The system MUST preserve
 physician review states for AI candidates and MUST NOT present automatic
@@ -84,7 +84,7 @@ exception. Reports, metrics, screenshots, JSON outputs, and failure cases MUST
 be saved in the appropriate `research/reports/` or `artifacts/` location.
 
 Rationale: The project must be demonstrable, reproducible, and adjustable under
-competition time pressure. Evidence is the bridge between prototype behavior and
+competition time pressure. Evidence is the bridge between platform behavior and
 credible presentation.
 
 ## Fixed Technical Boundaries
@@ -97,7 +97,7 @@ credible presentation.
   and scikit-learn.
 - Configuration format: YAML.
 - Temporary demo layer: Gradio is allowed for rapid competition demos and
-  smokeable prototypes, but it is not the long-term frontend architecture.
+  smoke-testable platform workflows, but it is not the long-term frontend architecture.
 - Core entry boundaries: `configs/tasks/osteo_vision.yml`,
   `configs/inference/osteo_vision.yml`, `src/models/adapters.py`,
   `src/pipelines/`, `src/preprocess/`, and `src/reports/`.

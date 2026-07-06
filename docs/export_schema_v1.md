@@ -99,7 +99,7 @@ ZIP 内的 `reports/{case_id}_bundle_manifest.json` 记录 evidence bundle 的�
 | `review_manifest_json` | string | 医生复核/候选区沉淀 manifest JSON 路径。 |
 | `review_manifest_csv` | string | 医生复核/候选区沉淀 manifest CSV 路径。 |
 | `included_artifacts` | array | 纳入 bundle 的病例 artifacts。 |
-| `disclaimer` | object | 研究原型免责声明和版本。 |
+| `disclaimer` | object | 平台安全边界免责声明和版本。 |
 
 ## JSON Report
 
@@ -140,7 +140,7 @@ JSON 顶层字段：
 |---|---|---|
 | `schema_version` | string | 当前为 `osteo-vision-review-manifest-v1`。 |
 | `case_id` | string | 病例 ID。 |
-| `training_use` | object | 是否可用于原型再训练、是否需要医生复核、非目标域风险说明。 |
+| `training_use` | object | 是否可用于复核回灌训练、是否需要医生复核、非目标域风险说明。 |
 | `summary` | object | ROI、候选区、复核事件数量统计。 |
 | `candidates` | array | AI 候选区，包含 `candidate_id`、`run_id`、分数、帧索引、bbox、mask/overlay 路径和时序稳定性元数据。 |
 | `rois` | array | 医生或 AI 推广生成的 ROI，包含 `roi_id`、`candidate_id`、`geometry`、`label`、`review_state` 和指标。 |
@@ -167,7 +167,7 @@ CSV 每行按 `record_type` 区分 `candidate_region`、`roi` 和 `review_event`
 
 ## 安全和治理要求
 
-- 所有导出必须保留研究原型免责声明。
+- 所有导出必须保留平台安全边界免责声明。
 - ICG 信号只能表述为灌注、组织活性或风险提示证据，不能写成颌骨骨髓炎特异性诊断。
 - evidence bundle 可用于竞赛评审和科研复查，不得直接作为临床诊断结论。
 - 原始医疗影像、大型视频、checkpoint 和患者身份信息不得进入 Git。

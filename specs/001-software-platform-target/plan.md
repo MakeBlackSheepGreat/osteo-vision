@@ -52,7 +52,7 @@ time for live demo, with batch export and later multi-case expansion kept open
 **Osteo Vision Layer**: cross_cutting
 
 **Medical Safety Boundary**: The platform remains a research and competition
-prototype, treats ICG as a perfusion/viability signal, preserves physician
+platform, treats ICG as a perfusion/viability signal, preserves physician
 review states, and avoids unsupported clinical certainty language
 
 **Input/Output Contract**: White-light and fluorescence images, synchronized

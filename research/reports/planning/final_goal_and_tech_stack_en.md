@@ -20,7 +20,7 @@ The key conclusion is that this project should deliver an integrated system arou
 
 ## 2. Final Project Goal
 
-The final goal is a research and competition prototype for intraoperative decision support in jaw osteomyelitis.
+The final goal is a research and competition validation platform for intraoperative decision support in jaw osteomyelitis.
 
 The system should:
 
@@ -41,7 +41,7 @@ The system should not:
 |---|---|---|
 | Track 1: fluorescence pseudo-color enhancement | White-light/fluorescence registration, pseudo-color overlay, heatmap, intensity curve, image or video export | Demonstrable without trained weights; reproducible inputs and outputs |
 | Track 2: AI-assisted diagnosis | Segmentation, detection, classification, or quantification interfaces for ROI, suspicious regions, and boundary risk zones | Model-replaceable, evaluated with metrics, with failure cases recorded |
-| Track 3: standardized output and collaboration | Structured case report, DICOM secondary capture or export prototype, remote collaboration hooks | Archivable, reviewable, and shareable outputs |
+| Track 3: standardized output and collaboration | Structured case report, DICOM secondary capture or export platform workflow, remote collaboration hooks | Archivable, reviewable, and shareable outputs |
 
 ## 4. Fixed Technical Stack
 
@@ -114,7 +114,7 @@ The minimum real-sample target remains 10-30 de-identified cases. Without real s
 ### V4: Competition Package
 
 - Technical report.
-- Software prototype.
+- Platform software.
 - Demo video or case package.
 - Model, data, and evaluation reports.
 - Safety statement, license notes, and physician review boundary.
