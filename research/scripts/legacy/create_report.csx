@@ -387,7 +387,7 @@ body.Append(MakeH2("5.3 建议"));
 body.Append(MakePara("1. 建议参赛，选择基础可行demo路线，不承诺新型特异性造影剂合成。"));
 body.Append(MakePara("2. 尽早联系企业或合作医院，争取10-30例脱敏术中白光/ICG图像或视频。"));
 body.Append(MakePara("3. 以nnU-Net为baseline，逐步叠加EGNet边界分支和不确定性热图。"));
-body.Append(MakePara("4. 组建影像算法、口腔/颌面医学、软件原型三类成员的团队。"));
+body.Append(MakePara("4. 组建影像算法、口腔/颌面医学、平台软件三类成员的团队。"));
 
 // ─── SECTION PROPERTIES (must be last child of body) ───
 body.Append(new SectionProperties(

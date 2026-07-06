@@ -13,7 +13,7 @@ STATUS_LOW_CONFIDENCE = "low_confidence"
 STATUS_COMPLETED = "completed"
 
 DISCLAIMER_TEXT = (
-    "Research prototype only. This result is not a clinical diagnosis and must not replace physician review."
+    "Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review."
 )
 
 KNOWN_STATUSES = {
@@ -30,7 +30,7 @@ KNOWN_STATUSES = {
 
 DEFAULT_WARNING_MESSAGES = {
     STATUS_INVALID_INPUT: "Input is unsupported or cannot be read.",
-    STATUS_QUALITY_BLOCKED: "Input quality is insufficient for this prototype.",
+    STATUS_QUALITY_BLOCKED: "Input quality is insufficient for this platform validation workflow.",
     STATUS_CHECKPOINT_MISSING: "Configured checkpoint is missing; fixture fallback is active.",
     STATUS_CLASSIFICATION_UNAVAILABLE: "Classification output is unavailable.",
     STATUS_SEGMENTATION_UNAVAILABLE: "Segmentation output is unavailable.",

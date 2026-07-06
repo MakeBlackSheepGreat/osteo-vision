@@ -175,7 +175,7 @@ def main() -> None:
         "research/literature/inventory/literature_and_dataset_summary.md",
         "research/literature/inventory/paper_inventory.csv",
         "research/literature/inventory/dataset_inventory.csv",
-        "research/planning/requirements-prototype.txt",
+        "research/planning/requirements-platform-validation.txt",
         "tools/run_platform_smoke.py",
     ]:
         check_file(path)

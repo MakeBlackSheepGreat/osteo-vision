@@ -43,7 +43,7 @@ def test_analyze_fluorescence_pair_returns_visual_outputs(tmp_path: Path) -> Non
     )
 
     assert "Status: `completed`" in result_md
-    assert "research_prototype_only" in warnings_md
+    assert "platform_safety_boundary" in warnings_md
     for output_path in [overlay, heatmap, normalized, report]:
         assert output_path
         assert Path(output_path).exists()

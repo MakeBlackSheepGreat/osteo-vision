@@ -23,7 +23,7 @@ def segment_2d_fluorescence_hotspots(
     model_id: str = "fluorescence_hotspot_2d_segmenter",
     roi_hints: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Segment bright fluorescence-like hotspots in a 2D image for prototype evidence."""
+    """Segment bright fluorescence-like hotspots in a 2D image for platform validation evidence."""
 
     source = Path(input_path)
     out_dir = ensure_dir(output_dir)

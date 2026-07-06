@@ -45,8 +45,9 @@ def require_json_safety(path: Path, failures: list[str]) -> None:
         return
     if payload.get("clinical_claim_allowed") is not False:
         failures.append(f"{path} must declare clinical_claim_allowed=false")
-    if "Research prototype" not in str(payload.get("disclaimer", "")):
-        failures.append(f"{path} missing research prototype disclaimer")
+    disclaimer = str(payload.get("disclaimer", ""))
+    if "Platform software" not in disclaimer or "clinical diagnosis" not in disclaimer:
+        failures.append(f"{path} missing platform safety-boundary disclaimer")
 
 
 def main() -> int:

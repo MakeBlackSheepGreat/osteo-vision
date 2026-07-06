@@ -90,7 +90,7 @@ def main() -> None:
         "artifact_count": len(final_case.get("artifacts", [])),
         "export": export_payload,
         "bundle_exists": Path(export_payload["bundle_path"]).exists(),
-        "disclaimer": final_case.get("disclaimer_version", "research-prototype-v1"),
+        "disclaimer": final_case.get("disclaimer_version", "platform-safety-v1"),
     }
     summary_path = output_dir / "platform_smoke_summary.json"
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")

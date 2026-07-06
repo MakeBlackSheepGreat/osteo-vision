@@ -127,7 +127,7 @@ children.push(makeTable(
   ["维度", "状态", "关键产出"],
   [
     ["V1 荧光融合闭环", "✅ 完成", "白光+ICG → 伪彩融合图 + 热图 + 归一化图 + JSON/Markdown 报告"],
-    ["V2 前后端分离原型", "✅ 已成型", "Vue 3 前端 + FastAPI 后端 + 完整 REST API"],
+    ["V2 前后端分离平台", "✅ 已成型", "Vue 3 前端 + FastAPI 后端 + 完整 REST API"],
     ["V2 前端界面", "✅ 有型", "三页面（病例工作台、医生复核、报告导出），医学蓝配色"],
     ["AI 模型框架", "✅ 就绪", "配置驱动，4 模型注册（nnU-Net、MedSAM2、BiomedCLIP、Fixture）"],
     ["AI 模型训练", "🔄 进行中", "10 模型基准测试完成，nnU-Net 基线 smoke 跑通"],
@@ -166,7 +166,7 @@ children.push(makeTable(
   [
     ["nnunet_v2_osteo_baseline", "nnU-Net v2", "分割", "颌骨骨髓炎分割基线"],
     ["medsam2_osteo_promptable", "MedSAM-like", "分割", "可提示病灶/坏死骨 ROI 分割"],
-    ["biomedclip_osteo_screening", "VLM 编码器", "分类", "图像级辅助筛查原型"],
+    ["biomedclip_osteo_screening", "VLM 编码器", "分类", "图像级辅助筛查流程"],
     ["fixture_default", "Fixture", "全部", "确定性 fallback，测试和 Demo 用"],
   ],
   [2200, 1500, 1000, 4326]
@@ -262,7 +262,7 @@ children.push(heading1("四、版本路线图"));
 children.push(makeTable(
   ["版本", "目标", "状态"],
   [
-    ["V1", "Gradio / 最小原型跑通双通道融合 + 报告闭环", "✅ 已完成"],
+    ["V1", "Gradio / 最小平台闭环跑通双通道融合 + 报告闭环", "✅ 已完成"],
     ["V2", "前后端分离 (Vue + FastAPI) + 完整病例工作台", "✅ 已成型（代码就绪）"],
     ["V3", "AI 基线接入 + 真实模型推理", "🔄 框架就绪，训练进行中"],
     ["V4", "真实术中样本闭环 + DICOM 标准化", "⏳ 待开始"],
@@ -276,7 +276,7 @@ children.push(heading1("五、当前阻塞与风险"));
 children.push(makeTable(
   ["风险项", "等级", "说明"],
   [
-    ["缺少真实术中白光/ICG 样本", "🔴 高", "AI 模块只能用公开 CBCT 数据做间接验证，赛点二只能作为原型演示"],
+    ["缺少真实术中白光/ICG 样本", "🔴 高", "AI 模块只能用公开 CBCT 数据做间接验证，赛点二只能作为平台演示"],
     ["缺少医生标注", "🔴 高", "下颌骨/坏死骨/灌注异常缺乏金标准标注，模型评估受限"],
     ["DICOM 输出未启动", "🟡 中", "赛点三的 DICOM SC/SR 扩展需要进一步调研和开发"],
     ["虚函数对接", "🟡 中", "后端 AI 推理目前通过 Fixture 返回模拟结果，真实模型尚未上线"],
@@ -322,8 +322,8 @@ children.push(new Paragraph({
   },
   indent: { left: 120 },
   children: [
-    new TextRun({ text: "研究原型免责声明：", ...runProps(18, { bold: true, color: "8A5C11" }) }),
-    new TextRun({ text: "本报告所有内容均定位为科研原型和竞赛演示，不构成临床诊断结论。AI 模型评估受限于公开数据集和模拟样本，真实临床性能需经脱敏术中数据闭环验证。", ...runProps(18, { color: "6B5018" }) }),
+    new TextRun({ text: "平台安全边界免责声明：", ...runProps(18, { bold: true, color: "8A5C11" }) }),
+    new TextRun({ text: "本报告所有内容均定位为研发验证版平台和竞赛演示，不构成临床诊断结论。AI 模型评估受限于公开数据集和模拟样本，真实临床性能需经脱敏术中数据闭环验证。", ...runProps(18, { color: "6B5018" }) }),
   ],
 }));
 

@@ -13,6 +13,6 @@ def test_exported_platform_report_avoids_unsupported_claims(tmp_path: Path) -> N
     response = ExportService(repo, tmp_path / "exports").export_case(case, ExportRequest())
     text = Path(response.report_path).read_text(encoding="utf-8").lower()
 
-    assert "research prototype only" in text
+    assert "platform software for research and competition validation" in text
     assert "automatic diagnosis" not in text
     assert "definitive surgical instruction" not in text

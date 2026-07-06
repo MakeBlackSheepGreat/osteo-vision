@@ -30,7 +30,7 @@ def test_model_lifecycle_schemas_include_safety_boundary() -> None:
     model_card = ModelCard(
         model_id="fixture_default",
         model_family="fixture",
-        intended_use="research_competition_prototype",
+        intended_use="research_competition_platform_validation",
         task_package="medical_competition_demo",
         training_data={},
         metrics={},

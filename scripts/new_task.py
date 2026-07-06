@@ -99,7 +99,7 @@ def create_task(task_id: str, template: str, output_dir: str | Path) -> list[str
         f"- Task package: `{task_path}`\n"
         f"- Example manifest: `{manifest_path}`\n"
         f"- Runtime config: `{runtime_path}`\n"
-        "- Safety: research and competition prototype only.\n",
+        "- Safety: research and competition validation platform; physician review required.\n",
         encoding="utf-8",
     )
     return [str(task_path), str(manifest_path), str(runtime_path), str(readme_path)]

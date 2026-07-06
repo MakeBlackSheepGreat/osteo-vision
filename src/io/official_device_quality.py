@@ -127,7 +127,7 @@ def assess_official_video_profile(metadata: dict[str, Any]) -> tuple[dict[str, A
         warnings.append(
             warning(
                 "official_video_codec_unverified",
-                "Video codec is readable locally but is outside the currently verified prototype codec set.",
+                "Video codec is readable locally but is outside the currently verified platform codec set.",
                 False,
                 codec_name=codec_name,
                 verified_codecs=sorted(SUPPORTED_VIDEO_CODECS),

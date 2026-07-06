@@ -55,4 +55,4 @@ def test_v2_task_package_drives_v3_experiment_flow(tmp_path) -> None:
     assert checkpoint["clinical_claim_allowed"] is False
     assert promotion["clinical_claim_allowed"] is False
     assert promotion["promoted"] is True
-    assert "Research prototype" in model_card["disclaimer"]
+    assert "Platform software for research and competition validation" in model_card["disclaimer"]

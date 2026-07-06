@@ -170,7 +170,7 @@ body.Append(H2("5.3 建议"));
 body.Append(P("1. 建议参赛，选择基础可行demo路线，不承诺新型特异性造影剂合成。"));
 body.Append(P("2. 尽早联系企业或合作医院，争取10-30例脱敏术中白光/ICG图像或视频。"));
 body.Append(P("3. 以nnU-Net为baseline，逐步叠加EGNet边界分支和不确定性热图。"));
-body.Append(P("4. 组建影像算法、口腔/颌面医学、软件原型三类成员的团队。"));
+body.Append(P("4. 组建影像算法、口腔/颌面医学、平台软件三类成员的团队。"));
 
 body.Append(new SectionProperties(
     new WpPageSize { Width = 11906U, Height = 16838U },

@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 OFFICIAL_WIDTH = 3840
 OFFICIAL_HEIGHT = 2160
-DISCLAIMER_TEXT = "Research prototype only; not a clinical diagnosis and physician review is required."
+DISCLAIMER_TEXT = "Platform software for research and competition validation; not a clinical diagnosis and physician review is required."
 T = TypeVar("T")
 
 

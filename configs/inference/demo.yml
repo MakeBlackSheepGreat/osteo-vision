@@ -11,7 +11,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/demo_model.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
+  disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
   models:
     - model_id: biomedclip_zero_shot
       family: vlm_encoder
@@ -25,7 +25,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: biomedical zero-shot or few-shot image classification prototype
+      intended_use: biomedical zero-shot or few-shot image classification validation workflow
       clinical_claim_allowed: false
     - model_id: medsam2_promptable
       family: medsam_like
@@ -39,7 +39,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: promptable medical segmentation prototype
+      intended_use: promptable medical segmentation validation workflow
       clinical_claim_allowed: false
     - model_id: vista3d_foundation
       family: vista3d_like
@@ -53,7 +53,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: 3D medical segmentation foundation model prototype
+      intended_use: 3D medical segmentation foundation model validation workflow
       clinical_claim_allowed: false
     - model_id: nnunet_v2_baseline
       family: nnunet_v2

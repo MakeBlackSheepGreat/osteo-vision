@@ -50,7 +50,7 @@ def build_experiment_spec(args: argparse.Namespace) -> ExperimentSpec:
         "device_policy": "cpu" if args.model_family == "fixture" else "auto",
         "precision": "deterministic" if args.model_family == "fixture" else "fp32",
         "enabled": True,
-        "intended_use": "research_competition_prototype",
+        "intended_use": "research_competition_platform_validation",
         "clinical_claim_allowed": False,
     }
     return ExperimentSpec(
