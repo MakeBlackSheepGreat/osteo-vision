@@ -212,7 +212,7 @@ class D025LesionSegmenterAdapter(BaseModelAdapter):
         if request.input_type != "npz_roi":
             unavailable_warning = warning(
                 "unsupported_input_for_proxy_model",
-                f"Model {self.spec.model_id} only supports npz_roi inputs in this prototype.",
+                f"Model {self.spec.model_id} only supports npz_roi inputs in this platform workflow.",
                 True,
             )
             return AdapterResult(
@@ -291,7 +291,7 @@ class FluorescenceHotspotSegmenterAdapter(BaseModelAdapter):
         if request.input_type != "2d_image":
             unsupported_warning = warning(
                 "unsupported_input_for_hotspot_segmenter",
-                f"Model {self.spec.model_id} only supports 2d_image inputs in this prototype.",
+                f"Model {self.spec.model_id} only supports 2d_image inputs in this platform workflow.",
                 True,
             )
             return AdapterResult(
@@ -318,7 +318,7 @@ class FluorescenceHotspotSegmenterAdapter(BaseModelAdapter):
         )
         boundary_warning = warning(
             "heuristic_hotspot_segmenter_non_diagnostic",
-            "2D fluorescence hotspot segmentation is a heuristic prototype baseline and is not target-domain clinical diagnosis.",
+            "2D fluorescence hotspot segmentation is a heuristic platform validation baseline and is not target-domain clinical diagnosis.",
         )
         return AdapterResult(
             model_id=self.spec.model_id,
@@ -347,7 +347,7 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
         if request.input_type != "2d_image":
             unsupported_warning = warning(
                 "unsupported_input_for_keyframe_segmenter",
-                f"Model {self.spec.model_id} only supports 2d_image inputs in this prototype.",
+                f"Model {self.spec.model_id} only supports 2d_image inputs in this platform workflow.",
                 True,
             )
             return AdapterResult(
@@ -376,6 +376,11 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
             tile_overlap=int(self.spec.extra.get("tile_overlap", 64)),
             force_tiled=bool(self.spec.extra.get("force_tiled", False)),
             max_whole_pixels=int(self.spec.extra.get("max_whole_pixels", 1024 * 1024)),
+            target_domain=bool(self.spec.extra.get("target_domain", False)),
+            input_domain=str(self.spec.extra.get("input_domain", "2D JPEG/MP4 keyframe fluorescence proxy")),
+            data_boundary=str(
+                self.spec.extra.get("training_data_boundary", "synthetic_or_pseudo_labeled_non_target_domain")
+            ),
         )
         boundary_warning = warning(
             "convnext2d_keyframe_proxy_non_target_domain",
@@ -445,7 +450,7 @@ def model_spec_from_mapping(mapping: dict[str, Any]) -> ModelSpec:
         device_policy=str(mapping.get("device_policy", "auto")),
         precision=str(mapping.get("precision", "fp32")),
         enabled=bool(mapping.get("enabled", True)),
-        intended_use=str(mapping.get("intended_use", "research_competition_prototype")),
+        intended_use=str(mapping.get("intended_use", "research_competition_platform_validation")),
         clinical_claim_allowed=bool(mapping.get("clinical_claim_allowed", False)),
         extra=dict(mapping.get("extra") or {}),
     )

@@ -24,6 +24,11 @@ input_contract:
     - stream_uri
     - frame_timestamp
     - frame_index
+    - target_domain_flag
+    - input_domain
+    - review_priority
+    - uncertainty_path
+    - failure_reason
     - dicom_series_path
     - cbct_path
     - roi_path
@@ -104,4 +109,4 @@ safety:
   clinical_claim_allowed: false
   user_upload_policy: transient_inference_only
   anonymize_logs: true
-  intended_use: research competition prototype for intraoperative decision support
+  intended_use: research competition platform software for intraoperative decision support

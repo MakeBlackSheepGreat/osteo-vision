@@ -131,6 +131,9 @@ def predict_keyframe_image(
     tile_overlap: int = 64,
     force_tiled: bool = False,
     max_whole_pixels: int = 1024 * 1024,
+    target_domain: bool = False,
+    input_domain: str = "2D JPEG/MP4 keyframe fluorescence proxy",
+    data_boundary: str = "synthetic_or_pseudo_labeled_non_target_domain",
 ) -> dict[str, Any]:
     rgb = load_rgb_image(input_path)
     model.eval()
@@ -148,17 +151,27 @@ def predict_keyframe_image(
     safe_case = _safe_name(case_id)
     mask_path = out_dir / f"{safe_case}_{model_id}_mask.png"
     probability_path = out_dir / f"{safe_case}_{model_id}_probability.png"
+    uncertainty_path = out_dir / f"{safe_case}_{model_id}_uncertainty.png"
     overlay_path = out_dir / f"{safe_case}_{model_id}_overlay.png"
     pseudo_path = out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
+    uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
     pseudo = _green_pseudocolor(probability)
     overlay = blend_pseudocolor_on_reference(rgb, pseudo, alpha=0.45)
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
     Image.fromarray(np.clip(probability * 255.0, 0, 255).astype(np.uint8)).save(probability_path)
+    Image.fromarray(np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8)).save(uncertainty_path)
     Image.fromarray(pseudo).save(pseudo_path)
     Image.fromarray(overlay).save(overlay_path)
     candidates = connected_probability_candidates(mask, probability, min_component_area=16, model_id=model_id)
     positive_area = int(mask.sum())
     total_area = int(mask.size)
+    uncertainty_summary = uncertainty_stats(uncertainty, mask)
+    review_priority = keyframe_review_priority(
+        positive_area_fraction=float(positive_area / total_area) if total_area else 0.0,
+        component_count=len(candidates),
+        mean_boundary_uncertainty=float(uncertainty_summary["mean_uncertainty_in_mask"]),
+        target_domain=bool(target_domain),
+    )
     quantification = {
         "available": True,
         "source": model_id,
@@ -169,6 +182,9 @@ def predict_keyframe_image(
         "mean_probability": float(probability.mean()),
         "max_probability": float(probability.max()),
         "component_count": len(candidates),
+        "uncertainty": uncertainty_summary,
+        "review_priority": review_priority,
+        "target_domain_flag": bool(target_domain),
         "inference": inference_meta,
     }
     segmentation_mask = {
@@ -180,6 +196,9 @@ def predict_keyframe_image(
         "height": int(mask.shape[0]),
         "positive_area_px": positive_area,
         "threshold": float(threshold),
+        "uncertainty_path": str(uncertainty_path),
+        "review_priority": review_priority,
+        "target_domain_flag": bool(target_domain),
         "inference": inference_meta,
     }
     return {
@@ -190,6 +209,9 @@ def predict_keyframe_image(
             "positive_area_fraction": quantification["positive_area_fraction"],
             "adapter_mode": "trainable_convnext2d_keyframe_segmenter",
             "inference_mode": inference_meta["mode"],
+            "review_priority": review_priority,
+            "target_domain_flag": bool(target_domain),
+            "failure_reason": None,
         },
         "score": quantification["positive_area_fraction"],
         "segmentation_mask": segmentation_mask,
@@ -198,10 +220,15 @@ def predict_keyframe_image(
             "source": model_id,
             "mask_path": str(mask_path),
             "probability_path": str(probability_path),
+            "uncertainty_path": str(uncertainty_path),
             "pseudo_color_path": str(pseudo_path),
             "overlay_path": str(overlay_path),
             "candidates": candidates,
-            "input_domain": "2D JPEG/MP4 keyframe fluorescence proxy",
+            "input_domain": input_domain,
+            "data_boundary": data_boundary,
+            "target_domain_flag": bool(target_domain),
+            "review_priority": review_priority,
+            "failure_reason": None,
             "inference": inference_meta,
         },
         "quantification": quantification,
@@ -264,6 +291,52 @@ def _predict_probability_tile(model: nn.Module, rgb: np.ndarray, *, device: torc
         logits = model(tensor)
         probability = torch.softmax(logits, dim=1)[0, 1].detach().cpu().numpy().astype(np.float32)
     return probability
+
+
+def uncertainty_from_probability(probability: np.ndarray, *, threshold: float) -> np.ndarray:
+    """Return threshold-proximity uncertainty without changing the binary mask."""
+
+    effective_threshold = float(np.clip(threshold, 1e-6, 1.0 - 1e-6))
+    scale = max(effective_threshold, 1.0 - effective_threshold)
+    uncertainty = 1.0 - (np.abs(probability.astype(np.float32) - effective_threshold) / scale)
+    return np.clip(uncertainty, 0.0, 1.0).astype(np.float32)
+
+
+def uncertainty_stats(uncertainty: np.ndarray, mask: np.ndarray) -> dict[str, Any]:
+    if uncertainty.size == 0:
+        return {
+            "method": "threshold_proximity",
+            "mean_uncertainty": 0.0,
+            "max_uncertainty": 0.0,
+            "mean_uncertainty_in_mask": 0.0,
+            "high_uncertainty_fraction": 0.0,
+        }
+    foreground = uncertainty[mask > 0]
+    return {
+        "method": "threshold_proximity",
+        "mean_uncertainty": float(uncertainty.mean()),
+        "max_uncertainty": float(uncertainty.max()),
+        "mean_uncertainty_in_mask": float(foreground.mean()) if foreground.size else 0.0,
+        "high_uncertainty_fraction": float((uncertainty >= 0.75).mean()),
+    }
+
+
+def keyframe_review_priority(
+    *,
+    positive_area_fraction: float,
+    component_count: int,
+    mean_boundary_uncertainty: float,
+    target_domain: bool,
+) -> str:
+    if not target_domain:
+        return "high"
+    if component_count <= 0 or positive_area_fraction <= 0:
+        return "low"
+    if positive_area_fraction > 0.45 or mean_boundary_uncertainty >= 0.65:
+        return "high"
+    if positive_area_fraction >= 0.005:
+        return "medium"
+    return "low"
 
 
 def _tile_starts(length: int, tile_size: int, tile_overlap: int) -> list[int]:

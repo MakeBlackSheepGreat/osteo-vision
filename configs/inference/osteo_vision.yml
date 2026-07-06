@@ -11,7 +11,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  disclaimer: Research prototype only. This result is not a clinical diagnosis and must not replace physician review.
+  disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
   models:
     - model_id: convnext3d_d025_proxy_segmenter
       family: convnext3d_segmenter
@@ -28,7 +28,7 @@ runtime:
       intended_use: ConvNeXt-style 3D CBCT lesion ROI proxy segmentation for engineering validation
       clinical_claim_allowed: false
       extra:
-        threshold: 0.6
+        threshold: 0.2
         output_dir: artifacts/visual_evidence/osteo_vision/model_masks
         proxy_dataset: D025_DOLCHID_CBCT_lesion_roi_64
         architecture_note: tiny_3d_unet_with_convnext_style_depthwise_residual_blocks
@@ -43,7 +43,7 @@ runtime:
       device_policy: cpu
       precision: deterministic
       enabled: true
-      intended_use: heuristic 2D fluorescence hotspot mask for JPEG/keyframe prototype evidence
+      intended_use: heuristic 2D fluorescence hotspot mask for JPEG/keyframe platform validation evidence
       clinical_claim_allowed: false
       extra:
         threshold: 0.6
@@ -66,8 +66,10 @@ runtime:
       intended_use: trainable 2D JPEG/MP4 keyframe segmentation proxy for engineering validation
       clinical_claim_allowed: false
       extra:
-        threshold: 0.5
+        threshold: 0.15
         output_dir: artifacts/visual_evidence/osteo_vision/keyframe_model_masks
+        input_domain: public_or_local_proxy_keyframe_non_target_domain
+        target_domain: false
         training_data_boundary: synthetic_or_pseudo_labeled_non_target_domain
         tile_size: 512
         tile_overlap: 64
@@ -87,7 +89,7 @@ runtime:
       intended_use: engineering smoke model for CBCT lesion ROI proxy segmentation
       clinical_claim_allowed: false
       extra:
-        threshold: 0.6
+        threshold: 0.2
         output_dir: artifacts/visual_evidence/osteo_vision/model_masks
     - model_id: nnunet_v2_osteo_baseline
       family: nnunet_v2
@@ -133,7 +135,7 @@ runtime:
       device_policy: auto
       precision: fp16
       enabled: true
-      intended_use: auxiliary image-level screening prototype
+      intended_use: auxiliary image-level screening platform workflow
       clinical_claim_allowed: false
     - model_id: fixture_default
       family: fixture
