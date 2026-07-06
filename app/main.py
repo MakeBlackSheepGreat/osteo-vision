@@ -101,7 +101,7 @@ def fluorescence_warning_markdown(report: dict[str, Any] | None) -> str:
         )
     warnings.append(
         {
-            "code": "research_prototype_only",
+                "code": "platform_safety_boundary",
             "message": "This fluorescence fusion output is not a clinical diagnosis and requires physician review.",
         }
     )
@@ -116,7 +116,7 @@ def build_demo_app(config_path: str = DEFAULT_CONFIG):
 
     with gr.Blocks(title="osteo-vision") as demo:
         gr.Markdown("# osteo-vision")
-        gr.Markdown("Research prototype only. Outputs are not clinical diagnosis.")
+        gr.Markdown("Platform software for research and competition validation. Outputs are not clinical diagnosis.")
         with gr.Tabs():
             with gr.Tab("White-light + ICG fluorescence"):
                 with gr.Row():

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from backend.src.core.settings import Settings
 
 PREVIEW_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
+VIDEO_SUFFIXES = {".mp4"}
 DOWNLOAD_SUFFIXES = PREVIEW_SUFFIXES | {".zip", ".json", ".md", ".csv", ".dcm"}
 
 
@@ -17,7 +18,7 @@ def router(settings: Settings) -> APIRouter:
 
     @api.get("/files/preview")
     def preview_file(path: str = Query(..., min_length=1)) -> FileResponse:
-        """Serve local visual evidence files produced under the project artifact roots."""
+        """读取平台生成的可视化证据图，只允许访问受信任的 artifact 根目录。"""
 
         resolved = _resolve_artifact_path(settings, path, not_found_detail="Preview file not found")
         if resolved.suffix.lower() not in PREVIEW_SUFFIXES:
@@ -27,7 +28,7 @@ def router(settings: Settings) -> APIRouter:
 
     @api.get("/files/download")
     def download_file(path: str = Query(..., min_length=1)) -> FileResponse:
-        """Download evidence bundle files produced under artifact roots."""
+        """下载证据包和结构化报告文件，路径仍限制在 artifact 根目录内。"""
 
         resolved = _resolve_artifact_path(settings, path, not_found_detail="Download file not found")
         if resolved.suffix.lower() not in DOWNLOAD_SUFFIXES:
@@ -38,10 +39,73 @@ def router(settings: Settings) -> APIRouter:
             filename=resolved.name,
         )
 
+    @api.get("/files/video")
+    def video_file(path: str = Query(..., min_length=1)) -> FileResponse:
+        """播放 MP4 视频流示例，允许 artifact、公开视频库和 manifest 所在目录。"""
+
+        resolved = _resolve_video_path(settings, path, not_found_detail="Video file not found")
+        if resolved.suffix.lower() not in VIDEO_SUFFIXES:
+            raise HTTPException(status_code=415, detail="Unsupported video file type")
+        return FileResponse(
+            resolved,
+            media_type="video/mp4",
+        )
+
     return api
 
 
 def _resolve_artifact_path(settings: Settings, path: str, *, not_found_detail: str) -> Path:
+    return _resolve_local_path(
+        settings,
+        path,
+        not_found_detail=not_found_detail,
+        allowed_roots=_artifact_roots(settings),
+        outside_detail="Path is outside artifact roots",
+    )
+
+
+def _resolve_video_path(settings: Settings, path: str, *, not_found_detail: str) -> Path:
+    return _resolve_local_path(
+        settings,
+        path,
+        not_found_detail=not_found_detail,
+        allowed_roots=_video_roots(settings),
+        outside_detail="Path is outside video playback roots",
+    )
+
+
+def _artifact_roots(settings: Settings) -> list[Path]:
+    # artifact_root 可能由测试或部署环境覆盖；project_root/artifacts 是本仓库默认运行产物目录。
+    return [
+        settings.artifact_root.resolve(),
+        (settings.project_root / "artifacts").resolve(),
+    ]
+
+
+def _video_roots(settings: Settings) -> list[Path]:
+    # 视频播放比图片预览多开放公开候选数据目录，便于前端用真实公开视频做 MP4 视频流示例。
+    return [
+        *_artifact_roots(settings),
+        (settings.project_root / "research" / "datasets" / "public-candidates").resolve(),
+        _manifest_parent(settings.video_manifest_path),
+    ]
+
+
+def _manifest_parent(path: Path) -> Path:
+    try:
+        return path.resolve(strict=True).parent
+    except FileNotFoundError:
+        return path.parent.resolve()
+
+
+def _resolve_local_path(
+    settings: Settings,
+    path: str,
+    *,
+    not_found_detail: str,
+    allowed_roots: list[Path],
+    outside_detail: str,
+) -> Path:
     requested = Path(unquote(path))
     if not requested.is_absolute():
         requested = settings.project_root / requested
@@ -50,12 +114,8 @@ def _resolve_artifact_path(settings: Settings, path: str, *, not_found_detail: s
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=not_found_detail) from exc
 
-    allowed_roots = [
-        settings.artifact_root.resolve(),
-        (settings.project_root / "artifacts").resolve(),
-    ]
     if not any(_is_relative_to(resolved, root) for root in allowed_roots):
-        raise HTTPException(status_code=403, detail="Path is outside artifact roots")
+        raise HTTPException(status_code=403, detail=outside_detail)
     return resolved
 
 

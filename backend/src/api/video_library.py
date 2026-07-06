@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
+from backend.src.api.helpers import require_case
 from backend.src.domains.cases.enums import InputChannel
 from backend.src.domains.cases.repository import CaseRepository
 from backend.src.domains.cases.schemas import CaseRecord, InputCreateRequest
@@ -31,9 +32,7 @@ def router(repo: CaseRepository, input_service: InputService, video_library: Vid
 
     @api.post("/cases/{case_id}/video-library/{record_id}/inputs", response_model=CaseRecord)
     def import_video_candidate(case_id: str, record_id: str) -> CaseRecord:
-        case = repo.get(case_id)
-        if case is None:
-            raise HTTPException(status_code=404, detail="Case not found")
+        case = require_case(repo, case_id)
         candidate = video_library.get_candidate(record_id)
         if candidate is None:
             raise HTTPException(status_code=404, detail="Video candidate not found")

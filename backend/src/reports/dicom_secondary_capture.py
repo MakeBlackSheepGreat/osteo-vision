@@ -9,13 +9,17 @@ from PIL import Image, ImageDraw, ImageFont
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import ExplicitVRLittleEndian, SecondaryCaptureImageStorage, generate_uid
 
-from backend.src.core.disclaimers import ICG_SIGNAL_LIMITATION, RESEARCH_PROTOTYPE_DISCLAIMER
 from backend.src.domains.cases.schemas import CaseRecord
+from backend.src.reports.platform_report_sections import (
+    latest_quantification_from_report,
+    platform_safety_lines,
+    quantification_summary_lines,
+)
 from src.core.paths import ensure_dir
 
 
 def write_secondary_capture_dicom(path: str | Path, case: CaseRecord, report: dict[str, Any]) -> str:
-    """Write a minimal DICOM Secondary Capture image for archive/prototype export."""
+    """Write a minimal DICOM Secondary Capture image for archive/platform export."""
 
     output = Path(path)
     ensure_dir(output.parent)
@@ -32,19 +36,19 @@ def write_secondary_capture_dicom(path: str | Path, case: CaseRecord, report: di
     dataset.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
     dataset.StudyInstanceUID = generate_uid()
     dataset.SeriesInstanceUID = generate_uid()
-    dataset.PatientName = "OsteoVision^Prototype"
+    dataset.PatientName = "OsteoVision^Platform"
     dataset.PatientID = _dicom_safe_identifier(case.case_id)
     dataset.PatientIdentityRemoved = "YES"
-    dataset.DeidentificationMethod = "Prototype pseudonymized export; review source data locally."
+    dataset.DeidentificationMethod = "Platform pseudonymized export; review source data locally."
     dataset.StudyDate = now.strftime("%Y%m%d")
     dataset.StudyTime = now.strftime("%H%M%S")
     dataset.ContentDate = dataset.StudyDate
     dataset.ContentTime = dataset.StudyTime
     dataset.AccessionNumber = ""
     dataset.Modality = "OT"
-    dataset.Manufacturer = "Osteo Vision Prototype"
+    dataset.Manufacturer = "Osteo Vision Platform"
     dataset.InstitutionName = ""
-    dataset.StudyDescription = "Osteo Vision prototype evidence export"
+    dataset.StudyDescription = "Osteo Vision platform validation evidence export"
     dataset.SeriesDescription = "Secondary capture evidence summary"
     dataset.ImageType = ["DERIVED", "SECONDARY", "REPORT"]
     dataset.ConversionType = "WSD"
@@ -68,8 +72,7 @@ def _render_report_pixels(case: CaseRecord, report: dict[str, Any]) -> np.ndarra
     image = Image.new("L", (width, height), color=255)
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default()
-    latest_run = report.get("latest_analysis_run") or {}
-    quantification = latest_run.get("quantitative_summary") or {}
+    quantification = latest_quantification_from_report(report)
     lines = [
         "Osteo Vision Evidence Summary",
         f"Case ID: {case.case_id}",
@@ -80,11 +83,10 @@ def _render_report_pixels(case: CaseRecord, report: dict[str, Any]) -> np.ndarra
         f"Review events: {len(case.review_events)}",
         "",
         "Latest quantification:",
-        *_quantification_lines(quantification),
+        *quantification_summary_lines(quantification),
         "",
         "Safety boundary:",
-        RESEARCH_PROTOTYPE_DISCLAIMER,
-        ICG_SIGNAL_LIMITATION,
+        *platform_safety_lines(),
     ]
     x, y = 36, 32
     line_height = 17
@@ -97,15 +99,6 @@ def _render_report_pixels(case: CaseRecord, report: dict[str, Any]) -> np.ndarra
         if y > height - 36:
             break
     return np.asarray(image, dtype=np.uint8)
-
-
-def _quantification_lines(quantification: dict[str, Any]) -> list[str]:
-    if not quantification:
-        return ["- No quantitative summary recorded."]
-    lines = []
-    for key in sorted(quantification)[:12]:
-        lines.append(f"- {key}: {quantification[key]}")
-    return lines
 
 
 def _wrap_text(text: str, *, max_chars: int) -> list[str]:
@@ -126,4 +119,4 @@ def _wrap_text(text: str, *, max_chars: int) -> list[str]:
 
 def _dicom_safe_identifier(value: str) -> str:
     safe = "".join(char if char.isalnum() or char in "-_." else "_" for char in value)
-    return safe[:64] or "prototype_case"
+    return safe[:64] or "platform_case"

@@ -2,14 +2,31 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.src.core.disclaimers import ICG_SIGNAL_LIMITATION, RESEARCH_PROTOTYPE_DISCLAIMER
 from backend.src.domains.cases.schemas import CaseRecord
+from backend.src.reports.platform_report_sections import (
+    artifact_markdown_lines,
+    json_block,
+    latest_quantification_from_report,
+    platform_safety_lines,
+    quality_flag_markdown_lines,
+)
 
 
 def build_platform_markdown(case: CaseRecord, report: dict[str, Any]) -> str:
-    latest_run = case.analysis_runs[-1] if case.analysis_runs else None
-    quantification = latest_run.quantitative_summary if latest_run else {}
-    lines = [
+    quantification = latest_quantification_from_report(report)
+    sections = [
+        *_case_section(case),
+        *_quality_section(case),
+        *_json_section("Quantification", quantification),
+        *_json_section("Review State", report.get("review_summary", {})),
+        *_artifact_section(case),
+        *_disclaimer_section(),
+    ]
+    return "\n".join(sections)
+
+
+def _case_section(case: CaseRecord) -> list[str]:
+    return [
         "# Osteo Vision Evidence Report",
         "",
         "## Case",
@@ -20,50 +37,20 @@ def build_platform_markdown(case: CaseRecord, report: dict[str, Any]) -> str:
         f"- Inputs: `{len(case.inputs)}`",
         f"- Review events: `{len(case.review_events)}`",
         "",
-        "## Quality And Safety",
-        "",
     ]
-    if case.quality_flags:
-        for flag in case.quality_flags:
-            lines.append(f"- `{flag.code}`: {flag.message}")
-    else:
-        lines.append("- No blocking quality flags recorded.")
-    lines.extend(
-        [
-            "",
-            "## Quantification",
-            "",
-            "```json",
-            _json_block(quantification),
-            "```",
-            "",
-            "## Review State",
-            "",
-            "```json",
-            _json_block(report.get("review_summary", {})),
-            "```",
-            "",
-            "## Artifacts",
-            "",
-        ]
-    )
-    for artifact in case.artifacts:
-        lines.append(f"- `{artifact.kind}`: `{artifact.path}`")
-    lines.extend(
-        [
-            "",
-            "## Disclaimer",
-            "",
-            RESEARCH_PROTOTYPE_DISCLAIMER,
-            "",
-            ICG_SIGNAL_LIMITATION,
-            "",
-        ]
-    )
-    return "\n".join(lines)
 
 
-def _json_block(value: Any) -> str:
-    import json
+def _quality_section(case: CaseRecord) -> list[str]:
+    return ["## Quality And Safety", "", *quality_flag_markdown_lines(case), ""]
 
-    return json.dumps(value, ensure_ascii=False, indent=2, default=str)
+
+def _json_section(title: str, value: object) -> list[str]:
+    return ["## " + title, "", "```json", json_block(value), "```", ""]
+
+
+def _artifact_section(case: CaseRecord) -> list[str]:
+    return ["## Artifacts", "", *artifact_markdown_lines(case), ""]
+
+
+def _disclaimer_section() -> list[str]:
+    return ["## Disclaimer", "", *platform_safety_lines(), ""]

@@ -1,1 +1,1 @@
-"""API routers for the Osteo Vision platform prototype."""
+"""API routers for the Osteo Vision platform software."""

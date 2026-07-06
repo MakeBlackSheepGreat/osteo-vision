@@ -1,1 +1,1 @@
-"""Backend tests for the Osteo Vision platform prototype."""
+"""Backend tests for the Osteo Vision platform software."""

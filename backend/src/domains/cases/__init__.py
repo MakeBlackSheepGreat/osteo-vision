@@ -1,1 +1,1 @@
-"""Case domain for the Osteo Vision platform prototype."""
+"""Case domain for the Osteo Vision platform software."""

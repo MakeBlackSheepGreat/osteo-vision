@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
-from backend.src.core.disclaimers import RESEARCH_PROTOTYPE_DISCLAIMER
+from backend.src.core.disclaimers import PLATFORM_SAFETY_DISCLAIMER
+from backend.src.api.helpers import require_case
 from backend.src.domains.cases.repository import CaseRepository
 from backend.src.domains.cases.schemas import CaseCreateRequest, CaseRecord
 
@@ -22,17 +23,14 @@ def router(repo: CaseRepository) -> APIRouter:
             created_at=now,
             updated_at=now,
             disclaimer_version=request.disclaimer_version,
-            disclaimer=RESEARCH_PROTOTYPE_DISCLAIMER,
+            disclaimer=PLATFORM_SAFETY_DISCLAIMER,
             review_summary={"metadata": request.metadata},
         )
         return repo.create(case)
 
     @api.get("/cases/{case_id}", response_model=CaseRecord)
     def get_case(case_id: str) -> CaseRecord:
-        case = repo.get(case_id)
-        if case is None:
-            raise HTTPException(status_code=404, detail="Case not found")
-        return case
+        return require_case(repo, case_id)
 
     @api.get("/cases", response_model=list[CaseRecord])
     def list_cases() -> list[CaseRecord]:

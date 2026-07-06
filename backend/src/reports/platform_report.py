@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.src.core.disclaimers import ICG_SIGNAL_LIMITATION, RESEARCH_PROTOTYPE_DISCLAIMER
+from backend.src.core.disclaimers import ICG_SIGNAL_LIMITATION, PLATFORM_SAFETY_DISCLAIMER
 from backend.src.domains.cases.schemas import CaseRecord
 
 
@@ -18,7 +18,7 @@ def build_platform_report(case: CaseRecord, *, export_meta: dict[str, Any] | Non
         "created_at": case.created_at.isoformat(),
         "updated_at": case.updated_at.isoformat(),
         "disclaimer_version": case.disclaimer_version,
-        "disclaimer": case.disclaimer or RESEARCH_PROTOTYPE_DISCLAIMER,
+        "disclaimer": case.disclaimer or PLATFORM_SAFETY_DISCLAIMER,
         "icg_signal_limitation": ICG_SIGNAL_LIMITATION,
         "review_summary": case.review_summary,
         "quality_flags": [flag.model_dump(mode="json") for flag in case.quality_flags],

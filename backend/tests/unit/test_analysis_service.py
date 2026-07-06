@@ -22,8 +22,12 @@ def test_analysis_service_creates_fluorescence_outputs(tmp_path: Path, monkeypat
     case = InputService().add_inputs(
         case,
         [
-            InputCreateRequest(channel=InputChannel.WHITE_LIGHT, path=str(Path("tests/fixtures/platform/white.png").resolve())),
-            InputCreateRequest(channel=InputChannel.FLUORESCENCE, path=str(Path("tests/fixtures/platform/fluorescence.png").resolve())),
+            InputCreateRequest(
+                channel=InputChannel.WHITE_LIGHT, path=str(Path("tests/fixtures/platform/white.png").resolve())
+            ),
+            InputCreateRequest(
+                channel=InputChannel.FLUORESCENCE, path=str(Path("tests/fixtures/platform/fluorescence.png").resolve())
+            ),
         ],
     )
     repo.create(case)
@@ -113,5 +117,62 @@ def test_keyframe_segmentation_prefers_trainable_model(tmp_path: Path) -> None:
     assert outputs[0]["model_id"] == "keyframe_test"
     assert Path(outputs[0]["segmentation_mask"]["path"]).exists()
     assert Path(outputs[0]["lesion_evidence"]["probability_path"]).exists()
+    assert Path(outputs[0]["lesion_evidence"]["uncertainty_path"]).exists()
     assert Path(outputs[0]["lesion_evidence"]["overlay_path"]).exists()
+    assert outputs[0]["review_priority"] == "high"
+    assert outputs[0]["target_domain_flag"] is False
     assert outputs[0]["quantification"]["positive_area_px"] > 0
+
+
+def test_keyframe_segmentation_falls_back_when_trainable_mask_is_empty(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "keyframe_empty.pt"
+    model = TinyKeyframeSegmenter2D(base_channels=2)
+    torch.save(
+        {
+            "model_id": "keyframe_empty",
+            "model_family": "convnext2d_keyframe_segmenter",
+            "model_config": {"in_channels": 3, "out_channels": 2, "base_channels": 2},
+            "state_dict": model.state_dict(),
+            "threshold": 1.1,
+        },
+        checkpoint_path,
+    )
+    config_path = tmp_path / "config.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "runtime:",
+                "  models:",
+                "    - model_id: keyframe_empty",
+                "      family: convnext2d_keyframe_segmenter",
+                "      task_types: [segmentation]",
+                "      input_types: [2d_image]",
+                f"      checkpoint_path: {json.dumps(str(checkpoint_path))}",
+                "      dependency_group: torch",
+                "      device_policy: cpu",
+                "      extra:",
+                "        threshold: 1.1",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    image_path = tmp_path / "frame.png"
+    image = np.zeros((32, 48, 3), dtype=np.uint8)
+    image[8:24, 16:36, 1] = 245
+    Image.fromarray(image).save(image_path)
+
+    outputs = _analyze_keyframe_segmentations(
+        [{"order": 1, "frame_index": 0, "timestamp_sec": 0.0, "evidence_path": str(image_path)}],
+        tmp_path / "segmentation_outputs",
+        case_id="case_video",
+        config_path=str(config_path),
+        model_id="keyframe_empty",
+        threshold=0.6,
+        colormap="green",
+        roi_hints=[],
+    )
+
+    assert outputs[0]["analysis_method"] == "heuristic_hotspot_fallback"
+    assert outputs[0]["model_id"] == "video_keyframe_hotspot_segmenter"
+    assert outputs[0]["quantification"]["positive_area_px"] > 0
+    assert any(item["code"] == "keyframe_segmenter_empty_mask_fallback" for item in outputs[0]["warnings"])

@@ -1,1 +1,1 @@
-"""Domain packages for the Osteo Vision platform prototype."""
+"""Domain packages for the Osteo Vision platform software."""

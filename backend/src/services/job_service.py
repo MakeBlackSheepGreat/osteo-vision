@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any
 from uuid import uuid4
 
+from backend.src.services.job_state import ACTIVE_JOB_STATUSES, progress, progress_percent, restart_failed_job, utc_now
 from src.core.paths import ensure_dir
-
-ACTIVE_JOB_STATUSES = {"queued", "running"}
 
 
 class JobCapacityError(RuntimeError):
@@ -29,7 +27,7 @@ class JobConflictError(RuntimeError):
 
 
 class JobRegistry:
-    """Small persistent job tracker for local competition prototypes."""
+    """Small persistent job tracker for local competition platform workflows."""
 
     def __init__(self, storage_path: str | Path | None = None) -> None:
         self._jobs: dict[str, dict[str, Any]] = {}
@@ -45,7 +43,7 @@ class JobRegistry:
         max_active: int | None = None,
         singleton_keys: list[str] | None = None,
     ) -> dict[str, Any]:
-        now = _utc_now()
+        now = utc_now()
         job_id = f"job_{uuid4().hex[:12]}"
         job_payload = payload or {}
         job = {
@@ -55,7 +53,7 @@ class JobRegistry:
             "payload": job_payload,
             "result": {},
             "error": None,
-            "progress": _progress("queued", 0, "Job queued."),
+            "progress": progress("queued", 0, "Job queued."),
             "created_at": now,
             "updated_at": now,
         }
@@ -104,8 +102,8 @@ class JobRegistry:
             claimed = {
                 **job,
                 "status": "running",
-                "progress": _progress("running", 5, "Job claimed by local worker."),
-                "updated_at": _utc_now(),
+                "progress": progress("running", 5, "Job claimed by local worker."),
+                "updated_at": utc_now(),
             }
             self._jobs[str(job["job_id"])] = claimed
             self._save_locked()
@@ -116,17 +114,23 @@ class JobRegistry:
             job = self._jobs.get(job_id)
             if job is None or job.get("status") == "canceled":
                 return
-        self._update(job_id, status="running", progress=_progress("running", 5, "Job started."))
+        self._update(job_id, status="running", progress=progress("running", 5, "Job started."))
 
     def mark_completed(self, job_id: str, result: dict[str, Any]) -> None:
         if self.is_canceled(job_id):
             return
-        self._update(job_id, status="completed", result=result, error=None, progress=_progress("completed", 100, "Job completed."))
+        self._update(
+            job_id,
+            status="completed",
+            result=result,
+            error=None,
+            progress=progress("completed", 100, "Job completed."),
+        )
 
     def mark_failed(self, job_id: str, error: str, result: dict[str, Any] | None = None) -> None:
         if self.is_canceled(job_id):
             return
-        self._update(job_id, status="failed", result=result or {}, error=error, progress=_progress("failed", 100, error))
+        self._update(job_id, status="failed", result=result or {}, error=error, progress=progress("failed", 100, error))
 
     def update_progress(
         self,
@@ -139,7 +143,7 @@ class JobRegistry:
     ) -> None:
         if self.is_canceled(job_id):
             return
-        self._update(job_id, progress=_progress(phase, percent, message, details))
+        self._update(job_id, progress=progress(phase, percent, message, details))
 
     def cancel(self, job_id: str, reason: str = "Job canceled by user.") -> dict[str, Any] | None:
         with self._lock:
@@ -153,8 +157,8 @@ class JobRegistry:
                 **job,
                 "status": "canceled",
                 "error": reason,
-                "progress": _progress("canceled", _progress_percent(job), reason),
-                "updated_at": _utc_now(),
+                "progress": progress("canceled", progress_percent(job), reason),
+                "updated_at": utc_now(),
             }
             self._jobs[job_id] = canceled
             self._save_locked()
@@ -176,7 +180,7 @@ class JobRegistry:
             self._refresh_locked()
             if job_id not in self._jobs:
                 return
-            self._jobs[job_id] = {**self._jobs[job_id], **updates, "updated_at": _utc_now()}
+            self._jobs[job_id] = {**self._jobs[job_id], **updates, "updated_at": utc_now()}
             self._save_locked()
 
     def _active_jobs_locked(self, kind: str | None = None) -> list[dict[str, Any]]:
@@ -200,13 +204,7 @@ class JobRegistry:
         changed = False
         for job_id, job in list(self._jobs.items()):
             if fail_running_on_restart and job.get("status") == "running":
-                self._jobs[job_id] = {
-                    **job,
-                    "status": "failed",
-                    "error": "Job did not complete before process restart.",
-                    "progress": _progress("failed", _progress_percent(job), "Job did not complete before process restart."),
-                    "updated_at": _utc_now(),
-                }
+                self._jobs[job_id] = restart_failed_job(job)
                 changed = True
         if changed:
             self._save_locked()
@@ -222,24 +220,3 @@ class JobRegistry:
         payload = {"schema_version": "osteo-vision-job-registry-v1", "jobs": self._jobs}
         tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         tmp_path.replace(self.storage_path)
-
-
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _progress(phase: str, percent: int, message: str, details: dict[str, Any] | None = None) -> dict[str, Any]:
-    return {
-        "phase": phase,
-        "percent": max(0, min(100, int(percent))),
-        "message": message,
-        "details": details or {},
-    }
-
-
-def _progress_percent(job: dict[str, Any]) -> int:
-    progress = job.get("progress")
-    if not isinstance(progress, dict):
-        return 0
-    percent = progress.get("percent")
-    return int(percent) if isinstance(percent, (int, float)) else 0

@@ -1,1 +1,1 @@
-"""Core backend utilities for the Osteo Vision platform prototype."""
+"""Core backend utilities for the Osteo Vision platform software."""

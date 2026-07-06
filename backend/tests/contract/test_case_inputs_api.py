@@ -165,6 +165,9 @@ def test_mp4_upload_returns_metadata_and_keyframes(tmp_path: Path, monkeypatch) 
     assert payload["metadata"]["official_input_profile"]["resolution_match"] is False
     assert any(warning["code"] == "official_video_resolution_mismatch" for warning in payload["warnings"])
     assert payload["keyframe_job_id"]
+    playback = client.get("/files/video", params={"path": payload["path"]})
+    assert playback.status_code == 200
+    assert playback.headers["content-type"].startswith("video/mp4")
 
     job_response = client.get(f"/uploads/jobs/{payload['keyframe_job_id']}")
     assert job_response.status_code == 200

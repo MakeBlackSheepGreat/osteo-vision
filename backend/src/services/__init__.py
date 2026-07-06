@@ -1,1 +1,1 @@
-"""Application services for the Osteo Vision platform prototype."""
+"""Application services for the Osteo Vision platform software."""

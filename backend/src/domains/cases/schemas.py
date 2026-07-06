@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from backend.src.core.disclaimers import DISCLAIMER_VERSION
 from backend.src.domains.cases.enums import (
     ArtifactKind,
     CaseStatus,
@@ -103,7 +104,7 @@ class CaseRecord(BaseModel):
     version: int = 1
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
-    disclaimer_version: str = "research-prototype-v1"
+    disclaimer_version: str = DISCLAIMER_VERSION
     review_summary: dict[str, Any] = Field(default_factory=dict)
     inputs: list[CaseInputAsset] = Field(default_factory=list)
     analysis_runs: list[AnalysisRun] = Field(default_factory=list)
@@ -117,7 +118,7 @@ class CaseRecord(BaseModel):
 
 class CaseCreateRequest(BaseModel):
     title: str
-    disclaimer_version: str = "research-prototype-v1"
+    disclaimer_version: str = DISCLAIMER_VERSION
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

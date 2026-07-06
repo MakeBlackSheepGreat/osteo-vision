@@ -45,7 +45,9 @@ def test_export_service_writes_reports(tmp_path: Path) -> None:
     assert dicom.PatientIdentityRemoved == "YES"
     assert dicom.Rows > 0
     assert dicom.Columns > 0
-    assert "Research prototype only" in Path(response.report_path).read_text(encoding="utf-8")
+    assert "Platform software for research and competition validation" in Path(response.report_path).read_text(
+        encoding="utf-8"
+    )
 
 
 def test_export_service_writes_review_manifest_for_training_feedback(tmp_path: Path) -> None:
@@ -107,7 +109,7 @@ def test_export_service_writes_review_manifest_for_training_feedback(tmp_path: P
                     target_id="cand_001",
                     before_state="review_required",
                     after_state="accepted",
-                    notes="accepted for prototype feedback",
+                    notes="accepted for platform feedback",
                 )
             ],
         )
@@ -127,7 +129,7 @@ def test_export_service_writes_review_manifest_for_training_feedback(tmp_path: P
     review_json_text = Path(review_json_entry["path"]).read_text(encoding="utf-8")
     review_csv_text = Path(review_csv_entry["path"]).read_text(encoding="utf-8")
     assert "convnext2d_keyframe_proxy_segmenter" in review_json_text
-    assert "prototype_retraining_or_error_analysis_after_deidentification" in review_json_text
+    assert "platform_feedback_training_or_error_analysis_after_deidentification" in review_json_text
     assert "candidate_region" in review_csv_text
     assert "roi_cand_001" in review_csv_text
     assert "accept_candidate_and_create_roi" in review_csv_text
