@@ -176,7 +176,7 @@ def train_keyframe_proxy(args: argparse.Namespace) -> dict[str, Any]:
         "training": checkpoint_payload["training"],
         "metrics": metrics,
         "warnings": [
-            "This checkpoint is a trainable software prototype on proxy keyframe data.",
+            "This checkpoint is a trainable platform-software model on proxy keyframe data.",
             "It must not be reported as target-domain intraoperative ICG jaw osteomyelitis performance.",
         ],
     }

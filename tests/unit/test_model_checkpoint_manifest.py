@@ -18,7 +18,7 @@ def test_model_checkpoint_manifest_records_available_and_missing_models(tmp_path
                 "model_id": "convnext_proxy",
                 "model_family": "convnext3d_segmenter",
                 "clinical_claim_allowed": False,
-                "metrics": {"dice": 0.1},
+                "metrics": {"dice": 0.1, "threshold": 0.2},
             }
         ),
         encoding="utf-8",
@@ -53,6 +53,7 @@ def test_model_checkpoint_manifest_records_available_and_missing_models(tmp_path
                             "checkpoint_path": str(checkpoint_path),
                             "dependency_group": "torch",
                             "clinical_claim_allowed": False,
+                            "extra": {"threshold": 0.2},
                         },
                         {
                             "model_id": "medsam_pending",
@@ -92,6 +93,9 @@ def test_model_checkpoint_manifest_records_available_and_missing_models(tmp_path
     assert convnext_row["artifact_manifest"]["exists"] is True
     assert convnext_row["model_card"]["exists"] is True
     assert convnext_row["manifest_model_id_matches"] is True
+    assert convnext_row["runtime_threshold"] == 0.2
+    assert convnext_row["sidecar_metric_threshold"] == 0.2
+    assert convnext_row["threshold_alignment"]["matches"] is True
 
 
 def test_write_manifest_bundle_outputs_json_csv_and_reports(tmp_path: Path) -> None:
@@ -117,6 +121,9 @@ def test_write_manifest_bundle_outputs_json_csv_and_reports(tmp_path: Path) -> N
                 "artifact_manifest": {"exists": False},
                 "model_card": {"exists": False},
                 "manifest_model_id_matches": None,
+                "runtime_threshold": None,
+                "sidecar_metric_threshold": None,
+                "threshold_alignment": {"available": False, "reason": "threshold_missing"},
                 "clinical_claim_allowed": False,
                 "medical_boundary": "Deterministic fixture fallback for tests and demos only.",
             }

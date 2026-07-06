@@ -44,6 +44,9 @@ def build_model_checkpoint_manifest(config_path: str | Path) -> dict[str, Any]:
                 "artifact_manifest": _sidecar_summary(artifact_manifest),
                 "model_card": _sidecar_summary(model_card),
                 "manifest_model_id_matches": _sidecar_model_id_matches(spec.get("model_id"), artifact_manifest),
+                "runtime_threshold": _runtime_threshold(spec),
+                "sidecar_metric_threshold": _sidecar_metric_threshold(artifact_manifest, model_card),
+                "threshold_alignment": _threshold_alignment(spec, artifact_manifest, model_card),
                 "intended_use": spec.get("intended_use"),
                 "clinical_claim_allowed": bool(spec.get("clinical_claim_allowed")),
                 "source_url": spec.get("source_url"),
@@ -193,6 +196,48 @@ def _sidecar_model_id_matches(model_id: Any, payload: dict[str, Any] | None) -> 
     return str(payload.get("model_id")) == str(model_id)
 
 
+def _runtime_threshold(spec: dict[str, Any]) -> float | None:
+    extra = spec.get("extra")
+    if not isinstance(extra, dict) or "threshold" not in extra:
+        return None
+    try:
+        return float(extra["threshold"])
+    except (TypeError, ValueError):
+        return None
+
+
+def _sidecar_metric_threshold(
+    artifact_manifest: dict[str, Any] | None,
+    model_card: dict[str, Any] | None,
+) -> float | None:
+    for payload in (artifact_manifest, model_card):
+        metrics = payload.get("metrics") if payload else None
+        if isinstance(metrics, dict) and "threshold" in metrics:
+            try:
+                return float(metrics["threshold"])
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _threshold_alignment(
+    spec: dict[str, Any],
+    artifact_manifest: dict[str, Any] | None,
+    model_card: dict[str, Any] | None,
+) -> dict[str, Any]:
+    runtime_threshold = _runtime_threshold(spec)
+    metric_threshold = _sidecar_metric_threshold(artifact_manifest, model_card)
+    if runtime_threshold is None or metric_threshold is None:
+        return {"available": False, "reason": "threshold_missing"}
+    matches = abs(runtime_threshold - metric_threshold) <= 1e-6
+    return {
+        "available": True,
+        "runtime_threshold": runtime_threshold,
+        "metric_threshold": metric_threshold,
+        "matches": matches,
+    }
+
+
 def _medical_boundary(spec: dict[str, Any]) -> str:
     family = str(spec.get("family") or "")
     if family in {"convnext3d_segmenter", "d025_lesion_segmenter"}:
@@ -241,15 +286,28 @@ def _model_lines(rows: list[dict[str, Any]], *, language: str) -> list[str]:
             if isinstance(item, dict) and item.get("code")
         ]
         warnings_text = "; ".join(warning_codes) if warning_codes else ("无" if language == "zh" else "none")
+        threshold_text = _threshold_line_text(row, language=language)
         if language == "zh":
             lines.append(
-                f"- `{row.get('model_id')}` / `{row.get('family')}`：checkpoint 存在={checkpoint.get('exists')}；临床声明={row.get('clinical_claim_allowed')}；原因：{reasons_text}；warning：{warnings_text}。"
+                f"- `{row.get('model_id')}` / `{row.get('family')}`：checkpoint 存在={checkpoint.get('exists')}；{threshold_text}；临床声明={row.get('clinical_claim_allowed')}；原因：{reasons_text}；warning：{warnings_text}。"
             )
         else:
             lines.append(
-                f"- `{row.get('model_id')}` / `{row.get('family')}`: checkpoint exists={checkpoint.get('exists')}; clinical claim={row.get('clinical_claim_allowed')}; reasons: {reasons_text}; warnings: {warnings_text}."
+                f"- `{row.get('model_id')}` / `{row.get('family')}`: checkpoint exists={checkpoint.get('exists')}; {threshold_text}; clinical claim={row.get('clinical_claim_allowed')}; reasons: {reasons_text}; warnings: {warnings_text}."
             )
     return lines
+
+
+def _threshold_line_text(row: dict[str, Any], *, language: str) -> str:
+    alignment = row.get("threshold_alignment") or {}
+    runtime_threshold = row.get("runtime_threshold")
+    metric_threshold = row.get("sidecar_metric_threshold")
+    if not alignment.get("available"):
+        return "阈值=未记录" if language == "zh" else "threshold=not recorded"
+    matches = bool(alignment.get("matches"))
+    if language == "zh":
+        return f"运行阈值={runtime_threshold}；指标阈值={metric_threshold}；阈值一致={matches}"
+    return f"runtime threshold={runtime_threshold}; metric threshold={metric_threshold}; threshold aligned={matches}"
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -264,6 +322,9 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "artifact_manifest_exists",
         "model_card_exists",
         "manifest_model_id_matches",
+        "runtime_threshold",
+        "sidecar_metric_threshold",
+        "threshold_alignment_matches",
         "clinical_claim_allowed",
         "status_reasons",
         "status_warnings",
@@ -286,6 +347,9 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                     "artifact_manifest_exists": row.get("artifact_manifest", {}).get("exists"),
                     "model_card_exists": row.get("model_card", {}).get("exists"),
                     "manifest_model_id_matches": row.get("manifest_model_id_matches"),
+                    "runtime_threshold": row.get("runtime_threshold"),
+                    "sidecar_metric_threshold": row.get("sidecar_metric_threshold"),
+                    "threshold_alignment_matches": (row.get("threshold_alignment") or {}).get("matches"),
                     "clinical_claim_allowed": row.get("clinical_claim_allowed"),
                     "status_reasons": "; ".join(str(item) for item in row.get("status_reasons") or []),
                     "status_warnings": "; ".join(

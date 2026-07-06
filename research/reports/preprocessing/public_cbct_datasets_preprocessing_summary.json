@@ -370,7 +370,7 @@
       "preview_count_generated": 5,
       "project_use": [
         "CBCT lesion segmentation baseline",
-        "Lesion ROI prior for jaw osteomyelitis software prototype",
+        "Lesion ROI prior for jaw osteomyelitis platform software",
         "Cross-modal CBCT and histology evidence exploration"
       ],
       "limitations": [

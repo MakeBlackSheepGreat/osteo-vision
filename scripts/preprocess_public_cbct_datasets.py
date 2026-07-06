@@ -210,7 +210,7 @@ def preprocess_dolchid(dataset_dir: Path, *, preview_count: int, skip_extract: b
         "preview_count_generated": len(previews),
         "project_use": [
             "CBCT lesion segmentation baseline",
-            "Lesion ROI prior for jaw osteomyelitis software prototype",
+            "Lesion ROI prior for jaw osteomyelitis software platform",
             "Cross-modal CBCT and histology evidence exploration",
         ],
         "limitations": [

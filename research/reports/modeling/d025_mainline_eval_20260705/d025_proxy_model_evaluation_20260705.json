@@ -1,0 +1,791 @@
+{
+  "schema_version": "osteo-vision-d025-proxy-evaluation-v1",
+  "generated_at_utc": "2026-07-05T12:02:31.540475+00:00",
+  "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d025_lesion_cbct\\derived\\local_preprocessed\\lesion_roi_64\\d025_dolchid_lesion_roi_64_manifest.csv",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
+  "checkpoint_sha256": "3b6cd68118626d6204f091295c563b7175773959a583269af3cdfb2c94a08a34",
+  "checkpoint_metadata": {
+    "model_id": "d025_lesion_smoke_segmenter",
+    "model_family": "d025_lesion_segmenter",
+    "training": {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d025_lesion_cbct\\derived\\local_preprocessed\\lesion_roi_64\\d025_dolchid_lesion_roi_64_manifest.csv",
+      "train_cases": 209,
+      "val_cases": 53,
+      "max_train_batches": 1500,
+      "completed_train_batches": 1500,
+      "batch_size": 2,
+      "learning_rate": 0.0002,
+      "seed": 20260703,
+      "elapsed_seconds": 168.115,
+      "mean_train_loss": 0.08930703592176238,
+      "resume_checkpoint": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_lesion_smoke.pt",
+      "resume_checkpoint_sha256": "56473aae9980da7ecfe2e720b8522a9ad5a6a825f00a314818fef07b9b15920d",
+      "previous_completed_train_batches": 3000,
+      "total_completed_train_batches": 4500,
+      "promoted_from_candidate_checkpoint": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\d025_candidate_continue_20260704\\d025_lesion_continue_1500.pt",
+      "candidate_checkpoint_sha256": "7706b838a4b180753d36c999b3735a7f51a906e41ae3fdb1b2427cd0740ec802",
+      "previous_mainline_checkpoint_sha256": "56473aae9980da7ecfe2e720b8522a9ad5a6a825f00a314818fef07b9b15920d",
+      "promotion_reason": "Continued-training candidate improved D025 proxy validation Mean Dice/IoU over the previous mainline."
+    },
+    "stored_metrics": {
+      "case_count": 53,
+      "foreground_mean_dice": 0.6452435833966753,
+      "foreground_mean_iou": 0.5488023961453478,
+      "lesion_sensitivity": 0.7881745626244296,
+      "lesion_precision": 0.7981017965140135,
+      "prediction_positive_fraction": 0.004034438223209021,
+      "target_positive_fraction": 0.00408525286980395,
+      "threshold": 0.6
+    }
+  },
+  "evaluation": {
+    "split": "val",
+    "case_count": 53,
+    "thresholds": [
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8
+    ],
+    "best_threshold": 0.2,
+    "best_summary": {
+      "threshold": 0.2,
+      "case_count": 53,
+      "dice": {
+        "available": true,
+        "count": 53,
+        "mean": 0.6566803022292801,
+        "std": 0.30980904997780107,
+        "median": 0.8233983286908078,
+        "min": 0.0,
+        "max": 0.9343065693430657
+      },
+      "iou": {
+        "available": true,
+        "count": 53,
+        "mean": 0.5553454206053808,
+        "std": 0.29157292494957426,
+        "median": 0.6998106060606061,
+        "min": 0.0,
+        "max": 0.8767123287671232
+      },
+      "hd95": {
+        "available": true,
+        "count": 51,
+        "mean": 15.237033444879906,
+        "std": 20.536205414247064,
+        "median": 4.8,
+        "min": 2.0069531249999963,
+        "max": 80.76130710353618
+      },
+      "nsd": {
+        "available": true,
+        "count": 51,
+        "mean": 0.47965767710515445,
+        "std": 0.21517739730843954,
+        "median": 0.5305785123966942,
+        "min": 0.0,
+        "max": 0.8661417322834646
+      },
+      "lesion_sensitivity": {
+        "available": true,
+        "count": 53,
+        "mean": 0.6900123773388733,
+        "std": 0.3311590967812718,
+        "median": 0.823943661971831,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "lesion_precision": {
+        "available": true,
+        "count": 51,
+        "mean": 0.7238294635726685,
+        "std": 0.27528292194312953,
+        "median": 0.8380106571936057,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "pred_positive_fraction": {
+        "available": true,
+        "count": 53,
+        "mean": 0.004377545050854953,
+        "std": 0.004311398074728391,
+        "median": 0.00330352783203125,
+        "min": 0.0,
+        "max": 0.021457672119140625
+      },
+      "target_positive_fraction": {
+        "available": true,
+        "count": 53,
+        "mean": 0.00408525286980395,
+        "std": 0.003918459700131344,
+        "median": 0.00305938720703125,
+        "min": 0.000102996826171875,
+        "max": 0.020931243896484375
+      }
+    },
+    "threshold_summaries": [
+      {
+        "threshold": 0.2,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6566803022292801,
+          "std": 0.30980904997780107,
+          "median": 0.8233983286908078,
+          "min": 0.0,
+          "max": 0.9343065693430657
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5553454206053808,
+          "std": 0.29157292494957426,
+          "median": 0.6998106060606061,
+          "min": 0.0,
+          "max": 0.8767123287671232
+        },
+        "hd95": {
+          "available": true,
+          "count": 51,
+          "mean": 15.237033444879906,
+          "std": 20.536205414247064,
+          "median": 4.8,
+          "min": 2.0069531249999963,
+          "max": 80.76130710353618
+        },
+        "nsd": {
+          "available": true,
+          "count": 51,
+          "mean": 0.47965767710515445,
+          "std": 0.21517739730843954,
+          "median": 0.5305785123966942,
+          "min": 0.0,
+          "max": 0.8661417322834646
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6900123773388733,
+          "std": 0.3311590967812718,
+          "median": 0.823943661971831,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 51,
+          "mean": 0.7238294635726685,
+          "std": 0.27528292194312953,
+          "median": 0.8380106571936057,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.004377545050854953,
+          "std": 0.004311398074728391,
+          "median": 0.00330352783203125,
+          "min": 0.0,
+          "max": 0.021457672119140625
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.3,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6550316724955679,
+          "std": 0.31443281866804484,
+          "median": 0.8302405498281787,
+          "min": 0.0,
+          "max": 0.9405940594059405
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5555678733664866,
+          "std": 0.296492160871234,
+          "median": 0.7097532314923619,
+          "min": 0.0,
+          "max": 0.8878504672897196
+        },
+        "hd95": {
+          "available": true,
+          "count": 51,
+          "mean": 13.601169233363303,
+          "std": 19.795616363454066,
+          "median": 4.78125,
+          "min": 1.7953124999999999,
+          "max": 80.73047300715218
+        },
+        "nsd": {
+          "available": true,
+          "count": 51,
+          "mean": 0.48130454088450575,
+          "std": 0.22083279700425376,
+          "median": 0.527027027027027,
+          "min": 0.0,
+          "max": 0.8790322580645161
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6796533327491227,
+          "std": 0.3336209997782641,
+          "median": 0.813894523326572,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 51,
+          "mean": 0.7364040373563354,
+          "std": 0.2779184906467156,
+          "median": 0.854262144821265,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.004266774879311616,
+          "std": 0.004215313438334611,
+          "median": 0.003261566162109375,
+          "min": 0.0,
+          "max": 0.02089691162109375
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.4,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6521175742932203,
+          "std": 0.31731669754107017,
+          "median": 0.8262857142857143,
+          "min": 0.0,
+          "max": 0.94
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5535877863844505,
+          "std": 0.29973509608895416,
+          "median": 0.7039922103213242,
+          "min": 0.0,
+          "max": 0.8867924528301887
+        },
+        "hd95": {
+          "available": true,
+          "count": 51,
+          "mean": 13.553247467889648,
+          "std": 19.657275584359486,
+          "median": 4.273430070724189,
+          "min": 1.7953124999999999,
+          "max": 80.76473311424552
+        },
+        "nsd": {
+          "available": true,
+          "count": 51,
+          "mean": 0.48256872701727416,
+          "std": 0.22281678605220956,
+          "median": 0.5445881552076243,
+          "min": 0.0,
+          "max": 0.8699186991869918
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6694705204097209,
+          "std": 0.33430291776660365,
+          "median": 0.8052738336713996,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 51,
+          "mean": 0.7440252103021695,
+          "std": 0.2789909509482924,
+          "median": 0.8637820512820513,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.004182995490308078,
+          "std": 0.004147613056274711,
+          "median": 0.003223419189453125,
+          "min": 0.0,
+          "max": 0.020526885986328125
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.5,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6483948509434907,
+          "std": 0.32014506933235937,
+          "median": 0.8231600976630624,
+          "min": 0.0,
+          "max": 0.9393939393939394
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5505687746398208,
+          "std": 0.30250247994451784,
+          "median": 0.6994665085951393,
+          "min": 0.0,
+          "max": 0.8857142857142857
+        },
+        "hd95": {
+          "available": true,
+          "count": 50,
+          "mean": 13.531358782191354,
+          "std": 19.620748763311106,
+          "median": 4.252476428246185,
+          "min": 1.7953124999999999,
+          "max": 80.72019497502419
+        },
+        "nsd": {
+          "available": true,
+          "count": 50,
+          "mean": 0.49116057043465106,
+          "std": 0.21684780260695793,
+          "median": 0.5354495456719273,
+          "min": 0.0,
+          "max": 0.8641975308641975
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6598987262170222,
+          "std": 0.3348807297631867,
+          "median": 0.7855491329479769,
+          "min": 0.0,
+          "max": 0.9958847736625515
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 50,
+          "mean": 0.7453908583266845,
+          "std": 0.28092456416572203,
+          "median": 0.8672845760368857,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00410778117629717,
+          "std": 0.004081175104599828,
+          "median": 0.0031280517578125,
+          "min": 0.0,
+          "max": 0.020160675048828125
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.6,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6452435833966753,
+          "std": 0.32394847841340224,
+          "median": 0.8230994152046783,
+          "min": 0.0,
+          "max": 0.9417721518987342
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5488023961453478,
+          "std": 0.3066481097000542,
+          "median": 0.6993788819875777,
+          "min": 0.0,
+          "max": 0.8899521531100478
+        },
+        "hd95": {
+          "available": true,
+          "count": 50,
+          "mean": 13.085876178607737,
+          "std": 19.297283067315746,
+          "median": 4.273430070724189,
+          "min": 1.7953124999999999,
+          "max": 80.75788109282685
+        },
+        "nsd": {
+          "available": true,
+          "count": 50,
+          "mean": 0.4912029704100107,
+          "std": 0.2217360544423256,
+          "median": 0.5336319499461677,
+          "min": 0.0,
+          "max": 0.8677685950413223
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6517908763931797,
+          "std": 0.3370651938064347,
+          "median": 0.7774566473988439,
+          "min": 0.0,
+          "max": 0.9958847736625515
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 50,
+          "mean": 0.7511534273991272,
+          "std": 0.2842327345409729,
+          "median": 0.8741148470091171,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.004034438223209021,
+          "std": 0.004021010242583286,
+          "median": 0.003025054931640625,
+          "min": 0.0,
+          "max": 0.019855499267578125
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.7,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6433075105853197,
+          "std": 0.3255986759387469,
+          "median": 0.8227699530516432,
+          "min": 0.0,
+          "max": 0.9441624365482234
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5474463806653067,
+          "std": 0.3087148053086552,
+          "median": 0.6989032901296112,
+          "min": 0.0,
+          "max": 0.8942307692307693
+        },
+        "hd95": {
+          "available": true,
+          "count": 48,
+          "mean": 11.45258016492044,
+          "std": 17.335879822442426,
+          "median": 4.1434415999671135,
+          "min": 1.7953124999999999,
+          "max": 80.72019497502419
+        },
+        "nsd": {
+          "available": true,
+          "count": 48,
+          "mean": 0.5114798896636089,
+          "std": 0.205479093241955,
+          "median": 0.5500788986494043,
+          "min": 0.0,
+          "max": 0.8713692946058091
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6440711860945233,
+          "std": 0.33707318862500546,
+          "median": 0.7710982658959538,
+          "min": 0.0,
+          "max": 0.9958847736625515
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 48,
+          "mean": 0.7919936417859134,
+          "std": 0.24413886499875398,
+          "median": 0.8844059865032601,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.003959799712558962,
+          "std": 0.0039587663675378715,
+          "median": 0.00292205810546875,
+          "min": 0.0,
+          "max": 0.019496917724609375
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      },
+      {
+        "threshold": 0.8,
+        "case_count": 53,
+        "dice": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6386466089040111,
+          "std": 0.3287712996556564,
+          "median": 0.820816085156712,
+          "min": 0.0,
+          "max": 0.9465648854961832
+        },
+        "iou": {
+          "available": true,
+          "count": 53,
+          "mean": 0.5436707072899136,
+          "std": 0.3120710875226202,
+          "median": 0.6960882647943831,
+          "min": 0.0,
+          "max": 0.8985507246376812
+        },
+        "hd95": {
+          "available": true,
+          "count": 48,
+          "mean": 11.359308370674176,
+          "std": 17.14295987267117,
+          "median": 4.151518105132192,
+          "min": 1.7953124999999999,
+          "max": 80.4755797037207
+        },
+        "nsd": {
+          "available": true,
+          "count": 48,
+          "mean": 0.5079308535942367,
+          "std": 0.21051329427381207,
+          "median": 0.5429292929292929,
+          "min": 0.0,
+          "max": 0.875
+        },
+        "lesion_sensitivity": {
+          "available": true,
+          "count": 53,
+          "mean": 0.6329237253777308,
+          "std": 0.3380297050089655,
+          "median": 0.7595375722543353,
+          "min": 0.0,
+          "max": 0.9958847736625515
+        },
+        "lesion_precision": {
+          "available": true,
+          "count": 48,
+          "mean": 0.8002283482424919,
+          "std": 0.24634295393606967,
+          "median": 0.8943465276340141,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "pred_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.003876380200655955,
+          "std": 0.0038842668291386253,
+          "median": 0.002872467041015625,
+          "min": 0.0,
+          "max": 0.0190887451171875
+        },
+        "target_positive_fraction": {
+          "available": true,
+          "count": 53,
+          "mean": 0.00408525286980395,
+          "std": 0.003918459700131344,
+          "median": 0.00305938720703125,
+          "min": 0.000102996826171875,
+          "max": 0.020931243896484375
+        }
+      }
+    ],
+    "failure_cases": [
+      {
+        "case_id": "DC_9",
+        "diagnosis_group": "DC",
+        "threshold": 0.2,
+        "dice": 0.0,
+        "iou": 0.0,
+        "hd95": 37.84897167600565,
+        "nsd": 0.0,
+        "lesion_sensitivity": 0.0,
+        "lesion_precision": 0.0,
+        "pred_positive_fraction": 0.00232696533203125,
+        "target_positive_fraction": 0.0001220703125,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\DC_9_failure_preview.png"
+      },
+      {
+        "case_id": "RC_11",
+        "diagnosis_group": "RC",
+        "threshold": 0.2,
+        "dice": 0.0,
+        "iou": 0.0,
+        "hd95": null,
+        "nsd": null,
+        "lesion_sensitivity": 0.0,
+        "lesion_precision": null,
+        "pred_positive_fraction": 0.0,
+        "target_positive_fraction": 0.000102996826171875,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\RC_11_failure_preview.png"
+      },
+      {
+        "case_id": "RC_25",
+        "diagnosis_group": "RC",
+        "threshold": 0.2,
+        "dice": 0.0,
+        "iou": 0.0,
+        "hd95": 72.6076242369392,
+        "nsd": 0.0,
+        "lesion_sensitivity": 0.0,
+        "lesion_precision": 0.0,
+        "pred_positive_fraction": 1.52587890625e-05,
+        "target_positive_fraction": 0.00029754638671875,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\RC_25_failure_preview.png"
+      },
+      {
+        "case_id": "RC_3",
+        "diagnosis_group": "RC",
+        "threshold": 0.2,
+        "dice": 0.0,
+        "iou": 0.0,
+        "hd95": 29.338260287493323,
+        "nsd": 0.0,
+        "lesion_sensitivity": 0.0,
+        "lesion_precision": 0.0,
+        "pred_positive_fraction": 2.6702880859375e-05,
+        "target_positive_fraction": 0.00014495849609375,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\RC_3_failure_preview.png"
+      },
+      {
+        "case_id": "RC_52",
+        "diagnosis_group": "RC",
+        "threshold": 0.2,
+        "dice": 0.0,
+        "iou": 0.0,
+        "hd95": null,
+        "nsd": null,
+        "lesion_sensitivity": 0.0,
+        "lesion_precision": null,
+        "pred_positive_fraction": 0.0,
+        "target_positive_fraction": 0.000301361083984375,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\RC_52_failure_preview.png"
+      },
+      {
+        "case_id": "KCOT_68",
+        "diagnosis_group": "KCOT",
+        "threshold": 0.2,
+        "dice": 0.019834710743801654,
+        "iou": 0.01001669449081803,
+        "hd95": 52.939365517697354,
+        "nsd": 0.015367727771679473,
+        "lesion_sensitivity": 0.010778443113772455,
+        "lesion_precision": 0.12413793103448276,
+        "pred_positive_fraction": 0.000553131103515625,
+        "target_positive_fraction": 0.00637054443359375,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\KCOT_68_failure_preview.png"
+      },
+      {
+        "case_id": "DC_35",
+        "diagnosis_group": "DC",
+        "threshold": 0.2,
+        "dice": 0.0851063829787234,
+        "iou": 0.044444444444444446,
+        "hd95": 9.038906655967036,
+        "nsd": 0.075,
+        "lesion_sensitivity": 0.044444444444444446,
+        "lesion_precision": 1.0,
+        "pred_positive_fraction": 1.52587890625e-05,
+        "target_positive_fraction": 0.00034332275390625,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\DC_35_failure_preview.png"
+      },
+      {
+        "case_id": "DC_26",
+        "diagnosis_group": "DC",
+        "threshold": 0.2,
+        "dice": 0.09104704097116843,
+        "iou": 0.04769475357710652,
+        "hd95": 80.76130710353618,
+        "nsd": 0.14214463840399003,
+        "lesion_sensitivity": 0.8181818181818182,
+        "lesion_precision": 0.048205677557579006,
+        "pred_positive_fraction": 0.007122039794921875,
+        "target_positive_fraction": 0.00041961669921875,
+        "preview_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z\\DC_26_failure_preview.png"
+      }
+    ],
+    "elapsed_seconds": 25.218,
+    "device": "cuda",
+    "torch_version": "2.11.0+cu128",
+    "clinical_claim_allowed": false,
+    "medical_boundary": "D025 CBCT lesion ROI proxy evaluation only; not target-domain intraoperative ICG jaw osteomyelitis performance."
+  },
+  "outputs": {
+    "json_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\d025_mainline_eval_20260705\\d025_proxy_model_evaluation_20260705.json",
+    "csv_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\d025_mainline_eval_20260705\\d025_proxy_model_evaluation_20260705_per_case.csv",
+    "zh_report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\d025_mainline_eval_20260705\\d025_proxy_model_evaluation_20260705_zh.md",
+    "en_report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\d025_mainline_eval_20260705\\d025_proxy_model_evaluation_20260705_en.md",
+    "asset_dir": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\assets\\d025_proxy_eval_20260705T120206Z"
+  }
+}

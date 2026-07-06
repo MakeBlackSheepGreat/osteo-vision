@@ -9,17 +9,17 @@
 
 ## Available Models
 
-- `convnext3d_d025_proxy_segmenter` / `convnext3d_segmenter`: checkpoint exists=True; clinical claim=False; reasons: none; warnings: none.
-- `fluorescence_hotspot_2d_segmenter` / `fluorescence_hotspot_segmenter`: checkpoint exists=False; clinical claim=False; reasons: none; warnings: none.
-- `convnext2d_keyframe_proxy_segmenter` / `convnext2d_keyframe_segmenter`: checkpoint exists=True; clinical claim=False; reasons: none; warnings: none.
-- `d025_lesion_smoke_segmenter` / `d025_lesion_segmenter`: checkpoint exists=True; clinical claim=False; reasons: none; warnings: none.
-- `medsam2_osteo_promptable` / `medsam_like`: checkpoint exists=False; clinical claim=False; reasons: none; warnings: medsam_checkpoint_missing_prompt_fallback.
-- `fixture_default` / `fixture`: checkpoint exists=False; clinical claim=False; reasons: none; warnings: none.
+- `convnext3d_d025_proxy_segmenter` / `convnext3d_segmenter`: checkpoint exists=True; runtime threshold=0.2; metric threshold=0.2; threshold aligned=True; clinical claim=False; reasons: none; warnings: none.
+- `fluorescence_hotspot_2d_segmenter` / `fluorescence_hotspot_segmenter`: checkpoint exists=False; threshold=not recorded; clinical claim=False; reasons: none; warnings: none.
+- `convnext2d_keyframe_proxy_segmenter` / `convnext2d_keyframe_segmenter`: checkpoint exists=True; runtime threshold=0.15; metric threshold=0.15; threshold aligned=True; clinical claim=False; reasons: none; warnings: none.
+- `d025_lesion_smoke_segmenter` / `d025_lesion_segmenter`: checkpoint exists=True; runtime threshold=0.2; metric threshold=0.2; threshold aligned=True; clinical claim=False; reasons: none; warnings: none.
+- `medsam2_osteo_promptable` / `medsam_like`: checkpoint exists=False; threshold=not recorded; clinical claim=False; reasons: none; warnings: medsam_checkpoint_missing_prompt_fallback.
+- `fixture_default` / `fixture`: checkpoint exists=False; threshold=not recorded; clinical claim=False; reasons: none; warnings: none.
 
 ## Unavailable Or Pending Models
 
-- `nnunet_v2_osteo_baseline` / `nnunet_v2`: checkpoint exists=False; clinical claim=False; reasons: adapter inference not implemented; missing checkpoint: artifacts/checkpoints/osteo_vision/nnunet_v2; warnings: checkpoint_missing.
-- `biomedclip_osteo_screening` / `vlm_encoder`: checkpoint exists=False; clinical claim=False; reasons: adapter inference not implemented; missing dependency: open_clip; missing checkpoint: artifacts/checkpoints/osteo_vision/biomedclip.pt; warnings: checkpoint_missing.
+- `nnunet_v2_osteo_baseline` / `nnunet_v2`: checkpoint exists=False; threshold=not recorded; clinical claim=False; reasons: adapter inference not implemented; missing checkpoint: artifacts/checkpoints/osteo_vision/nnunet_v2; warnings: checkpoint_missing.
+- `biomedclip_osteo_screening` / `vlm_encoder`: checkpoint exists=False; threshold=not recorded; clinical claim=False; reasons: adapter inference not implemented; missing dependency: open_clip; missing checkpoint: artifacts/checkpoints/osteo_vision/biomedclip.pt; warnings: checkpoint_missing.
 
 ## Boundary
 

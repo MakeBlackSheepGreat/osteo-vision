@@ -1,6 +1,6 @@
 {
   "schema_version": "osteo-vision-model-checkpoint-manifest-v1",
-  "generated_at_utc": "2026-07-04T17:23:07.598377+00:00",
+  "generated_at_utc": "2026-07-05T15:27:18.090473+00:00",
   "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\inference\\osteo_vision.yml",
   "model_version": "osteo-vision-convnext3d-proxy-v0",
   "model_count": 8,
@@ -36,17 +36,20 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 53,
-          "foreground_mean_dice": 0.6452435833966753,
-          "foreground_mean_iou": 0.5488023961453478,
-          "lesion_sensitivity": 0.7881745626244296,
-          "lesion_precision": 0.7981017965140135,
-          "prediction_positive_fraction": 0.004034438223209021,
+          "foreground_mean_dice": 0.6566803022292801,
+          "foreground_mean_iou": 0.5553454206053808,
+          "mean_hd95": 15.237033444879906,
+          "mean_nsd": 0.47965767710515445,
+          "lesion_sensitivity": 0.6900123773388733,
+          "lesion_precision": 0.7238294635726685,
+          "prediction_positive_fraction": 0.004377545050854953,
           "target_positive_fraction": 0.00408525286980395,
-          "threshold": 0.6
+          "threshold": 0.2
         },
         "warnings": [
           "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
-          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance.",
+          "Runtime threshold is aligned to the D025 proxy validation threshold sweep and still requires physician review."
         ]
       },
       "model_card": {
@@ -56,13 +59,15 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 53,
-          "foreground_mean_dice": 0.6452435833966753,
-          "foreground_mean_iou": 0.5488023961453478,
-          "lesion_sensitivity": 0.7881745626244296,
-          "lesion_precision": 0.7981017965140135,
-          "prediction_positive_fraction": 0.004034438223209021,
+          "foreground_mean_dice": 0.6566803022292801,
+          "foreground_mean_iou": 0.5553454206053808,
+          "mean_hd95": 15.237033444879906,
+          "mean_nsd": 0.47965767710515445,
+          "lesion_sensitivity": 0.6900123773388733,
+          "lesion_precision": 0.7238294635726685,
+          "prediction_positive_fraction": 0.004377545050854953,
           "target_positive_fraction": 0.00408525286980395,
-          "threshold": 0.6
+          "threshold": 0.2
         },
         "warnings": [
           "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
@@ -70,6 +75,14 @@
         ]
       },
       "manifest_model_id_matches": false,
+      "runtime_threshold": 0.2,
+      "sidecar_metric_threshold": 0.2,
+      "threshold_alignment": {
+        "available": true,
+        "runtime_threshold": 0.2,
+        "metric_threshold": 0.2,
+        "matches": true
+      },
       "intended_use": "ConvNeXt-style 3D CBCT lesion ROI proxy segmentation for engineering validation",
       "clinical_claim_allowed": false,
       "source_url": "local://d025-dolchid-cbct-lesion-roi-proxy-cache",
@@ -105,7 +118,13 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
-      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe prototype evidence",
+      "runtime_threshold": 0.6,
+      "sidecar_metric_threshold": null,
+      "threshold_alignment": {
+        "available": false,
+        "reason": "threshold_missing"
+      },
+      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe platform validation evidence",
       "clinical_claim_allowed": false,
       "source_url": "local://fluorescence-hotspot-threshold-baseline",
       "license": "internal",
@@ -128,8 +147,8 @@
       "checkpoint": {
         "path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy.pt",
         "exists": true,
-        "sha256": "04940739eaef4a69aa85cbc8408405d74957c7b7b467981224015feeeb8fd716",
-        "size_bytes": 171749,
+        "sha256": "58267c77a8a331f3f1ee48403fd0d08a5c990352984987ba5d766849c41e0ba9",
+        "size_bytes": 339429,
         "artifact_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy_manifest.json",
         "model_card_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy_model_card.json"
       },
@@ -140,13 +159,13 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 37,
-          "foreground_mean_dice": 0.8636595770576261,
-          "foreground_mean_iou": 0.760799087719719,
-          "prediction_positive_fraction": 0.20555980785472971,
-          "threshold": 0.5
+          "foreground_mean_dice": 0.9092980199823029,
+          "foreground_mean_iou": 0.833987332956592,
+          "prediction_positive_fraction": 0.18595993454391893,
+          "threshold": 0.15
         },
         "warnings": [
-          "This checkpoint is a trainable software prototype on proxy keyframe data.",
+          "This checkpoint is a trainable platform-software model on proxy keyframe data.",
           "It must not be reported as target-domain intraoperative ICG jaw osteomyelitis performance."
         ]
       },
@@ -157,17 +176,25 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 37,
-          "foreground_mean_dice": 0.8636595770576261,
-          "foreground_mean_iou": 0.760799087719719,
-          "prediction_positive_fraction": 0.20555980785472971,
-          "threshold": 0.5
+          "foreground_mean_dice": 0.9092980199823029,
+          "foreground_mean_iou": 0.833987332956592,
+          "prediction_positive_fraction": 0.18595993454391893,
+          "threshold": 0.15
         },
         "warnings": [
-          "This checkpoint is a trainable software prototype on proxy keyframe data.",
+          "This checkpoint is a trainable platform-software model on proxy keyframe data.",
           "It must not be reported as target-domain intraoperative ICG jaw osteomyelitis performance."
         ]
       },
       "manifest_model_id_matches": true,
+      "runtime_threshold": 0.15,
+      "sidecar_metric_threshold": 0.15,
+      "threshold_alignment": {
+        "available": true,
+        "runtime_threshold": 0.15,
+        "metric_threshold": 0.15,
+        "matches": true
+      },
       "intended_use": "trainable 2D JPEG/MP4 keyframe segmentation proxy for engineering validation",
       "clinical_claim_allowed": false,
       "source_url": "local://synthetic-and-pseudo-labeled-fluorescence-keyframe-proxy",
@@ -203,17 +230,20 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 53,
-          "foreground_mean_dice": 0.6452435833966753,
-          "foreground_mean_iou": 0.5488023961453478,
-          "lesion_sensitivity": 0.7881745626244296,
-          "lesion_precision": 0.7981017965140135,
-          "prediction_positive_fraction": 0.004034438223209021,
+          "foreground_mean_dice": 0.6566803022292801,
+          "foreground_mean_iou": 0.5553454206053808,
+          "mean_hd95": 15.237033444879906,
+          "mean_nsd": 0.47965767710515445,
+          "lesion_sensitivity": 0.6900123773388733,
+          "lesion_precision": 0.7238294635726685,
+          "prediction_positive_fraction": 0.004377545050854953,
           "target_positive_fraction": 0.00408525286980395,
-          "threshold": 0.6
+          "threshold": 0.2
         },
         "warnings": [
           "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
-          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance."
+          "It must not be reported as clinical jaw osteomyelitis or intraoperative ICG performance.",
+          "Runtime threshold is aligned to the D025 proxy validation threshold sweep and still requires physician review."
         ]
       },
       "model_card": {
@@ -223,13 +253,15 @@
         "clinical_claim_allowed": false,
         "metrics": {
           "case_count": 53,
-          "foreground_mean_dice": 0.6452435833966753,
-          "foreground_mean_iou": 0.5488023961453478,
-          "lesion_sensitivity": 0.7881745626244296,
-          "lesion_precision": 0.7981017965140135,
-          "prediction_positive_fraction": 0.004034438223209021,
+          "foreground_mean_dice": 0.6566803022292801,
+          "foreground_mean_iou": 0.5553454206053808,
+          "mean_hd95": 15.237033444879906,
+          "mean_nsd": 0.47965767710515445,
+          "lesion_sensitivity": 0.6900123773388733,
+          "lesion_precision": 0.7238294635726685,
+          "prediction_positive_fraction": 0.004377545050854953,
           "target_positive_fraction": 0.00408525286980395,
-          "threshold": 0.6
+          "threshold": 0.2
         },
         "warnings": [
           "This checkpoint is for engineering validation on D025 CBCT lesion ROI proxy data only.",
@@ -237,6 +269,14 @@
         ]
       },
       "manifest_model_id_matches": true,
+      "runtime_threshold": 0.2,
+      "sidecar_metric_threshold": 0.2,
+      "threshold_alignment": {
+        "available": true,
+        "runtime_threshold": 0.2,
+        "metric_threshold": 0.2,
+        "matches": true
+      },
       "intended_use": "engineering smoke model for CBCT lesion ROI proxy segmentation",
       "clinical_claim_allowed": false,
       "source_url": "local://d025-dolchid-cbct-lesion-roi-proxy-cache",
@@ -284,6 +324,12 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
+      "runtime_threshold": null,
+      "sidecar_metric_threshold": null,
+      "threshold_alignment": {
+        "available": false,
+        "reason": "threshold_missing"
+      },
       "intended_use": "jaw osteomyelitis segmentation baseline",
       "clinical_claim_allowed": false,
       "source_url": "https://github.com/MIC-DKFZ/nnUNet",
@@ -331,6 +377,12 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
+      "runtime_threshold": null,
+      "sidecar_metric_threshold": null,
+      "threshold_alignment": {
+        "available": false,
+        "reason": "threshold_missing"
+      },
       "intended_use": "promptable lesion or necrotic bone ROI segmentation contract; fallback is not real MedSAM2 checkpoint inference",
       "clinical_claim_allowed": false,
       "source_url": "https://arxiv.org/html/2504.03600v1",
@@ -377,7 +429,13 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
-      "intended_use": "auxiliary image-level screening prototype",
+      "runtime_threshold": null,
+      "sidecar_metric_threshold": null,
+      "threshold_alignment": {
+        "available": false,
+        "reason": "threshold_missing"
+      },
+      "intended_use": "auxiliary image-level screening platform workflow",
       "clinical_claim_allowed": false,
       "source_url": "https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
       "license": "MIT",
@@ -412,6 +470,12 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
+      "runtime_threshold": null,
+      "sidecar_metric_threshold": null,
+      "threshold_alignment": {
+        "available": false,
+        "reason": "threshold_missing"
+      },
       "intended_use": "deterministic fallback for tests and demos",
       "clinical_claim_allowed": false,
       "source_url": "local_fixture",

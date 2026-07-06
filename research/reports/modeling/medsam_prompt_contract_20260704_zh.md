@@ -59,7 +59,7 @@ extra:
 - 缺真实 MedSAM2 checkpoint。
 - 当前只支持 2D prompt fallback，不支持视频传播、3D CBCT prompt 或 mask refinement。
 - mask 由 prompt 几何生成，不是模型学习到的病灶边界。
-- 所有输出只能作为科研/竞赛原型和医生复核辅助。
+- 所有输出只能作为研发验证版平台和医生复核辅助。
 
 ## 验证
 

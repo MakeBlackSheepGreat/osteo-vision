@@ -303,4 +303,4 @@ Training:
 
 ## Medical Boundary
 
-This design supports a research and competition prototype. D024/D036 are anatomical segmentation datasets, and D025 is a CBCT lesion-mask proxy dataset. They are not intraoperative ICG fluorescence labels or clinical jaw osteomyelitis outcome data. Model outputs should be framed as intraoperative reference signals, risk prompts, and physician-review assistance.
+This design supports a research and competition validation platform. D024/D036 are anatomical segmentation datasets, and D025 is a CBCT lesion-mask proxy dataset. They are not intraoperative ICG fluorescence labels or clinical jaw osteomyelitis outcome data. Model outputs should be framed as intraoperative reference signals, risk prompts, and physician-review assistance.

@@ -87,7 +87,7 @@ ROI 来源优先级：
 - DentalSegmentator 是牙颌面 CT/CBCT 解剖结构分割工具，不是颌骨骨髓炎病灶模型。
 - 当前实现不执行 DentalSegmentator checkpoint 推理；只是一个可消费其输出的 ROI contract。
 - D024/D025/D036、CBCT 派生 ROI 和公开解剖 mask 都是代理或非目标域数据。
-- 任何输出只能作为科研/竞赛原型和医生复核辅助，不能替代医生诊断。
+- 任何输出只能作为研发验证版平台和医生复核辅助，不能替代医生诊断。
 
 ## 验证
 

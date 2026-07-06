@@ -7,9 +7,9 @@ Date: 2026-07-03
 The project should not rely on public CBCT datasets alone. The official competition device outputs 4K MP4 video and JPEG images, so the training plan needs two connected tracks:
 
 1. **Intraoperative white-light/ICG MP4-JPEG track**: the target domain for the software. Before expert labels exist, this track should be used for upload, QC, keyframe extraction, ROI annotation, fluorescence visualization, and evidence packaging, not for claims of clinical-grade lesion segmentation.
-2. **CBCT anatomy and lesion-proxy track**: public dental CBCT datasets can train jaw/tooth/canal anatomy priors and lesion-proxy segmentation models. These models support the AI-assistance prototype but do not replace intraoperative ICG labels.
+2. **CBCT anatomy and lesion-proxy track**: public dental CBCT datasets can train jaw/tooth/canal anatomy priors and lesion-proxy segmentation models. These models support the AI-assistance platform capability but do not replace intraoperative ICG labels.
 
-The recommended near-term route is: use nnU-Net/SegResNetDS on CBCT anatomy and lesion proxies; use MP4/JPEG keyframes for ROI annotation, MedSAM/SAM2-assisted labeling, and lightweight ConvNeXt/2D segmentation prototypes; fuse CBCT and ICG evidence at the report/workbench level first.
+The recommended near-term route is: use nnU-Net/SegResNetDS on CBCT anatomy and lesion proxies; use MP4/JPEG keyframes for ROI annotation, MedSAM/SAM2-assisted labeling, and lightweight ConvNeXt/2D segmentation validation workflows; fuse CBCT and ICG evidence at the report/workbench level first.
 
 ## Local Data Status
 

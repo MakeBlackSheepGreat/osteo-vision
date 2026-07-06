@@ -10,7 +10,7 @@ No directly usable public “jaw osteomyelitis ICG fluorescence surgery MP4 data
 2. **Bone/infection/osteomyelitis ICG clinical studies**: medically relevant, but the public material is generally papers, trial protocols, figures, or supplements rather than raw downloadable MP4 videos.
 3. **Jaw osteonecrosis / jaw osteomyelitis fluorescence-guided surgery literature**: anatomically close, but mostly autofluorescence, tetracycline/minocycline fluorescence, or VELscope studies; raw videos are not openly available.
 
-The project should not depend on finding an open jaw osteomyelitis fluorescence MP4 dataset. The practical route is to use public FGS videos for competition point 1 and video processing, use bone/infection ICG studies as medical rationale, and use CBCT-derived pseudo-videos plus public CBCT datasets for competition point 2 prototype training.
+The project should not depend on finding an open jaw osteomyelitis fluorescence MP4 dataset. The practical route is to use public FGS videos for competition point 1 and video processing, use bone/infection ICG studies as medical rationale, and use CBCT-derived pseudo-videos plus public CBCT datasets for competition point 2 platform validation training.
 
 ## Candidate Ranking
 
@@ -47,7 +47,7 @@ The project should not depend on finding an open jaw osteomyelitis fluorescence 
 
 ## Non-Jaw Osteomyelitis Video Supplement
 
-After broadening the search beyond jaw osteomyelitis, several open PMC surgical or imaging videos were found. These are not curated training datasets, but they are useful for MP4 ingestion, keyframe extraction, workflow demonstration, and small prototype experiments.
+After broadening the search beyond jaw osteomyelitis, several open PMC surgical or imaging videos were found. These are not curated training datasets, but they are useful for MP4 ingestion, keyframe extraction, workflow demonstration, and small platform validation experiments.
 
 | Source | Scene | Video status | Project value | Limitation |
 |---|---|---|---|---|

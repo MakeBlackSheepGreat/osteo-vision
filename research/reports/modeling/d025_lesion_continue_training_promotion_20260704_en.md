@@ -31,7 +31,7 @@ The continued candidate improves Mean Dice, Mean IoU, Mean HD95, Mean NSD, sensi
 
 - The model remains a CBCT lesion ROI proxy segmenter, not an intraoperative ICG video/JPEG model.
 - The validation set is D025 proxy data and must not be extrapolated to clinical diagnostic performance.
-- The competition demo must keep physician review and research-prototype disclaimers.
+- The competition demo must keep physician review and platform safety disclaimers.
 
 ## Next Steps
 

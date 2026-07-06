@@ -48,7 +48,7 @@ Outputs follow the existing segmentation adapter shape:
 - No real MedSAM2 checkpoint is available.
 - Current scope is 2D prompt fallback only, with no video propagation, 3D CBCT prompting, or learned mask refinement.
 - Masks are generated from prompt geometry, not learned lesion boundaries.
-- Outputs are research/competition prototype evidence and require physician review.
+- Outputs are research/competition validation platform evidence and require physician review.
 
 ## Verification
 

@@ -105,7 +105,7 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
-      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe prototype evidence",
+      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe platform validation evidence",
       "clinical_claim_allowed": false,
       "source_url": "local://fluorescence-hotspot-threshold-baseline",
       "license": "internal",
@@ -146,7 +146,7 @@
           "threshold": 0.5
         },
         "warnings": [
-          "This checkpoint is a trainable software prototype on proxy keyframe data.",
+          "This checkpoint is a trainable platform model on proxy keyframe data.",
           "It must not be reported as target-domain intraoperative ICG jaw osteomyelitis performance."
         ]
       },
@@ -163,7 +163,7 @@
           "threshold": 0.5
         },
         "warnings": [
-          "This checkpoint is a trainable software prototype on proxy keyframe data.",
+          "This checkpoint is a trainable platform model on proxy keyframe data.",
           "It must not be reported as target-domain intraoperative ICG jaw osteomyelitis performance."
         ]
       },
@@ -377,7 +377,7 @@
         "exists": false
       },
       "manifest_model_id_matches": null,
-      "intended_use": "auxiliary image-level screening prototype",
+      "intended_use": "auxiliary image-level screening platform validation workflow",
       "clinical_claim_allowed": false,
       "source_url": "https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
       "license": "MIT",

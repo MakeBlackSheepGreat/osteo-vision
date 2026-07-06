@@ -1,0 +1,286 @@
+{
+  "schema_version": "osteo-vision-keyframe-threshold-eval-v1",
+  "generated_at_utc": "2026-07-05T15:20:49.346040+00:00",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext2d_proxy.pt",
+  "checkpoint_sha256": "04940739eaef4a69aa85cbc8408405d74957c7b7b467981224015feeeb8fd716",
+  "checkpoint_metadata": {
+    "model_id": "convnext2d_keyframe_proxy_segmenter",
+    "model_family": "convnext2d_keyframe_segmenter",
+    "checkpoint_metric_threshold": 0.5,
+    "checkpoint_metrics": {
+      "case_count": 37,
+      "foreground_mean_dice": 0.8636595770576261,
+      "foreground_mean_iou": 0.760799087719719,
+      "prediction_positive_fraction": 0.20555980785472971,
+      "threshold": 0.5
+    },
+    "training": {
+      "source": "manifest",
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260705\\keyframe_segmentation_proxy_manifest.csv",
+      "manifest_paths": [
+        "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260705\\keyframe_segmentation_proxy_manifest.csv"
+      ],
+      "train_samples": 163,
+      "val_samples": 37,
+      "manifest_summary_paths": [
+        "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260705\\keyframe_segmentation_proxy_summary.json"
+      ],
+      "review_seed_csv_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260705\\keyframe_segmentation_review_seed_manifest.csv",
+      "review_seed_count": 50,
+      "positive_area_fraction_stats": {
+        "count": 200,
+        "min": 0.06099351,
+        "median": 0.10823966,
+        "max": 0.52586371,
+        "mean": 0.12270331
+      },
+      "sample_weight_stats": {
+        "count": 200,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0
+      },
+      "review_state_counts": {
+        "unspecified": 200
+      },
+      "label_source_counts": {
+        "fluorescence_intensity_proxy_mask": 200
+      },
+      "quality_gates": {
+        "min_positive_area_fraction": 0.0005,
+        "max_positive_area_fraction": 0.6,
+        "min_component_area": 32,
+        "include_empty": false
+      },
+      "data_boundary": "manifest rows may be pseudo-labeled or non-target-domain unless separately verified.",
+      "completed_train_batches": 80,
+      "batch_size": 4,
+      "learning_rate": 0.001,
+      "seed": 20260704,
+      "elapsed_seconds": 13.173,
+      "mean_train_loss": 0.3009072493761778
+    }
+  },
+  "manifest_paths": [
+    "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260705\\keyframe_segmentation_proxy_manifest.csv"
+  ],
+  "split": "val",
+  "image_shape": [
+    160,
+    256
+  ],
+  "sample_count": 37,
+  "target_positive_fraction_stats": {
+    "count": 37,
+    "min": 0.10585938,
+    "p25": 0.16159669,
+    "median": 0.17458495,
+    "p75": 0.18581542,
+    "max": 0.5907715,
+    "mean": 0.18728425
+  },
+  "thresholds": [
+    {
+      "threshold": 0.1,
+      "case_count": 37,
+      "foreground_mean_dice": 0.7896431859976826,
+      "foreground_mean_iou": 0.6531315300953932,
+      "prediction_positive_fraction_mean": 0.27416398331925673,
+      "prediction_positive_fraction_median": 0.25520020723342896,
+      "prediction_positive_fraction_p25": 0.2423095703125,
+      "prediction_positive_fraction_p75": 0.27592772245407104,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.15,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8178985791202967,
+      "foreground_mean_iou": 0.6925847736997939,
+      "prediction_positive_fraction_mean": 0.2535842483108108,
+      "prediction_positive_fraction_median": 0.2371826171875,
+      "prediction_positive_fraction_p25": 0.22739258408546448,
+      "prediction_positive_fraction_p75": 0.2533203065395355,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.2,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8321079244024301,
+      "foreground_mean_iou": 0.7131636972042779,
+      "prediction_positive_fraction_mean": 0.2416939400337838,
+      "prediction_positive_fraction_median": 0.22604981064796448,
+      "prediction_positive_fraction_p25": 0.2183837890625,
+      "prediction_positive_fraction_p75": 0.24025878310203552,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.25,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8422515175815221,
+      "foreground_mean_iou": 0.72816934131776,
+      "prediction_positive_fraction_mean": 0.2325657200168919,
+      "prediction_positive_fraction_median": 0.219482421875,
+      "prediction_positive_fraction_p25": 0.21103516221046448,
+      "prediction_positive_fraction_p75": 0.23151855170726776,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.3,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8498030099729268,
+      "foreground_mean_iou": 0.7395120753744973,
+      "prediction_positive_fraction_mean": 0.22478291279560814,
+      "prediction_positive_fraction_median": 0.2132568359375,
+      "prediction_positive_fraction_p25": 0.20444336533546448,
+      "prediction_positive_fraction_p75": 0.22421875596046448,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.35,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8558966786841762,
+      "foreground_mean_iou": 0.7487717042488811,
+      "prediction_positive_fraction_mean": 0.21803209459459463,
+      "prediction_positive_fraction_median": 0.20700684189796448,
+      "prediction_positive_fraction_p25": 0.1976318359375,
+      "prediction_positive_fraction_p75": 0.21865233778953552,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.4,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8603343424752515,
+      "foreground_mean_iou": 0.7555635339996127,
+      "prediction_positive_fraction_mean": 0.21199390308277027,
+      "prediction_positive_fraction_median": 0.20144042372703552,
+      "prediction_positive_fraction_p25": 0.19189453125,
+      "prediction_positive_fraction_p75": 0.21269531548023224,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 1,
+      "over_segmentation_rate": 0.02702702702702703,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.45,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8634547010082302,
+      "foreground_mean_iou": 0.7603486984630159,
+      "prediction_positive_fraction_mean": 0.20624406144425675,
+      "prediction_positive_fraction_median": 0.19587402045726776,
+      "prediction_positive_fraction_p25": 0.18684081733226776,
+      "prediction_positive_fraction_p75": 0.20607909560203552,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.5,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8658445337053228,
+      "foreground_mean_iou": 0.7640354902966469,
+      "prediction_positive_fraction_mean": 0.20077927048141891,
+      "prediction_positive_fraction_median": 0.1915283203125,
+      "prediction_positive_fraction_p25": 0.1824951171875,
+      "prediction_positive_fraction_p75": 0.19975586235523224,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.55,
+      "case_count": 37,
+      "foreground_mean_dice": 0.8674412382922922,
+      "foreground_mean_iou": 0.7665112340721814,
+      "prediction_positive_fraction_mean": 0.195409496410473,
+      "prediction_positive_fraction_median": 0.18759766221046448,
+      "prediction_positive_fraction_p25": 0.17770996689796448,
+      "prediction_positive_fraction_p75": 0.193603515625,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6
+    },
+    {
+      "threshold": 0.6,
+      "case_count": 37,
+      "foreground_mean_dice": 0.868188272137081,
+      "foreground_mean_iou": 0.7676931839981119,
+      "prediction_positive_fraction_mean": 0.19004961993243244,
+      "prediction_positive_fraction_median": 0.18254394829273224,
+      "prediction_positive_fraction_p25": 0.17365722358226776,
+      "prediction_positive_fraction_p75": 0.18828125298023224,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6
+    }
+  ],
+  "recommendation": {
+    "threshold": 0.6,
+    "reason": "max_dice_with_empty_and_oversegmentation_guards",
+    "selected_row": {
+      "threshold": 0.6,
+      "case_count": 37,
+      "foreground_mean_dice": 0.868188272137081,
+      "foreground_mean_iou": 0.7676931839981119,
+      "prediction_positive_fraction_mean": 0.19004961993243244,
+      "prediction_positive_fraction_median": 0.18254394829273224,
+      "prediction_positive_fraction_p25": 0.17365722358226776,
+      "prediction_positive_fraction_p75": 0.18828125298023224,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6
+    },
+    "selection_policy": "Prefer thresholds with empty_mask_rate <= max_empty_mask_rate and over_segmentation_rate <= max_over_segmentation_rate; then maximize Dice and prefer prediction positive fraction close to pseudo-mask median.",
+    "max_empty_mask_rate": 0.05,
+    "max_over_segmentation_rate": 0.05,
+    "target_positive_fraction_median": 0.17458495
+  },
+  "outputs": {
+    "json": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_threshold_eval_20260705_before_training\\keyframe_threshold_eval.json",
+    "csv": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_threshold_eval_20260705_before_training\\keyframe_threshold_eval.csv",
+    "zh_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_threshold_eval_20260705_before_training\\keyframe_threshold_eval_zh.md",
+    "en_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_threshold_eval_20260705_before_training\\keyframe_threshold_eval_en.md"
+  },
+  "elapsed_seconds": 1.936,
+  "environment": {
+    "device": "cuda",
+    "torch_version": "2.11.0+cu128",
+    "cuda_available": true
+  },
+  "medical_boundary": "Threshold metrics are computed against pseudo masks from public/proxy keyframes only. They are not real intraoperative ICG jaw osteomyelitis clinical segmentation performance."
+}

@@ -87,7 +87,7 @@ Each fallback is recorded in the manifest warnings to avoid overstating proxy RO
 - DentalSegmentator is a dental/maxillofacial CT/CBCT anatomy segmentation tool, not a jaw osteomyelitis lesion model.
 - The current implementation does not run a DentalSegmentator checkpoint.
 - D024/D025/D036, CBCT-derived ROIs, and public anatomy masks are proxy or non-target-domain data.
-- Outputs are research/competition prototype evidence and must not replace physician diagnosis.
+- Outputs are research/competition validation platform evidence and must not replace physician diagnosis.
 
 ## Verification
 
