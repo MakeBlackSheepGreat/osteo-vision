@@ -38,142 +38,47 @@
     <div v-if="loading" class="state-message">正在处理，请等待后端返回结果。</div>
     <div v-else-if="error" class="state-message error">{{ error }}</div>
     <div v-else-if="!hasCase" class="state-message muted">空白预览态，运行后同步真实输出。</div>
-    <div v-if="activeAnalysisJobId" class="job-panel" :class="{ timeout: lastAnalysisJobTimedOut }">
-      <div class="job-panel-copy">
-        <strong>后台分析任务</strong>
-        <span>{{ activeAnalysisJobId }} · {{ jobStatusLabel(activeAnalysisJobStatus) }}</span>
-        <div class="job-progress" role="progressbar" :aria-valuenow="jobProgressPercent(activeAnalysisJobProgress)" aria-valuemin="0" aria-valuemax="100">
-          <span :style="{ width: `${jobProgressPercent(activeAnalysisJobProgress)}%` }"></span>
-        </div>
-        <small v-if="jobProgressMessage(activeAnalysisJobProgress)">
-          {{ jobProgressMessage(activeAnalysisJobProgress) }} · {{ jobProgressPercent(activeAnalysisJobProgress) }}%
-        </small>
-        <small v-if="activeAnalysisJobError">{{ activeAnalysisJobError }}</small>
-        <small v-else-if="lastAnalysisJobTimedOut">任务可能仍在后台运行，可继续查询状态。</small>
-      </div>
-      <div class="job-panel-actions">
-        <AppButton
-          variant="ghost"
-          size="sm"
-          icon="load"
-          :disabled="loading"
-          @click="emit('refreshJob')"
-        >
-          继续查询
-        </AppButton>
-        <AppButton
-          variant="ghost"
-          size="sm"
-          icon="stop"
-          :disabled="!canCancelJob(activeAnalysisJobStatus)"
-          @click="emit('cancelJob')"
-        >
-          取消
-        </AppButton>
-        <AppButton
-          variant="ghost"
-          size="sm"
-          icon="play"
-          :disabled="loading || !canRetryJob(activeAnalysisJobStatus, lastAnalysisJobTimedOut)"
-          @click="emit('retryJob')"
-        >
-          重试
-        </AppButton>
-      </div>
-    </div>
-    <div v-if="exportPath" class="export-panel">
-      <div class="export-panel-title">
-        <AppIcon name="download" />
-        <strong>证据包已导出</strong>
-      </div>
-      <div v-if="exportLinks.length" class="export-link-list">
-        <a
-          v-for="link in exportLinks"
-          :key="link.path"
-          :href="link.href"
-          class="export-link"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <span>{{ link.label }}</span>
-          <strong>下载</strong>
-        </a>
-      </div>
-      <dl v-if="exportSummaryItems.length" class="export-summary-grid" aria-label="导出摘要">
-        <div v-for="item in exportSummaryItems" :key="item.label">
-          <dt>{{ item.label }}</dt>
-          <dd>{{ item.value }}</dd>
-        </div>
-      </dl>
-      <div v-if="exportArtifactEntries.length" class="export-artifact-list">
-        <strong>证据文件</strong>
-        <ul>
-          <li v-for="entry in exportArtifactEntries.slice(0, 8)" :key="`${entry.kind}-${entry.path}`">
-            <span>{{ artifactKindLabel(entry.kind) }}</span>
-            <small>{{ formatBytes(entry.size_bytes) }}</small>
-          </li>
-        </ul>
-      </div>
-      <p class="export-path export-path--inline">{{ exportPath }}</p>
-    </div>
+    <AnalysisJobPanel
+      v-if="activeAnalysisJobId"
+      :job-id="activeAnalysisJobId"
+      :status="activeAnalysisJobStatus"
+      :error="activeAnalysisJobError"
+      :progress="activeAnalysisJobProgress"
+      :timed-out="lastAnalysisJobTimedOut"
+      :loading="loading"
+      @refresh="emit('refreshJob')"
+      @cancel="emit('cancelJob')"
+      @retry="emit('retryJob')"
+    />
+    <AnalysisExportPanel
+      v-if="exportPath"
+      :export-path="exportPath"
+      :export-links="exportLinks"
+      :export-summary="exportSummary"
+      :artifact-entries="exportArtifactEntries"
+    />
 
     <AnalysisQuadGrid
       :panels="previewPanels"
       :camera-stream="cameraStream"
       :camera-active="cameraActive"
       :camera-status-label="cameraStatusLabel"
+      :video-playback="videoPlayback"
+      :current-playback-time="currentPlaybackTime"
+      :playback-duration="playbackDuration"
+      :playback-seek-time-sec="playbackSeekTimeSec"
+      :playback-seek-token="playbackSeekToken"
+      @playback-state-change="syncPlaybackState"
     />
 
-    <section v-if="fusionEvidenceSummary" class="fusion-evidence-panel" aria-label="荧光融合 V2 证据">
-      <header>
-        <div>
-          <AppIcon name="layers" />
-          <strong>荧光融合证据</strong>
-        </div>
-        <span>{{ fusionEvidenceSummary.algorithmVersionLabel }}</span>
-      </header>
-      <div class="fusion-evidence-body">
-        <figure v-if="fusionEvidenceSummary.colorbarPreviewSrc" class="fusion-colorbar">
-          <img :src="fusionEvidenceSummary.colorbarPreviewSrc" alt="荧光色标" />
-          <figcaption>阈值 {{ fusionEvidenceSummary.thresholdLabel }} · Alpha {{ fusionEvidenceSummary.alphaLabel }}</figcaption>
-        </figure>
-        <dl class="fusion-evidence-grid">
-          <div>
-            <dt>融合方法</dt>
-            <dd>{{ fusionEvidenceSummary.methodLabel }}</dd>
-          </div>
-          <div>
-            <dt>背景扣除</dt>
-            <dd>{{ fusionEvidenceSummary.backgroundLabel }}</dd>
-          </div>
-          <div>
-            <dt>配准状态</dt>
-            <dd>{{ fusionEvidenceSummary.registrationLabel }}</dd>
-          </div>
-          <div>
-            <dt>平移估计</dt>
-            <dd>{{ fusionEvidenceSummary.translationLabel }}</dd>
-          </div>
-          <div>
-            <dt>配准响应</dt>
-            <dd>{{ fusionEvidenceSummary.responseLabel }}</dd>
-          </div>
-          <div>
-            <dt>输入尺寸</dt>
-            <dd>{{ fusionEvidenceSummary.resizeLabel }}</dd>
-          </div>
-        </dl>
-      </div>
-      <a
-        v-if="fusionEvidenceSummary.colorbarPath"
-        class="fusion-colorbar-link"
-        :href="fusionEvidenceSummary.colorbarPreviewSrc"
-        target="_blank"
-        rel="noreferrer"
-      >
-        查看色标文件
-      </a>
-    </section>
+    <VideoStreamSyncPanel
+      v-if="videoPlayback"
+      :video-playback="videoPlayback"
+      :nearest-frame-detail="nearestPlaybackFrameDetail"
+      @jump-to-frame="jumpPlaybackToDetail"
+    />
+
+    <AnalysisFusionEvidencePanel v-if="fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
 
     <section v-if="hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
       <header>
@@ -441,6 +346,12 @@
         :camera-stream="cameraStream"
         :camera-active="cameraActive"
         :camera-status-label="cameraStatusLabel"
+        :video-playback="videoPlayback"
+        :current-playback-time="currentPlaybackTime"
+        :playback-duration="playbackDuration"
+        :playback-seek-time-sec="playbackSeekTimeSec"
+        :playback-seek-token="playbackSeekToken"
+        @playback-state-change="syncPlaybackState"
         fullscreen
       />
     </div>
@@ -448,11 +359,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-
+import AnalysisExportPanel from "@/components/AnalysisExportPanel.vue";
+import AnalysisFusionEvidencePanel from "@/components/AnalysisFusionEvidencePanel.vue";
+import AnalysisJobPanel from "@/components/AnalysisJobPanel.vue";
 import AnalysisQuadGrid from "@/components/AnalysisQuadGrid.vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import VideoStreamSyncPanel from "@/components/VideoStreamSyncPanel.vue";
 import {
   hotspotTimelineFilterOptions,
   type AnalysisPreviewPanel,
@@ -461,8 +374,10 @@ import {
   type HotspotTimelineFilter,
   type HotspotTimelineItem,
   type TimelineManifestSummary,
+  type VideoPlaybackAnalysis,
 } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
+import { useVideoPlaybackSync } from "@/composables/useVideoPlaybackSync";
 
 // 分析视图组件只接收已经整理好的展示数据，避免把 store 和业务副作用带进展示层。
 export interface AnalysisKpiItem {
@@ -496,6 +411,7 @@ const props = defineProps<{
   hotspotFrameDetails: HotspotFrameDetail[];
   timelineManifestSummary: TimelineManifestSummary | null;
   fusionEvidenceSummary: FusionEvidenceSummary | null;
+  videoPlayback: VideoPlaybackAnalysis | null;
   cameraStream: MediaStream | null;
   cameraActive: boolean;
   cameraStatusLabel: string;
@@ -514,76 +430,20 @@ const emit = defineEmits<{
   closeFullscreen: [];
 }>();
 
-function jobStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    queued: "排队中",
-    running: "运行中",
-    completed: "已完成",
-    failed: "失败",
-    canceled: "已取消",
-  };
-  return labels[status] ?? (status || "未启动");
-}
-
-function canCancelJob(status: string): boolean {
-  return status === "queued" || status === "running";
-}
-
-function canRetryJob(status: string, timedOut: boolean): boolean {
-  return timedOut || status === "failed" || status === "canceled";
-}
-
-function jobProgressPercent(progress: Record<string, unknown>): number {
-  const percent = progress.percent;
-  if (typeof percent !== "number" || !Number.isFinite(percent)) return 0;
-  return Math.max(0, Math.min(100, Math.round(percent)));
-}
-
-function jobProgressMessage(progress: Record<string, unknown>): string {
-  return typeof progress.message === "string" ? progress.message : "";
-}
-
-const exportSummaryItems = computed(() => {
-  const summary = props.exportSummary;
-  const items = [
-    ["分析次数", summary.analysis_run_count],
-    ["候选区", summary.candidate_region_count],
-    ["证据文件", summary.total_artifact_count],
-    ["量化行", summary.quantification_row_count],
-    ["ZIP 大小", formatBytes(summary.bundle_size_bytes)],
-    ["DICOM", summary.dicom_included === true ? "已包含" : "未包含"],
-  ];
-  return items
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
-    .map(([label, value]) => ({ label: String(label), value: String(value) }));
+const {
+  currentPlaybackTime,
+  playbackDuration,
+  playbackSeekTimeSec,
+  playbackSeekToken,
+  nearestFrameDetail: nearestPlaybackFrameDetail,
+  syncPlaybackState,
+  jumpPlaybackToDetail,
+} = useVideoPlaybackSync({
+  videoPlayback: () => props.videoPlayback,
+  selectedFrameKey: () => props.selectedHotspotTimelineKey,
+  onSelectFrame: (key) => emit("selectHotspotFrame", key),
 });
 
-function artifactKindLabel(kind: string): string {
-  const labels: Record<string, string> = {
-    report_json: "JSON 报告",
-    report_md: "Markdown 报告",
-    dicom_secondary_capture: "DICOM 二次捕获",
-    quantification_csv: "量化 CSV",
-    evidence_bundle: "证据包 ZIP",
-    bundle_manifest: "Bundle Manifest",
-    overlay: "融合图",
-    video_overlay: "分割叠加视频",
-    video_mask: "分割掩膜视频",
-    video_segmentation_manifest: "MP4 分割 Manifest",
-    probability_map: "概率图",
-    heatmap: "热图",
-    colorbar: "荧光色标",
-    roi_mask: "ROI 掩膜",
-  };
-  return labels[kind] ?? kind;
-}
-
-function formatBytes(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "暂无";
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(2)} MB`;
-}
 </script>
 
 <style scoped>
@@ -724,329 +584,6 @@ function formatBytes(value: unknown): string {
 
 .state-message.muted {
   color: #6a7a8a;
-}
-
-.job-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  margin: 0 0 10px;
-  border: 1px solid #d6e4f2;
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #f7fbff;
-}
-
-.job-panel.timeout {
-  border-color: #e7cf9f;
-  background: #fffaf0;
-}
-
-.job-panel-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.job-panel-copy strong {
-  color: #102136;
-  font-size: 12px;
-}
-
-.job-panel-copy span,
-.job-panel-copy small {
-  min-width: 0;
-  color: #5a6a7a;
-  font-size: 11px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.job-progress {
-  position: relative;
-  width: min(100%, 360px);
-  height: 7px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #dbe8f4;
-}
-
-.job-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #2c7ec0, #35a26b);
-}
-
-.job-panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.export-panel {
-  display: grid;
-  gap: 7px;
-  margin: 0 0 10px;
-  border: 1px solid #cfe0ef;
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #f6fbff;
-}
-
-.export-panel-title {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  color: #2f638a;
-  font-size: 12px;
-}
-
-.export-panel-title :deep(.app-icon) {
-  width: 15px;
-  height: 15px;
-}
-
-.export-link-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.export-link {
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  min-height: 28px;
-  border: 1px solid #bad4ea;
-  border-radius: 5px;
-  padding: 4px 8px;
-  background: #ffffff;
-  color: #1f5f93;
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.export-link strong {
-  color: #102136;
-  font-size: 11px;
-}
-
-.export-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-}
-
-.export-summary-grid div {
-  min-width: 0;
-  border: 1px solid #dbe8f4;
-  border-radius: 5px;
-  padding: 5px 7px;
-  background: #ffffff;
-}
-
-.export-summary-grid dt,
-.export-summary-grid dd {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.export-summary-grid dt {
-  color: #6a7a8a;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.export-summary-grid dd {
-  color: #102136;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.export-artifact-list {
-  display: grid;
-  gap: 5px;
-}
-
-.export-artifact-list > strong {
-  color: #2f638a;
-  font-size: 12px;
-}
-
-.export-artifact-list ul {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.export-artifact-list li {
-  display: flex;
-  gap: 6px;
-  justify-content: space-between;
-  min-width: 0;
-  border: 1px solid #dbe8f4;
-  border-radius: 5px;
-  padding: 5px 7px;
-  background: #ffffff;
-}
-
-.export-artifact-list span,
-.export-artifact-list small {
-  min-width: 0;
-  overflow: hidden;
-  color: #405060;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.export-artifact-list span {
-  font-weight: 800;
-}
-
-.export-path {
-  margin: 10px 0 0;
-  color: #5a6a7a;
-  font-size: 12px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.export-path--inline {
-  margin: 0;
-  color: #2f638a;
-}
-
-.fusion-evidence-panel {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-  border: 1px solid #d4e2f0;
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: #fbfdff;
-}
-
-.fusion-evidence-panel header {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fusion-evidence-panel header div {
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  min-width: 0;
-  color: #102136;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.fusion-evidence-panel header :deep(.app-icon) {
-  width: 15px;
-  height: 15px;
-  color: #2c7ec0;
-}
-
-.fusion-evidence-panel header > span {
-  flex: 0 0 auto;
-  border: 1px solid #d3e2f1;
-  border-radius: 999px;
-  padding: 3px 8px;
-  background: #f2f7fc;
-  color: #4d6780;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.fusion-evidence-body {
-  display: grid;
-  grid-template-columns: 245px minmax(0, 1fr);
-  gap: 9px;
-  align-items: stretch;
-}
-
-.fusion-colorbar {
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  min-width: 0;
-  margin: 0;
-  border: 1px solid #dbe8f4;
-  border-radius: 5px;
-  padding: 7px;
-  background: #ffffff;
-}
-
-.fusion-colorbar img {
-  width: 100%;
-  height: 32px;
-  object-fit: fill;
-  border-radius: 3px;
-  background: #0f1720;
-}
-
-.fusion-colorbar figcaption {
-  color: #5a6a7a;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
-.fusion-evidence-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-}
-
-.fusion-evidence-grid div {
-  min-width: 0;
-  border: 1px solid #dbe8f4;
-  border-radius: 5px;
-  padding: 6px 7px;
-  background: #ffffff;
-}
-
-.fusion-evidence-grid dt,
-.fusion-evidence-grid dd {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fusion-evidence-grid dt {
-  color: #6a7a8a;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.fusion-evidence-grid dd {
-  margin-top: 2px;
-  color: #102136;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.fusion-colorbar-link {
-  justify-self: start;
-  color: #1f5f93;
-  font-size: 12px;
-  font-weight: 900;
-  text-decoration: none;
 }
 
 .analysis-fullscreen {
@@ -1618,14 +1155,6 @@ function formatBytes(value: unknown): string {
 
   .analysis-fullscreen-panel {
     padding: 12px;
-  }
-
-  .fusion-evidence-body {
-    grid-template-columns: 1fr;
-  }
-
-  .fusion-evidence-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hotspot-timeline-list {

@@ -12,7 +12,7 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
   const cameraActive = computed(() => Boolean(cameraStream.value));
   const cameraStatusLabel = computed(() => {
     if (isOpeningCamera.value) return "正在请求浏览器摄像头权限";
-    if (cameraActive.value) return "摄像头已连接，仅作为实时预览与原型输入";
+    if (cameraActive.value) return "摄像头已连接，仅作为实时预览与平台输入";
     return "未连接，需浏览器授权后使用";
   });
 

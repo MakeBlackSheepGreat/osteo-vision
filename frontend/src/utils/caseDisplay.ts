@@ -139,7 +139,10 @@ export function valueLabel(value: unknown): string {
 }
 
 export function disclaimerVersionLabel(version?: string | null): string {
-  return !version || version === "research-prototype-v1" ? "V1.0.0" : version;
+  if (!version || version === "platform-safety-v1") return "平台安全边界 V1";
+  // 旧版本兼容：读取历史病例时保留识别能力，不作为当前项目自称。
+  if (version === "research-prototype-v1") return "历史 V1.0.0";
+  return version;
 }
 
 export function compactPath(path: string, head = 24, tail = 36): string {
@@ -174,7 +177,7 @@ function translateWarningMessage(message: string): string {
     return "需要同时提供白光和 ICG 荧光输入后才能进行融合分析。";
   }
   if (message.includes("Realtime browser camera preview is registered")) {
-    return "浏览器摄像头实时预览已登记；当前原型尚未接入真正的流式 AI 推理。";
+    return "浏览器摄像头实时预览已登记；当前平台尚未接入流式 AI 推理。";
   }
   return message;
 }

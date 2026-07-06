@@ -3,17 +3,32 @@
     <article class="analysis-quad-card analysis-quad-card--camera">
       <header>
         <AppIcon name="camera" />
-        <span>摄像头输入</span>
-        <strong :class="{ active: cameraActive }">{{ cameraActive ? "LIVE" : "未连接" }}</strong>
+        <span>{{ streamTitle }}</span>
+        <strong :class="{ active: streamActive }">{{ streamBadge }}</strong>
       </header>
-      <div class="analysis-quad-viewport camera-viewport" :class="{ active: cameraActive }">
-        <video ref="cameraVideoRef" muted autoplay playsinline></video>
-        <div v-if="!cameraActive" class="empty-preview-copy">
-          <strong>实时预览区</strong>
+      <div
+        class="analysis-quad-viewport camera-viewport"
+        :class="{ active: streamActive, 'has-file-video': fileVideoActive }"
+      >
+        <video v-show="!fileVideoActive" ref="cameraVideoRef" class="camera-live-player" muted autoplay playsinline></video>
+        <video
+          v-if="fileVideoActive"
+          ref="playbackVideoRef"
+          class="video-stream-player"
+          :src="videoPlayback?.videoSrc"
+          controls
+          preload="metadata"
+          playsinline
+          @loadedmetadata="emitPlaybackState"
+          @timeupdate="emitPlaybackState"
+          @seeked="emitPlaybackState"
+        ></video>
+        <div v-if="!streamActive" class="empty-preview-copy">
+          <strong>视频流预览区</strong>
           <span>{{ cameraStatusLabel }}</span>
         </div>
       </div>
-      <p>{{ cameraStatusLabel }}</p>
+      <p>{{ streamFooterLabel }}</p>
     </article>
 
     <article v-for="panel in panels" :key="panel.title" class="analysis-quad-card">
@@ -58,7 +73,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
-import type { AnalysisPreviewPanel } from "@/components/analysisPreview";
+import type { AnalysisPreviewPanel, VideoPlaybackAnalysis } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 
 const props = withDefaults(
@@ -67,20 +82,50 @@ const props = withDefaults(
     cameraStream: MediaStream | null;
     cameraActive: boolean;
     cameraStatusLabel: string;
+    videoPlayback?: VideoPlaybackAnalysis | null;
+    currentPlaybackTime?: number;
+    playbackDuration?: number;
+    playbackSeekTimeSec?: number | null;
+    playbackSeekToken?: number;
     fullscreen?: boolean;
   }>(),
   {
+    currentPlaybackTime: 0,
+    playbackDuration: 0,
+    playbackSeekTimeSec: null,
+    playbackSeekToken: 0,
     fullscreen: false,
   },
 );
 
+const emit = defineEmits<{
+  playbackStateChange: [timeSec: number, durationSec: number];
+}>();
+
 const cameraVideoRef = ref<HTMLVideoElement | null>(null);
+const playbackVideoRef = ref<HTMLVideoElement | null>(null);
 const gridClass = computed(() => [
   "analysis-quad-grid",
   {
     "analysis-quad-grid--fullscreen": props.fullscreen,
   },
 ]);
+
+// 摄像头与导入 MP4 共用同一个“视频流输入”视口；当前选中的 MP4 是官方设备视频流示例，优先覆盖显示。
+const fileVideoActive = computed(() => Boolean(props.videoPlayback?.videoSrc));
+const streamActive = computed(() => props.cameraActive || fileVideoActive.value);
+const streamTitle = computed(() => "视频流输入");
+const streamBadge = computed(() => {
+  if (fileVideoActive.value) return "MP4";
+  if (props.cameraActive) return "LIVE";
+  return "未连接";
+});
+const streamFooterLabel = computed(() => {
+  if (fileVideoActive.value && props.videoPlayback) {
+    return `${formatPlaybackTime(props.currentPlaybackTime)} / ${formatPlaybackTime(props.playbackDuration)} · ${props.videoPlayback.sourceLabel}`;
+  }
+  return props.cameraStatusLabel;
+});
 
 watch(
   () => props.cameraStream,
@@ -94,6 +139,32 @@ watch(
   },
   { immediate: true },
 );
+
+watch(
+  () => [props.playbackSeekToken, props.playbackSeekTimeSec] as const,
+  async ([, timeSec]) => {
+    await nextTick();
+    if (!playbackVideoRef.value || timeSec === null || timeSec === undefined || !Number.isFinite(timeSec)) return;
+    playbackVideoRef.value.currentTime = timeSec;
+    emitPlaybackState();
+  },
+);
+
+function emitPlaybackState(event?: Event) {
+  const video = (event?.currentTarget as HTMLVideoElement | null) ?? playbackVideoRef.value;
+  if (!video) return;
+  const timeSec = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+  const durationSec = Number.isFinite(video.duration) ? video.duration : 0;
+  emit("playbackStateChange", timeSec, durationSec);
+}
+
+function formatPlaybackTime(value: number | undefined): string {
+  if (!value || !Number.isFinite(value) || value <= 0) return "0:00";
+  const totalSeconds = Math.floor(value);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 function panelIcon(title: string): AppIconName {
   if (title.startsWith("关键帧")) return "video";
@@ -200,16 +271,38 @@ function panelIcon(title: string): AppIconName {
   background-size: 24px 24px, 24px 24px, auto;
 }
 
-.camera-viewport video {
+.camera-viewport.has-file-video {
+  background: #0f1720;
+}
+
+.camera-live-player,
+.video-stream-player {
+  position: relative;
+  z-index: 3;
   width: 100%;
   height: 100%;
   min-height: inherit;
+}
+
+.camera-live-player {
   object-fit: cover;
   opacity: 0;
 }
 
-.camera-viewport.active video {
+.camera-viewport.active .camera-live-player {
   opacity: 1;
+}
+
+.camera-viewport.has-file-video .camera-live-player {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.video-stream-player {
+  object-fit: contain;
+  opacity: 1;
+  background: #0f1720;
 }
 
 .output-viewport.has-image {

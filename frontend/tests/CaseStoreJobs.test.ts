@@ -84,7 +84,7 @@ function caseRecord(caseId: string, analysisRuns: AnalysisRun[]): CaseRecord {
     title: "case",
     status: "analyzed",
     version: 1,
-    disclaimer_version: "research-prototype-v1",
+    disclaimer_version: "platform-safety-v1",
     review_summary: {},
     inputs: [],
     analysis_runs: analysisRuns,

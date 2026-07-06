@@ -38,9 +38,12 @@
           :selected-video-candidate-id="selectedVideoCandidateId"
           :selected-video-candidate-preview-src="selectedVideoCandidatePreviewSrc"
           :video-candidates="videoCandidates"
+          :camera-stream="cameraStream"
           :camera-active="cameraActive"
           :camera-status-label="cameraStatusLabel"
           :is-opening-camera="isOpeningCamera"
+          :video-stream-preview-src="videoStreamPreviewSrc"
+          :video-stream-preview-label="videoStreamPreviewLabel"
           :operation-message="operationMessage"
           :operation-message-type="operationMessageType"
           :realtime-video-active="realtimeVideoActive"
@@ -87,6 +90,7 @@
           :hotspot-frame-details="hotspotFrameDetails"
           :timeline-manifest-summary="timelineManifestSummary"
           :fusion-evidence-summary="fusionEvidenceSummary"
+          :video-playback="videoPlaybackAnalysis"
           :camera-stream="cameraStream"
           :camera-active="cameraActive"
           :camera-status-label="cameraStatusLabel"
@@ -114,6 +118,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
@@ -132,6 +137,8 @@ import {
   type FusionEvidenceSummary,
   type HotspotFrameDetail,
   type HotspotTimelineFilter,
+  type VideoPlaybackAnalysis,
+  videoPlaybackAnalysisFromRun,
   videoPreviewPanelsFromRun,
 } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
@@ -149,8 +156,18 @@ import {
   runStatusLabel,
   stringFrom,
 } from "@/utils/caseDisplay";
+import {
+  countLabel,
+  hotspotFrameSelection,
+  keyframeCountFromJob,
+  officialProfileLabel,
+  parseVideoTimepoints,
+  videoFileAnalysisParameters,
+  type PlatformColormap,
+} from "@/utils/videoAnalysisParams";
 
 const store = useCaseStore();
+const route = useRoute();
 
 // 页面层保留业务流程编排：上传、写入病例、触发分析和导出。
 const whiteLightPath = ref("");
@@ -160,7 +177,7 @@ const videoTimepoints = ref("");
 const syncedCaseId = ref("");
 const alpha = ref(0.45);
 const threshold = ref(0.6);
-const colormap = ref<"green" | "amber" | "magenta">("green");
+const colormap = ref<PlatformColormap>("green");
 const isUploadingWhite = ref(false);
 const isUploadingFluorescence = ref(false);
 const isUploadingVideo = ref(false);
@@ -182,6 +199,19 @@ const {
   open: openAnalysisFullscreen,
   close: closeAnalysisFullscreen,
 } = useFullscreenPanel();
+
+watch(
+  () => route.query.caseId,
+  async (value) => {
+    const caseId = Array.isArray(value) ? value[0] : value;
+    if (!caseId || typeof caseId !== "string" || store.currentCase?.case_id === caseId) return;
+    setOperationMessage(`正在载入病例：${caseId}...`);
+    await store.loadCase(caseId);
+    const loaded = store.currentCase?.case_id === caseId;
+    setOperationMessage(loaded ? `病例已载入：${caseId}` : store.error || "病例载入失败", loaded ? "info" : "error");
+  },
+  { immediate: true },
+);
 const {
   cameraStream,
   cameraActive,
@@ -283,6 +313,17 @@ const timelineManifestSummary = computed(() =>
 const fusionEvidenceSummary = computed<FusionEvidenceSummary | null>(() =>
   fusionEvidenceSummaryFromRun(latestRun.value, apiClient.filePreviewUrl),
 );
+const videoPlaybackAnalysis = computed<VideoPlaybackAnalysis | null>(() =>
+  videoPlaybackAnalysisFromRun(
+    latestRun.value,
+    displayInputAssets.value,
+    apiClient.fileVideoUrl,
+    apiClient.filePreviewUrl,
+    videoPath.value,
+  ),
+);
+const videoStreamPreviewSrc = computed(() => videoPlaybackAnalysis.value?.videoSrc ?? "");
+const videoStreamPreviewLabel = computed(() => videoPlaybackAnalysis.value?.sourceLabel ?? "");
 const previewOverlays = computed(() => [
   ...roiOverlaysFromRegions(store.currentCase?.rois ?? []),
   ...candidateOverlaysFromRegions(latestCandidates.value),
@@ -510,15 +551,13 @@ async function runVideoFileAnalysis() {
     return;
   }
   setOperationMessage("正在启动 MP4 关键帧后台分析任务...");
-  await store.runAnalysisJob({
-    mode: "video_file",
-    source_path: source,
-    keyframe_count: 5,
-    ...(requestedTimestamps.length ? { keyframe_timestamps_sec: requestedTimestamps } : {}),
-    alpha: alpha.value,
-    threshold: threshold.value,
-    colormap: colormap.value,
-  }, roiHintsFromCurrentCase());
+  await store.runAnalysisJob(
+    videoFileAnalysisParameters(source, fluorescenceControls(), {
+      keyframeCount: 5,
+      timestampsSec: requestedTimestamps,
+    }),
+    roiHintsFromCurrentCase(),
+  );
   realtimeVideoActive.value = false;
   if (store.lastAnalysisJobTimedOut) {
     setOperationMessage(
@@ -553,27 +592,20 @@ async function reanalyzeSelectedHotspotFrame() {
   const imported = await importVideoInput();
   if (!imported) return;
 
-  const manualFrameParameter =
-    typeof detail.timestampSec === "number" && Number.isFinite(detail.timestampSec)
-      ? { keyframe_timestamps_sec: [detail.timestampSec] }
-      : typeof detail.frameIndex === "number" && Number.isFinite(detail.frameIndex)
-        ? { keyframe_frame_indexes: [detail.frameIndex] }
-        : null;
-  if (!manualFrameParameter) {
+  const frameSelection = hotspotFrameSelection(detail);
+  if (!frameSelection) {
     setOperationMessage("当前帧缺少可重算的时间戳或帧号。", "error");
     return;
   }
 
   setOperationMessage(`正在重算 ${detail.frameLabel}...`);
-  await store.runAnalysisJob({
-    mode: "video_file",
-    source_path: source,
-    keyframe_count: 1,
-    ...manualFrameParameter,
-    alpha: alpha.value,
-    threshold: threshold.value,
-    colormap: colormap.value,
-  }, roiHintsFromCurrentCase());
+  await store.runAnalysisJob(
+    videoFileAnalysisParameters(source, fluorescenceControls(), {
+      keyframeCount: 1,
+      ...frameSelection,
+    }),
+    roiHintsFromCurrentCase(),
+  );
   realtimeVideoActive.value = false;
   if (store.lastAnalysisJobTimedOut) {
     setOperationMessage(
@@ -727,7 +759,9 @@ async function uploadSelectedImage(channel: "white_light" | "fluorescence", file
     } else {
       fluorescencePath.value = uploaded.path;
     }
-    setOperationMessage(`${isWhite ? "白光" : "ICG 荧光"}图像已上传：${uploaded.path}；${officialProfileLabel(uploaded)}`);
+    setOperationMessage(
+      `${isWhite ? "白光" : "ICG 荧光"}图像已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}`,
+    );
   } catch (error) {
     setOperationMessage(errorMessage(error), "error");
   } finally {
@@ -746,13 +780,13 @@ async function uploadSelectedVideo(file: File) {
     const uploaded = await apiClient.uploadRawFile(file);
     videoPath.value = uploaded.path;
     if (uploaded.keyframe_job_id) {
-      setOperationMessage(`MP4 视频已保存：${uploaded.path}；${officialProfileLabel(uploaded)}；关键帧后台任务已创建。`);
+      setOperationMessage(`MP4 视频已保存：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；关键帧后台任务已创建。`);
       const job = await waitForUploadJob(uploaded.keyframe_job_id);
       const keyframeCount = keyframeCountFromJob(job.result);
-      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded)}；后台预抽取关键帧 ${keyframeCount} 张。`);
+      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；后台预抽取关键帧 ${keyframeCount} 张。`);
     } else {
       const keyframeCount = uploaded.keyframes?.length ?? 0;
-      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded)}；预抽取关键帧 ${keyframeCount} 张。`);
+      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；预抽取关键帧 ${keyframeCount} 张。`);
     }
   } catch (error) {
     setOperationMessage(errorMessage(error), "error");
@@ -773,24 +807,13 @@ async function waitForUploadJob(jobId: string) {
   return job;
 }
 
-function keyframeCountFromJob(result: Record<string, unknown> | undefined): number {
-  const keyframes = result?.keyframes;
-  return Array.isArray(keyframes) ? keyframes.length : 0;
-}
-
-function officialProfileLabel(uploaded: { metadata?: Record<string, unknown> }): string {
-  const profile = isRecord(uploaded.metadata?.official_input_profile) ? uploaded.metadata.official_input_profile : null;
-  if (!profile) return "官方规格未读取";
-  if (profile.status === "official_profile_match") return "官方规格匹配";
-  const observed = Array.isArray(profile.observed_resolution) ? profile.observed_resolution.join("×") : "";
-  const target = Array.isArray(profile.target_resolution) ? profile.target_resolution.join("×") : "3840×2160";
-  return observed ? `官方规格需确认：${observed} / 目标 ${target}` : "官方规格需确认";
-}
-
-function countLabel(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) return String(Math.max(0, Math.round(value)));
-  if (typeof value === "string" && value.trim()) return value.trim();
-  return "0";
+function fluorescenceControls() {
+  // 白光/荧光融合参数在图片分析、MP4 分析和单帧重算中共用，统一从这里组装。
+  return {
+    alpha: alpha.value,
+    threshold: threshold.value,
+    colormap: colormap.value,
+  };
 }
 
 function latestRunFailureMessage(): string {
@@ -798,13 +821,6 @@ function latestRunFailureMessage(): string {
   if (latest?.status !== "failed") return "";
   const warning = latest.warnings.find((item) => Boolean(item.blocking)) ?? latest.warnings[0];
   return warning ? normalizeWarning(warning, 0).message : "分析未通过，请检查输入和参数。";
-}
-
-function parseVideoTimepoints(value: string): number[] {
-  return value
-    .split(/[,\s，；;]+/)
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item >= 0);
 }
 
 function sleep(ms: number): Promise<void> {

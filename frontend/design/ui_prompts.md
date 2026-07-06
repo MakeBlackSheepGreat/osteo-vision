@@ -38,7 +38,7 @@ platform for osteomyelitis intraoperative decision support. The page is called
 === PAGE LAYOUT (desktop, 1440×900 viewport, top to bottom) ===
 
 TOP BAR:
-- Left: small gray label "科研与竞赛原型" above a large bold title "颌骨骨髓炎术中辅助决策平台"
+- Left: small gray label "科研与竞赛平台验证" above a large bold title "颌骨骨髓炎术中辅助决策平台"
 - Right: 3 navigation pills in a row — "病例工作台" (active, blue border + light blue bg),
   "医生复核" (inactive white), "报告导出" (inactive white).
 
@@ -191,7 +191,7 @@ Centered on a light blue-gray #f3f6fa background:
 - A large white card (max-width 420px) with subtle blue-gray border and generous padding.
 - Top: platform logo placeholder (a simple blue medical cross or microscope icon).
 - Title: "颌骨骨髓炎术中辅助决策平台" in large bold dark text.
-- Subtitle: "科研与竞赛原型" in small gray uppercase-style label.
+- Subtitle: "科研与竞赛平台验证" in small gray uppercase-style label.
 - Two text inputs: "工号 / 用户名", "密码" (with placeholder dots).
 - A primary blue button spanning full width: "进入工作台".
 - Below button: small gray text "仅供科研演示，不用于临床诊断".

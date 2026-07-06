@@ -1,3 +1,21 @@
+import {
+  arrayNumberLabel,
+  bboxLabel,
+  booleanFrom,
+  clampUnitNumber,
+  finiteNumberOrNull,
+  formatPercent,
+  formatSeconds,
+  methodLabel,
+  numberFrom,
+  recordFrom,
+  registrationMethodLabel,
+  shortPath,
+  sizeResizeLabel,
+  stringFrom,
+  trimNumber,
+} from "@/components/analysisPreviewFormatters";
+
 export interface AnalysisPreviewPanel {
   title: string;
   tag: string;
@@ -89,6 +107,20 @@ export interface FusionEvidenceSummary {
   colorbarPreviewSrc?: string;
 }
 
+export interface VideoPlaybackAnalysis {
+  sourcePath: string;
+  sourceLabel: string;
+  videoSrc: string;
+  modeLabel: string;
+  analysisScopeLabel: string;
+  frameDetails: HotspotFrameDetail[];
+  overlayReviewVideoPath?: string;
+  overlayReviewVideoSrc?: string;
+  maskReviewVideoPath?: string;
+  maskReviewVideoSrc?: string;
+  boundaryLabel: string;
+}
+
 export type HotspotTimelineFilter = "all" | "positive_area" | "roi_hit" | "with_candidates";
 
 export const hotspotTimelineFilterOptions: Array<{ value: HotspotTimelineFilter; label: string }> = [
@@ -102,7 +134,57 @@ interface RunLike {
   fused_outputs?: Record<string, unknown>;
 }
 
+interface InputAssetLike {
+  channel?: string;
+  path?: string;
+}
+
 type PreviewUrlBuilder = (path: string) => string;
+
+export function videoPlaybackAnalysisFromRun(
+  run: RunLike | null | undefined,
+  inputs: InputAssetLike[],
+  videoUrl: PreviewUrlBuilder,
+  previewUrl: PreviewUrlBuilder,
+  preferredVideoPath = "",
+): VideoPlaybackAnalysis | null {
+  const fusedOutputs = run?.fused_outputs ?? {};
+  const videoInput = [...inputs].reverse().find((asset) => asset.channel === "video" && stringFrom(asset.path));
+  const sourcePath =
+    stringFrom(fusedOutputs.source_path) || preferredVideoPath.trim() || stringFrom(videoInput?.path);
+  if (!sourcePath) return null;
+
+  const summary = recordFrom(fusedOutputs.video_segmentation_summary)
+    ? fusedOutputs.video_segmentation_summary
+    : {};
+  const overlayReviewVideoPath = stringFrom(fusedOutputs.segmentation_review_video_path);
+  const maskReviewVideoPath = stringFrom(fusedOutputs.mask_review_video_path);
+  const mode = stringFrom(fusedOutputs.mode);
+  const analysisScope = stringFrom(summary.analysis_scope);
+  const hasFrameDetails = hotspotFrameDetailsFromRun(run, previewUrl);
+  const boundaryLabel =
+    stringFrom(summary.medical_boundary) ||
+    "基于关键帧的播放同步分析；同步叠加结果需医生复核，不能作为临床诊断结论。";
+
+  return {
+    sourcePath,
+    sourceLabel: shortPath(sourcePath),
+    videoSrc: videoUrl(sourcePath),
+    modeLabel: mode === "video_file_keyframes" ? "MP4 关键帧分析" : "MP4 输入播放",
+    analysisScopeLabel:
+      analysisScope === "selected_mp4_keyframes"
+        ? "已选 MP4 关键帧"
+        : hasFrameDetails.length
+          ? "关键帧同步分析"
+          : "待分析",
+    frameDetails: hasFrameDetails,
+    overlayReviewVideoPath: overlayReviewVideoPath || undefined,
+    overlayReviewVideoSrc: overlayReviewVideoPath ? videoUrl(overlayReviewVideoPath) : undefined,
+    maskReviewVideoPath: maskReviewVideoPath || undefined,
+    maskReviewVideoSrc: maskReviewVideoPath ? videoUrl(maskReviewVideoPath) : undefined,
+    boundaryLabel,
+  };
+}
 
 export function videoPreviewPanelsFromRun(
   run: RunLike | null | undefined,
@@ -463,99 +545,4 @@ function panelFromPath(
     path,
     previewSrc: previewUrl(path),
   };
-}
-
-function recordFrom(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function stringFrom(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return "";
-}
-
-function numberFrom(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function finiteNumberOrNull(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-function booleanFrom(value: unknown): boolean {
-  return value === true || value === "true";
-}
-
-function bboxLabel(value: unknown): string {
-  if (!Array.isArray(value) || value.length !== 4) return "";
-  return value.map((item) => Math.round(numberFrom(item))).join(", ");
-}
-
-function arrayNumberLabel(value: unknown, suffix = ""): string {
-  if (!Array.isArray(value) || !value.length) return "";
-  const numbers = value
-    .map((item) => finiteNumberOrNull(item))
-    .filter((item): item is number => item !== null)
-    .map((item) => trimNumber(item));
-  if (!numbers.length) return "";
-  return `${numbers.join(", ")}${suffix ? ` ${suffix}` : ""}`;
-}
-
-function sizeResizeLabel(fusion: Record<string, unknown>): string {
-  const whiteSize = arrayNumberLabel(fusion.white_light_size);
-  const fluorescenceSize = arrayNumberLabel(fusion.fluorescence_original_size);
-  const resized = fusion.fluorescence_resized_to_white_light === true;
-  if (!whiteSize && !fluorescenceSize) return "暂无";
-  const resizeLabel = resized ? "已重采样" : "原始匹配";
-  return `${resizeLabel}${whiteSize ? ` · 白光 ${whiteSize}` : ""}${fluorescenceSize ? ` · 荧光 ${fluorescenceSize}` : ""}`;
-}
-
-function methodLabel(value: string): string {
-  const labels: Record<string, string> = {
-    background_corrected_registered_alpha_blend_pseudocolor: "背景扣除 + 平移配准 + 伪彩融合",
-  };
-  return labels[value] ?? (value || "暂无");
-}
-
-function registrationMethodLabel(value: string): string {
-  const labels: Record<string, string> = {
-    phase_correlation_translation: "相位相关平移",
-    disabled: "已关闭",
-    unsupported: "不支持",
-  };
-  return labels[value] ?? value;
-}
-
-function trimNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-}
-
-function shortPath(path: string): string {
-  if (!path) return "暂无";
-  return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
-}
-
-function clampUnitNumber(value: unknown): number {
-  const numeric = numberFrom(value);
-  return Math.max(0, Math.min(1, numeric));
-}
-
-function formatSeconds(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
-  return `${value.toFixed(2)}s`;
-}
-
-function formatPercent(value: number): string {
-  return `${(Math.max(0, value) * 100).toFixed(2)}%`;
 }

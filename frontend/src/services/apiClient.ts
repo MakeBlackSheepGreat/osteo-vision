@@ -63,7 +63,7 @@ export const apiClient = {
   createCase(title: string): Promise<CaseRecord> {
     return request<CaseRecord>("/cases", {
       method: "POST",
-      body: JSON.stringify({ title, disclaimer_version: "research-prototype-v1" }),
+      body: JSON.stringify({ title, disclaimer_version: "platform-safety-v1" }),
     });
   },
   getCase(caseId: string): Promise<CaseRecord> {
@@ -135,6 +135,10 @@ export const apiClient = {
   fileDownloadUrl(path: string): string {
     const params = new URLSearchParams({ path });
     return `${API_BASE_URL}/files/download?${params.toString()}`;
+  },
+  fileVideoUrl(path: string): string {
+    const params = new URLSearchParams({ path });
+    return `${API_BASE_URL}/files/video?${params.toString()}`;
   },
   getUploadJob(jobId: string): Promise<BackendJob> {
     return request<BackendJob>(`/uploads/jobs/${jobId}`);
