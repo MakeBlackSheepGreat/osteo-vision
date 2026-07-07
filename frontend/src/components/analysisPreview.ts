@@ -377,6 +377,8 @@ export function hotspotFrameDetailsFromRun(
       boneGateStatusLabel:
         boneGateStatus === "prompt_assisted_review"
           ? "已生成骨面门控"
+          : boneGateStatus === "physician_modified_mask"
+            ? "已修改骨面 mask"
           : boneGateStatus === "not_available_pending_review"
             ? "待生成骨面门控"
             : boneGateStatus || "待生成骨面门控",

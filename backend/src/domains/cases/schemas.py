@@ -150,6 +150,13 @@ class BoneGateMaskCreateRequest(BaseModel):
     prompt_source: str = "frontend_bbox_prompt"
 
 
+class BoneGateMaskEditRequest(BaseModel):
+    mask_png_base64: str
+    review_state: ReviewState = ReviewState.MODIFIED
+    label: str | None = "exposed_bone"
+    reviewer_notes: str | None = None
+
+
 class ReviewEventCreateRequest(BaseModel):
     action: str
     target_id: str

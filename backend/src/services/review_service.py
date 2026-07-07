@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import base64
+import binascii
+from io import BytesIO
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import numpy as np
+from PIL import Image
+
 from backend.src.core.artifacts import checksum_for_file
 from backend.src.domains.cases.enums import CaseStatus, RegionSource, ReviewState
 from backend.src.domains.cases.repository import CaseRepository
 from backend.src.domains.cases.schemas import (
     BoneGateMaskCreateRequest,
+    BoneGateMaskEditRequest,
     CandidateRegion,
     CaseRecord,
     EvidenceArtifact,
@@ -29,6 +36,10 @@ from src.models.adapters import build_adapter, model_spec_from_mapping
 BONE_GATE_BOUNDARY = (
     "Bone gate mask is generated from physician ROI or prompt-assisted review using the MedSAM-like prompt "
     "fallback contract. It is not real MedSAM2 checkpoint inference and is not a clinical diagnosis."
+)
+EDITED_BONE_GATE_BOUNDARY = (
+    "Bone gate mask was modified through physician review tooling. It is training feedback for the platform "
+    "workflow and is not a standalone clinical diagnosis."
 )
 
 
@@ -212,6 +223,92 @@ class ReviewService:
                 "review_events": [*case.review_events, event],
                 "status": CaseStatus.REVIEWING,
                 "warnings": [*case.warnings, *warnings],
+            }
+        )
+        updated = updated.model_copy(update={"review_summary": self._review_summary(updated)})
+        self.repo.save(updated)
+        return updated
+
+    def save_candidate_bone_gate_mask_edit(
+        self,
+        case: CaseRecord,
+        candidate_id: str,
+        request: BoneGateMaskEditRequest,
+    ) -> CaseRecord:
+        run, candidate = _find_candidate_with_run(case, candidate_id)
+        if candidate is None or run is None:
+            raise ValueError(f"Candidate not found: {candidate_id}")
+        metadata = dict(candidate.metadata)
+        source_path = _candidate_source_path(metadata)
+        if source_path is None:
+            raise ValueError(f"Candidate has no readable keyframe source path: {candidate_id}")
+        geometry = _prompt_geometry(metadata.get("prompt_geometry"), metadata) or _prompt_geometry(None, metadata) or {}
+        mask_path, overlay_path, mask_size = _save_edited_bone_gate_mask(
+            source_path=source_path,
+            mask_png_base64=request.mask_png_base64,
+            case_id=case.case_id,
+            candidate_id=candidate_id,
+        )
+        bone_gate_entry = _bone_gate_entry(
+            mask_path=mask_path,
+            overlay_path=overlay_path,
+            geometry=geometry,
+            prompt_source="frontend_mask_editor",
+            review_state=request.review_state.value,
+            status="physician_modified_mask",
+            label_source="physician_modified_mask",
+            fallback_mode=False,
+            medical_boundary=EDITED_BONE_GATE_BOUNDARY,
+        )
+        signal_masks = _updated_signal_masks(metadata, bone_gate_entry)
+        updated_metadata = {
+            **metadata,
+            "signal_mask_path": metadata.get("signal_mask_path") or metadata.get("fluorescence_signal_mask_path"),
+            "fluorescence_signal_mask_path": _fluorescence_signal_path(metadata),
+            "mask_path": mask_path,
+            "mask_type": "exposed_bone",
+            "bone_gate_mask_path": mask_path,
+            "bone_gate_overlay_path": overlay_path,
+            "bone_gate_status": "physician_modified_mask",
+            "label_source": "physician_modified_mask",
+            "prompt_source": "frontend_mask_editor",
+            "prompt_geometry": geometry,
+            "prompt_contract_fallback": False,
+            "sample_weight": _sample_weight_for_review_state(request.review_state.value),
+            "review_label": request.label or "exposed_bone",
+            "reviewer_notes": request.reviewer_notes or metadata.get("reviewer_notes"),
+            "edited_mask_size": mask_size,
+            "video_signal_segmentation": signal_masks,
+            "signal_masks": signal_masks,
+            "medical_boundary": EDITED_BONE_GATE_BOUNDARY,
+            "bone_gate_edited_at": datetime.now(timezone.utc).isoformat(),
+        }
+        updated_candidate = candidate.model_copy(update={"status": request.review_state, "metadata": updated_metadata})
+        runs = [
+            _run_with_candidate_and_bone_gate(run_item, candidate_id, updated_candidate, signal_masks, bone_gate_entry)
+            for run_item in case.analysis_runs
+        ]
+        event = ReviewEvent(
+            event_id=f"event_{uuid4().hex[:10]}",
+            case_id=case.case_id,
+            actor="physician",
+            action="bone_gate_mask_edited",
+            target_id=candidate_id,
+            before_state=candidate.status.value,
+            after_state=request.review_state.value,
+            timestamp=datetime.now(timezone.utc),
+            notes=request.reviewer_notes or EDITED_BONE_GATE_BOUNDARY,
+        )
+        artifacts = [
+            *case.artifacts,
+            *_bone_gate_artifacts(case.case_id, run.run_id, mask_path=mask_path, overlay_path=overlay_path),
+        ]
+        updated = case.model_copy(
+            update={
+                "analysis_runs": runs,
+                "artifacts": artifacts,
+                "review_events": [*case.review_events, event],
+                "status": CaseStatus.REVIEWING,
             }
         )
         updated = updated.model_copy(update={"review_summary": self._review_summary(updated)})
@@ -427,20 +524,24 @@ def _bone_gate_entry(
     geometry: dict[str, Any],
     prompt_source: str,
     review_state: str,
+    status: str = "prompt_assisted_review",
+    label_source: str = "prompt_assisted_review",
+    fallback_mode: bool = True,
+    medical_boundary: str = BONE_GATE_BOUNDARY,
 ) -> dict[str, Any]:
     return {
         "mask_type": "exposed_bone",
         "available": True,
-        "status": "prompt_assisted_review",
+        "status": status,
         "path": mask_path,
         "overlay_path": overlay_path,
         "format": "png_binary_mask",
-        "label_source": "prompt_assisted_review",
+        "label_source": label_source,
         "prompt_source": prompt_source,
         "prompt_geometry": geometry,
         "review_state": review_state,
-        "fallback_mode": True,
-        "medical_boundary": BONE_GATE_BOUNDARY,
+        "fallback_mode": fallback_mode,
+        "medical_boundary": medical_boundary,
     }
 
 
@@ -502,7 +603,7 @@ def _patch_run_fused_outputs(
     summary = dict(fused_outputs.get("video_segmentation_summary") or {})
     summary["bone_gate_frame_count"] = _count_bone_gate_frames_from_fused_outputs(fused_outputs)
     if summary["bone_gate_frame_count"] > 0:
-        summary["bone_gate_mask_status"] = "prompt_assisted_review"
+        summary["bone_gate_mask_status"] = bone_gate_entry.get("status") or "prompt_assisted_review"
     fused_outputs["video_segmentation_summary"] = summary
     _patch_video_segmentation_manifest_file(fused_outputs, frame_order=frame_order, frame_index=frame_index, bone_gate_entry=bone_gate_entry)
     return fused_outputs
@@ -597,6 +698,58 @@ def _frame_has_bone_gate(frame: Any) -> bool:
         return False
     bone_gate = signal.get("bone_gate_mask")
     return isinstance(bone_gate, dict) and bone_gate.get("available") is True
+
+
+def _save_edited_bone_gate_mask(
+    *,
+    source_path: Path,
+    mask_png_base64: str,
+    case_id: str,
+    candidate_id: str,
+) -> tuple[str, str, dict[str, int]]:
+    with Image.open(source_path) as source_image:
+        rgb_image = source_image.convert("RGB")
+    mask = _decode_mask_png(mask_png_base64)
+    if mask.size != rgb_image.size:
+        mask = mask.resize(rgb_image.size, Image.Resampling.NEAREST)
+    mask_array = (np.asarray(mask.convert("L"), dtype=np.uint8) > 0).astype(np.uint8)
+    safe_case = _safe_name(f"{case_id}_{candidate_id}_edited")
+    output_dir = ensure_dir(resolve_path("artifacts/visual_evidence/osteo_vision/edited_bone_gate_masks") / case_id)
+    mask_path = output_dir / f"{safe_case}_mask.png"
+    overlay_path = output_dir / f"{safe_case}_overlay.png"
+    Image.fromarray(mask_array * 255).save(mask_path)
+    Image.fromarray(_mask_overlay(np.asarray(rgb_image, dtype=np.uint8), mask_array)).save(overlay_path)
+    return str(mask_path), str(overlay_path), {"width": int(rgb_image.width), "height": int(rgb_image.height)}
+
+
+def _decode_mask_png(mask_png_base64: str) -> Image.Image:
+    encoded = str(mask_png_base64 or "").strip()
+    if "," in encoded and encoded.lower().startswith("data:"):
+        encoded = encoded.split(",", 1)[1]
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("Invalid mask_png_base64 payload") from exc
+    try:
+        with Image.open(BytesIO(raw)) as image:
+            return image.convert("L")
+    except Exception as exc:  # pragma: no cover - Pillow raises multiple decoder errors.
+        raise ValueError("mask_png_base64 is not a readable PNG image") from exc
+
+
+def _mask_overlay(rgb: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    overlay = rgb.copy()
+    active = mask.astype(bool)
+    color = np.zeros_like(overlay)
+    color[..., 0] = 255
+    color[..., 1] = 170
+    color[..., 2] = 40
+    overlay[active] = (0.55 * overlay[active] + 0.45 * color[active]).astype(np.uint8)
+    return overlay
+
+
+def _safe_name(value: str) -> str:
+    return "".join(char if char.isalnum() or char in "._-" else "_" for char in value) or "case"
 
 
 def _bone_gate_artifacts(case_id: str, run_id: str, *, mask_path: str, overlay_path: str) -> list[EvidenceArtifact]:

@@ -1,0 +1,29 @@
+{
+  "schema_version": "osteo-vision-video-signal-multimask-v2-training-summary",
+  "filtered_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\video_signal_multimask_v2_filtered_20260707_round3_seed50.csv",
+  "source_manifests": [
+    "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\video_signal_multimask_round3_20260707\\video_signal_multimask_training_manifest.csv"
+  ],
+  "trained_mask_types": [
+    "exposed_bone",
+    "fluorescence_hotspot"
+  ],
+  "sample_count": 150,
+  "mask_type_counts": {
+    "fluorescence_hotspot": 100,
+    "exposed_bone": 50
+  },
+  "review_state_counts": {
+    "review_required": 150
+  },
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_video_signal_multimask_v2.pt",
+  "metrics": {
+    "case_count": 38,
+    "foreground_mean_dice": 0.0,
+    "foreground_mean_iou": 0.0,
+    "prediction_positive_fraction": 0.0,
+    "threshold": 0.5
+  },
+  "runtime_allowed": false,
+  "medical_boundary": "The v2 checkpoint is trained on multi-mask proxy or prompt-assisted review rows. It must not replace the current MP4/JPEG mainline until smoke tests, model inventory, and medical-boundary review pass."
+}

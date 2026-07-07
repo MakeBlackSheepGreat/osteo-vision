@@ -101,6 +101,7 @@
           @retry-job="retryAnalysisJob"
           @reanalyze-hotspot-frame="reanalyzeSelectedHotspotFrame"
           @generate-bone-gate-for-frame="generateBoneGateForSelectedFrame"
+          @save-bone-gate-mask-edit="saveBoneGateMaskEditForSelectedFrame"
           @select-hotspot-frame="selectHotspotFrame"
           @update-hotspot-timeline-filter="updateHotspotTimelineFilter"
           @open-fullscreen="openAnalysisFullscreen"
@@ -643,6 +644,38 @@ async function generateBoneGateForSelectedFrame() {
   await store.generateCandidateBoneGateMask(candidate.candidate_id, geometry);
   setOperationMessage(
     store.error || "骨面门控已生成，可在同步分析和医生复核中继续接受、修改或拒绝。",
+    store.error ? "error" : "info",
+  );
+}
+
+async function saveBoneGateMaskEditForSelectedFrame(payload: {
+  maskPngBase64: string;
+  reviewState: "review_required" | "accepted" | "modified" | "rejected";
+  reviewerNotes: string;
+}) {
+  if (!store.currentCase) {
+    setOperationMessage("请先新建或加载病例。", "error");
+    return;
+  }
+  const detail = selectedHotspotFrameDetail.value;
+  if (!detail) {
+    setOperationMessage("请先选择需要修改骨面 mask 的关键帧。", "error");
+    return;
+  }
+  const candidate = candidateForHotspotFrame(detail);
+  if (!candidate) {
+    setOperationMessage("当前关键帧缺少可回写的候选区。", "error");
+    return;
+  }
+  setOperationMessage(`正在保存 ${detail.frameLabel} 的骨面 mask 修改...`);
+  await store.saveCandidateBoneGateMaskEdit(
+    candidate.candidate_id,
+    payload.maskPngBase64,
+    payload.reviewState,
+    payload.reviewerNotes,
+  );
+  setOperationMessage(
+    store.error || "骨面 mask 修改已保存，并进入复核回灌记录。",
     store.error ? "error" : "info",
   );
 }

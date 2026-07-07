@@ -90,6 +90,7 @@ DICOM 标准输出与远程协作可作为软件平台扩展亮点和证据包�
 - 推进荧光视频输入可分割时，应先对 `convnext2d_keyframe_proxy_segmenter` 做 keyframe 阈值扫描、空 mask 率和过分割率评估，再同步运行阈值或继续训练；MP4/JPEG 输出必须覆盖 mask、probability map、伪彩、叠加图、候选区和 video segmentation manifest，并明确所有伪标注指标不等同于真实术中 ICG 颌骨骨髓炎临床性能。
 - 术中 MP4/JPEG 的第一阶段分割任务应定位为 `video_signal_segmentation`：暴露骨区域、荧光/灌注信号、时间稳定性、边界风险和不确定性提示的组合，不得直接包装为疾病终判 mask。输出契约应优先覆盖 `bone_gate_mask`、`fluorescence_signal_mask`、`risk_mask`、`uncertain_mask`；其中 `bone_gate_mask` 在没有医生/SAM 辅助标注前只能记录为待复核/不可用，不得伪造骨面真值。
 - 推进骨面门控和分割模型回灌闭环时，必须把 `bone_gate_mask` 作为医生 ROI 或 prompt-assisted review 生成的半自动复核产物处理；当前 `medsam2_osteo_promptable` 仅可作为 prompt fallback 契约工具，不得声称真实 MedSAM2 checkpoint 推理。多 mask v2 训练可新增 checkpoint 和报告，但未通过 smoke、边界说明和模型清单复核前不得替换当前 MP4/JPEG 主线配置。
+- 第三轮骨面门控样本扩充必须经 prompt-assisted 生成、人工复核/修改状态和 manifest 回灌记录；未复核样本不得包装为真实骨面标注，批量生成的 `bone_gate_mask` 默认只能作为待复核半自动种子样本。
 - 面向学校、评委或团队成员展示前端效果时，若用户要求“真实数据集视频”或“真实视频示例”，必须优先使用本地已下载且有 manifest 来源记录的公开真实视频数据；不得默认使用合成 MP4/JPEG。若公开真实视频不是颌骨骨髓炎术中 ICG 目标域，必须在病例元数据、报告或回答中明确标注其公开来源、荧光/非荧光属性、医学场景和非目标域边界。
 - 选择前端演示视频前必须做抽帧可视化复核，不得只依据文件名、论文标题或 manifest 字段判断是否适合展示；应避开标题页、术后包扎/讲解页、低相关生活画面、动物/离体材料被误称为临床视频等情况，并优先选择画面上确实能展示荧光信号、术野、骨/软组织操作或骨髓炎相关手术步骤的片段。
 - 视频导入与演示必须支持前端播放同步分析：用户导入 MP4 后，平台应能播放原始视频，并随播放进度同步展示最近关键帧的分割叠加、mask、候选区和当前帧元数据。短期可用 keyframe 近实时同步替代全帧流式推理，但 UI 与报告必须明确这是 keyframe-based playback analysis，不得包装成逐帧实时 AI 推理。

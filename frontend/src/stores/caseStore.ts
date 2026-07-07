@@ -263,6 +263,29 @@ export const useCaseStore = defineStore("case", {
         this.loading = false;
       }
     },
+    async saveCandidateBoneGateMaskEdit(
+      candidateId: string,
+      maskPngBase64: string,
+      reviewState: ReviewState,
+      reviewerNotes?: string,
+    ) {
+      if (!this.currentCase) return;
+      this.loading = true;
+      this.error = "";
+      try {
+        this.currentCase = await apiClient.saveCandidateBoneGateMaskEdit(
+          this.currentCase.case_id,
+          candidateId,
+          maskPngBase64,
+          reviewState,
+          reviewerNotes,
+        );
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : "骨面 mask 修改保存失败";
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 });
 

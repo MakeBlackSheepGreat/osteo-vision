@@ -77,6 +77,7 @@
       :nearest-frame-detail="nearestPlaybackFrameDetail"
       @jump-to-frame="jumpPlaybackToDetail"
       @generate-bone-gate="emit('generateBoneGateForFrame')"
+      @edit-bone-gate="maskEditorOpen = true"
     />
 
     <AnalysisFusionEvidencePanel v-if="fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
@@ -233,6 +234,15 @@
             >
               生成骨面门控
             </AppButton>
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="review"
+              :disabled="loading"
+              @click="maskEditorOpen = true"
+            >
+              编辑骨面 mask
+            </AppButton>
           </div>
         </header>
         <dl>
@@ -314,6 +324,13 @@
           <span>{{ selectedHotspotFrameDetail.boneGateStatusLabel }}</span>
         </div>
         <p>{{ selectedHotspotFrameDetail.domainBoundary }}</p>
+        <BoneGateMaskEditor
+          v-if="maskEditorOpen"
+          :detail="selectedHotspotFrameDetail"
+          :loading="loading"
+          @save="emit('saveBoneGateMaskEdit', $event)"
+          @cancel="maskEditorOpen = false"
+        />
       </section>
 
       <details v-if="hotspotFrameDetails.length" class="hotspot-frame-drawer">
@@ -408,6 +425,7 @@ import AnalysisJobPanel from "@/components/AnalysisJobPanel.vue";
 import AnalysisQuadGrid from "@/components/AnalysisQuadGrid.vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import BoneGateMaskEditor from "@/components/BoneGateMaskEditor.vue";
 import VideoStreamSyncPanel from "@/components/VideoStreamSyncPanel.vue";
 import {
   hotspotTimelineFilterOptions,
@@ -421,6 +439,8 @@ import {
 } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 import { useVideoPlaybackSync } from "@/composables/useVideoPlaybackSync";
+import type { ReviewState } from "@/types/case";
+import { ref, watch } from "vue";
 
 // 分析视图组件只接收已经整理好的展示数据，避免把 store 和业务副作用带进展示层。
 export interface AnalysisKpiItem {
@@ -468,6 +488,7 @@ const emit = defineEmits<{
   retryJob: [];
   reanalyzeHotspotFrame: [];
   generateBoneGateForFrame: [];
+  saveBoneGateMaskEdit: [payload: { maskPngBase64: string; reviewState: ReviewState; reviewerNotes: string }];
   selectHotspotFrame: [key: string];
   updateHotspotTimelineFilter: [filter: HotspotTimelineFilter];
   openFullscreen: [];
@@ -487,6 +508,15 @@ const {
   selectedFrameKey: () => props.selectedHotspotTimelineKey,
   onSelectFrame: (key) => emit("selectHotspotFrame", key),
 });
+
+const maskEditorOpen = ref(false);
+
+watch(
+  () => props.selectedHotspotFrameDetail?.key,
+  () => {
+    maskEditorOpen.value = false;
+  },
+);
 
 </script>
 

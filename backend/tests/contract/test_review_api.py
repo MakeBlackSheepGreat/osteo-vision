@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+from io import BytesIO
 from pathlib import Path
 
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from backend.src.api.app import create_app
 
@@ -73,3 +76,45 @@ def test_review_api_generates_prompt_assisted_bone_gate_mask(tmp_path, monkeypat
 
     assert repeated.status_code == 200
     assert repeated.json()["analysis_runs"][-1]["fused_outputs"]["video_segmentation_summary"]["bone_gate_frame_count"] == 1
+
+
+def test_review_api_saves_edited_bone_gate_mask_for_training_feedback(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    source = tmp_path / "bone_gate_edit_video.mp4"
+    writer = cv2.VideoWriter(str(source), cv2.VideoWriter_fourcc(*"mp4v"), 8.0, (80, 60))
+    for index in range(5):
+        frame = np.full((60, 80, 3), 25 + index * 15, dtype=np.uint8)
+        frame[16:44, 20:58, 1] = 255
+        writer.write(frame)
+    writer.release()
+    case_id = client.post("/cases", json={"title": "bone gate edit"}).json()["case_id"]
+    client.post(f"/cases/{case_id}/inputs", json=[{"channel": "video", "path": str(source), "mime_type": "video/mp4"}])
+    analyzed = client.post(
+        f"/cases/{case_id}/analysis-runs",
+        json={"selected_input_ids": [], "parameters": {"mode": "video_file", "keyframe_count": 2}, "roi_hints": []},
+    )
+    candidate = analyzed.json()["analysis_runs"][-1]["candidate_regions"][0]
+    mask_array = np.zeros((24, 32), dtype=np.uint8)
+    mask_array[4:18, 7:25] = 255
+    buffer = BytesIO()
+    Image.fromarray(mask_array).save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+
+    response = client.post(
+        f"/cases/{case_id}/candidate-regions/{candidate['candidate_id']}/bone-gate-mask/edits",
+        json={"mask_png_base64": encoded, "review_state": "modified", "reviewer_notes": "edited in mask editor"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    metadata = payload["analysis_runs"][-1]["candidate_regions"][0]["metadata"]
+    assert metadata["mask_type"] == "exposed_bone"
+    assert metadata["label_source"] == "physician_modified_mask"
+    assert metadata["prompt_source"] == "frontend_mask_editor"
+    assert metadata["sample_weight"] == 4.0
+    assert Path(metadata["bone_gate_mask_path"]).exists()
+    assert Path(metadata["bone_gate_overlay_path"]).exists()
+    assert metadata["video_signal_segmentation"]["bone_gate_mask"]["status"] == "physician_modified_mask"
+    assert payload["review_events"][-1]["action"] == "bone_gate_mask_edited"

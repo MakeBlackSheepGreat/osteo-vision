@@ -42,6 +42,9 @@
           <button type="button" @click="emit('generateBoneGate', nearestFrameDetail)">
             生成骨面门控
           </button>
+          <button type="button" @click="emit('editBoneGate', nearestFrameDetail)">
+            编辑骨面 mask
+          </button>
           <figure v-if="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref">
             <img
               :src="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref"
@@ -105,6 +108,7 @@ defineProps<{
 const emit = defineEmits<{
   jumpToFrame: [detail: HotspotFrameDetail];
   generateBoneGate: [detail: HotspotFrameDetail];
+  editBoneGate: [detail: HotspotFrameDetail];
 }>();
 </script>
 

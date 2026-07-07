@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException
 
 from backend.src.api.helpers import require_case
 from backend.src.domains.cases.repository import CaseRepository
-from backend.src.domains.cases.schemas import BoneGateMaskCreateRequest, CaseRecord, RegionUpdateRequest
+from backend.src.domains.cases.schemas import (
+    BoneGateMaskCreateRequest,
+    BoneGateMaskEditRequest,
+    CaseRecord,
+    RegionUpdateRequest,
+)
 from backend.src.services.review_service import ReviewService
 
 
@@ -43,5 +48,17 @@ def router(repo: CaseRepository, service: ReviewService) -> APIRouter:
             return service.generate_candidate_bone_gate_mask(case, candidate_id, request)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @api.post("/cases/{case_id}/candidate-regions/{candidate_id}/bone-gate-mask/edits", response_model=CaseRecord)
+    def save_candidate_bone_gate_mask_edit(
+        case_id: str,
+        candidate_id: str,
+        request: BoneGateMaskEditRequest,
+    ) -> CaseRecord:
+        case = require_case(repo, case_id)
+        try:
+            return service.save_candidate_bone_gate_mask_edit(case, candidate_id, request)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return api

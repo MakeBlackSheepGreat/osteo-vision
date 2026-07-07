@@ -137,6 +137,26 @@ export const apiClient = {
       }),
     });
   },
+  saveCandidateBoneGateMaskEdit(
+    caseId: string,
+    candidateId: string,
+    maskPngBase64: string,
+    reviewState: ReviewState,
+    reviewerNotes?: string,
+  ): Promise<CaseRecord> {
+    return request<CaseRecord>(
+      `/cases/${caseId}/candidate-regions/${encodeURIComponent(candidateId)}/bone-gate-mask/edits`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          mask_png_base64: maskPngBase64,
+          review_state: reviewState,
+          label: "exposed_bone",
+          reviewer_notes: reviewerNotes,
+        }),
+      },
+    );
+  },
   exportCase(caseId: string): Promise<ExportResponse> {
     return request<ExportResponse>(`/cases/${caseId}/exports`, {
       method: "POST",
