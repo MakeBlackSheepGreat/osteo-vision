@@ -72,9 +72,10 @@ const displayArtifactCount = computed(() => previewArtifacts.value.length);
   min-height: 100dvh;
   padding: 20px;
   background:
-    radial-gradient(circle at 10% 8%, rgba(45, 120, 173, 0.06), transparent 24%),
-    linear-gradient(180deg, #eef3f8, var(--ov-bg) 240px),
-    var(--ov-bg);
+    radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(52, 211, 153, 0.1), transparent 26%),
+    linear-gradient(180deg, #06111f 0%, #081724 44%, #050b13 100%);
+  color: #e6f3ff;
 }
 
 .page-header,
@@ -99,9 +100,17 @@ const displayArtifactCount = computed(() => previewArtifacts.value.length);
   padding: 16px;
 }
 
+.ov-card {
+  border: 1px solid rgba(91, 176, 214, 0.24);
+  background:
+    linear-gradient(180deg, rgba(15, 33, 51, 0.94), rgba(8, 20, 33, 0.96)),
+    rgba(8, 20, 33, 0.96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
 .report-panel p {
   margin: 0;
-  color: var(--ov-text-secondary);
+  color: rgba(216, 232, 244, 0.78);
   line-height: 1.7;
 }
 
@@ -112,13 +121,13 @@ dl {
 }
 
 dt {
-  color: var(--ov-text-muted);
+  color: rgba(176, 207, 229, 0.72);
   font-size: 12px;
 }
 
 dd {
   margin: 3px 0 0;
-  color: var(--ov-text);
+  color: #eef8ff;
   overflow-wrap: anywhere;
 }
 
@@ -134,10 +143,10 @@ dd {
 
 .artifact-card {
   min-width: 0;
-  border: 1px solid var(--ov-border-subtle);
+  border: 1px solid rgba(91, 176, 214, 0.2);
   border-radius: var(--ov-radius);
   padding: 11px 12px;
-  background: var(--ov-bg-soft);
+  background: rgba(3, 12, 23, 0.62);
 }
 
 .empty-export-preview {
@@ -145,9 +154,11 @@ dd {
   gap: 6px;
   place-items: center;
   min-height: 170px;
-  border: 1px dashed rgba(44, 126, 192, 0.24);
+  border: 1px dashed rgba(91, 176, 214, 0.34);
   border-radius: var(--ov-radius);
-  background: linear-gradient(180deg, #ffffff, #f4f9ff);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(34, 211, 238, 0.13), transparent 34%),
+    rgba(3, 12, 23, 0.56);
   text-align: center;
 }
 
@@ -157,20 +168,29 @@ dd {
 }
 
 .artifact-card strong {
-  color: var(--ov-text);
+  color: #eef8ff;
 }
 
 .artifact-card span,
 .empty-export-preview span {
   margin-top: 4px;
-  color: var(--ov-text-muted);
+  color: rgba(176, 207, 229, 0.72);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .empty-export-preview strong {
-  color: var(--ov-primary);
+  color: #67e8f9;
+}
+
+:deep(.section-heading__eyebrow) {
+  color: rgba(176, 207, 229, 0.72);
+}
+
+:deep(.section-heading h2),
+:deep(.section-heading__title) {
+  color: #eef8ff;
 }
 
 @media (max-width: 760px) {

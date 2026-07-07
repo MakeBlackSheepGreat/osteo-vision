@@ -102,6 +102,7 @@ DICOM 标准输出与远程协作可作为软件平台扩展亮点和证据包�
 - 本项目固定使用 Conda 环境 `osteo-vision`，路径为 `C:\Users\876762330\.conda\envs\osteo-vision`；执行项目自查、测试、训练、推理、Demo 或依赖检查前必须确认已进入该环境，或显式使用 `conda run -n osteo-vision ...`。
 - 不得使用当前默认 `base` 环境作为本项目运行环境；`base` 当前为 Python 3.13，缺少项目所需的 PyTorch/Gradio 等关键依赖，容易导致误判。
 - 大型数据、论文 PDF、checkpoint、DICOM/NIfTI 原始数据不进入 Git。
+- 前端 3D 模型、STL/GLB/GLTF、医学参考图等大体积或来源需授权的可视化资产默认不进入 Git；只能作为本地可选资产或通过可追溯 manifest/下载说明接入，必须记录来源、许可、脱敏状态和用途边界。
 - 官方赛题原文、设备技术文档、企业资料和内部研究 PDF 不得进入 Git 或推送到 GitHub；只能作为本地忽略文件读取。仓库内可提交脱敏后的摘录、复核记录、路径说明和非敏感结论，但不得提交原始官方 PDF。
 - `D:\projects\osteo-vision` 只作为静态原始数据归档位置；训练、推理和 Demo 运行不得依赖 D 盘 junction 或 D 盘在线状态。
 - 训练和推理优先使用项目本地 `research/datasets/**/derived/` 下的预处理数据、缓存 manifest 或任务级转换结果。
@@ -110,6 +111,7 @@ DICOM 标准输出与远程协作可作为软件平台扩展亮点和证据包�
 - 正式研究报告默认分别撰写中文和英文 Markdown 版本，文件名使用 `_zh.md` 和 `_en.md` 后缀。
 - 修改共享框架能力时，优先保持可配置、可复用、可测试。
 - 接入颌骨骨髓炎专用逻辑时，优先从 `configs/tasks/osteo_vision.yml`、`configs/inference/osteo_vision.yml` 和独立适配器进入，避免把疾病专用假设散落到共享层。
+- GitHub 协作默认通过功能分支和 Pull Request 进入远程仓库；除非用户明确要求，不直接推送到 `main` 或其他主分支。
 
 ## Current Structure
 

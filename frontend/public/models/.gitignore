@@ -1,0 +1,22 @@
+# Keep large or licensed 3D assets local-only.
+*.stl
+*.STL
+*.glb
+*.GLB
+*.gltf
+*.GLTF
+*.obj
+*.OBJ
+*.ply
+*.PLY
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.bmp
+
+!README.md
+!.gitignore
+!*manifest*.json
+!*manifest*.csv
