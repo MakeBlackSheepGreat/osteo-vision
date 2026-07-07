@@ -38,6 +38,8 @@ research/
 - D025 SegResNetDS 训练：`research/reports/modeling/d025_monai_segresnetds_training_20260704_zh.md`
 - D025 代理模型对比：`research/reports/modeling/d025_proxy_model_comparison_20260704_zh.md`
 - 2D Keyframe ConvNeXt 代理分割模型：`research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260705_zh.md`
+- 荧光视频分割预期路线锚定：`research/reports/modeling/fluorescence_video_segmentation_anchor_20260706_zh.md`
+- 荧光视频分割落地锚定清单：`research/reports/modeling/fluorescence_video_segmentation_anchor_tasks_20260706.md`
 - 4K keyframe tiling 分割自查：`tools/run_keyframe_tiling_smoke.py`，用于直接检查主线 2D keyframe adapter 的 mask、probability map、伪彩叠加和 tiled inference 元数据。
 - 医生复核反馈转训练 manifest 工具：`tools/build_keyframe_training_manifest_from_review.py`，输出可带 `sample_weight`，用于下一轮合并 proxy manifest 的加权训练。
 - MedSAM-like prompt 分割接口：`research/reports/modeling/medsam_prompt_contract_20260704_zh.md`

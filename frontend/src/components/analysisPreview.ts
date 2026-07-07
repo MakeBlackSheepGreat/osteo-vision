@@ -65,6 +65,11 @@ export interface HotspotFrameDetail {
   evidenceHref?: string;
   overlayHref?: string;
   maskHref?: string;
+  boneGateMaskHref?: string;
+  boneGateOverlayHref?: string;
+  boneGateStatusLabel?: string;
+  riskMaskHref?: string;
+  uncertainMaskHref?: string;
 }
 
 export interface TimelineTraceItem {
@@ -172,8 +177,10 @@ export function videoPlaybackAnalysisFromRun(
     videoSrc: videoUrl(sourcePath),
     modeLabel: mode === "video_file_keyframes" ? "MP4 关键帧分析" : "MP4 输入播放",
     analysisScopeLabel:
-      analysisScope === "selected_mp4_keyframes"
-        ? "已选 MP4 关键帧"
+      analysisScope === "selected_mp4_keyframes_video_signal_segmentation"
+        ? "视频信号分割"
+        : analysisScope === "selected_mp4_keyframes"
+          ? "已选 MP4 关键帧"
         : hasFrameDetails.length
           ? "关键帧同步分析"
           : "待分析",
@@ -198,7 +205,20 @@ export function videoPreviewPanelsFromRun(
     const lesionEvidence = recordFrom(selectedHotspot.lesion_evidence) ? selectedHotspot.lesion_evidence : {};
     const sourcePath = stringFrom(selectedHotspot.source_path);
     const overlayPath = stringFrom(lesionEvidence.overlay_path);
-    const maskPath = stringFrom(lesionEvidence.mask_path);
+    const segmentationMask = recordFrom(selectedHotspot.segmentation_mask) ? selectedHotspot.segmentation_mask : {};
+    const signalMasks = recordFrom(selectedHotspot.video_signal_segmentation)
+      ? selectedHotspot.video_signal_segmentation
+      : recordFrom(selectedHotspot.signal_masks)
+        ? selectedHotspot.signal_masks
+        : recordFrom(lesionEvidence.video_signal_segmentation)
+          ? lesionEvidence.video_signal_segmentation
+          : recordFrom(lesionEvidence.signal_masks)
+            ? lesionEvidence.signal_masks
+            : {};
+    const maskPath = stringFrom(segmentationMask.path) || stringFrom(lesionEvidence.mask_path);
+    const riskPath = stringFrom(lesionEvidence.risk_mask_path) || signalMaskPath(signalMasks, "risk_mask");
+    const uncertainPath =
+      stringFrom(lesionEvidence.uncertain_mask_path) || signalMaskPath(signalMasks, "uncertain_mask");
     const pseudoColorPath = stringFrom(lesionEvidence.pseudo_color_path);
     const frameIndex = stringFrom(selectedHotspot.frame_index) || "-";
     const timestamp = formatSeconds(selectedHotspot.timestamp_sec);
@@ -206,6 +226,8 @@ export function videoPreviewPanelsFromRun(
       panelFromPath("关键帧", `帧序号: ${frameIndex}`, `时间: ${timestamp}`, "MP4", sourcePath, previewUrl),
       panelFromPath("分割叠加", `帧序号: ${frameIndex}`, "荧光伪彩 + 分割候选", "mask + frame", overlayPath, previewUrl),
       panelFromPath("分割掩膜", `帧序号: ${frameIndex}`, "二值 ROI 掩膜", "threshold", maskPath || pseudoColorPath, previewUrl),
+      panelFromPath("风险图", `帧序号: ${frameIndex}`, "荧光灌注/活性风险提示", "risk", riskPath, previewUrl),
+      panelFromPath("不确定性", `帧序号: ${frameIndex}`, "低置信或质量受限区域", "uncertainty", uncertainPath, previewUrl),
     ];
     return panels.filter((item): item is AnalysisPreviewPanel => item !== null);
   }
@@ -320,6 +342,18 @@ export function hotspotFrameDetailsFromRun(
     const evidencePath = stringFrom(detail.evidence_path) || stringFrom(detail.source_path);
     const overlayPath = stringFrom(detail.overlay_path);
     const maskPath = stringFrom(detail.mask_path) || stringFrom(detail.pseudo_color_path);
+    const signalMasks = recordFrom(detail.video_signal_segmentation)
+      ? detail.video_signal_segmentation
+      : recordFrom(detail.signal_masks)
+        ? detail.signal_masks
+        : {};
+    const riskMaskPath = stringFrom(detail.risk_mask_path) || signalMaskPath(signalMasks, "risk_mask");
+    const uncertainMaskPath =
+      stringFrom(detail.uncertain_mask_path) || signalMaskPath(signalMasks, "uncertain_mask");
+    const boneGateMaskPath = stringFrom(detail.bone_gate_mask_path) || signalMaskPath(signalMasks, "bone_gate_mask");
+    const boneGateOverlayPath =
+      stringFrom(detail.bone_gate_overlay_path) || signalMaskOverlayPath(signalMasks, "bone_gate_mask");
+    const boneGateStatus = signalMaskStatus(signalMasks, "bone_gate_mask");
     return {
       key,
       frameIndex: finiteNumberOrNull(detail.frame_index),
@@ -338,6 +372,16 @@ export function hotspotFrameDetailsFromRun(
       evidenceHref: evidencePath ? previewUrl(evidencePath) : undefined,
       overlayHref: overlayPath ? previewUrl(overlayPath) : undefined,
       maskHref: maskPath ? previewUrl(maskPath) : undefined,
+      boneGateMaskHref: boneGateMaskPath ? previewUrl(boneGateMaskPath) : undefined,
+      boneGateOverlayHref: boneGateOverlayPath ? previewUrl(boneGateOverlayPath) : undefined,
+      boneGateStatusLabel:
+        boneGateStatus === "prompt_assisted_review"
+          ? "已生成骨面门控"
+          : boneGateStatus === "not_available_pending_review"
+            ? "待生成骨面门控"
+            : boneGateStatus || "待生成骨面门控",
+      riskMaskHref: riskMaskPath ? previewUrl(riskMaskPath) : undefined,
+      uncertainMaskHref: uncertainMaskPath ? previewUrl(uncertainMaskPath) : undefined,
     };
   });
 }
@@ -458,6 +502,10 @@ function frameDetailLikeFromHotspot(hotspot: Record<string, unknown>): Record<st
     evidence_path: hotspot.source_path,
     overlay_path: lesionEvidence.overlay_path,
     mask_path: segmentationMask.path,
+    risk_mask_path: segmentationMask.risk_mask_path || lesionEvidence.risk_mask_path,
+    uncertain_mask_path: segmentationMask.uncertain_mask_path || lesionEvidence.uncertain_mask_path,
+    signal_masks: hotspot.signal_masks || lesionEvidence.signal_masks,
+    video_signal_segmentation: hotspot.video_signal_segmentation || lesionEvidence.video_signal_segmentation,
     pseudo_color_path: lesionEvidence.pseudo_color_path,
     positive_area_fraction: quantification.positive_area_fraction,
     roi_positive_area_fraction: quantification.roi_positive_area_fraction,
@@ -466,6 +514,24 @@ function frameDetailLikeFromHotspot(hotspot: Record<string, unknown>): Record<st
     domain_boundary: hotspot.domain_boundary,
     review_required: true,
   };
+}
+
+function signalMaskPath(signalMasks: unknown, key: "bone_gate_mask" | "risk_mask" | "uncertain_mask"): string {
+  if (!recordFrom(signalMasks)) return "";
+  const entry = recordFrom(signalMasks[key]) ? signalMasks[key] : {};
+  return stringFrom(entry.path);
+}
+
+function signalMaskOverlayPath(signalMasks: unknown, key: "bone_gate_mask"): string {
+  if (!recordFrom(signalMasks)) return "";
+  const entry = recordFrom(signalMasks[key]) ? signalMasks[key] : {};
+  return stringFrom(entry.overlay_path);
+}
+
+function signalMaskStatus(signalMasks: unknown, key: "bone_gate_mask"): string {
+  if (!recordFrom(signalMasks)) return "";
+  const entry = recordFrom(signalMasks[key]) ? signalMasks[key] : {};
+  return stringFrom(entry.status);
 }
 
 function traceItemsFromValue(value: unknown): TimelineTraceItem[] {

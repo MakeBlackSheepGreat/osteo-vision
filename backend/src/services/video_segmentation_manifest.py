@@ -63,6 +63,11 @@ def write_video_segmentation_outputs(
         for frame in frames
         if frame.get("segmentation_result", {}).get("mask_path")
     ]
+    risk_paths = [
+        str(frame["video_signal_segmentation"]["risk_mask"]["path"])
+        for frame in frames
+        if frame.get("video_signal_segmentation", {}).get("risk_mask", {}).get("path")
+    ]
     fps = review_video_fps(keyframe_report.get("fps"))
     overlay_video_path = write_image_sequence_video(
         overlay_paths,
@@ -80,14 +85,19 @@ def write_video_segmentation_outputs(
         "selected_frame_count": len(frames),
         "mask_frame_count": len(mask_paths),
         "overlay_frame_count": len(overlay_paths),
+        "risk_frame_count": len(risk_paths),
         "segmentation_review_video_available": bool(overlay_video_path),
         "mask_review_video_available": bool(mask_video_path),
         "model_id": model_summary["primary_model_id"],
         "model_ids": model_summary["model_ids"],
         "analysis_methods": model_summary["analysis_methods"],
-        "analysis_scope": "selected_mp4_keyframes",
+        "analysis_scope": "selected_mp4_keyframes_video_signal_segmentation",
         "temporal_stability": video_temporal_summary(frame_details),
-        "medical_boundary": "Platform keyframe segmentation workflow; not a clinical diagnosis.",
+        "video_signal_outputs": ["bone_gate_mask", "fluorescence_signal_mask", "risk_mask", "uncertain_mask"],
+        "medical_boundary": (
+            "Platform video signal segmentation workflow; fluorescence/perfusion risk prompts require "
+            "physician review and are not a clinical diagnosis."
+        ),
     }
     manifest_path = target_dir / "video_segmentation_manifest.json"
     payload = {
@@ -150,6 +160,7 @@ def _video_segmentation_frame(detail: dict[str, Any], output: dict[str, Any]) ->
     segmentation_mask = _dict_field(output, "segmentation_mask")
     lesion_evidence = _dict_field(output, "lesion_evidence")
     quantification = _dict_field(output, "quantification")
+    signal_masks = _dict_field(detail, "signal_masks") or _dict_field(output, "signal_masks")
     return {
         "frame_key": detail.get("frame_key"),
         "frame_order": detail.get("frame_order"),
@@ -160,6 +171,7 @@ def _video_segmentation_frame(detail: dict[str, Any], output: dict[str, Any]) ->
         "segmentation_result": _frame_segmentation_result(
             output, detail, segmentation_mask, lesion_evidence, quantification
         ),
+        "video_signal_segmentation": _frame_signal_result(detail, segmentation_mask, lesion_evidence, signal_masks),
         "fluorescence_overlay_result": _frame_overlay_result(detail, lesion_evidence),
         "candidate_result": _frame_candidate_result(detail),
         "review_routing": {
@@ -196,6 +208,12 @@ def _frame_segmentation_result(
         "uncertainty_path": segmentation_mask.get("uncertainty_path")
         or lesion_evidence.get("uncertainty_path")
         or detail.get("uncertainty_path"),
+        "risk_mask_path": segmentation_mask.get("risk_mask_path")
+        or lesion_evidence.get("risk_mask_path")
+        or detail.get("risk_mask_path"),
+        "uncertain_mask_path": segmentation_mask.get("uncertain_mask_path")
+        or lesion_evidence.get("uncertain_mask_path")
+        or detail.get("uncertain_mask_path"),
         "width": segmentation_mask.get("width"),
         "height": segmentation_mask.get("height"),
         "threshold": segmentation_mask.get("threshold"),
@@ -206,6 +224,46 @@ def _frame_segmentation_result(
         "review_priority": quantification.get("review_priority") or detail.get("review_priority"),
         "target_domain_flag": quantification.get("target_domain_flag") or detail.get("target_domain_flag"),
         "failure_reason": lesion_evidence.get("failure_reason") or detail.get("failure_reason"),
+    }
+
+
+def _frame_signal_result(
+    detail: dict[str, Any],
+    segmentation_mask: dict[str, Any],
+    lesion_evidence: dict[str, Any],
+    signal_masks: dict[str, Any],
+) -> dict[str, Any]:
+    if signal_masks:
+        return signal_masks
+    mask_path = segmentation_mask.get("path") or detail.get("mask_path")
+    risk_path = segmentation_mask.get("risk_mask_path") or lesion_evidence.get("risk_mask_path") or detail.get(
+        "risk_mask_path"
+    )
+    uncertain_path = (
+        segmentation_mask.get("uncertain_mask_path")
+        or lesion_evidence.get("uncertain_mask_path")
+        or detail.get("uncertain_mask_path")
+    )
+    return {
+        "schema_version": "osteo-vision-video-signal-masks-v1",
+        "bone_gate_mask": {
+            "mask_type": "exposed_bone",
+            "available": False,
+            "status": "not_available_pending_review",
+            "path": None,
+        },
+        "fluorescence_signal_mask": {
+            "mask_type": "fluorescence_hotspot",
+            "available": bool(mask_path),
+            "path": mask_path,
+            "probability_path": lesion_evidence.get("probability_path") or lesion_evidence.get("enhanced_path"),
+        },
+        "risk_mask": {"mask_type": "boundary_risk", "available": bool(risk_path), "path": risk_path},
+        "uncertain_mask": {"mask_type": "uncertain", "available": bool(uncertain_path), "path": uncertain_path},
+        "medical_boundary": detail.get(
+            "video_signal_medical_boundary",
+            "Video signal segmentation requires physician review and is not a diagnosis.",
+        ),
     }
 
 

@@ -32,6 +32,7 @@ __pycache__/
 .Python
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp*/
 pytest_tmp/
 .ruff_cache/
 .mypy_cache/

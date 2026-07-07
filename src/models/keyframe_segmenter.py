@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 from src.core.paths import ensure_dir
 from src.preprocess.fluorescence import blend_pseudocolor_on_reference
+from src.models.video_signal_masks import save_video_signal_maps, video_signal_mask_contract
 
 
 class ConvNeXtBlock2D(nn.Module):
@@ -155,6 +156,15 @@ def predict_keyframe_image(
     overlay_path = out_dir / f"{safe_case}_{model_id}_overlay.png"
     pseudo_path = out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
     uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
+    signal_paths = save_video_signal_maps(
+        probability=probability,
+        mask=mask,
+        uncertainty=uncertainty,
+        output_dir=out_dir,
+        safe_case=safe_case,
+        model_id=model_id,
+        threshold=float(threshold),
+    )
     pseudo = _green_pseudocolor(probability)
     overlay = blend_pseudocolor_on_reference(rgb, pseudo, alpha=0.45)
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
@@ -197,14 +207,32 @@ def predict_keyframe_image(
         "positive_area_px": positive_area,
         "threshold": float(threshold),
         "uncertainty_path": str(uncertainty_path),
+        "risk_mask_path": signal_paths["risk_mask_path"],
+        "uncertain_mask_path": signal_paths["uncertain_mask_path"],
         "review_priority": review_priority,
         "target_domain_flag": bool(target_domain),
         "inference": inference_meta,
     }
+    signal_masks = video_signal_mask_contract(
+        mask_path=str(mask_path),
+        risk_mask_path=str(signal_paths["risk_mask_path"]),
+        uncertain_mask_path=str(signal_paths["uncertain_mask_path"]),
+        width=int(mask.shape[1]),
+        height=int(mask.shape[0]),
+        positive_area_px=positive_area,
+        threshold=float(threshold),
+        source=model_id,
+        probability_path=str(probability_path),
+        uncertainty_path=str(uncertainty_path),
+        overlay_path=str(overlay_path),
+        risk_summary=signal_paths.get("risk_summary", {}),
+    )
     return {
         "prediction": {
             "segmentation_available": True,
             "mask_path": str(mask_path),
+            "risk_mask_path": signal_paths["risk_mask_path"],
+            "uncertain_mask_path": signal_paths["uncertain_mask_path"],
             "candidate_count": len(candidates),
             "positive_area_fraction": quantification["positive_area_fraction"],
             "adapter_mode": "trainable_convnext2d_keyframe_segmenter",
@@ -221,9 +249,13 @@ def predict_keyframe_image(
             "mask_path": str(mask_path),
             "probability_path": str(probability_path),
             "uncertainty_path": str(uncertainty_path),
+            "risk_mask_path": signal_paths["risk_mask_path"],
+            "uncertain_mask_path": signal_paths["uncertain_mask_path"],
             "pseudo_color_path": str(pseudo_path),
             "overlay_path": str(overlay_path),
             "candidates": candidates,
+            "signal_masks": signal_masks,
+            "video_signal_segmentation": signal_masks,
             "input_domain": input_domain,
             "data_boundary": data_boundary,
             "target_domain_flag": bool(target_domain),
@@ -232,6 +264,8 @@ def predict_keyframe_image(
             "inference": inference_meta,
         },
         "quantification": quantification,
+        "signal_masks": signal_masks,
+        "video_signal_segmentation": signal_masks,
     }
 
 

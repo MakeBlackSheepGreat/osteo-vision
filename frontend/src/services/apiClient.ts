@@ -122,6 +122,21 @@ export const apiClient = {
       body: JSON.stringify({ review_state: reviewState, geometry, label, reviewer_notes: reviewerNotes }),
     });
   },
+  generateCandidateBoneGateMask(
+    caseId: string,
+    candidateId: string,
+    geometry?: Record<string, unknown>,
+  ): Promise<CaseRecord> {
+    return request<CaseRecord>(`/cases/${caseId}/candidate-regions/${encodeURIComponent(candidateId)}/bone-gate-mask`, {
+      method: "POST",
+      body: JSON.stringify({
+        geometry,
+        review_state: "review_required",
+        label: "exposed_bone",
+        prompt_source: "video_keyframe_candidate_bbox",
+      }),
+    });
+  },
   exportCase(caseId: string): Promise<ExportResponse> {
     return request<ExportResponse>(`/cases/${caseId}/exports`, {
       method: "POST",

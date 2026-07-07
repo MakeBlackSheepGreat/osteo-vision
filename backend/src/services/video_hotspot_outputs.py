@@ -108,6 +108,8 @@ def hotspot_artifacts(case_id: str, run_id: str, hotspot_outputs: list[dict[str,
     mapping = [
         ("segmentation_mask", "path", ArtifactKind.ROI_MASK),
         ("lesion_evidence", "probability_path", ArtifactKind.PROBABILITY_MAP),
+        ("lesion_evidence", "risk_mask_path", ArtifactKind.HEATMAP),
+        ("lesion_evidence", "uncertain_mask_path", ArtifactKind.ROI_MASK),
         ("lesion_evidence", "pseudo_color_path", ArtifactKind.HEATMAP),
         ("lesion_evidence", "overlay_path", ArtifactKind.OVERLAY),
     ]
@@ -191,6 +193,8 @@ def _candidate_confidence(quantification: Any) -> float:
 def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> dict[str, Any]:
     quant = quantification if isinstance(quantification, dict) else {}
     lesion_evidence = output.get("lesion_evidence") if isinstance(output.get("lesion_evidence"), dict) else {}
+    signal_masks = output.get("signal_masks") or output.get("video_signal_segmentation")
+    signal_masks = signal_masks if isinstance(signal_masks, dict) else {}
     hotspot_candidates = lesion_evidence.get("candidates") if isinstance(lesion_evidence, dict) else []
     top_candidate = hotspot_candidates[0] if isinstance(hotspot_candidates, list) and hotspot_candidates else {}
     top_candidate = top_candidate if isinstance(top_candidate, dict) else {}
@@ -208,7 +212,14 @@ def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> 
         "timestamp_sec": output.get("timestamp_sec"),
         "source_path": output.get("source_path"),
         "overlay_path": lesion_evidence.get("overlay_path") if isinstance(lesion_evidence, dict) else None,
+        "risk_mask_path": lesion_evidence.get("risk_mask_path") if isinstance(lesion_evidence, dict) else None,
+        "uncertain_mask_path": lesion_evidence.get("uncertain_mask_path") if isinstance(lesion_evidence, dict) else None,
         "mask_path": segmentation_mask.get("path") if isinstance(segmentation_mask, dict) else None,
+        "mask_type": "boundary_risk",
+        "signal_masks": signal_masks,
+        "video_signal_segmentation": signal_masks,
+        "bone_gate_status": _bone_gate_status(signal_masks),
+        "sample_weight": _sample_weight_for_review_state(str(output.get("review_state") or "review_required")),
         "positive_area_fraction": quant.get("positive_area_fraction"),
         "component_count": quant.get("component_count"),
         "uncertainty": quant.get("uncertainty"),
@@ -221,3 +232,19 @@ def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> 
         "image_width": int(width) if width else None,
         "image_height": int(height) if height else None,
     }
+
+
+def _bone_gate_status(signal_masks: dict[str, Any]) -> str:
+    bone_gate = signal_masks.get("bone_gate_mask") if isinstance(signal_masks, dict) else {}
+    if isinstance(bone_gate, dict):
+        return str(bone_gate.get("status") or "not_available_pending_review")
+    return "not_available_pending_review"
+
+
+def _sample_weight_for_review_state(state: str) -> float:
+    normalized = state.lower()
+    if normalized in {"accepted", "modified"}:
+        return 4.0
+    if normalized == "rejected":
+        return 0.5
+    return 1.0

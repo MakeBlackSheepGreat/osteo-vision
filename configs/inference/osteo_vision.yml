@@ -71,6 +71,13 @@ runtime:
         input_domain: public_or_local_proxy_keyframe_non_target_domain
         target_domain: false
         training_data_boundary: synthetic_or_pseudo_labeled_non_target_domain
+        video_signal_segmentation:
+          enabled: true
+          disease_final_mask_allowed: false
+          output_keys: [bone_gate_mask, fluorescence_signal_mask, risk_mask, uncertain_mask]
+          bone_gate_policy: not_available_pending_review_without_sam_or_physician_annotation
+          risk_mask_method: fluorescence_signal_with_uncertainty_v1
+          medical_boundary: fluorescence/perfusion risk prompt requiring physician review
         tile_size: 512
         tile_overlap: 64
         max_whole_pixels: 1048576

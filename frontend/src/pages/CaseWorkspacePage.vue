@@ -100,6 +100,7 @@
           @cancel-job="cancelAnalysisJob"
           @retry-job="retryAnalysisJob"
           @reanalyze-hotspot-frame="reanalyzeSelectedHotspotFrame"
+          @generate-bone-gate-for-frame="generateBoneGateForSelectedFrame"
           @select-hotspot-frame="selectHotspotFrame"
           @update-hotspot-timeline-filter="updateHotspotTimelineFilter"
           @open-fullscreen="openAnalysisFullscreen"
@@ -622,6 +623,30 @@ async function reanalyzeSelectedHotspotFrame() {
   );
 }
 
+async function generateBoneGateForSelectedFrame() {
+  if (!store.currentCase) {
+    setOperationMessage("请先新建或加载病例。", "error");
+    return;
+  }
+  const detail = selectedHotspotFrameDetail.value;
+  if (!detail) {
+    setOperationMessage("请先选择需要生成骨面门控的关键帧。", "error");
+    return;
+  }
+  const candidate = candidateForHotspotFrame(detail);
+  if (!candidate) {
+    setOperationMessage("当前关键帧缺少可用于 prompt 的候选框。", "error");
+    return;
+  }
+  const geometry = isRecord(candidate.metadata?.bbox_normalized) ? candidate.metadata.bbox_normalized : undefined;
+  setOperationMessage(`正在为 ${detail.frameLabel} 生成骨面门控...`);
+  await store.generateCandidateBoneGateMask(candidate.candidate_id, geometry);
+  setOperationMessage(
+    store.error || "骨面门控已生成，可在同步分析和医生复核中继续接受、修改或拒绝。",
+    store.error ? "error" : "info",
+  );
+}
+
 async function refreshAnalysisJob() {
   if (!store.activeAnalysisJobId) {
     setOperationMessage("暂无可继续查询的后台分析任务。", "error");
@@ -838,6 +863,16 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
       review_state: roi.review_state,
       candidate_id: roi.candidate_id,
     }));
+}
+
+function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion | null {
+  const frameIndex = detail.frameIndex;
+  if (frameIndex === null) return latestCandidates.value[0] ?? null;
+  return (
+    latestCandidates.value.find((candidate) => Number(candidate.metadata?.frame_index) === frameIndex) ??
+    latestCandidates.value[0] ??
+    null
+  );
 }
 
 </script>

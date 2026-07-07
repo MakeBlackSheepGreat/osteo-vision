@@ -142,6 +142,14 @@ class RegionUpdateRequest(BaseModel):
     reviewer_notes: str | None = None
 
 
+class BoneGateMaskCreateRequest(BaseModel):
+    geometry: dict[str, Any] | None = None
+    review_state: ReviewState = ReviewState.REVIEW_REQUIRED
+    label: str | None = "exposed_bone"
+    reviewer_notes: str | None = None
+    prompt_source: str = "frontend_bbox_prompt"
+
+
 class ReviewEventCreateRequest(BaseModel):
     action: str
     target_id: str

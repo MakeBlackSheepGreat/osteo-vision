@@ -39,6 +39,16 @@
           >
             跳转关键帧
           </button>
+          <button type="button" @click="emit('generateBoneGate', nearestFrameDetail)">
+            生成骨面门控
+          </button>
+          <figure v-if="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref">
+            <img
+              :src="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref"
+              alt="当前关键帧骨面门控"
+            />
+            <figcaption>{{ nearestFrameDetail.boneGateStatusLabel }}</figcaption>
+          </figure>
           <figure v-if="nearestFrameDetail.overlayHref">
             <img :src="nearestFrameDetail.overlayHref" alt="当前关键帧分割叠加" />
             <figcaption>叠加图</figcaption>
@@ -46,6 +56,14 @@
           <figure v-if="nearestFrameDetail.maskHref">
             <img :src="nearestFrameDetail.maskHref" alt="当前关键帧分割掩膜" />
             <figcaption>mask</figcaption>
+          </figure>
+          <figure v-if="nearestFrameDetail.riskMaskHref">
+            <img :src="nearestFrameDetail.riskMaskHref" alt="当前关键帧风险图" />
+            <figcaption>risk</figcaption>
+          </figure>
+          <figure v-if="nearestFrameDetail.uncertainMaskHref">
+            <img :src="nearestFrameDetail.uncertainMaskHref" alt="当前关键帧不确定性掩膜" />
+            <figcaption>uncertain</figcaption>
           </figure>
         </div>
         <div
@@ -86,6 +104,7 @@ defineProps<{
 
 const emit = defineEmits<{
   jumpToFrame: [detail: HotspotFrameDetail];
+  generateBoneGate: [detail: HotspotFrameDetail];
 }>();
 </script>
 

@@ -35,6 +35,8 @@ def build_video_frame_details(
         lesion_evidence: dict[str, Any] = (
             lesion_evidence_candidate if isinstance(lesion_evidence_candidate, dict) else {}
         )
+        signal_masks_candidate = hotspot.get("signal_masks") or hotspot.get("video_signal_segmentation")
+        signal_masks: dict[str, Any] = signal_masks_candidate if isinstance(signal_masks_candidate, dict) else {}
         segmentation_mask_candidate = hotspot.get("segmentation_mask")
         segmentation_mask: dict[str, Any] = (
             segmentation_mask_candidate if isinstance(segmentation_mask_candidate, dict) else {}
@@ -82,7 +84,12 @@ def build_video_frame_details(
                 "probability_path": lesion_evidence.get("probability_path"),
                 "uncertainty_path": segmentation_mask.get("uncertainty_path")
                 or lesion_evidence.get("uncertainty_path"),
+                "risk_mask_path": segmentation_mask.get("risk_mask_path") or lesion_evidence.get("risk_mask_path"),
+                "uncertain_mask_path": segmentation_mask.get("uncertain_mask_path")
+                or lesion_evidence.get("uncertain_mask_path"),
                 "pseudo_color_path": lesion_evidence.get("pseudo_color_path"),
+                "signal_masks": signal_masks,
+                "video_signal_segmentation": signal_masks,
                 "positive_area_fraction": positive_fraction,
                 "roi_positive_area_fraction": float(quantification.get("roi_positive_area_fraction", 0.0) or 0.0),
                 "component_count": component_count,
@@ -134,6 +141,10 @@ def build_video_frame_details(
                 "domain_boundary": hotspot.get(
                     "domain_boundary",
                     "Heuristic keyframe hotspot analysis; requires physician review and is not a diagnosis.",
+                ),
+                "video_signal_medical_boundary": signal_masks.get(
+                    "medical_boundary",
+                    "Video signal segmentation requires physician review and is not a diagnosis.",
                 ),
             }
         )

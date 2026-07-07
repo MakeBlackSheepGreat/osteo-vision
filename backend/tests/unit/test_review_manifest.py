@@ -26,8 +26,19 @@ def test_review_manifest_keeps_training_feedback_fields() -> None:
             "bbox_xyxy": [20, 10, 80, 64],
             "bbox_normalized": {"type": "rect", "x": 0.1, "y": 0.1, "width": 0.3, "height": 0.4},
             "mask_path": "mask.png",
+            "signal_mask_path": "signal.png",
+            "fluorescence_signal_mask_path": "signal.png",
+            "bone_gate_mask_path": "bone.png",
+            "bone_gate_overlay_path": "bone_overlay.png",
+            "risk_mask_path": "risk.png",
+            "uncertain_mask_path": "uncertain.png",
             "overlay_path": "overlay.png",
             "source_path": "frame.jpg",
+            "mask_type": "exposed_bone",
+            "bone_gate_status": "prompt_assisted_review",
+            "label_source": "prompt_assisted_review",
+            "prompt_source": "video_keyframe_candidate_bbox",
+            "sample_weight": 1.0,
         },
     )
     case = CaseRecord(
@@ -51,7 +62,16 @@ def test_review_manifest_keeps_training_feedback_fields() -> None:
                 review_state=ReviewState.ACCEPTED,
                 label="doctor_confirmed_roi",
                 geometry={"type": "rect", "x": 0.1, "y": 0.1, "width": 0.3, "height": 0.4},
-                metrics={"frame_index": 12, "timestamp_sec": 2.0},
+                metrics={
+                    "frame_index": 12,
+                    "timestamp_sec": 2.0,
+                    "mask_type": "exposed_bone",
+                    "mask_path": "bone.png",
+                    "bone_gate_mask_path": "bone.png",
+                    "bone_gate_overlay_path": "bone_overlay.png",
+                    "label_source": "prompt_assisted_review",
+                    "prompt_source": "video_keyframe_candidate_bbox",
+                },
             )
         ],
         review_events=[
@@ -73,4 +93,15 @@ def test_review_manifest_keeps_training_feedback_fields() -> None:
     assert manifest["training_use"]["requires_physician_review"] is True
     assert [row["record_type"] for row in rows] == ["candidate_region", "roi", "review_event"]
     assert rows[0]["bbox_normalized"] == '{"type":"rect","x":0.1,"y":0.1,"width":0.3,"height":0.4}'
+    assert rows[0]["mask_type"] == "exposed_bone"
+    assert rows[0]["bone_gate_mask_path"] == "bone.png"
+    assert rows[0]["label_source"] == "prompt_assisted_review"
+    assert rows[0]["prompt_source"] == "video_keyframe_candidate_bbox"
+    assert rows[0]["risk_mask_path"] == "risk.png"
+    assert rows[0]["uncertain_mask_path"] == "uncertain.png"
+    assert rows[0]["bone_gate_status"] == "prompt_assisted_review"
+    assert rows[0]["sample_weight"] == 4.0
+    assert rows[1]["mask_path"] == "bone.png"
+    assert rows[1]["bone_gate_overlay_path"] == "bone_overlay.png"
     assert rows[1]["geometry"] == '{"type":"rect","x":0.1,"y":0.1,"width":0.3,"height":0.4}'
+    assert rows[2]["sample_weight"] == 4.0

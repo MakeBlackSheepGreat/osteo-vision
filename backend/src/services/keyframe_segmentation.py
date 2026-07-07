@@ -151,6 +151,10 @@ def _keyframe_segmentation_output(
         "segmentation_mask": payload["segmentation_mask"],
         "lesion_evidence": payload["lesion_evidence"],
         "quantification": payload["quantification"],
+        "signal_masks": payload.get("signal_masks") or lesion_evidence.get("signal_masks") or {},
+        "video_signal_segmentation": payload.get("video_signal_segmentation")
+        or lesion_evidence.get("video_signal_segmentation")
+        or {},
         "review_priority": lesion_evidence.get("review_priority") or prediction.get("review_priority"),
         "failure_reason": lesion_evidence.get("failure_reason") or prediction.get("failure_reason"),
         "target_domain_flag": bool(lesion_evidence.get("target_domain_flag") or prediction.get("target_domain_flag")),

@@ -173,6 +173,8 @@ function panelIcon(title: string): AppIconName {
     热图: "target",
     分割叠加: "target",
     分割掩膜: "document",
+    风险图: "target",
+    不确定性: "document",
     归一化图: "document",
   };
   return icons[title] ?? "file";

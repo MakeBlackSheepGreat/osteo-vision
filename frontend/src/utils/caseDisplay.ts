@@ -35,6 +35,8 @@ const reviewStateLabels: Record<ReviewState, string> = {
 const riskLabels: Record<string, string> = {
   fluorescence_hotspot: "荧光高信号候选区",
   video_keyframe_hotspot: "视频关键帧高信号候选区",
+  video_keyframe_model_segmentation: "视频关键帧模型分割候选区",
+  boundary_risk: "荧光灌注/活性风险提示",
 };
 
 const metricLabels: Record<string, string> = {

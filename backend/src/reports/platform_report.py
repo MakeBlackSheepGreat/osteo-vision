@@ -5,6 +5,7 @@ from typing import Any
 
 from backend.src.core.disclaimers import ICG_SIGNAL_LIMITATION, PLATFORM_SAFETY_DISCLAIMER
 from backend.src.domains.cases.schemas import CaseRecord
+from backend.src.reports.platform_report_sections import video_signal_section_from_run
 
 
 def build_platform_report(case: CaseRecord, *, export_meta: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -25,6 +26,7 @@ def build_platform_report(case: CaseRecord, *, export_meta: dict[str, Any] | Non
         "inputs": [asset.model_dump(mode="json") for asset in case.inputs],
         "analysis_runs": [run.model_dump(mode="json") for run in case.analysis_runs],
         "latest_analysis_run": latest_run,
+        "video_signal_segmentation": video_signal_section_from_run(latest_run),
         "rois": [roi.model_dump(mode="json") for roi in case.rois],
         "review_events": [event.model_dump(mode="json") for event in case.review_events],
         "artifacts": [artifact.model_dump(mode="json") for artifact in case.artifacts],

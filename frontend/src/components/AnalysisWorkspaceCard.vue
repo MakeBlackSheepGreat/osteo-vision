@@ -76,6 +76,7 @@
       :video-playback="videoPlayback"
       :nearest-frame-detail="nearestPlaybackFrameDetail"
       @jump-to-frame="jumpPlaybackToDetail"
+      @generate-bone-gate="emit('generateBoneGateForFrame')"
     />
 
     <AnalysisFusionEvidencePanel v-if="fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
@@ -223,6 +224,15 @@
             >
               重算当前帧
             </AppButton>
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="target"
+              :disabled="loading"
+              @click="emit('generateBoneGateForFrame')"
+            >
+              生成骨面门控
+            </AppButton>
           </div>
         </header>
         <dl>
@@ -268,7 +278,40 @@
           >
             掩膜
           </a>
+          <a
+            v-if="selectedHotspotFrameDetail.boneGateMaskHref"
+            :href="selectedHotspotFrameDetail.boneGateMaskHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            骨面门控
+          </a>
+          <a
+            v-if="selectedHotspotFrameDetail.boneGateOverlayHref"
+            :href="selectedHotspotFrameDetail.boneGateOverlayHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            骨面叠加
+          </a>
+          <a
+            v-if="selectedHotspotFrameDetail.riskMaskHref"
+            :href="selectedHotspotFrameDetail.riskMaskHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            风险图
+          </a>
+          <a
+            v-if="selectedHotspotFrameDetail.uncertainMaskHref"
+            :href="selectedHotspotFrameDetail.uncertainMaskHref"
+            target="_blank"
+            rel="noreferrer"
+          >
+            不确定性
+          </a>
           <span>{{ selectedHotspotFrameDetail.evidenceLabel }}</span>
+          <span>{{ selectedHotspotFrameDetail.boneGateStatusLabel }}</span>
         </div>
         <p>{{ selectedHotspotFrameDetail.domainBoundary }}</p>
       </section>
@@ -424,6 +467,7 @@ const emit = defineEmits<{
   cancelJob: [];
   retryJob: [];
   reanalyzeHotspotFrame: [];
+  generateBoneGateForFrame: [];
   selectHotspotFrame: [key: string];
   updateHotspotTimelineFilter: [filter: HotspotTimelineFilter];
   openFullscreen: [];

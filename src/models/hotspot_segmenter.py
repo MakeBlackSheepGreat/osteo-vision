@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 
 from src.core.paths import ensure_dir
+from src.models.video_signal_masks import save_video_signal_maps, video_signal_mask_contract
 from src.preprocess.fluorescence import blend_pseudocolor_on_reference, enhance_fluorescence_signal
 from src.preprocess.roi import filter_candidates_by_roi, roi_intensity_quantification
 
@@ -50,6 +51,15 @@ def segment_2d_fluorescence_hotspots(
     enhanced_path = out_dir / f"{safe_case_id}_{model_id}_enhanced.png"
     pseudo_path = out_dir / f"{safe_case_id}_{model_id}_pseudo_color.png"
     overlay_path = out_dir / f"{safe_case_id}_{model_id}_overlay.png"
+    signal_paths = save_video_signal_maps(
+        probability=enhanced_float,
+        mask=mask,
+        uncertainty=None,
+        output_dir=out_dir,
+        safe_case=safe_case_id,
+        model_id=model_id,
+        threshold=float(threshold),
+    )
     overlay = blend_pseudocolor_on_reference(rgb, enhanced["pseudo_color"], alpha=alpha)
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
     Image.fromarray(enhanced["enhanced_uint8"]).save(enhanced_path)
@@ -79,11 +89,28 @@ def segment_2d_fluorescence_hotspots(
         "height": int(mask.shape[0]),
         "positive_area_px": positive_area,
         "threshold": float(threshold),
+        "risk_mask_path": signal_paths["risk_mask_path"],
+        "uncertain_mask_path": signal_paths["uncertain_mask_path"],
     }
+    signal_masks = video_signal_mask_contract(
+        mask_path=str(mask_path),
+        risk_mask_path=str(signal_paths["risk_mask_path"]),
+        uncertain_mask_path=str(signal_paths["uncertain_mask_path"]),
+        width=int(mask.shape[1]),
+        height=int(mask.shape[0]),
+        positive_area_px=positive_area,
+        threshold=float(threshold),
+        source=model_id,
+        probability_path=str(enhanced_path),
+        overlay_path=str(overlay_path),
+        risk_summary=signal_paths.get("risk_summary", {}),
+    )
     return {
         "prediction": {
             "segmentation_available": True,
             "mask_path": str(mask_path),
+            "risk_mask_path": signal_paths["risk_mask_path"],
+            "uncertain_mask_path": signal_paths["uncertain_mask_path"],
             "candidate_count": len(candidates),
             "positive_area_fraction": quantification["positive_area_fraction"],
         },
@@ -94,12 +121,18 @@ def segment_2d_fluorescence_hotspots(
             "source": model_id,
             "mask_path": str(mask_path),
             "enhanced_path": str(enhanced_path),
+            "risk_mask_path": signal_paths["risk_mask_path"],
+            "uncertain_mask_path": signal_paths["uncertain_mask_path"],
             "pseudo_color_path": str(pseudo_path),
             "overlay_path": str(overlay_path),
             "candidates": candidates,
+            "signal_masks": signal_masks,
+            "video_signal_segmentation": signal_masks,
             "input_domain": "2D fluorescence-like image proxy",
         },
         "quantification": quantification,
+        "signal_masks": signal_masks,
+        "video_signal_segmentation": signal_masks,
     }
 
 

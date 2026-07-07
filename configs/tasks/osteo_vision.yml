@@ -18,6 +18,14 @@ input_contract:
     - modality
     - metadata_path
     - mask_path
+    - signal_mask_path
+    - fluorescence_signal_mask_path
+    - bone_gate_mask_path
+    - bone_gate_overlay_path
+    - mask_type
+    - review_state
+    - sample_weight
+    - prompt_source
     - white_light_path
     - fluorescence_path
     - video_path
@@ -44,6 +52,47 @@ label_contract:
     background: 0
     lesion_or_necrotic_bone: 1
     uncertain_boundary: 2
+  video_signal_segmentation:
+    task_definition: exposed bone gate plus fluorescence/perfusion signal plus risk and uncertainty prompts
+    disease_final_mask_allowed: false
+    physician_review_required: true
+    masks:
+      exposed_bone:
+        id: 10
+        output_key: bone_gate_mask
+        description: Exposed bone or suspected bone surface.
+        label_source: physician_or_sam_assisted_review_required
+      soft_tissue:
+        id: 11
+        output_key: soft_tissue_mask
+        description: Surrounding soft tissue region.
+        label_source: physician_or_sam_assisted_review_required
+      instrument_or_occlusion:
+        id: 12
+        output_key: occlusion_mask
+        description: Instrument, smoke, glare, or occlusion.
+        label_source: quality_or_review_signal
+      fluorescence_hotspot:
+        id: 13
+        output_key: fluorescence_signal_mask
+        description: High fluorescence signal candidate.
+        label_source: trainable_or_heuristic_proxy
+      hypo_fluorescent_bone:
+        id: 14
+        output_key: hypo_fluorescent_bone_mask
+        description: Weak fluorescence or low perfusion area within reviewed bone gate.
+        label_source: requires_bone_gate_review
+      boundary_risk:
+        id: 15
+        output_key: risk_mask
+        description: Boundary risk or transition-zone decision-support prompt.
+        label_source: derived_from_signal_uncertainty_and_review_context
+      uncertain:
+        id: 16
+        output_key: uncertain_mask
+        description: Low-confidence or quality-limited area.
+        label_source: model_uncertainty_or_quality_rule
+    medical_boundary: ICG and proxy fluorescence masks describe perfusion/activity cues and cannot be treated as jaw osteomyelitis-specific ground truth.
 pipelines: [classification, segmentation, detection, quantification, multitask]
 metrics: [accuracy, sensitivity, specificity, precision, f1, dice, iou, hd95]
 demo_outputs:

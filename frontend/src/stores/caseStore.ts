@@ -247,6 +247,22 @@ export const useCaseStore = defineStore("case", {
         this.loading = false;
       }
     },
+    async generateCandidateBoneGateMask(candidateId: string, geometry?: Record<string, unknown>) {
+      if (!this.currentCase) return;
+      this.loading = true;
+      this.error = "";
+      try {
+        this.currentCase = await apiClient.generateCandidateBoneGateMask(
+          this.currentCase.case_id,
+          candidateId,
+          geometry,
+        );
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : "骨面门控生成失败";
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 });
 

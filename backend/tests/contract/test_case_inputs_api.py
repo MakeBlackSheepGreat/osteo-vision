@@ -322,10 +322,22 @@ def test_video_input_analysis_extracts_keyframes(tmp_path: Path, monkeypatch) ->
         Path(latest["fused_outputs"]["video_segmentation_manifest_path"]).read_text(encoding="utf-8")
     )
     assert segmentation_manifest["schema_version"] == "osteo-vision-video-segmentation-manifest-v1"
-    assert segmentation_manifest["summary"]["analysis_scope"] == "selected_mp4_keyframes"
+    assert segmentation_manifest["summary"]["analysis_scope"] == "selected_mp4_keyframes_video_signal_segmentation"
+    assert segmentation_manifest["summary"]["risk_frame_count"] == 3
+    assert segmentation_manifest["summary"]["video_signal_outputs"] == [
+        "bone_gate_mask",
+        "fluorescence_signal_mask",
+        "risk_mask",
+        "uncertain_mask",
+    ]
     assert segmentation_manifest["summary"]["temporal_stability"]["smoothing_applied_to_mask"] is False
     assert segmentation_manifest["frames"][0]["segmentation_result"]["mask_path"]
     assert segmentation_manifest["frames"][0]["segmentation_result"]["probability_path"]
+    assert segmentation_manifest["frames"][0]["segmentation_result"]["risk_mask_path"]
+    assert segmentation_manifest["frames"][0]["segmentation_result"]["uncertain_mask_path"]
+    assert segmentation_manifest["frames"][0]["video_signal_segmentation"]["bone_gate_mask"]["status"] == (
+        "not_available_pending_review"
+    )
     assert segmentation_manifest["frames"][0]["fluorescence_overlay_result"]["overlay_path"]
     assert segmentation_manifest["frames"][0]["spatial_mapping"]["source_coordinate_space"] == "source_video_pixels"
     assert segmentation_manifest["frames"][0]["spatial_mapping"]["source_video_width"] == 80
