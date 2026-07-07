@@ -25,6 +25,9 @@ const navItems = [
 .app-shell {
   position: relative;
   min-height: 100dvh;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(65, 197, 255, 0.16), transparent 30%),
+    linear-gradient(180deg, #07131f, #06101b);
 }
 
 .app-top-nav {
@@ -56,33 +59,48 @@ const navItems = [
   gap: 8px;
   min-width: 126px;
   min-height: 40px;
-  border-color: #a8c4dd;
+  border-color: rgba(123, 215, 255, 0.34);
   border-radius: 7px;
   padding: 8px 13px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 249, 255, 0.94));
-  color: #24445f;
+  background:
+    linear-gradient(180deg, rgba(16, 45, 68, 0.9), rgba(7, 24, 40, 0.9)),
+    #081624;
+  color: #dff6ff;
   font-size: 15px;
   font-weight: 900;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 7px 16px rgba(20, 86, 138, 0.06);
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 9px 22px rgba(0, 0, 0, 0.24),
+    0 0 18px rgba(69, 197, 255, 0.08);
+  backdrop-filter: blur(12px);
 }
 
 .app-top-nav__pills :deep(.ov-nav-pill.router-link-active) {
-  border-color: #155f96;
-  background: linear-gradient(180deg, #f1f9ff, #dceeff);
-  color: #155f96;
+  border-color: #74d7ff;
+  background:
+    linear-gradient(180deg, rgba(38, 128, 190, 0.58), rgba(13, 54, 82, 0.96)),
+    #0b2840;
+  color: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(116, 215, 255, 0.12),
+    0 0 26px rgba(74, 203, 255, 0.22);
 }
 
 .app-top-nav__pills :deep(.ov-nav-pill:hover) {
   transform: translateY(-1px);
-  border-color: #2c7ec0;
-  color: #155f96;
+  border-color: #8de4ff;
+  color: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    0 0 24px rgba(74, 203, 255, 0.2);
 }
 
 .app-top-nav__pills :deep(.app-icon) {
   width: 16px;
   height: 16px;
+  color: #aeeeff;
 }
 
 @media (max-width: 1120px) {

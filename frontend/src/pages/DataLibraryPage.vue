@@ -212,9 +212,13 @@ onMounted(() => {
   min-height: 100dvh;
   padding: 86px 28px 28px;
   background:
-    linear-gradient(180deg, rgba(236, 243, 250, 0.96), rgba(247, 250, 252, 0.98) 260px),
-    #f3f6fa;
-  color: #162020;
+    radial-gradient(circle at 12% 4%, rgba(44, 126, 192, 0.28), transparent 28%),
+    radial-gradient(circle at 86% 0%, rgba(58, 211, 255, 0.16), transparent 30%),
+    linear-gradient(rgba(103, 222, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 222, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, #07131f, #091724 360px, #06101b);
+  background-size: auto, auto, 28px 28px, 28px 28px, auto;
+  color: #d8edf7;
 }
 
 .library-header,
@@ -237,15 +241,16 @@ onMounted(() => {
 
 .library-header h1 {
   margin: 0;
-  color: #102136;
+  color: #f2fbff;
   font-size: 30px;
   line-height: 1.15;
   letter-spacing: 0;
+  text-shadow: 0 0 22px rgba(103, 222, 255, 0.22);
 }
 
 .library-header p {
   margin: 8px 0 0;
-  color: #5d6d7d;
+  color: #9dbccc;
   font-size: 14px;
   font-weight: 800;
 }
@@ -258,11 +263,15 @@ onMounted(() => {
 
 .metric-tile {
   min-width: 0;
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.26);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  background:
+    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
+    #081624;
+  box-shadow:
+    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
+    0 14px 34px rgba(0, 0, 0, 0.18);
 }
 
 .metric-tile span,
@@ -271,14 +280,14 @@ onMounted(() => {
 }
 
 .metric-tile span {
-  color: #6a7a8a;
+  color: #9dbccc;
   font-size: 11px;
   font-weight: 900;
 }
 
 .metric-tile strong {
   margin-top: 4px;
-  color: #102136;
+  color: #f2fbff;
   font-size: 18px;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -290,11 +299,15 @@ onMounted(() => {
   gap: 10px;
   align-items: end;
   margin-bottom: 12px;
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.26);
   border-radius: 6px;
   padding: 10px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  background:
+    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
+    #081624;
+  box-shadow:
+    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
+    0 14px 34px rgba(0, 0, 0, 0.18);
 }
 
 .library-toolbar label,
@@ -306,7 +319,7 @@ onMounted(() => {
 
 .library-toolbar span,
 .current-case-state span {
-  color: #6a7a8a;
+  color: #9dbccc;
   font-size: 11px;
   font-weight: 900;
 }
@@ -314,22 +327,22 @@ onMounted(() => {
 .library-toolbar select {
   width: 100%;
   min-height: 34px;
-  border: 1px solid #ccd8e5;
+  border: 1px solid rgba(123, 215, 255, 0.28);
   border-radius: 5px;
   padding: 6px 8px;
-  background: #fbfdff;
-  color: #162020;
+  background: rgba(3, 14, 25, 0.78);
+  color: #eefaff;
   font: inherit;
   font-size: 13px;
 }
 
 .current-case-state strong {
   min-height: 34px;
-  border: 1px solid #e0e8f1;
+  border: 1px solid rgba(123, 215, 255, 0.22);
   border-radius: 5px;
   padding: 7px 9px;
-  background: #fbfdff;
-  color: #315f86;
+  background: rgba(255, 255, 255, 0.045);
+  color: #bdefff;
   font-size: 13px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -337,11 +350,11 @@ onMounted(() => {
 
 .library-alert,
 .empty-state {
-  border: 1px solid #e7b7ab;
+  border: 1px solid rgba(255, 116, 122, 0.42);
   border-radius: 6px;
   padding: 10px 12px;
-  background: #fff4f1;
-  color: #a23b25;
+  background: rgba(68, 19, 25, 0.68);
+  color: #ffd3d6;
   font-size: 13px;
   font-weight: 800;
 }
@@ -356,11 +369,15 @@ onMounted(() => {
   display: grid;
   gap: 9px;
   min-width: 0;
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.26);
   border-radius: 6px;
   padding: 11px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  background:
+    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
+    #081624;
+  box-shadow:
+    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
+    0 14px 34px rgba(0, 0, 0, 0.18);
 }
 
 .candidate-card__header {
@@ -372,7 +389,7 @@ onMounted(() => {
 
 .candidate-card h2 {
   margin: 0;
-  color: #102136;
+  color: #f2fbff;
   font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -381,36 +398,36 @@ onMounted(() => {
 .candidate-card__header div > span {
   display: block;
   margin-top: 3px;
-  color: #6a7a8a;
+  color: #9dbccc;
   font-size: 11px;
   font-weight: 800;
   overflow-wrap: anywhere;
 }
 
 .candidate-badge {
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.24);
   border-radius: 999px;
   padding: 3px 7px;
-  background: #ffffff;
-  color: #506070;
+  background: rgba(255, 255, 255, 0.045);
+  color: #d8edf7;
   font-size: 11px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .candidate-badge.fluorescent {
-  border-color: #9bd7c2;
-  background: #effcf8;
-  color: #11724e;
+  border-color: rgba(87, 223, 174, 0.5);
+  background: rgba(43, 203, 145, 0.14);
+  color: #c5ffed;
 }
 
 .candidate-preview {
   display: grid;
   margin: 0;
   overflow: hidden;
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.22);
   border-radius: 5px;
-  background: #eef5fa;
+  background: #07131f;
 }
 
 .candidate-preview img {
@@ -424,7 +441,7 @@ onMounted(() => {
   display: grid;
   min-height: 94px;
   place-items: center;
-  color: #5f7080;
+  color: #9dbccc;
   font-size: 12px;
   font-weight: 800;
 }
@@ -444,13 +461,13 @@ onMounted(() => {
 }
 
 .candidate-details dt {
-  color: #748494;
+  color: #9dbccc;
   font-weight: 900;
 }
 
 .candidate-details dd {
   margin: 0;
-  color: #314151;
+  color: #d8edf7;
   overflow-wrap: anywhere;
 }
 
@@ -462,7 +479,7 @@ onMounted(() => {
 }
 
 .candidate-actions a {
-  color: #1e6fa6;
+  color: #9be9ff;
   font-size: 12px;
   font-weight: 900;
   text-decoration: none;
@@ -475,9 +492,9 @@ onMounted(() => {
 
 .empty-state {
   margin-top: 12px;
-  border-color: #c7d8ea;
-  background: #f6fbff;
-  color: #315f86;
+  border-color: rgba(123, 215, 255, 0.22);
+  background: rgba(255, 255, 255, 0.045);
+  color: #bdefff;
 }
 
 @media (max-width: 1180px) {

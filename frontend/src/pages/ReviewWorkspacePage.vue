@@ -122,9 +122,10 @@ function recordFrom(value: unknown): value is Record<string, unknown> {
   min-height: 100dvh;
   padding: 20px;
   background:
-    radial-gradient(circle at 10% 8%, rgba(45, 120, 173, 0.06), transparent 24%),
-    linear-gradient(180deg, #eef3f8, var(--ov-bg) 240px),
-    var(--ov-bg);
+    radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(52, 211, 153, 0.1), transparent 26%),
+    linear-gradient(180deg, #06111f 0%, #081724 44%, #050b13 100%);
+  color: #e6f3ff;
 }
 
 .page-header,
@@ -148,6 +149,108 @@ function recordFrom(value: unknown): value is Record<string, unknown> {
 .review-stack {
   display: grid;
   gap: 14px;
+}
+
+:deep(.ov-card) {
+  border: 1px solid rgba(91, 176, 214, 0.24);
+  background:
+    linear-gradient(180deg, rgba(15, 33, 51, 0.94), rgba(8, 20, 33, 0.96)),
+    rgba(8, 20, 33, 0.96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+:deep(.section-heading__eyebrow),
+:deep(.roi-label-field span),
+:deep(dt),
+:deep(.roi-status),
+:deep(.ov-empty-text) {
+  color: rgba(176, 207, 229, 0.72);
+}
+
+:deep(.section-heading h2),
+:deep(.section-heading__title),
+:deep(strong),
+:deep(dd) {
+  color: #eef8ff;
+}
+
+:deep(p) {
+  color: rgba(216, 232, 244, 0.78);
+}
+
+:deep(.roi-label-field input),
+:deep(.roi-label-field select) {
+  border-color: rgba(91, 176, 214, 0.3);
+  background: rgba(3, 10, 20, 0.78);
+  color: #e9f7ff;
+}
+
+:deep(.roi-label-field input::placeholder) {
+  color: rgba(176, 207, 229, 0.45);
+}
+
+:deep(.canvas-frame) {
+  border-color: rgba(91, 176, 214, 0.32);
+  background: #07121d;
+  box-shadow: inset 0 0 32px rgba(34, 211, 238, 0.08);
+}
+
+:deep(.canvas-frame.empty) {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(34, 211, 238, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(7, 18, 29, 0.98), rgba(3, 10, 18, 0.98));
+}
+
+:deep(.roi-svg rect:first-of-type) {
+  fill: #07121d;
+}
+
+:deep(.canvas-meta),
+:deep(.empty-canvas-copy) {
+  border: 1px solid rgba(91, 176, 214, 0.26);
+  background: rgba(3, 10, 20, 0.78);
+  color: rgba(229, 246, 255, 0.86);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+}
+
+:deep(.empty-canvas-copy strong) {
+  color: #67e8f9;
+}
+
+:deep(.empty-canvas-copy span) {
+  color: rgba(176, 207, 229, 0.74);
+}
+
+:deep(.candidate-list li) {
+  border-color: rgba(91, 176, 214, 0.2);
+  background: rgba(3, 12, 23, 0.62);
+}
+
+:deep(.candidate-list li.selected) {
+  border-color: rgba(34, 211, 238, 0.74);
+  background: linear-gradient(180deg, rgba(13, 54, 75, 0.76), rgba(7, 24, 39, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.12);
+}
+
+:deep(.candidate-title span) {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
+:deep(.ov-button--secondary),
+:deep(.ov-button--ghost) {
+  border-color: rgba(91, 176, 214, 0.28);
+  background: rgba(8, 22, 36, 0.82);
+  color: #dff5ff;
+}
+
+:deep(.ov-button--primary) {
+  background: linear-gradient(135deg, #0891b2, #14b8a6);
+  color: #f8fdff;
+}
+
+:deep(.ov-button:disabled) {
+  opacity: 0.45;
 }
 
 @media (max-width: 860px) {

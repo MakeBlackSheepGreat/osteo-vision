@@ -85,6 +85,7 @@
 - 正式研究报告默认分别撰写中文和英文 Markdown 版本，文件名使用 `_zh.md` 和 `_en.md` 后缀。
 - 修改共享框架能力时，优先保持可配置、可复用、可测试。
 - 接入颌骨骨髓炎专用逻辑时，优先从 `configs/tasks/osteo_vision.yml`、`configs/inference/osteo_vision.yml` 和独立适配器进入，避免把疾病专用假设散落到共享层。
+- GitHub 协作默认通过功能分支和 Pull Request 进入远程仓库；除非用户明确要求，不直接推送到 `main` 或其他主分支。
 
 ## Current Structure
 

@@ -564,7 +564,7 @@ function emitColormap(event: Event) {
 .video-library-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 5px;
 }
 
 .video-library-filters {
@@ -748,14 +748,14 @@ function emitColormap(event: Event) {
 
 .camera-action-row {
   display: grid;
-  grid-template-columns: 1fr 0.72fr 0.72fr;
-  gap: 6px;
+  grid-template-columns: minmax(126px, 1.16fr) minmax(64px, 0.72fr) minmax(64px, 0.72fr);
+  gap: 5px;
 }
 
 .input-action-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
-  gap: 7px;
+  grid-template-columns: minmax(134px, 1fr) minmax(108px, 0.86fr);
+  gap: 6px;
 }
 
 .camera-action-row :deep(.app-button),
@@ -766,16 +766,54 @@ function emitColormap(event: Event) {
 .analysis-action-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
+  gap: 5px;
   margin-top: 7px;
 }
 
+.video-library-actions :deep(.app-button),
 .camera-action-row :deep(.app-button),
 .input-action-row :deep(.app-button),
 .analysis-action-row :deep(.app-button) {
   min-width: 0;
-  padding-right: 7px;
-  padding-left: 7px;
+  gap: 5px;
+  padding-right: 6px;
+  padding-left: 6px;
+  font-size: 12px;
+}
+
+.video-library-actions :deep(.app-button__label),
+.camera-action-row :deep(.app-button__label),
+.input-action-row :deep(.app-button__label),
+.analysis-action-row :deep(.app-button__label) {
+  flex: 0 1 auto;
+  min-width: max-content;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.video-library-actions :deep(.app-icon),
+.camera-action-row :deep(.app-icon),
+.input-action-row :deep(.app-icon),
+.analysis-action-row :deep(.app-icon) {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 420px) {
+  .camera-action-row,
+  .input-action-row,
+  .analysis-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .video-library-actions :deep(.app-button),
+  .camera-action-row :deep(.app-button),
+  .input-action-row :deep(.app-button),
+  .analysis-action-row :deep(.app-button) {
+    min-height: 32px;
+  }
 }
 
 .realtime-status,

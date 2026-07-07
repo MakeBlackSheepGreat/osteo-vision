@@ -102,6 +102,12 @@
           @close-fullscreen="closeAnalysisFullscreen"
         />
 
+        <Anatomy3DPanel
+          :candidates="displayCandidates"
+          :metrics="displayMetricMap"
+          :mode-label="latestMode === 'video_file_keyframes' ? 'MP4热点空间证据' : '双通道融合证据'"
+        />
+
         <details v-if="showDebugPanel" class="debug-panel">
           <summary>开发调试数据</summary>
           <pre>{{ store.currentCase }}</pre>
@@ -117,6 +123,7 @@ import { computed, ref, watch } from "vue";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
+import Anatomy3DPanel from "@/components/Anatomy3DPanel.vue";
 import CaseWorkspaceControls from "@/components/CaseWorkspaceControls.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import {
@@ -831,9 +838,13 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   min-height: 100dvh;
   padding: 14px 28px 24px;
   background:
-    linear-gradient(180deg, rgba(236, 243, 250, 0.96), rgba(246, 249, 252, 0.98) 260px),
-    #f3f6fa;
-  color: #162020;
+    radial-gradient(circle at 12% 4%, rgba(44, 126, 192, 0.28), transparent 28%),
+    radial-gradient(circle at 86% 0%, rgba(58, 211, 255, 0.16), transparent 30%),
+    linear-gradient(rgba(103, 222, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 222, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, #07131f, #091724 360px, #06101b);
+  background-size: auto, auto, 28px 28px, 28px 28px, auto;
+  color: #d8edf7;
 }
 
 .workspace-header,
@@ -854,18 +865,20 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-title h1 {
   margin: 0;
-  color: #102136;
+  color: #f2fbff;
   font-size: 32px;
   line-height: 1.15;
   letter-spacing: 0;
+  text-shadow: 0 0 22px rgba(103, 222, 255, 0.22);
   overflow-wrap: anywhere;
 }
 
 .review-notice {
   margin-bottom: 12px;
-  border: 1px solid #e49b3f;
+  border: 1px solid rgba(231, 174, 82, 0.5);
   border-radius: 5px;
-  background: #fffaf0;
+  background: rgba(47, 35, 15, 0.72);
+  box-shadow: 0 0 22px rgba(231, 174, 82, 0.08);
 }
 
 .review-notice summary {
@@ -892,7 +905,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .review-notice[open] summary {
-  border-bottom: 1px solid rgba(228, 155, 63, 0.42);
+  border-bottom: 1px solid rgba(228, 155, 63, 0.34);
 }
 
 .review-notice[open] summary::after {
@@ -905,14 +918,14 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .review-notice strong {
-  color: #bd650c;
+  color: #ffd58f;
   font-size: 14px;
   white-space: nowrap;
 }
 
 .review-notice span {
   min-width: 0;
-  color: #405060;
+  color: #d8c8ab;
   font-size: 13px;
   font-weight: 700;
   overflow: hidden;
@@ -923,7 +936,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 .review-notice p {
   margin: 0;
   padding: 10px 14px 12px 46px;
-  color: #405060;
+  color: #d8c8ab;
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -951,10 +964,12 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 .result-card,
 .debug-panel {
   min-width: 0;
-  border: 1px solid #d6e0eb;
+  border: 1px solid rgba(123, 215, 255, 0.26);
   border-radius: 6px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  background: rgba(8, 22, 36, 0.86);
+  box-shadow:
+    0 0 0 1px rgba(71, 208, 255, 0.08) inset,
+    0 14px 34px rgba(0, 0, 0, 0.16);
 }
 
 .result-card {
@@ -964,11 +979,11 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 .result-card :deep(.ov-section-heading) {
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #e3ebf3;
+  border-bottom: 1px solid rgba(121, 209, 255, 0.22);
 }
 
 .result-card :deep(.ov-section-heading__title) {
-  color: #102136;
+  color: #f2fbff;
   font-size: 15px;
 }
 
@@ -978,11 +993,11 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .empty-inline {
   margin: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid rgba(123, 215, 255, 0.22);
   border-radius: 5px;
   padding: 10px 12px;
-  background: #fbfdff;
-  color: #6a7a8a;
+  background: rgba(255, 255, 255, 0.045);
+  color: #9fb8c8;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -990,13 +1005,13 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 .debug-panel {
   opacity: 0.72;
   padding: 0;
-  background: #f8fbfe;
+  background: rgba(8, 22, 36, 0.86);
 }
 
 .debug-panel summary {
   cursor: pointer;
   padding: 8px 12px;
-  color: #5a6a7a;
+  color: #9fb8c8;
   font-size: 12px;
   font-weight: 900;
 }
@@ -1005,12 +1020,217 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   max-height: 260px;
   margin: 0;
   overflow: auto;
-  border-top: 1px solid #e0e8f1;
+  border-top: 1px solid rgba(121, 209, 255, 0.22);
   padding: 12px 16px;
-  color: #405060;
+  color: #c4d9e6;
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.case-workspace :deep(.control-card),
+.case-workspace :deep(.analysis-card),
+.case-workspace :deep(.summary-card),
+.case-workspace :deep(.analysis-quad-card),
+.case-workspace :deep(.fusion-evidence-panel),
+.case-workspace :deep(.hotspot-timeline),
+.case-workspace :deep(.export-panel),
+.case-workspace :deep(.job-panel),
+.case-workspace :deep(.hotspot-frame-detail),
+.case-workspace :deep(.hotspot-frame-drawer),
+.case-workspace :deep(.timeline-manifest-panel) {
+  border-color: rgba(123, 215, 255, 0.25);
+  background:
+    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
+    #081624;
+  color: #d9edf7;
+  box-shadow:
+    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
+    0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.case-workspace :deep(.control-card .ov-section-heading),
+.case-workspace :deep(.compact-card-header),
+.case-workspace :deep(.analysis-header),
+.case-workspace :deep(.fusion-evidence-panel header),
+.case-workspace :deep(.hotspot-timeline header),
+.case-workspace :deep(.timeline-manifest-panel header) {
+  border-color: rgba(121, 209, 255, 0.22);
+}
+
+.case-workspace :deep(h2),
+.case-workspace :deep(.analysis-header h2),
+.case-workspace :deep(.fullscreen-header h2),
+.case-workspace :deep(.ov-section-heading__title),
+.case-workspace :deep(.compact-card-header strong),
+.case-workspace :deep(.summary-chip strong),
+.case-workspace :deep(.metric-grid dd),
+.case-workspace :deep(.candidate-topline strong),
+.case-workspace :deep(.analysis-quad-card header),
+.case-workspace :deep(.fusion-evidence-panel header div),
+.case-workspace :deep(.fusion-evidence-grid dd),
+.case-workspace :deep(.timeline-summary-grid dd),
+.case-workspace :deep(.hotspot-timeline-copy strong),
+.case-workspace :deep(.hotspot-timeline-copy dd),
+.case-workspace :deep(.hotspot-frame-detail dd),
+.case-workspace :deep(.hotspot-frame-row strong) {
+  color: #f2fbff;
+}
+
+.case-workspace :deep(.field span),
+.case-workspace :deep(.camera-panel-copy span),
+.case-workspace :deep(.summary-chip),
+.case-workspace :deep(.compact-card-header > span),
+.case-workspace :deep(.summary-subtitle),
+.case-workspace :deep(.metric-grid dt),
+.case-workspace :deep(.candidate-meta p),
+.case-workspace :deep(.analysis-quad-card p),
+.case-workspace :deep(.state-message),
+.case-workspace :deep(.export-path),
+.case-workspace :deep(.fusion-evidence-grid dt),
+.case-workspace :deep(.timeline-summary-grid dt),
+.case-workspace :deep(.hotspot-timeline header span),
+.case-workspace :deep(.hotspot-timeline-copy span),
+.case-workspace :deep(.hotspot-timeline-copy dt),
+.case-workspace :deep(.hotspot-frame-actions span),
+.case-workspace :deep(.hotspot-frame-detail dt),
+.case-workspace :deep(.hotspot-frame-detail p),
+.case-workspace :deep(.hotspot-frame-row small) {
+  color: #9dbccc;
+}
+
+.case-workspace :deep(input),
+.case-workspace :deep(select),
+.case-workspace :deep(output) {
+  border-color: rgba(123, 215, 255, 0.28);
+  background: rgba(3, 14, 25, 0.78);
+  color: #eefaff;
+}
+
+.case-workspace :deep(input::placeholder) {
+  color: #7694a8;
+}
+
+.case-workspace :deep(input:focus),
+.case-workspace :deep(select:focus) {
+  border-color: #74d7ff;
+  outline: 2px solid rgba(116, 215, 255, 0.22);
+}
+
+.case-workspace :deep(.camera-input-panel),
+.case-workspace :deep(.video-candidate-card),
+.case-workspace :deep(.metric-grid div),
+.case-workspace :deep(.candidate-list li),
+.case-workspace :deep(.summary-chip),
+.case-workspace :deep(.export-link),
+.case-workspace :deep(.export-summary-grid div),
+.case-workspace :deep(.export-artifact-list li),
+.case-workspace :deep(.fusion-colorbar),
+.case-workspace :deep(.fusion-evidence-grid div),
+.case-workspace :deep(.timeline-summary-grid div),
+.case-workspace :deep(.timeline-trace-list li),
+.case-workspace :deep(.hotspot-timeline-item),
+.case-workspace :deep(.hotspot-frame-row) {
+  border-color: rgba(123, 215, 255, 0.2);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.case-workspace :deep(.analysis-quad-viewport) {
+  border-color: rgba(123, 215, 255, 0.24);
+  background:
+    linear-gradient(90deg, rgba(86, 207, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(86, 207, 255, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 50% 40%, rgba(55, 182, 255, 0.12), transparent 38%),
+    linear-gradient(180deg, #081623, #06111d);
+  background-size: 28px 28px, 28px 28px, auto, auto;
+}
+
+.case-workspace :deep(.camera-viewport) {
+  background:
+    linear-gradient(90deg, rgba(86, 207, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(86, 207, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(145deg, #0b2130, #07131f);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+
+.case-workspace :deep(.empty-preview-copy) {
+  border-color: rgba(123, 215, 255, 0.32);
+  background: rgba(7, 20, 34, 0.78);
+  color: #9dbccc;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.case-workspace :deep(.empty-preview-copy strong) {
+  color: #dff6ff;
+}
+
+.case-workspace :deep(.empty-preview-copy span) {
+  color: #9dbccc;
+}
+
+.case-workspace :deep(.app-button) {
+  border-color: rgba(116, 215, 255, 0.34);
+  background: linear-gradient(180deg, rgba(15, 45, 68, 0.96), rgba(7, 25, 41, 0.96));
+  color: #dff7ff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.case-workspace :deep(.app-button--primary) {
+  border-color: #74d7ff;
+  background: linear-gradient(180deg, #2f8dcc, #155f96);
+  color: #ffffff;
+}
+
+.case-workspace :deep(.app-button--ghost) {
+  background: rgba(18, 52, 76, 0.82);
+  color: #bdefff;
+}
+
+.case-workspace :deep(.app-button:disabled) {
+  opacity: 0.48;
+}
+
+.case-workspace :deep(.run-pill),
+.case-workspace :deep(.candidate-topline span),
+.case-workspace :deep(.frame-row-status),
+.case-workspace :deep(.hotspot-filter-group button),
+.case-workspace :deep(.timeline-manifest-panel header a),
+.case-workspace :deep(.hotspot-frame-links a) {
+  border: 1px solid rgba(123, 215, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: #bdefff;
+}
+
+.case-workspace :deep(.run-pill.running),
+.case-workspace :deep(.job-panel.timeout) {
+  border-color: rgba(231, 174, 82, 0.45);
+  background: rgba(47, 35, 15, 0.62);
+  color: #ffd58f;
+}
+
+.case-workspace :deep(.run-pill.failed),
+.case-workspace :deep(.state-message.error),
+.case-workspace :deep(.operation-message.error) {
+  border-color: rgba(255, 116, 122, 0.42);
+  background: rgba(68, 19, 25, 0.68);
+  color: #ffd3d6;
+}
+
+.case-workspace :deep(.operation-message),
+.case-workspace :deep(.realtime-status),
+.case-workspace :deep(.state-message.muted),
+.case-workspace :deep(.hotspot-empty-state) {
+  border-color: rgba(123, 215, 255, 0.22);
+  background: rgba(255, 255, 255, 0.045);
+  color: #9dbccc;
+}
+
+.case-workspace :deep(.summary-divider),
+.case-workspace :deep(.hotspot-frame-table) {
+  border-color: rgba(121, 209, 255, 0.18);
+  background: transparent;
 }
 
 @media (max-width: 1359px) {
