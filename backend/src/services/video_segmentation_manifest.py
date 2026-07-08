@@ -17,6 +17,7 @@ def write_video_frame_details_manifest(
     source_path: str,
     keyframe_report: dict[str, Any],
     frame_details: list[dict[str, Any]],
+    three_d_evidence: dict[str, Any] | None = None,
 ) -> str:
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -34,6 +35,7 @@ def write_video_frame_details_manifest(
         "duration_sec": keyframe_report.get("duration_sec"),
         "selected_frame_count": len(frame_details),
         "temporal_stability_summary": video_temporal_summary(frame_details),
+        "three_d_evidence": three_d_evidence or {},
         "frames": frame_details,
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -49,6 +51,7 @@ def write_video_segmentation_outputs(
     keyframe_report: dict[str, Any],
     frame_details: list[dict[str, Any]],
     hotspot_outputs: list[dict[str, Any]],
+    three_d_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -94,6 +97,9 @@ def write_video_segmentation_outputs(
         "analysis_scope": "selected_mp4_keyframes_video_signal_segmentation",
         "temporal_stability": video_temporal_summary(frame_details),
         "video_signal_outputs": ["bone_gate_mask", "fluorescence_signal_mask", "risk_mask", "uncertain_mask"],
+        "three_d_evidence_available": bool((three_d_evidence or {}).get("model_path")),
+        "three_d_registration_status": (three_d_evidence or {}).get("registration_status") or "not_recorded",
+        "three_d_navigation_ready": bool((three_d_evidence or {}).get("navigation_ready")),
         "medical_boundary": (
             "Platform video signal segmentation workflow; fluorescence/perfusion risk prompts require "
             "physician review and are not a clinical diagnosis."
@@ -118,6 +124,7 @@ def write_video_segmentation_outputs(
         "segmentation_review_video_path": overlay_video_path,
         "mask_review_video_path": mask_video_path,
         "summary": summary,
+        "three_d_evidence": three_d_evidence or {},
         "frames": frames,
         "disclaimer": disclaimer_context(),
     }

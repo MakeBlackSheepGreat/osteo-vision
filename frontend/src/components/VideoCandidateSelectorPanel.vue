@@ -159,9 +159,9 @@ watch(filteredVideoCandidates, (candidates) => {
 <style scoped>
 .video-library-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px;
+  grid-template-columns: 1fr;
   gap: 6px;
-  align-items: center;
+  align-items: stretch;
   margin: -1px 0 8px;
 }
 
@@ -259,7 +259,8 @@ watch(filteredVideoCandidates, (candidates) => {
   color: #506070;
   font-size: 11px;
   font-weight: 900;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .candidate-badge.fluorescent {

@@ -5,12 +5,13 @@
       <label class="field file-field">
         <span>白光图像路径</span>
         <div class="path-input">
-          <input
+          <textarea
+            ref="whiteLightPathTextarea"
             :value="whiteLightPath"
-            type="text"
+            rows="2"
             placeholder="D:\\data\\case_001\\white.jpg"
             @input="emitPath('white', $event)"
-          />
+          ></textarea>
           <AppButton
             class="file-picker-button"
             variant="ghost"
@@ -27,12 +28,13 @@
       <label class="field file-field">
         <span>ICG 荧光图像路径</span>
         <div class="path-input">
-          <input
+          <textarea
+            ref="fluorescencePathTextarea"
             :value="fluorescencePath"
-            type="text"
+            rows="2"
             placeholder="D:\\data\\case_001\\icg.jpg"
             @input="emitPath('fluorescence', $event)"
-          />
+          ></textarea>
           <AppButton
             class="file-picker-button"
             variant="ghost"
@@ -49,12 +51,13 @@
       <label class="field file-field">
         <span>官方 MP4 视频路径</span>
         <div class="path-input">
-          <input
+          <textarea
+            ref="videoPathTextarea"
             :value="videoPath"
-            type="text"
+            rows="2"
             placeholder="D:\\data\\case_001\\official_4k.mp4"
             @input="emitPath('video', $event)"
-          />
+          ></textarea>
           <AppButton
             class="file-picker-button"
             variant="ghost"
@@ -78,6 +81,7 @@
           @input="emit('update:videoTimepoints', ($event.target as HTMLInputElement).value)"
         />
       </label>
+      <p class="control-group-label">上传与公开视频示例</p>
       <VideoCandidateSelectorPanel
         :loading="loading"
         :has-case="hasCase"
@@ -91,20 +95,7 @@
         @import-video-candidate="emit('importVideoCandidate')"
       />
 
-      <VideoStreamInputPanel
-        :camera-stream="cameraStream"
-        :camera-active="cameraActive"
-        :camera-status-label="cameraStatusLabel"
-        :is-opening-camera="isOpeningCamera"
-        :loading="loading"
-        :has-case="hasCase"
-        :video-stream-preview-src="videoStreamPreviewSrc"
-        :video-stream-preview-label="videoStreamPreviewLabel"
-        @start-camera="emit('startCamera')"
-        @stop-camera="emit('stopCamera')"
-        @import-camera="emit('importCamera')"
-      />
-
+      <p class="control-group-label">写入病例输入</p>
       <div class="input-action-row">
         <AppButton variant="secondary" size="sm" icon="upload" :disabled="loading || !hasCase" @click="emit('importInputs')">
           写入双通道
@@ -183,6 +174,7 @@
           <option value="magenta">品红色</option>
         </select>
       </label>
+      <p class="control-group-label">运行分析流程</p>
       <div class="analysis-action-row">
         <AppButton variant="primary" size="sm" icon="play" :disabled="loading || !hasCase" @click="emit('runAnalysis')">
           双通道分析
@@ -196,28 +188,17 @@
         >
           MP4关键帧
         </AppButton>
-        <AppButton
-          variant="secondary"
-          size="sm"
-          icon="video"
-          :disabled="loading || !hasCase || isOpeningCamera"
-          @click="emit('runRealtimeVideo')"
-        >
-          实时预览
-        </AppButton>
       </div>
-      <p v-if="realtimeVideoActive" class="realtime-status">实时预览通道已登记，当前流式 AI 推理仍为接口预留。</p>
     </section>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref, watch } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import VideoCandidateSelectorPanel from "@/components/VideoCandidateSelectorPanel.vue";
-import VideoStreamInputPanel from "@/components/VideoStreamInputPanel.vue";
 import type { VideoCandidate } from "@/types/case";
 
 // 本组件只负责左侧输入和参数 UI；真正的病例写入、分析和上传动作由父页面执行。
@@ -239,15 +220,11 @@ const emit = defineEmits<{
   loadVideoCandidates: [];
   selectVideoCandidate: [recordId: string];
   importVideoCandidate: [];
-  startCamera: [];
-  stopCamera: [];
-  importCamera: [];
   runAnalysis: [];
   runVideoFileAnalysis: [];
-  runRealtimeVideo: [];
 }>();
 
-withDefaults(defineProps<{
+const props = defineProps<{
   whiteLightPath: string;
   fluorescencePath: string;
   videoPath: string;
@@ -265,23 +242,25 @@ withDefaults(defineProps<{
   selectedVideoCandidateId: string;
   selectedVideoCandidatePreviewSrc: string;
   videoCandidates: VideoCandidate[];
-  cameraStream: MediaStream | null;
-  cameraActive: boolean;
-  cameraStatusLabel: string;
-  isOpeningCamera: boolean;
-  videoStreamPreviewSrc?: string;
-  videoStreamPreviewLabel?: string;
   operationMessage: string;
   operationMessageType: "info" | "error";
-  realtimeVideoActive: boolean;
-}>(), {
-  videoStreamPreviewSrc: "",
-  videoStreamPreviewLabel: "",
-});
+}>();
 
+const whiteLightPathTextarea = ref<HTMLTextAreaElement | null>(null);
+const fluorescencePathTextarea = ref<HTMLTextAreaElement | null>(null);
+const videoPathTextarea = ref<HTMLTextAreaElement | null>(null);
 const whiteLightFileInput = ref<HTMLInputElement | null>(null);
 const fluorescenceFileInput = ref<HTMLInputElement | null>(null);
 const videoFileInput = ref<HTMLInputElement | null>(null);
+
+watch(
+  () => [props.whiteLightPath, props.fluorescencePath, props.videoPath],
+  async () => {
+    await nextTick();
+    resizePathTextareas();
+  },
+  { immediate: true },
+);
 
 function openFilePicker(channel: UploadChannel) {
   if (channel === "white_light") {
@@ -296,7 +275,9 @@ function openFilePicker(channel: UploadChannel) {
 }
 
 function emitPath(kind: "white" | "fluorescence" | "video", event: Event) {
-  const value = (event.target as HTMLInputElement).value;
+  const target = event.target as HTMLTextAreaElement;
+  resizePathTextarea(target);
+  const value = target.value;
   if (kind === "white") {
     emit("update:whiteLightPath", value);
     return;
@@ -319,6 +300,18 @@ function emitNumber(kind: "alpha" | "threshold", event: Event) {
 
 function emitColormap(event: Event) {
   emit("update:colormap", (event.target as HTMLSelectElement).value as Colormap);
+}
+
+function resizePathTextareas() {
+  resizePathTextarea(whiteLightPathTextarea.value);
+  resizePathTextarea(fluorescencePathTextarea.value);
+  resizePathTextarea(videoPathTextarea.value);
+}
+
+function resizePathTextarea(textarea: HTMLTextAreaElement | null) {
+  if (!textarea) return;
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.max(42, textarea.scrollHeight + 4)}px`;
 }
 </script>
 
@@ -366,6 +359,7 @@ function emitColormap(event: Event) {
 }
 
 .field input,
+.field textarea,
 .field select {
   width: 100%;
   min-height: 30px;
@@ -378,10 +372,27 @@ function emitColormap(event: Event) {
   font-size: 13px;
 }
 
+.field textarea {
+  min-height: 42px;
+  line-height: 1.35;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .field input:focus,
+.field textarea:focus,
 .field select:focus {
   outline: 2px solid rgba(30, 111, 166, 0.22);
   border-color: #2980b9;
+}
+
+.control-group-label {
+  margin: 8px 0 5px;
+  color: #1e6fa6;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .path-input {
@@ -401,29 +412,13 @@ function emitColormap(event: Event) {
   overflow: hidden;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.camera-input-panel {
-  display: grid;
-  gap: 6px;
-  margin: 8px 0 7px;
-  border: 1px solid #c7dceb;
-  border-radius: 6px;
-  padding: 7px 8px;
-  background:
-    linear-gradient(180deg, rgba(247, 252, 255, 0.98), rgba(236, 247, 255, 0.98)),
-    #eef8ff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 8px 18px rgba(20, 86, 138, 0.08);
 }
 
 .video-library-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px;
+  grid-template-columns: 1fr;
   gap: 6px;
-  align-items: center;
+  align-items: stretch;
   margin: -1px 0 8px;
 }
 
@@ -521,7 +516,8 @@ function emitColormap(event: Event) {
   color: #506070;
   font-size: 11px;
   font-weight: 900;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .candidate-badge.fluorescent {
@@ -593,43 +589,6 @@ function emitColormap(event: Event) {
   text-decoration: underline;
 }
 
-.camera-panel-header {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.camera-panel-header :deep(.app-icon--tile) {
-  width: 28px;
-  height: 28px;
-}
-
-.camera-panel-copy strong,
-.camera-panel-copy span {
-  display: block;
-  min-width: 0;
-}
-
-.camera-panel-copy strong {
-  color: #102136;
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-.camera-panel-copy span {
-  margin-top: 2px;
-  color: #5a6a7a;
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.camera-action-row {
-  display: grid;
-  grid-template-columns: minmax(126px, 1.16fr) minmax(64px, 0.72fr) minmax(64px, 0.72fr);
-  gap: 5px;
-}
-
 .input-action-row {
   display: grid;
   grid-template-columns: minmax(134px, 1fr) minmax(108px, 0.86fr);
@@ -638,13 +597,12 @@ function emitColormap(event: Event) {
 
 .analysis-action-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
   margin-top: 7px;
 }
 
 .video-library-actions :deep(.app-button),
-.camera-action-row :deep(.app-button),
 .input-action-row :deep(.app-button),
 .analysis-action-row :deep(.app-button) {
   min-width: 0;
@@ -655,18 +613,15 @@ function emitColormap(event: Event) {
 }
 
 .video-library-actions :deep(.app-button__label),
-.camera-action-row :deep(.app-button__label),
 .input-action-row :deep(.app-button__label),
 .analysis-action-row :deep(.app-button__label) {
   flex: 0 1 auto;
-  min-width: max-content;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .video-library-actions :deep(.app-icon),
-.camera-action-row :deep(.app-icon),
 .input-action-row :deep(.app-icon),
 .analysis-action-row :deep(.app-icon) {
   flex: 0 0 auto;
@@ -675,33 +630,23 @@ function emitColormap(event: Event) {
 }
 
 @media (max-width: 420px) {
-  .camera-action-row,
   .input-action-row,
   .analysis-action-row {
     grid-template-columns: 1fr;
   }
 
   .video-library-actions :deep(.app-button),
-  .camera-action-row :deep(.app-button),
   .input-action-row :deep(.app-button),
   .analysis-action-row :deep(.app-button) {
     min-height: 32px;
   }
 }
 
-.realtime-status,
 .operation-message {
   border-radius: 5px;
   padding: 7px 9px;
   font-size: 11px;
   line-height: 1.45;
-}
-
-.realtime-status {
-  margin: 6px 0 0;
-  border: 1px solid #b8d9ed;
-  background: #f2fbff;
-  color: #285c7c;
 }
 
 .operation-message {

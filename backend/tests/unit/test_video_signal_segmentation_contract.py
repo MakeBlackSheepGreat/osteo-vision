@@ -105,11 +105,19 @@ def test_video_segmentation_manifest_writes_signal_masks_and_risk_summary(tmp_pa
         keyframe_report={"fps": 2.0, "width": 3840, "height": 2160, "frame_count": 30, "duration_sec": 15},
         frame_details=frame_details,
         hotspot_outputs=hotspot_outputs,
+        three_d_evidence={
+            "model_path": "artifacts/models/case_001_mandible.glb",
+            "registration_status": "unregistered",
+            "navigation_ready": False,
+        },
     )
     manifest = json.loads((tmp_path / "out" / "video_segmentation_manifest.json").read_text(encoding="utf-8"))
 
     assert outputs["summary"]["risk_frame_count"] == 1
     assert outputs["summary"]["analysis_scope"] == "selected_mp4_keyframes_video_signal_segmentation"
+    assert outputs["summary"]["three_d_evidence_available"] is True
+    assert outputs["summary"]["three_d_registration_status"] == "unregistered"
+    assert manifest["three_d_evidence"]["model_path"] == "artifacts/models/case_001_mandible.glb"
     assert manifest["frames"][0]["video_signal_segmentation"]["bone_gate_mask"]["status"] == (
         "not_available_pending_review"
     )

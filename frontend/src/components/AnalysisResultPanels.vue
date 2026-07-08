@@ -189,9 +189,8 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 .metric-grid dt,
 .metric-grid dd {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .metric-grid dt {

@@ -352,6 +352,7 @@ def test_video_input_analysis_extracts_keyframes(tmp_path: Path, monkeypatch) ->
     assert frame_details[0]["temporal_stability"]["positive_area_fraction_smoothed"] >= 0
     assert latest["fused_outputs"]["temporal_stability_summary"]["frame_count"] == 3
     assert "hotspot_temporal_instability_frame_count" in latest["quantitative_summary"]
+    assert candidate["metadata"]["frame_key"] in {detail["frame_key"] for detail in frame_details}
     assert candidate["metadata"]["source_bbox_xyxy"]
     assert candidate["metadata"]["spatial_mapping"]["source_video_height"] == 60
     assert Path(latest["fused_outputs"]["keyframes"][0]["evidence_path"]).exists()

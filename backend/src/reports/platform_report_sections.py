@@ -54,6 +54,69 @@ def video_signal_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def three_d_evidence_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
+    latest_run = run if isinstance(run, dict) else {}
+    fused_outputs = latest_run.get("fused_outputs") if isinstance(latest_run.get("fused_outputs"), dict) else {}
+    evidence = fused_outputs.get("three_d_evidence") if isinstance(fused_outputs.get("three_d_evidence"), dict) else {}
+    if not evidence:
+        return {
+            "available": False,
+            "section_title": "CBCT/STL 3D evidence reference",
+            "boundary_note": (
+                "No CBCT/STL evidence metadata is attached. The 3D workspace must remain an illustrative "
+                "reference and cannot be used as navigation."
+            ),
+        }
+    transform_chain = evidence.get("transform_chain") if isinstance(evidence.get("transform_chain"), list) else []
+    markups = evidence.get("registration_markups") if isinstance(evidence.get("registration_markups"), list) else []
+    ready_transform_count = sum(1 for item in transform_chain if isinstance(item, dict) and item.get("status") == "ready")
+    ready_markup_count = sum(
+        1
+        for item in markups
+        if isinstance(item, dict) and str(item.get("status") or "").lower() in {"ready", "accepted", "recorded"}
+    )
+    return {
+        "available": True,
+        "section_title": "CBCT/STL 3D evidence reference",
+        "model_available": bool(evidence.get("model_path")),
+        "model_path": evidence.get("model_path"),
+        "model_file_name": evidence.get("model_file_name"),
+        "model_source": evidence.get("model_source"),
+        "model_format": evidence.get("model_format"),
+        "registration_status": evidence.get("registration_status") or "not_recorded",
+        "registration_error_mm": evidence.get("registration_error_mm"),
+        "coordinate_space": evidence.get("coordinate_space"),
+        "navigation_ready": bool(evidence.get("navigation_ready")),
+        "doctor_review_status": evidence.get("doctor_review_status") or "not_recorded",
+        "transform_ready_count": ready_transform_count,
+        "transform_count": len(transform_chain),
+        "markup_ready_count": ready_markup_count,
+        "markup_count": len(markups),
+        "boundary_note": evidence.get(
+            "boundary_note",
+            "CBCT/STL evidence is a reference layer only unless registration and physician review are recorded.",
+        ),
+    }
+
+
+def three_d_evidence_markdown_lines(section: dict[str, Any]) -> list[str]:
+    if not section.get("available"):
+        return [f"- {section.get('boundary_note')}"]
+    lines = [
+        f"- Model file: `{section.get('model_file_name') or 'not recorded'}`",
+        f"- Model path: `{section.get('model_path') or 'not recorded'}`",
+        f"- Registration status: `{section.get('registration_status') or 'not recorded'}`",
+        f"- Registration error: `{section.get('registration_error_mm') or 'not recorded'}`",
+        f"- Coordinate space: `{section.get('coordinate_space') or 'not recorded'}`",
+        f"- Transform chain: `{section.get('transform_ready_count') or 0} / {section.get('transform_count') or 0}` ready",
+        f"- Markups: `{section.get('markup_ready_count') or 0} / {section.get('markup_count') or 0}` ready",
+        f"- Navigation ready: `{bool(section.get('navigation_ready'))}`",
+        f"- Doctor review: `{section.get('doctor_review_status') or 'not recorded'}`",
+        f"- Boundary: {section.get('boundary_note')}",
+    ]
+    return lines
+
+
 def video_signal_markdown_lines(section: dict[str, Any]) -> list[str]:
     if not section.get("available"):
         return ["- No MP4/JPEG video signal segmentation output recorded."]

@@ -1,4 +1,5 @@
 # Keep large or licensed 3D assets local-only.
+local/
 *.stl
 *.STL
 *.glb

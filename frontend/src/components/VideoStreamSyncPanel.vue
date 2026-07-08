@@ -184,9 +184,8 @@ const emit = defineEmits<{
 .video-sync-status strong,
 .video-sync-status span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .video-sync-status strong {
@@ -218,9 +217,8 @@ const emit = defineEmits<{
 .video-sync-grid dt,
 .video-sync-grid dd {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .video-sync-grid dt {

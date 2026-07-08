@@ -157,9 +157,8 @@ defineProps<{
 .fusion-evidence-grid dt,
 .fusion-evidence-grid dd {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .fusion-evidence-grid dt {

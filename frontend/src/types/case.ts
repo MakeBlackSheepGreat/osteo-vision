@@ -39,6 +39,138 @@ export interface CandidateRegion {
   metadata?: Record<string, unknown>;
 }
 
+export interface ThreeDEvidenceMarkup {
+  id?: string | null;
+  label?: string | null;
+  type?: string | null;
+  source_label?: string | null;
+  target_label?: string | null;
+  source_point_mm?: number[] | Record<string, unknown> | null;
+  target_point_mm?: number[] | Record<string, unknown> | null;
+  residual_mm?: number | string | null;
+  status?: string | null;
+}
+
+export interface ThreeDEvidenceTransformStep {
+  name?: string | null;
+  from_space?: string | null;
+  to_space?: string | null;
+  path?: string | null;
+  error_mm?: number | string | null;
+  status?: string | null;
+}
+
+export interface ThreeDScenePoint {
+  x?: number | string | null;
+  y?: number | string | null;
+  z?: number | string | null;
+}
+
+export interface ThreeDSceneCurve {
+  id?: string | null;
+  label?: string | null;
+  source?: string | null;
+  coordinate_space?: string | null;
+  points_mm?: Array<ThreeDScenePoint | number[]> | null;
+  display_points?: Array<ThreeDScenePoint | number[]> | null;
+}
+
+export interface ThreeDScenePlane {
+  id?: string | null;
+  label?: string | null;
+  source?: string | null;
+  origin_mm?: ThreeDScenePoint | number[] | null;
+  normal?: ThreeDScenePoint | number[] | null;
+  display_position?: ThreeDScenePoint | number[] | null;
+  display_rotation?: ThreeDScenePoint | number[] | null;
+  display_scale?: ThreeDScenePoint | number[] | null;
+  status?: string | null;
+}
+
+export interface ThreeDSceneManifest {
+  schema_version?: string | null;
+  source_project?: string | null;
+  scene_id?: string | null;
+  coordinate_space?: string | null;
+  model_bounds_mm?: {
+    min?: number[] | null;
+    max?: number[] | null;
+    center?: number[] | null;
+    size?: number[] | null;
+  } | null;
+  mandibular_curve?: ThreeDSceneCurve | null;
+  review_planes?: ThreeDScenePlane[] | null;
+  fibula_reference?: {
+    label?: string | null;
+    display_curve?: Array<ThreeDScenePoint | number[]> | null;
+    segment_lengths_mm?: number[] | null;
+    miter_planes?: ThreeDScenePlane[] | null;
+  } | null;
+  slice_views?: Partial<Record<"axial" | "coronal" | "sagittal", { axis?: string | null; base_mm?: number | string | null; note?: string | null }>> | null;
+  migration_notes?: string[] | null;
+}
+
+export interface ThreeDGeometryPlaneIntersection {
+  id?: string | null;
+  label?: string | null;
+  status?: string | null;
+  segment_count?: number | string | null;
+  centroid_mm?: number[] | null;
+  polyline_length_mm?: number | string | null;
+  sample_points_mm?: number[][] | null;
+}
+
+export interface ThreeDGeometrySegmentMeasurement {
+  id?: string | null;
+  from_plane_id?: string | null;
+  to_plane_id?: string | null;
+  length_mm?: number | string | null;
+  measurement_mode?: string | null;
+  status?: string | null;
+}
+
+export interface ThreeDGeometryManifest {
+  schema_version?: string | null;
+  source?: Record<string, unknown> | null;
+  mesh_summary?: Record<string, unknown> | null;
+  plane_intersections?: ThreeDGeometryPlaneIntersection[] | null;
+  segment_measurements?: ThreeDGeometrySegmentMeasurement[] | null;
+  candidate_surface_points?: Array<Record<string, unknown>> | null;
+  geometry_status?: Record<string, unknown> | null;
+  data_boundary?: string | null;
+}
+
+export interface ThreeDEvidence {
+  schema_version?: string | null;
+  run_id?: string | null;
+  analysis_mode?: string | null;
+  model_path?: string | null;
+  model_format?: string | null;
+  model_file_name?: string | null;
+  model_source?: string | null;
+  exported_from?: string | null;
+  dicom_series_uid?: string | null;
+  segmentation_source?: string | null;
+  segmentation_review_status?: string | null;
+  registration_status?: string | null;
+  registration_method?: string | null;
+  registration_error_mm?: number | string | null;
+  fiducial_count?: number | string | null;
+  surface_point_count?: number | string | null;
+  coordinate_space?: string | null;
+  transform_path?: string | null;
+  registration_markups?: ThreeDEvidenceMarkup[] | null;
+  transform_chain?: ThreeDEvidenceTransformStep[] | null;
+  doctor_review_status?: string | null;
+  navigation_ready?: boolean | string | null;
+  input_domain?: string | null;
+  data_boundary?: string | null;
+  source_inputs?: Array<Record<string, unknown>> | null;
+  scene_manifest?: ThreeDSceneManifest | null;
+  geometry_manifest_path?: string | null;
+  boundary_note?: string | null;
+}
+
 export interface AnalysisRun {
   run_id: string;
   case_id: string;

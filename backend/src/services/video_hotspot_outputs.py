@@ -63,6 +63,7 @@ def build_hotspot_candidate_regions(
             )
             metadata.update(
                 {
+                    "frame_key": detail.get("frame_key"),
                     "source_bbox_xyxy": spatial_mapping.get("top_component_bbox_source_xyxy"),
                     "source_bbox_normalized": spatial_mapping.get("top_component_bbox_source_normalized"),
                     "source_video_width": spatial_mapping.get("source_video_width"),

@@ -68,7 +68,10 @@
       :playback-duration="playbackDuration"
       :playback-seek-time-sec="playbackSeekTimeSec"
       :playback-seek-token="playbackSeekToken"
+      :camera-opening="cameraOpening"
       @playback-state-change="syncPlaybackState"
+      @start-camera="emit('startCamera')"
+      @stop-camera="emit('stopCamera')"
     />
 
     <VideoStreamSyncPanel
@@ -411,7 +414,10 @@
         :playback-duration="playbackDuration"
         :playback-seek-time-sec="playbackSeekTimeSec"
         :playback-seek-token="playbackSeekToken"
+        :camera-opening="cameraOpening"
         @playback-state-change="syncPlaybackState"
+        @start-camera="emit('startCamera')"
+        @stop-camera="emit('stopCamera')"
         fullscreen
       />
     </div>
@@ -477,6 +483,7 @@ const props = defineProps<{
   videoPlayback: VideoPlaybackAnalysis | null;
   cameraStream: MediaStream | null;
   cameraActive: boolean;
+  cameraOpening: boolean;
   cameraStatusLabel: string;
   analysisExpanded: boolean;
 }>();
@@ -491,6 +498,8 @@ const emit = defineEmits<{
   saveBoneGateMaskEdit: [payload: { maskPngBase64: string; reviewState: ReviewState; reviewerNotes: string }];
   selectHotspotFrame: [key: string];
   updateHotspotTimelineFilter: [filter: HotspotTimelineFilter];
+  startCamera: [];
+  stopCamera: [];
   openFullscreen: [];
   closeFullscreen: [];
 }>();
@@ -533,9 +542,9 @@ watch(
 
 .analysis-header,
 .fullscreen-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
-  justify-content: space-between;
 }
 
 .analysis-header {
@@ -548,10 +557,9 @@ watch(
 }
 
 .analysis-title-block {
-  display: flex;
+  display: grid;
   flex-wrap: wrap;
   gap: 8px 14px;
-  align-items: center;
   min-width: 0;
 }
 
@@ -573,8 +581,11 @@ watch(
 .analysis-header-actions {
   display: inline-flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   gap: 7px;
   align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .analysis-summary-strip {
@@ -589,6 +600,7 @@ watch(
   display: inline-flex;
   gap: 6px;
   align-items: center;
+  max-width: 100%;
   min-height: 26px;
   border: 1px solid #d3e2f1;
   border-radius: 999px;
@@ -605,9 +617,18 @@ watch(
   color: #2c7ec0;
 }
 
+.summary-chip span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .summary-chip strong {
+  min-width: 0;
   color: #102136;
   font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .header-export-button {
@@ -802,9 +823,8 @@ watch(
 .timeline-summary-grid dd {
   margin: 0;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .timeline-summary-grid dt {
@@ -856,9 +876,8 @@ watch(
 .timeline-trace-list span,
 .timeline-trace-list small {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .timeline-trace-list span {
@@ -935,9 +954,8 @@ watch(
 .hotspot-timeline-copy strong,
 .hotspot-timeline-copy span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hotspot-timeline-copy strong {
@@ -961,9 +979,8 @@ watch(
 .hotspot-timeline-copy dt,
 .hotspot-timeline-copy dd {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hotspot-timeline-copy dt {
@@ -1076,12 +1093,11 @@ watch(
 
 .hotspot-frame-links span {
   min-width: 0;
-  overflow: hidden;
   color: #5a6a7a;
   font-size: 11px;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hotspot-frame-detail p {
@@ -1192,7 +1208,8 @@ watch(
   font-size: 11px;
   font-weight: 900;
   text-align: center;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .frame-row-status.review {
@@ -1211,10 +1228,11 @@ watch(
   font-size: 12px;
 }
 
-@media (max-width: 959px) {
+@media (max-width: 1180px) {
   .analysis-header,
   .fullscreen-header {
     align-items: flex-start;
+    grid-template-columns: 1fr;
   }
 
   .analysis-title-block {
@@ -1223,9 +1241,11 @@ watch(
   }
 
   .analysis-header-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
+}
+
+@media (max-width: 959px) {
 
   .analysis-fullscreen-panel {
     padding: 12px;

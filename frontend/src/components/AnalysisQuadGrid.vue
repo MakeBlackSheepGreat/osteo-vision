@@ -6,6 +6,22 @@
         <span>{{ streamTitle }}</span>
         <strong :class="{ active: streamActive }">{{ streamBadge }}</strong>
       </header>
+      <div class="stream-control-row" aria-label="浏览器摄像头控制">
+        <AppButton
+          v-if="!cameraActive"
+          variant="secondary"
+          size="sm"
+          icon="camera"
+          :disabled="cameraOpening"
+          @click="emit('startCamera')"
+        >
+          {{ cameraOpening ? "请求摄像头权限中" : "开启摄像头" }}
+        </AppButton>
+        <AppButton v-else variant="ghost" size="sm" icon="close" @click="emit('stopCamera')">
+          关闭摄像头
+        </AppButton>
+        <span v-if="fileVideoActive" class="stream-control-note">当前 MP4 覆盖显示，摄像头仍可独立开关。</span>
+      </div>
       <div
         class="analysis-quad-viewport camera-viewport"
         :class="{ active: streamActive, 'has-file-video': fileVideoActive }"
@@ -73,6 +89,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
+import AppButton from "@/components/AppButton.vue";
 import type { AnalysisPreviewPanel, VideoPlaybackAnalysis } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 
@@ -81,6 +98,7 @@ const props = withDefaults(
     panels: AnalysisPreviewPanel[];
     cameraStream: MediaStream | null;
     cameraActive: boolean;
+    cameraOpening?: boolean;
     cameraStatusLabel: string;
     videoPlayback?: VideoPlaybackAnalysis | null;
     currentPlaybackTime?: number;
@@ -95,11 +113,14 @@ const props = withDefaults(
     playbackSeekTimeSec: null,
     playbackSeekToken: 0,
     fullscreen: false,
+    cameraOpening: false,
   },
 );
 
 const emit = defineEmits<{
   playbackStateChange: [timeSec: number, durationSec: number];
+  startCamera: [];
+  stopCamera: [];
 }>();
 
 const cameraVideoRef = ref<HTMLVideoElement | null>(null);
@@ -191,7 +212,7 @@ function panelIcon(title: string): AppIconName {
 
 .analysis-quad-card {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-width: 0;
   border: 1px solid #d4e2f0;
   border-radius: 6px;
@@ -201,6 +222,7 @@ function panelIcon(title: string): AppIconName {
 
 .analysis-quad-card header {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   align-items: center;
   margin-bottom: 6px;
@@ -209,13 +231,21 @@ function panelIcon(title: string): AppIconName {
   font-weight: 900;
 }
 
+.analysis-quad-card header span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .analysis-quad-card header :deep(.app-icon) {
+  flex: 0 0 auto;
   width: 15px;
   height: 15px;
   color: #2c7ec0;
 }
 
 .analysis-quad-card header strong {
+  max-width: 100%;
   margin-left: auto;
   border: 1px solid #d6e0eb;
   border-radius: 999px;
@@ -224,12 +254,45 @@ function panelIcon(title: string): AppIconName {
   color: #6a7a8a;
   font-size: 10px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .analysis-quad-card header strong.active {
   border-color: #a8dec8;
   background: #eefaf5;
   color: #168a63;
+}
+
+.stream-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  margin: 0 0 7px;
+}
+
+.stream-control-row :deep(.app-button) {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stream-control-row :deep(.app-button__label) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.stream-control-note {
+  min-width: 0;
+  color: #5a6a7a;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .analysis-quad-viewport {
@@ -351,6 +414,7 @@ function panelIcon(title: string): AppIconName {
   gap: 4px;
   justify-items: center;
   max-width: min(78%, 280px);
+  min-width: 0;
   border: 1px solid rgba(44, 126, 192, 0.28);
   border-radius: 8px;
   padding: 10px 14px;
@@ -364,6 +428,8 @@ function panelIcon(title: string): AppIconName {
   color: #155f96;
   font-size: 12px;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .empty-preview-copy span {
@@ -371,6 +437,8 @@ function panelIcon(title: string): AppIconName {
   font-size: 11px;
   font-weight: 800;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .analysis-quad-card p {

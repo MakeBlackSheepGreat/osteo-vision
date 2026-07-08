@@ -56,6 +56,7 @@ describe("AnalysisWorkspaceCard frame details", () => {
           frameDetails,
           boundaryLabel: "Keyframe-based playback analysis; physician review required.",
         },
+        cameraOpening: false,
       },
       global: {
         stubs: {
@@ -68,6 +69,46 @@ describe("AnalysisWorkspaceCard frame details", () => {
     expect(wrapper.text()).toContain("MP4");
     expect(wrapper.find("video.video-stream-player").exists()).toBe(true);
     expect(wrapper.find("video.camera-live-player").attributes("style")).toContain("display: none");
+  });
+
+  it("exposes camera start and stop actions in the shared video stream viewport", async () => {
+    const inactive = mount(AnalysisQuadGrid, {
+      props: {
+        panels: [],
+        cameraStream: null,
+        cameraActive: false,
+        cameraOpening: false,
+        cameraStatusLabel: "未连接",
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(inactive.text()).toContain("开启摄像头");
+    await inactive.find("button").trigger("click");
+    expect(inactive.emitted("startCamera")).toHaveLength(1);
+
+    const active = mount(AnalysisQuadGrid, {
+      props: {
+        panels: [],
+        cameraStream: null,
+        cameraActive: true,
+        cameraOpening: false,
+        cameraStatusLabel: "摄像头已连接",
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(active.text()).toContain("关闭摄像头");
+    await active.find("button").trigger("click");
+    expect(active.emitted("stopCamera")).toHaveLength(1);
   });
 
   it("shows all frame details and emits selected frame keys", async () => {
@@ -100,6 +141,7 @@ describe("AnalysisWorkspaceCard frame details", () => {
         videoPlayback: null,
         cameraStream: null,
         cameraActive: false,
+        cameraOpening: false,
         cameraStatusLabel: "未连接",
         analysisExpanded: false,
       },
@@ -165,6 +207,7 @@ describe("AnalysisWorkspaceCard frame details", () => {
         },
         cameraStream: null,
         cameraActive: false,
+        cameraOpening: false,
         cameraStatusLabel: "未连接",
         analysisExpanded: false,
       },

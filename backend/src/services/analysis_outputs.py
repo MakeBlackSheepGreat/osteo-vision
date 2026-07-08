@@ -28,6 +28,7 @@ def video_fused_outputs(
     frame_details_manifest_path: str | None,
     video_segmentation_outputs: dict[str, Any],
     roi_hints: list[dict[str, Any]],
+    three_d_evidence: dict[str, Any],
 ) -> dict[str, Any]:
     # MP4 分析结果字段较多，集中装配可以让 AnalysisService 只保留流程编排。
     return {
@@ -51,6 +52,7 @@ def video_fused_outputs(
         "segmentation_review_video_path": video_segmentation_outputs.get("segmentation_review_video_path"),
         "mask_review_video_path": video_segmentation_outputs.get("mask_review_video_path"),
         "video_segmentation_summary": video_segmentation_outputs.get("summary", {}),
+        "three_d_evidence": three_d_evidence,
         "roi_hints": roi_hints,
         "disclaimer_context": disclaimer_context(),
     }
@@ -113,12 +115,14 @@ def fusion_fused_outputs(
     *,
     outputs: dict[str, Any],
     roi_hints: list[dict[str, Any]],
+    three_d_evidence: dict[str, Any],
 ) -> dict[str, Any]:
     # 双通道融合报告来自底层处理函数，这里只补平台层需要追踪的 ROI 和安全边界上下文。
     return {
         **fusion_report,
         "outputs": outputs,
         "roi_hints": roi_hints,
+        "three_d_evidence": three_d_evidence,
         "disclaimer_context": disclaimer_context(),
     }
 

@@ -70,7 +70,8 @@ const buttonClass = computed(() => [
   font-weight: 800;
   letter-spacing: 0;
   text-decoration: none;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
   cursor: pointer;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.94) inset,
@@ -172,7 +173,9 @@ const buttonClass = computed(() => [
 
 .app-button__label {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  white-space: normal;
 }
 </style>

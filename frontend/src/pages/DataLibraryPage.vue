@@ -412,7 +412,8 @@ onMounted(() => {
   color: #d8edf7;
   font-size: 11px;
   font-weight: 900;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .candidate-badge.fluorescent {
@@ -483,7 +484,8 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 900;
   text-decoration: none;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .candidate-actions a:hover {

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --ov-bg: #edf4fb;
   --ov-bg-elevated: #ffffff;
   --ov-bg-soft: #f4f9ff;
@@ -21,10 +22,60 @@
   --ov-danger: #a34933;
   --ov-radius: 8px;
   --ov-shadow: 0 14px 32px rgba(22, 76, 120, 0.08);
+  --ov-shell-background:
+    radial-gradient(circle at 12% 0%, rgba(44, 126, 192, 0.12), transparent 30%),
+    linear-gradient(180deg, #f7fbff 0, #edf4fb 260px, #e8f0f8 100%);
+  --ov-top-nav-background: rgba(247, 251, 255, 0.88);
+  --ov-nav-bg: linear-gradient(180deg, #ffffff, #f2f7fc);
+  --ov-nav-bg-active: linear-gradient(180deg, #eef7ff, #dfeefd);
+  --ov-nav-border: rgba(44, 126, 192, 0.28);
+  --ov-nav-border-active: #2c7ec0;
+  --ov-nav-text: #17324a;
+  --ov-nav-text-active: #155f96;
+  --ov-nav-icon: #2c7ec0;
+  --ov-nav-shadow: 0 8px 22px rgba(22, 76, 120, 0.1);
 }
 
 * {
   box-sizing: border-box;
+}
+
+:where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  strong,
+  small,
+  label,
+  legend,
+  summary,
+  button,
+  a,
+  li,
+  dt,
+  dd,
+  pre,
+  th,
+  td,
+  figcaption,
+  output,
+  textarea,
+  select,
+  code
+) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+:where(button, a, summary, label, figcaption, output) {
+  white-space: normal;
 }
 
 body {
@@ -42,6 +93,56 @@ body {
     "Noto Sans CJK SC",
     system-ui,
     sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ov-bg: #06101b;
+    --ov-bg-elevated: #0b1826;
+    --ov-bg-soft: #0f2233;
+    --ov-bg-panel: #081624;
+    --ov-bg-info: #0e263b;
+    --ov-bg-warning: #2f230f;
+    --ov-bg-danger: #3c171b;
+    --ov-bg-success: #102b24;
+    --ov-border: rgba(123, 215, 255, 0.26);
+    --ov-border-subtle: rgba(121, 209, 255, 0.18);
+    --ov-border-strong: rgba(123, 215, 255, 0.34);
+    --ov-border-accent: #74d7ff;
+    --ov-text: #d9edf7;
+    --ov-text-secondary: #9dbccc;
+    --ov-text-muted: #7fa0b3;
+    --ov-primary: #74d7ff;
+    --ov-primary-strong: #9be6ff;
+    --ov-success: #79dcb9;
+    --ov-warning: #ffd58f;
+    --ov-danger: #ffd3d6;
+    --ov-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+    --ov-shell-background:
+      radial-gradient(circle at 80% 0%, rgba(65, 197, 255, 0.16), transparent 30%),
+      linear-gradient(180deg, #07131f, #06101b);
+    --ov-top-nav-background: rgba(7, 19, 31, 0.86);
+    --ov-nav-bg:
+      linear-gradient(180deg, rgba(16, 45, 68, 0.9), rgba(7, 24, 40, 0.9)),
+      #081624;
+    --ov-nav-bg-active:
+      linear-gradient(180deg, rgba(38, 128, 190, 0.58), rgba(13, 54, 82, 0.96)),
+      #0b2840;
+    --ov-nav-border: rgba(123, 215, 255, 0.34);
+    --ov-nav-border-active: #74d7ff;
+    --ov-nav-text: #dff6ff;
+    --ov-nav-text-active: #ffffff;
+    --ov-nav-icon: #aeeeff;
+    --ov-nav-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 9px 22px rgba(0, 0, 0, 0.24),
+      0 0 18px rgba(69, 197, 255, 0.08);
+  }
+
+  body {
+    background: var(--ov-shell-background), var(--ov-bg);
+  }
 }
 
 .ov-card {
@@ -204,6 +305,13 @@ body {
     border-color 160ms ease,
     background 160ms ease,
     box-shadow 160ms ease;
+}
+
+textarea.ov-input {
+  line-height: 1.45;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 select.ov-input {

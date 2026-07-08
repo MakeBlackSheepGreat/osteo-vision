@@ -41,6 +41,7 @@ from backend.src.services.video_segmentation_manifest import (
     write_video_frame_details_manifest as _write_video_frame_details_manifest,
     write_video_segmentation_outputs as _write_video_segmentation_outputs,
 )
+from backend.src.services.three_d_evidence import build_three_d_evidence as _build_three_d_evidence
 from src.core.config import load_yaml
 from src.core.paths import artifact_dirs
 from src.core.task_package import default_task_package, load_task_package
@@ -217,6 +218,12 @@ class AnalysisService:
         video_warnings.extend(_keyframe_segmentation_warnings(hotspot_outputs))
         frame_details = _video_frame_details(keyframes, hotspot_outputs, keyframe_report=keyframe_report)
         timeline_summary = _video_timeline_summary(keyframe_report)
+        three_d_evidence = _build_three_d_evidence(
+            parameters=parameters,
+            source_inputs=[item for item in [video] if item is not None],
+            analysis_mode="video_file_keyframes",
+            run_id=run.run_id,
+        )
         video_segmentation_outputs = (
             _write_video_segmentation_outputs(
                 output_dir / "video_segmentation" / run.run_id,
@@ -226,6 +233,7 @@ class AnalysisService:
                 keyframe_report=keyframe_report,
                 frame_details=frame_details,
                 hotspot_outputs=hotspot_outputs,
+                three_d_evidence=three_d_evidence,
             )
             if keyframes
             else {}
@@ -238,6 +246,7 @@ class AnalysisService:
                 source_path=str(source_path),
                 keyframe_report=keyframe_report,
                 frame_details=frame_details,
+                three_d_evidence=three_d_evidence,
             )
             if keyframes
             else None
@@ -258,6 +267,7 @@ class AnalysisService:
             frame_details_manifest_path=frame_details_manifest_path,
             video_segmentation_outputs=video_segmentation_outputs,
             roi_hints=effective_roi_hints,
+            three_d_evidence=three_d_evidence,
         )
         quantitative_summary = _video_quantitative_summary(
             keyframe_report=keyframe_report,
@@ -325,7 +335,18 @@ class AnalysisService:
                 roi_hints=effective_roi_hints,
             )
             outputs = fusion_report.get("outputs", {})
-            fused_outputs = _fusion_fused_outputs(fusion_report, outputs=outputs, roi_hints=effective_roi_hints)
+            three_d_evidence = _build_three_d_evidence(
+                parameters=parameters,
+                source_inputs=[item for item in [white, fluor] if item is not None],
+                analysis_mode="dual_channel_fusion",
+                run_id=run.run_id,
+            )
+            fused_outputs = _fusion_fused_outputs(
+                fusion_report,
+                outputs=outputs,
+                roi_hints=effective_roi_hints,
+                three_d_evidence=three_d_evidence,
+            )
             analysis_warnings.extend(fusion_report.get("warnings", []))
             quantitative_summary = _fusion_quantitative_summary(fusion_report, roi_hints=effective_roi_hints)
             candidate_regions = _fusion_candidate_regions(run.run_id, fusion_report, roi_hints=effective_roi_hints)

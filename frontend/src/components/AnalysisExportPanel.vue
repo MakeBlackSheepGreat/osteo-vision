@@ -160,9 +160,8 @@ function formatBytes(value: unknown): string {
 .export-summary-grid dt,
 .export-summary-grid dd {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .export-summary-grid dt {
@@ -210,11 +209,10 @@ function formatBytes(value: unknown): string {
 .export-artifact-list span,
 .export-artifact-list small {
   min-width: 0;
-  overflow: hidden;
   color: #405060;
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .export-artifact-list span {

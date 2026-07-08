@@ -21,23 +21,14 @@ const baseProps = {
   selectedVideoCandidateId: "",
   selectedVideoCandidatePreviewSrc: "",
   videoCandidates: [],
-  cameraStream: null,
-  cameraActive: false,
-  cameraStatusLabel: "未连接",
-  isOpeningCamera: false,
   operationMessage: "",
   operationMessageType: "info" as const,
-  realtimeVideoActive: false,
 };
 
 describe("CaseWorkspaceControls video stream area", () => {
-  it("shows selected MP4 examples in the camera/video stream area", () => {
+  it("keeps MP4 input controls without rendering a duplicate left video preview", () => {
     const wrapper = mount(CaseWorkspaceControls, {
-      props: {
-        ...baseProps,
-        videoStreamPreviewSrc: "/files/video?path=demo.mp4",
-        videoStreamPreviewLabel: "demo.mp4",
-      },
+      props: baseProps,
       global: {
         stubs: {
           AppButton: true,
@@ -47,9 +38,10 @@ describe("CaseWorkspaceControls video stream area", () => {
       },
     });
 
-    expect(wrapper.find(".stream-panel-copy strong").text()).toBe("视频流输入");
-    expect(wrapper.find(".stream-preview-viewport.has-file-video").exists()).toBe(true);
-    expect(wrapper.find("video.stream-file-preview").attributes("src")).toBe("/files/video?path=demo.mp4");
-    expect(wrapper.text()).toContain("MP4 示例正在视频流区预览");
+    expect(wrapper.find(".video-stream-input-panel").exists()).toBe(false);
+    expect(wrapper.find(".stream-preview-viewport").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("实时预览");
+    expect(wrapper.text()).toContain("官方 MP4 视频路径");
+    expect(wrapper.find(".analysis-action-row").exists()).toBe(true);
   });
 });
