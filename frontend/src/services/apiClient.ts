@@ -221,12 +221,41 @@ export const apiClient = {
       body: file,
     });
     if (!response.ok) {
-      const body = await response.json().catch(() => null);
+      const body = typeof response.json === "function" ? await response.json().catch(() => null) : null;
       throw new ApiError(response.status, body);
     }
     return response.json() as Promise<UploadResponse>;
   },
   uploadRawImage(file: File): Promise<UploadResponse> {
     return this.uploadRawFile(file);
+  },
+  async uploadThreeDAsset(file: File): Promise<UploadResponse> {
+    const response = await fetch(`${API_BASE_URL}/uploads/raw?keyframe_mode=none`, {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "X-Filename": encodeURIComponent(file.name),
+      },
+      body: file,
+    });
+    if (!response.ok) {
+      const body = typeof response.json === "function" ? await response.json().catch(() => null) : null;
+      throw new ApiError(response.status, body);
+    }
+    return response.json() as Promise<UploadResponse>;
+  },
+  startThreeDModelingJob(parameters: Record<string, unknown>): Promise<BackendJob> {
+    return request<BackendJob>("/three-d/modeling-jobs", {
+      method: "POST",
+      body: JSON.stringify(parameters),
+    });
+  },
+  getThreeDModelingJob(jobId: string): Promise<BackendJob> {
+    return request<BackendJob>(`/three-d/modeling-jobs/${jobId}`);
+  },
+  cancelThreeDModelingJob(jobId: string): Promise<BackendJob> {
+    return request<BackendJob>(`/three-d/modeling-jobs/${jobId}/cancel`, {
+      method: "POST",
+    });
   },
 };

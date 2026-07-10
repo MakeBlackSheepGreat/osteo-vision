@@ -69,4 +69,6 @@ def test_three_d_evidence_demo_entry_is_public_cbct_non_navigation_reference() -
     assert evidence["scene_manifest"]["schema_version"] == "osteo-vision-three-d-scene-v1"
     assert evidence["scene_manifest"]["mandibular_curve"]["label"] == "D024 mandibular reference curve"
     assert evidence["scene_manifest"]["review_planes"][0]["status"] == "illustrative_unregistered"
+    assert evidence["scene_manifest_v2"]["schema_version"] == "osteo-vision-three-d-scene-v2"
+    assert evidence["scene_manifest_v2"]["scene"]["navigation_ready"] is False
     assert "non-target-domain" in evidence["boundary_note"]

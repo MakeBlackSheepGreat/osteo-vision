@@ -299,7 +299,7 @@ function panelIcon(title: string): AppIconName {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: clamp(205px, 17vw, 285px);
+  min-height: clamp(160px, 14vw, 230px);
   overflow: hidden;
   border: 1px solid #cbd8e6;
   border-radius: 4px;
@@ -473,7 +473,7 @@ function panelIcon(title: string): AppIconName {
   }
 
   .analysis-quad-grid:not(.analysis-quad-grid--fullscreen) .analysis-quad-viewport {
-    min-height: 220px;
+    min-height: 190px;
   }
 }
 

@@ -20,6 +20,7 @@ DEFAULT_OUTPUT = Path("frontend/public/models/local/mandible_d024_0001.stl")
 DEFAULT_LABEL_VALUE = 2
 SCHEMA_VERSION = "osteo-vision-cbct-surface-export-v1"
 THREE_D_EVIDENCE_SCHEMA = "osteo-vision-three-d-evidence-v1"
+THREE_D_SCENE_V2_SCHEMA = "osteo-vision-three-d-scene-v2"
 DATA_BOUNDARY = (
     "D024 DentVoxel public CBCT-derived mandible surface; non-target-domain anatomy reference only. "
     "It is not a real jaw osteomyelitis intraoperative ICG case, not registered to video, and not surgical navigation."
@@ -78,7 +79,12 @@ def export_mandible_surface(
         raise ValueError(f"Label {label_value} was not found in {input_path}")
 
     spacing = voxel_spacing_from_image(image, decimation_step=decimation_step)
-    vertices, faces, normals, _ = measure.marching_cubes(mask.astype(np.uint8), level=0.5, spacing=spacing)
+    vertices_voxel, faces, normals, _ = measure.marching_cubes(
+        mask.astype(np.uint8),
+        level=0.5,
+        spacing=(float(decimation_step), float(decimation_step), float(decimation_step)),
+    )
+    vertices = voxel_vertices_to_world_mm(vertices_voxel, image)
     if len(faces) == 0:
         raise ValueError(f"Label {label_value} did not produce a surface mesh")
 
@@ -107,12 +113,34 @@ def export_mandible_surface(
     }
 
 
-def voxel_spacing_from_image(image: nib.spatialimages.SpatialImage, *, decimation_step: int) -> tuple[float, float, float]:
+def voxel_spacing_from_image(
+    image: nib.spatialimages.SpatialImage, *, decimation_step: int
+) -> tuple[float, float, float]:
     zooms = image.header.get_zooms()[:3]
     spacing = tuple(float(value) * decimation_step for value in zooms)
     if len(spacing) != 3 or any(value <= 0 for value in spacing):
         return (1.0 * decimation_step, 1.0 * decimation_step, 1.0 * decimation_step)
     return spacing  # type: ignore[return-value]
+
+
+def voxel_vertices_to_world_mm(vertices: np.ndarray, image: nib.spatialimages.SpatialImage) -> np.ndarray:
+    affine = np.asarray(image.affine, dtype=np.float64)
+    if affine.shape == (4, 4) and np.isfinite(affine).all():
+        linear = affine[:3, :3]
+        translation = affine[:3, 3]
+        affine_spacing = np.linalg.norm(linear, axis=0)
+        header_spacing = np.asarray(image.header.get_zooms()[:3], dtype=np.float64)
+        has_orientation = not np.allclose(linear, np.eye(3), atol=1e-6)
+        has_translation = not np.allclose(translation, 0.0, atol=1e-6)
+        spacing_matches_header = np.allclose(affine_spacing, header_spacing, rtol=1e-3, atol=1e-6)
+        if has_orientation or has_translation or spacing_matches_header:
+            hom = np.c_[vertices.astype(np.float64), np.ones(len(vertices), dtype=np.float64)]
+            return (hom @ affine.T)[:, :3].astype(np.float32)
+
+    spacing = np.asarray(image.header.get_zooms()[:3], dtype=np.float32)
+    if spacing.size != 3 or not np.isfinite(spacing).all() or np.any(spacing <= 0):
+        return vertices.astype(np.float32, copy=False)
+    return (vertices.astype(np.float32, copy=False) * spacing).astype(np.float32, copy=False)
 
 
 def write_binary_stl(
@@ -164,6 +192,18 @@ def build_manifest(
         case_id=case_id,
         vertices=vertices,
         spacing=spacing,
+    )
+    scene_manifest_v2 = build_scene_manifest_v2(
+        dataset_id=dataset_id,
+        case_id=case_id,
+        input_path=input_path,
+        output_path=output_path,
+        label_value=label_value,
+        spacing=spacing,
+        vertices=vertices,
+        faces=faces,
+        sha256=sha256,
+        scene_manifest=scene_manifest,
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -223,6 +263,7 @@ def build_manifest(
             "input_domain": "public_cbct_anatomy_reference",
             "data_boundary": DATA_BOUNDARY,
             "scene_manifest": scene_manifest,
+            "scene_manifest_v2": scene_manifest_v2,
             "boundary_note": DATA_BOUNDARY,
         },
     }
@@ -331,6 +372,177 @@ def build_scene_manifest(
     }
 
 
+def build_scene_manifest_v2(
+    *,
+    dataset_id: str,
+    case_id: str,
+    input_path: Path,
+    output_path: Path,
+    label_value: int,
+    spacing: tuple[float, float, float],
+    vertices: np.ndarray,
+    faces: np.ndarray,
+    sha256: str,
+    scene_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Build a Slicer-like scene graph for platform evidence bundles."""
+    model_bounds = (
+        scene_manifest.get("model_bounds_mm") if isinstance(scene_manifest.get("model_bounds_mm"), dict) else {}
+    )
+    curve = scene_manifest.get("mandibular_curve") if isinstance(scene_manifest.get("mandibular_curve"), dict) else {}
+    planes = scene_manifest.get("review_planes") if isinstance(scene_manifest.get("review_planes"), list) else []
+    markups: list[dict[str, Any]] = [
+        {
+            "id": curve.get("id") or "mandibular_reference_curve",
+            "type": "curve",
+            "role": "mandibular_reference_curve",
+            "name": curve.get("label") or "Mandibular reference curve",
+            "coordinate_space": scene_manifest.get("coordinate_space") or "cbct_label_voxel_spacing_mm",
+            "points_mm": curve.get("points_mm") or [],
+            "display_points": curve.get("display_points") or [],
+            "review_status": "illustrative_not_physician_reviewed",
+            "source": curve.get("source") or "generated display scaffold",
+        }
+    ]
+    for index, plane in enumerate(planes):
+        if not isinstance(plane, dict):
+            continue
+        markups.append(
+            {
+                "id": plane.get("id") or f"review_plane_{index + 1}",
+                "type": "plane",
+                "role": "review_plane",
+                "name": plane.get("label") or f"Review plane {index + 1}",
+                "coordinate_space": scene_manifest.get("coordinate_space") or "cbct_label_voxel_spacing_mm",
+                "origin_mm": plane.get("origin_mm"),
+                "normal": plane.get("normal"),
+                "display_position": plane.get("display_position"),
+                "display_rotation": plane.get("display_rotation"),
+                "display_scale": plane.get("display_scale"),
+                "review_status": plane.get("status") or "illustrative_unregistered",
+                "source": plane.get("source") or "generated display scaffold",
+            }
+        )
+    return {
+        "schema_version": THREE_D_SCENE_V2_SCHEMA,
+        "source_project": "3D Slicer MRML and SlicerBoneReconstructionPlanner-inspired evidence scene",
+        "case_id": case_id,
+        "dataset_id": dataset_id,
+        "scene_id": f"{dataset_id.lower()}_{case_id}_slicer_like_scene",
+        "created_at_utc": datetime.now(UTC).isoformat(),
+        "scene": {
+            "coordinate_space": "cbct_label_voxel_spacing_mm",
+            "registration_status": "unregistered",
+            "registration_error_mm": None,
+            "navigation_ready": False,
+            "doctor_review_status": "not_reviewed",
+        },
+        "subject_hierarchy": [
+            {"id": "case_root", "name": "病例 / 体数据", "children": ["mandible_label_volume"]},
+            {
+                "id": "segmentation_models",
+                "name": "分割 / 模型",
+                "children": ["mandible_segmentation", "mandible_surface_model"],
+            },
+            {"id": "markups_review", "name": "标注 / 平面", "children": [item["id"] for item in markups]},
+            {"id": "geometry_jobs", "name": "几何任务", "children": ["surface_export_job", "quality_check_job"]},
+        ],
+        "nodes": [
+            {
+                "id": "mandible_label_volume",
+                "type": "volume",
+                "role": "source_cbct_label_volume",
+                "name": f"{case_id} label volume",
+                "path": str(input_path),
+                "source": "D024 DentVoxel nnU-Net preprocessed jaw ROI labels",
+                "modality": "CBCT",
+                "coordinate_space": "cbct_label_voxel",
+                "review_status": "public_dataset_annotation_not_case_reviewed",
+                "display": {"visible": False, "view": "slice_reference"},
+            },
+            {
+                "id": "mandible_segmentation",
+                "type": "segmentation",
+                "role": "mandible_label",
+                "name": "mandible label",
+                "path": str(input_path),
+                "source": f"label value {label_value}",
+                "label_value": label_value,
+                "label_name": "mandible",
+                "derived_from": ["mandible_label_volume"],
+                "review_status": "public_dataset_annotation_not_case_reviewed",
+                "display": {"visible": True, "color": "#d9c4a8"},
+            },
+            {
+                "id": "mandible_surface_model",
+                "type": "model",
+                "role": "cbct_derived_mandible_surface",
+                "name": output_path.name,
+                "path": str(output_path),
+                "format": "stl",
+                "source": "marching_cubes from mandible label",
+                "derived_from": ["mandible_segmentation"],
+                "sha256": sha256,
+                "vertex_count": int(len(vertices)),
+                "face_count": int(len(faces)),
+                "model_bounds_mm": model_bounds,
+                "spacing_mm": [float(value) for value in spacing],
+                "review_status": "reference_only_not_physician_reviewed",
+                "display": {"visible": True, "color": "#d8c5ad", "opacity": 1.0},
+            },
+        ],
+        "markups": markups,
+        "transforms": [
+            {
+                "id": "label_volume_to_surface",
+                "type": "derived_surface_export",
+                "from_node": "mandible_label_volume",
+                "to_node": "mandible_surface_model",
+                "from_space": "cbct_label_voxel",
+                "to_space": "mandible_surface_mm",
+                "status": "ready",
+                "error_mm": None,
+            },
+            {
+                "id": "surface_to_video",
+                "type": "cross_modal_registration",
+                "from_node": "mandible_surface_model",
+                "to_node": "fluorescence_video_keyframes",
+                "from_space": "mandible_surface_mm",
+                "to_space": "video_keyframe_reference",
+                "status": "missing",
+                "error_mm": None,
+            },
+        ],
+        "geometry_jobs": [
+            {
+                "id": "surface_export_job",
+                "type": "surface_export",
+                "status": "completed",
+                "tool": "scripts/export_cbct_mandible_surface.py",
+                "inputs": ["mandible_segmentation"],
+                "outputs": ["mandible_surface_model"],
+                "parameters": {"label_value": label_value},
+            },
+            {
+                "id": "quality_check_job",
+                "type": "mesh_quality_summary",
+                "status": "completed",
+                "inputs": ["mandible_surface_model"],
+                "outputs": [],
+                "metrics": {"vertex_count": int(len(vertices)), "face_count": int(len(faces)), "sha256": sha256},
+            },
+        ],
+        "review_state": {
+            "segmentation": "public_dataset_annotation_not_case_reviewed",
+            "model": "reference_only_not_physician_reviewed",
+            "markups": "illustrative_not_physician_reviewed",
+            "fluorescence_video_mapping": "missing_registration",
+        },
+        "data_boundary": DATA_BOUNDARY,
+    }
+
+
 def _mandibular_curve_points(*, bounds_min: np.ndarray, bounds_max: np.ndarray, center: np.ndarray) -> list[np.ndarray]:
     xs = np.linspace(bounds_min[0], bounds_max[0], 7)
     width = max(float(bounds_max[0] - bounds_min[0]), 1e-6)
@@ -338,8 +550,16 @@ def _mandibular_curve_points(*, bounds_min: np.ndarray, bounds_max: np.ndarray, 
     for x in xs:
         t = (float(x) - float(bounds_min[0])) / width
         arch = np.sin(t * np.pi)
-        y = float(bounds_min[1]) + 0.58 * float(bounds_max[1] - bounds_min[1]) - 0.12 * arch * float(bounds_max[1] - bounds_min[1])
-        z = float(bounds_min[2]) + 0.42 * float(bounds_max[2] - bounds_min[2]) + 0.08 * arch * float(bounds_max[2] - bounds_min[2])
+        y = (
+            float(bounds_min[1])
+            + 0.58 * float(bounds_max[1] - bounds_min[1])
+            - 0.12 * arch * float(bounds_max[1] - bounds_min[1])
+        )
+        z = (
+            float(bounds_min[2])
+            + 0.42 * float(bounds_max[2] - bounds_min[2])
+            + 0.08 * arch * float(bounds_max[2] - bounds_min[2])
+        )
         points.append(np.array([float(x), y, z], dtype=np.float32))
     if len(points) == 7:
         points[3][0] = center[0]

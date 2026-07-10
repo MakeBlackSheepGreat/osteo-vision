@@ -19,6 +19,7 @@ class ExportPaths:
     dicom: Path
     review_manifest_json: Path
     review_manifest_csv: Path
+    three_d_scene_manifest: Path
     quantification_csv: Path
     manifest: Path
     bundle_manifest: Path
@@ -33,6 +34,7 @@ class ExportPaths:
             self.quantification_csv,
             self.review_manifest_json,
             self.review_manifest_csv,
+            self.three_d_scene_manifest,
             self.bundle_manifest,
         ]
 
@@ -45,6 +47,7 @@ def export_paths(artifact_dir: Path, case_id: str) -> ExportPaths:
         dicom=export_dir / f"{case_id}_secondary_capture.dcm",
         review_manifest_json=export_dir / f"{case_id}_review_manifest.json",
         review_manifest_csv=export_dir / f"{case_id}_review_manifest.csv",
+        three_d_scene_manifest=export_dir / f"{case_id}_three_d_scene_manifest.json",
         quantification_csv=export_dir / f"{case_id}_quantification.csv",
         manifest=export_dir / f"{case_id}_manifest.json",
         bundle_manifest=export_dir / f"{case_id}_bundle_manifest.json",
@@ -65,6 +68,7 @@ def bundle_manifest_payload(
         "quantification_csv": str(paths.quantification_csv),
         "review_manifest_json": str(paths.review_manifest_json),
         "review_manifest_csv": str(paths.review_manifest_csv),
+        "three_d_scene_manifest": str(paths.three_d_scene_manifest),
         "included_artifacts": included_entries,
         "disclaimer": disclaimer_context(),
     }
@@ -86,6 +90,7 @@ def export_manifest_payload(
         "quantification_csv_path": str(paths.quantification_csv),
         "review_manifest_json_path": str(paths.review_manifest_json),
         "review_manifest_csv_path": str(paths.review_manifest_csv),
+        "three_d_scene_manifest_path": str(paths.three_d_scene_manifest),
         "artifacts": manifest_artifacts,
         "included_artifacts": included_entries,
         "disclaimer": disclaimer_context(),
@@ -100,6 +105,7 @@ def core_manifest_artifacts(paths: ExportPaths) -> list[dict[str, Any]]:
         manifest_record(ArtifactKind.QUANTIFICATION_CSV.value, paths.quantification_csv),
         manifest_record(ArtifactKind.REVIEW_MANIFEST_JSON.value, paths.review_manifest_json),
         manifest_record(ArtifactKind.REVIEW_MANIFEST_CSV.value, paths.review_manifest_csv),
+        manifest_record(ArtifactKind.THREE_D_SCENE_MANIFEST.value, paths.three_d_scene_manifest),
         manifest_record("bundle_manifest", paths.bundle_manifest),
         manifest_record(ArtifactKind.EVIDENCE_BUNDLE.value, paths.bundle),
     ]
@@ -113,6 +119,7 @@ def export_evidence_artifacts(case_id: str, paths: ExportPaths) -> list[Evidence
         (ArtifactKind.QUANTIFICATION_CSV, paths.quantification_csv),
         (ArtifactKind.REVIEW_MANIFEST_JSON, paths.review_manifest_json),
         (ArtifactKind.REVIEW_MANIFEST_CSV, paths.review_manifest_csv),
+        (ArtifactKind.THREE_D_SCENE_MANIFEST, paths.three_d_scene_manifest),
         (ArtifactKind.EVIDENCE_BUNDLE, paths.bundle),
     ]
     return [

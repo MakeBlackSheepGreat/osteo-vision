@@ -20,9 +20,13 @@ from src.preprocess.video import extract_keyframes
 
 MAX_IMAGE_UPLOAD_BYTES = 64 * 1024 * 1024
 MAX_VIDEO_UPLOAD_BYTES = 1024 * 1024 * 1024
+MAX_MEDICAL_3D_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 VIDEO_SUFFIXES = {".mp4"}
-ALLOWED_SUFFIXES = IMAGE_SUFFIXES | VIDEO_SUFFIXES
+MEDICAL_VOLUME_SUFFIXES = {".dcm", ".dicom", ".nii", ".nii.gz", ".nrrd", ".mha", ".mhd"}
+SURFACE_MODEL_SUFFIXES = {".stl", ".glb", ".gltf"}
+MEDICAL_3D_SUFFIXES = MEDICAL_VOLUME_SUFFIXES | SURFACE_MODEL_SUFFIXES
+ALLOWED_SUFFIXES = IMAGE_SUFFIXES | VIDEO_SUFFIXES | MEDICAL_3D_SUFFIXES
 DEFAULT_KEYFRAME_COUNT = 5
 
 
@@ -209,11 +213,16 @@ def _run_keyframe_job(jobs: JobRegistry, job_id: str, source_path: Path, keyfram
 
 
 def _max_upload_bytes(suffix: str) -> int:
-    return MAX_VIDEO_UPLOAD_BYTES if suffix in VIDEO_SUFFIXES else MAX_IMAGE_UPLOAD_BYTES
+    if suffix in VIDEO_SUFFIXES:
+        return MAX_VIDEO_UPLOAD_BYTES
+    if suffix in MEDICAL_3D_SUFFIXES:
+        return MAX_MEDICAL_3D_UPLOAD_BYTES
+    return MAX_IMAGE_UPLOAD_BYTES
 
 
 def _safe_suffix(filename: str) -> str:
-    suffix = Path(unquote(filename)).suffix.lower()
+    name = Path(unquote(filename)).name.lower()
+    suffix = ".nii.gz" if name.endswith(".nii.gz") else Path(name).suffix.lower()
     return suffix or ".png"
 
 
@@ -235,6 +244,16 @@ def _upload_content_type_warnings(suffix: str, content_type: str | None) -> list
         expected = "image/bmp"
     elif suffix in {".tif", ".tiff"}:
         expected = "image/tiff"
+    elif suffix in MEDICAL_VOLUME_SUFFIXES:
+        expected = (
+            normalized if normalized in {"application/dicom", "application/octet-stream", "application/gzip"} else None
+        )
+    elif suffix in SURFACE_MODEL_SUFFIXES:
+        expected = (
+            normalized
+            if normalized in {"model/stl", "model/gltf-binary", "model/gltf+json", "application/octet-stream"}
+            else None
+        )
     if expected is None or normalized == expected:
         return []
     return [

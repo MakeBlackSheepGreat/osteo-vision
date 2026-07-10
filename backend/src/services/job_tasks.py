@@ -5,8 +5,11 @@ from typing import Any
 
 from backend.src.domains.cases.repository import CaseRepository
 from backend.src.domains.cases.schemas import AnalysisRunCreateRequest
+from backend.src.core.settings import Settings
+from backend.src.services.cbct_modeling_service import build_cbct_surface_model
 from backend.src.services.analysis_service import AnalysisService
 from backend.src.services.job_service import JobRegistry
+from backend.src.services.three_d_case_evidence import persist_three_d_modeling_result
 from src.preprocess.video import extract_keyframes
 
 
@@ -98,6 +101,69 @@ def run_upload_keyframes_job(
         "kind": "upload_keyframe_extraction",
         "status": completed.get("status"),
         "keyframes": len(report.get("keyframes") or []),
+    }
+
+
+def run_cbct_surface_modeling_job(
+    jobs: JobRegistry,
+    job_id: str,
+    settings: Settings,
+    source_path: Path,
+    *,
+    repo: CaseRepository | None = None,
+    source_paths: list[Path] | None = None,
+    label_value: int,
+    case_id: str,
+    dataset_id: str,
+    decimation_step: int,
+    source_role: str = "volume",
+    source_original_filename: str | None = None,
+    mark_running: bool = True,
+) -> dict[str, Any]:
+    """生成或接入 CBCT/STL 三维表面证据，保持非导航边界。"""
+
+    if mark_running:
+        jobs.mark_running(job_id)
+    if jobs.is_canceled(job_id):
+        return _job_result(job_id, "cbct_surface_modeling", "canceled")
+
+    jobs.update_progress(job_id, phase="inspect_source", percent=15, message="检查 CBCT/STL 输入与建模边界。")
+    try:
+        jobs.update_progress(job_id, phase="surface_modeling", percent=45, message="生成或接入上下颌骨表面模型。")
+        result = build_cbct_surface_model(
+            settings=settings,
+            source_path=source_path,
+            source_paths=source_paths,
+            label_value=label_value,
+            case_id=case_id,
+            dataset_id=dataset_id,
+            decimation_step=decimation_step,
+            source_role=source_role,
+            source_original_filename=source_original_filename,
+        )
+        result = {
+            **result,
+            "source_path": str(source_path),
+            "source_paths": [str(path) for path in (source_paths or [source_path])],
+        }
+        result = persist_three_d_modeling_result(repo, case_id=case_id, job_id=job_id, result=result)
+    except Exception as exc:
+        jobs.mark_failed(job_id, str(exc))
+        return _job_result(job_id, "cbct_surface_modeling", "failed", error=str(exc))
+
+    jobs.update_progress(job_id, phase="write_manifest", percent=90, message="写入三维证据 manifest。")
+    if result.get("modeling_status") == "segmentation_required":
+        jobs.mark_completed(job_id, result)
+    elif result.get("model_path") or result.get("three_d_evidence"):
+        jobs.mark_completed(job_id, result)
+    else:
+        jobs.mark_failed(job_id, "CBCT surface modeling did not produce a usable result.", result)
+    completed = jobs.get(job_id) or {}
+    return {
+        "job_id": job_id,
+        "kind": "cbct_surface_modeling",
+        "status": completed.get("status"),
+        "result": result,
     }
 
 

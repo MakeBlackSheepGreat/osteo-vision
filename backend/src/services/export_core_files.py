@@ -33,9 +33,40 @@ def write_core_export_files(
     review_manifest, review_rows = build_review_manifest(case)
     write_json(paths.review_manifest_json, review_manifest)
     write_csv(paths.review_manifest_csv, review_rows, REVIEW_MANIFEST_FIELDS)
+    write_json(paths.three_d_scene_manifest, _three_d_scene_manifest_payload(case))
     quant_rows = _quantification_rows(case)
     write_quantification_csv(paths.quantification_csv, quant_rows)
     return report, quant_rows, review_rows
+
+
+def _three_d_scene_manifest_payload(case: CaseRecord) -> dict[str, Any]:
+    latest_run = case.analysis_runs[-1] if case.analysis_runs else None
+    fused_outputs = latest_run.fused_outputs if latest_run is not None else {}
+    evidence = fused_outputs.get("three_d_evidence") if isinstance(fused_outputs.get("three_d_evidence"), dict) else {}
+    if case.three_d_evidence:
+        evidence = {**evidence, **case.three_d_evidence}
+    scene_manifest_v2 = evidence.get("scene_manifest_v2") if isinstance(evidence.get("scene_manifest_v2"), dict) else {}
+    if scene_manifest_v2:
+        return {
+            "schema_version": "osteo-vision-exported-three-d-scene-manifest-v1",
+            "case_id": case.case_id,
+            "run_id": evidence.get("run_id"),
+            "modeling_job_id": case.three_d_modeling.get("job_id"),
+            "available": True,
+            "scene_manifest_v2": scene_manifest_v2,
+            "three_d_evidence_boundary": evidence.get("boundary_note") or evidence.get("data_boundary"),
+        }
+    return {
+        "schema_version": "osteo-vision-exported-three-d-scene-manifest-v1",
+        "case_id": case.case_id,
+        "run_id": latest_run.run_id if latest_run is not None else None,
+        "available": False,
+        "scene_manifest_v2": None,
+        "three_d_evidence_boundary": (
+            "No Slicer-like CBCT/STL scene graph is attached. The exported 3D layer remains unavailable for "
+            "navigation and can only be reconstructed after CBCT/STL import and modeling."
+        ),
+    }
 
 
 def _quantification_rows(case: CaseRecord) -> list[dict[str, Any]]:

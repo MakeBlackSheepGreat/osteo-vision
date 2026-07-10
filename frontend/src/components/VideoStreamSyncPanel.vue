@@ -27,7 +27,7 @@
             <dd>{{ nearestFrameDetail.roiAreaLabel }}</dd>
           </div>
           <div>
-            <dt>Top BBox</dt>
+            <dt>最大候选框</dt>
             <dd>{{ nearestFrameDetail.topBBoxLabel }}</dd>
           </div>
         </dl>
@@ -43,7 +43,7 @@
             生成骨面门控
           </button>
           <button type="button" @click="emit('editBoneGate', nearestFrameDetail)">
-            编辑骨面 mask
+            编辑骨面掩膜
           </button>
           <figure v-if="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref">
             <img
@@ -58,15 +58,15 @@
           </figure>
           <figure v-if="nearestFrameDetail.maskHref">
             <img :src="nearestFrameDetail.maskHref" alt="当前关键帧分割掩膜" />
-            <figcaption>mask</figcaption>
+            <figcaption>分割掩膜</figcaption>
           </figure>
           <figure v-if="nearestFrameDetail.riskMaskHref">
             <img :src="nearestFrameDetail.riskMaskHref" alt="当前关键帧风险图" />
-            <figcaption>risk</figcaption>
+            <figcaption>风险图</figcaption>
           </figure>
           <figure v-if="nearestFrameDetail.uncertainMaskHref">
             <img :src="nearestFrameDetail.uncertainMaskHref" alt="当前关键帧不确定性掩膜" />
-            <figcaption>uncertain</figcaption>
+            <figcaption>不确定性</figcaption>
           </figure>
         </div>
         <div
@@ -87,7 +87,7 @@
             target="_blank"
             rel="noreferrer"
           >
-            mask 复核视频
+            掩膜复核视频
           </a>
         </div>
         <p>{{ videoPlayback.boundaryLabel }}</p>

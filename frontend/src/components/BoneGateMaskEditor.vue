@@ -1,13 +1,13 @@
 <template>
-  <section class="mask-editor" aria-label="骨面门控 mask 编辑器">
+  <section class="mask-editor" aria-label="骨面门控掩膜编辑器">
     <header>
       <div>
         <AppIcon name="target" />
-        <strong>骨面 mask 编辑</strong>
+        <strong>骨面掩膜编辑</strong>
       </div>
       <button type="button" @click="emit('cancel')">关闭</button>
     </header>
-    <div class="editor-toolbar" aria-label="mask 编辑工具">
+    <div class="editor-toolbar" aria-label="掩膜编辑工具">
       <button type="button" :class="{ selected: tool === 'add' }" @click="tool = 'add'">添加</button>
       <button type="button" :class="{ selected: tool === 'erase' }" @click="tool = 'erase'">擦除</button>
       <label>
@@ -23,7 +23,7 @@
         <option value="review_required">待复核</option>
         <option value="rejected">拒绝</option>
       </select>
-      <button type="button" :disabled="loading" @click="save">保存 mask</button>
+      <button type="button" :disabled="loading" @click="save">保存掩膜</button>
     </div>
     <div class="editor-canvas-frame">
       <img v-if="detail?.overlayHref" :src="detail.overlayHref" alt="当前关键帧叠加参考" />
@@ -31,14 +31,14 @@
         ref="canvasEl"
         width="256"
         height="192"
-        aria-label="二值 mask 编辑画布"
+        aria-label="二值掩膜编辑画布"
         @pointerdown="startStroke"
         @pointermove="moveStroke"
         @pointerup="endStroke"
         @pointerleave="endStroke"
       />
     </div>
-    <p>{{ detail?.boneGateStatusLabel ?? "待生成骨面门控" }}；保存后进入复核回灌 manifest。</p>
+    <p>{{ detail?.boneGateStatusLabel ?? "待生成骨面门控" }}；保存后进入复核回灌清单。</p>
   </section>
 </template>
 

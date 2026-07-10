@@ -10,7 +10,7 @@
     <div class="fusion-evidence-body">
       <figure v-if="summary.colorbarPreviewSrc" class="fusion-colorbar">
         <img :src="summary.colorbarPreviewSrc" alt="荧光色标" />
-        <figcaption>阈值 {{ summary.thresholdLabel }} · Alpha {{ summary.alphaLabel }}</figcaption>
+        <figcaption>阈值 {{ summary.thresholdLabel }} · 透明度 {{ summary.alphaLabel }}</figcaption>
       </figure>
       <dl class="fusion-evidence-grid">
         <div>

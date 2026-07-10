@@ -251,7 +251,7 @@ describe("analysis preview panels", () => {
       manifestPath: "timeline_manifest.json",
       manifestHref: "/download?path=timeline_manifest.json",
       scopeLabel: "全时长低频索引",
-      samplingLabel: "quality_peak",
+      samplingLabel: "质量峰值采样",
       frameCountLabel: "120 帧",
       durationLabel: "12.00s",
       fpsLabel: "10.00 fps",

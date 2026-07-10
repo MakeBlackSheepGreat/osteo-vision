@@ -8,6 +8,7 @@ from backend.src.reports.platform_report_sections import (
     json_block,
     latest_quantification_from_report,
     platform_safety_lines,
+    three_d_evidence_markdown_lines,
     quality_flag_markdown_lines,
     video_signal_markdown_lines,
 )
@@ -20,6 +21,7 @@ def build_platform_markdown(case: CaseRecord, report: dict[str, Any]) -> str:
         *_quality_section(case),
         *_json_section("Quantification", quantification),
         *_video_signal_section(report),
+        *_three_d_evidence_section(report),
         *_json_section("Review State", report.get("review_summary", {})),
         *_artifact_section(case),
         *_disclaimer_section(),
@@ -54,6 +56,12 @@ def _video_signal_section(report: dict[str, Any]) -> list[str]:
     section = report.get("video_signal_segmentation")
     section = section if isinstance(section, dict) else {}
     return ["## Fluorescence Perfusion Risk Prompts", "", *video_signal_markdown_lines(section), ""]
+
+
+def _three_d_evidence_section(report: dict[str, Any]) -> list[str]:
+    section = report.get("three_d_evidence")
+    section = section if isinstance(section, dict) else {}
+    return ["## CBCT/STL 3D Evidence Reference", "", *three_d_evidence_markdown_lines(section), ""]
 
 
 def _artifact_section(case: CaseRecord) -> list[str]:

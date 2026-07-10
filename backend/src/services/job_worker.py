@@ -8,7 +8,11 @@ from backend.src.domains.cases.repository import build_case_repository
 from backend.src.domains.cases.schemas import AnalysisRunCreateRequest
 from backend.src.services.analysis_service import AnalysisService
 from backend.src.services.job_service import JobRegistry
-from backend.src.services.job_tasks import run_case_analysis_job, run_upload_keyframes_job
+from backend.src.services.job_tasks import (
+    run_case_analysis_job,
+    run_cbct_surface_modeling_job,
+    run_upload_keyframes_job,
+)
 from src.core.paths import ensure_dir
 
 
@@ -54,6 +58,8 @@ class LocalJobWorker:
             return self._process_case_analysis(job)
         if kind == "upload_keyframe_extraction":
             return self._process_upload_keyframes(job)
+        if kind == "cbct_surface_modeling":
+            return self._process_cbct_surface_modeling(job)
         self.jobs.mark_failed(str(job["job_id"]), f"Unsupported job kind: {kind}")
         return {"job_id": job["job_id"], "kind": kind, "status": "failed", "error": "unsupported kind"}
 
@@ -91,6 +97,27 @@ class LocalJobWorker:
             source_path,
             output_dir,
             max_frames,
+            mark_running=False,
+        )
+
+    def _process_cbct_surface_modeling(self, job: dict[str, Any]) -> dict[str, Any]:
+        job_id = str(job["job_id"])
+        payload = _payload(job)
+        return run_cbct_surface_modeling_job(
+            self.jobs,
+            job_id,
+            self.settings,
+            Path(str(payload.get("source_path") or "")),
+            repo=self.repo,
+            source_paths=[Path(str(path)) for path in payload.get("source_paths") or []],
+            label_value=int(payload.get("label_value") or 1),
+            case_id=str(payload.get("case_id") or "local_cbct"),
+            dataset_id=str(payload.get("dataset_id") or "local_import"),
+            decimation_step=int(payload.get("decimation_step") or 1),
+            source_role=str(payload.get("source_role") or "volume"),
+            source_original_filename=(
+                str(payload.get("source_original_filename")) if payload.get("source_original_filename") else None
+            ),
             mark_running=False,
         )
 

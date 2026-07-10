@@ -50,7 +50,11 @@
           @run-video-file-analysis="runVideoFileAnalysis"
         />
 
-        <AnalysisResultPanels :candidates="displayCandidates" :metrics="displayMetricMap" />
+        <AnalysisResultPanels
+          v-if="showResultSummary"
+          :candidates="displayCandidates"
+          :metrics="displayMetricMap"
+        />
       </aside>
 
       <section class="analysis-column" aria-label="分析结果">
@@ -100,18 +104,21 @@
           @close-fullscreen="closeAnalysisFullscreen"
         />
 
-        <Anatomy3DPanel
-          :candidates="displayCandidates"
-          :metrics="displayMetricMap"
-          :mode-label="latestMode === 'video_file_keyframes' ? 'MP4热点空间证据' : '双通道融合证据'"
-          :three-d-evidence="threeDEvidence"
-        />
-
         <details v-if="showDebugPanel" class="debug-panel">
           <summary>开发调试数据</summary>
           <pre>{{ store.currentCase }}</pre>
         </details>
       </section>
+
+      <Anatomy3DPanel
+        class="workspace-3d-row"
+        :case-id="store.currentCase?.case_id"
+        :candidates="displayCandidates"
+        :metrics="displayMetricMap"
+        :mode-label="latestMode === 'video_file_keyframes' ? 'MP4热点空间证据' : '双通道融合证据'"
+        :three-d-evidence="threeDEvidence"
+        @three-d-evidence-persisted="refreshPersistedThreeDEvidence"
+      />
     </section>
 
   </main>
@@ -244,7 +251,7 @@ const exportLinks = computed(() => {
   const links = [
     { label: "证据包 ZIP", path: result.bundle_path },
     { label: "JSON 报告", path: result.report_path },
-    { label: "导出 Manifest", path: result.manifest_path },
+    { label: "导出清单", path: result.manifest_path },
     { label: "DICOM 二次捕获", path: result.dicom_path ?? "" },
   ];
   return links
@@ -259,6 +266,9 @@ const displayMetricMap = computed<Record<string, unknown>>(() => {
   if (metricEntries.value.length) return Object.fromEntries(metricEntries.value);
   return {};
 });
+const showResultSummary = computed(
+  () => Boolean(store.currentCase) || displayCandidates.value.length > 0 || Object.keys(displayMetricMap.value).length > 0,
+);
 
 const latestRunStatusLabel = computed(() => {
   if (store.loading) return "运行中";
@@ -291,7 +301,7 @@ const previewPanels = computed<AnalysisPreviewPanel[]>(() => {
   return [
     previewPanel("融合图", `融合透明度: ${alpha.value.toFixed(2)}`, `伪彩方案: ${colormapLabel(colormap.value)}`, "白光 + ICG", stringFrom(outputPaths.value.overlay_path)),
     previewPanel("热图", `当前阈值: ${threshold.value.toFixed(2)}`, "色标范围: 0 - 1", "0        1.0", stringFrom(outputPaths.value.heatmap_path)),
-    previewPanel("归一化图", "归一化方法: Min-Max", "范围: 0 - 1", "normalized", stringFrom(outputPaths.value.normalized_fluorescence_path)),
+    previewPanel("归一化图", "归一化方法: Min-Max", "范围: 0 - 1", "归一化荧光", stringFrom(outputPaths.value.normalized_fluorescence_path)),
   ].map((panel) => ({ ...panel, overlays }));
 });
 
@@ -321,9 +331,16 @@ const videoPlaybackAnalysis = computed<VideoPlaybackAnalysis | null>(() =>
   ),
 );
 const threeDEvidence = computed<ThreeDEvidence | null>(() => {
+  const caseEvidence = store.currentCase?.three_d_evidence;
+  if (isRecord(caseEvidence) && Object.keys(caseEvidence).length) return caseEvidence as ThreeDEvidence;
   const value = latestRun.value?.fused_outputs?.three_d_evidence;
   return isRecord(value) ? (value as ThreeDEvidence) : null;
 });
+
+async function refreshPersistedThreeDEvidence() {
+  const caseId = store.currentCase?.case_id;
+  if (caseId) await store.loadCase(caseId);
+}
 const previewOverlays = computed(() => [
   ...roiOverlaysFromRegions(store.currentCase?.rois ?? []),
   ...candidateOverlaysFromRegions(latestCandidates.value),
@@ -655,7 +672,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
   }
   const detail = selectedHotspotFrameDetail.value;
   if (!detail) {
-    setOperationMessage("请先选择需要修改骨面 mask 的关键帧。", "error");
+    setOperationMessage("请先选择需要修改骨面掩膜的关键帧。", "error");
     return;
   }
   const candidate = candidateForHotspotFrame(detail);
@@ -663,7 +680,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
     setOperationMessage("当前关键帧缺少可回写的候选区。", "error");
     return;
   }
-  setOperationMessage(`正在保存 ${detail.frameLabel} 的骨面 mask 修改...`);
+  setOperationMessage(`正在保存 ${detail.frameLabel} 的骨面掩膜修改...`);
   await store.saveCandidateBoneGateMaskEdit(
     candidate.candidate_id,
     payload.maskPngBase64,
@@ -671,7 +688,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
     payload.reviewerNotes,
   );
   setOperationMessage(
-    store.error || "骨面 mask 修改已保存，并进入复核回灌记录。",
+    store.error || "骨面掩膜修改已保存，并进入复核回灌记录。",
     store.error ? "error" : "info",
   );
 }
@@ -969,6 +986,11 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .analysis-column {
   display: grid;
   gap: 10px;
+  min-width: 0;
+}
+
+.workspace-3d-row {
+  grid-column: 1 / -1;
   min-width: 0;
 }
 

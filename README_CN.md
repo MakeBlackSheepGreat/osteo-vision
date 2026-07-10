@@ -73,7 +73,25 @@ conda run -n osteo-vision python tools\run_keyframe_tiling_smoke.py --width 3840
 
 ## 快速命令
 
-V1 前后端分离平台：
+一键启动前后端平台：
+
+```powershell
+.\start_platform.ps1
+```
+
+CMD 或双击入口：
+
+```cmd
+start_platform.cmd
+```
+
+脚本默认复用或启动后端 `http://127.0.0.1:8001` 与前端 `http://127.0.0.1:5174/`。如只想启动服务不自动打开浏览器：
+
+```powershell
+.\start_platform.ps1 -NoBrowser
+```
+
+手动启动前后端：
 
 ```powershell
 conda activate osteo-vision

@@ -10,7 +10,11 @@ from backend.src.core.settings import Settings
 
 PREVIEW_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 VIDEO_SUFFIXES = {".mp4"}
-DOWNLOAD_SUFFIXES = PREVIEW_SUFFIXES | {".zip", ".json", ".md", ".csv", ".dcm"}
+MEDICAL_VOLUME_SUFFIXES = {".dcm", ".dicom", ".nii", ".nii.gz", ".nrrd", ".mha", ".mhd"}
+SURFACE_MODEL_SUFFIXES = {".stl", ".glb", ".gltf"}
+DOWNLOAD_SUFFIXES = (
+    PREVIEW_SUFFIXES | MEDICAL_VOLUME_SUFFIXES | SURFACE_MODEL_SUFFIXES | {".zip", ".json", ".md", ".csv"}
+)
 
 
 def router(settings: Settings) -> APIRouter:
@@ -31,7 +35,7 @@ def router(settings: Settings) -> APIRouter:
         """下载证据包和结构化报告文件，路径仍限制在 artifact 根目录内。"""
 
         resolved = _resolve_artifact_path(settings, path, not_found_detail="Download file not found")
-        if resolved.suffix.lower() not in DOWNLOAD_SUFFIXES:
+        if _file_suffix(resolved) not in DOWNLOAD_SUFFIXES:
             raise HTTPException(status_code=415, detail="Unsupported download file type")
         return FileResponse(
             resolved,
@@ -117,6 +121,11 @@ def _resolve_local_path(
     if not any(_is_relative_to(resolved, root) for root in allowed_roots):
         raise HTTPException(status_code=403, detail=outside_detail)
     return resolved
+
+
+def _file_suffix(path: Path) -> str:
+    name = path.name.lower()
+    return ".nii.gz" if name.endswith(".nii.gz") else path.suffix.lower()
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:

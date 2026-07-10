@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import cv2
+import nibabel as nib
 import numpy as np
 from fastapi.testclient import TestClient
 
@@ -66,7 +67,14 @@ def test_saved_roi_is_used_as_analysis_hint(tmp_path: Path, monkeypatch) -> None
     roi = {
         "review_state": "modified",
         "label": "manual_roi",
-        "geometry": {"type": "rect", "coordinate_space": "normalized", "x": 0.15, "y": 0.15, "width": 0.7, "height": 0.7},
+        "geometry": {
+            "type": "rect",
+            "coordinate_space": "normalized",
+            "x": 0.15,
+            "y": 0.15,
+            "width": 0.7,
+            "height": 0.7,
+        },
     }
     saved = client.patch(f"/cases/{case_id}/regions/manual_roi_1", json=roi)
     assert saved.status_code == 200
@@ -103,6 +111,204 @@ def test_raw_upload_returns_backend_readable_path(tmp_path: Path, monkeypatch) -
     assert uploaded_path.read_bytes() == source.read_bytes()
     preview = client.get("/files/preview", params={"path": payload["path"]})
     assert preview.status_code == 200
+
+
+def test_raw_upload_accepts_cbct_and_surface_model_assets(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+
+    cbct_response = client.post(
+        "/uploads/raw",
+        content=b"DICM" + b"\0" * 512,
+        headers={"content-type": "application/dicom", "x-filename": "case001_cbct.dcm"},
+    )
+    stl_response = client.post(
+        "/uploads/raw",
+        content=b"solid mandible\nendsolid mandible\n",
+        headers={"content-type": "model/stl", "x-filename": "case001_mandible.stl"},
+    )
+
+    assert cbct_response.status_code == 200
+    assert stl_response.status_code == 200
+    cbct_payload = cbct_response.json()
+    stl_payload = stl_response.json()
+    assert cbct_payload["input_type"] == "dicom_series"
+    assert cbct_payload["metadata"]["dicom_file_count"] == 1
+    assert stl_payload["input_type"] == "surface_model"
+    assert stl_payload["metadata"]["metadata_status"] == "stored_for_three_d_reference"
+    assert client.get("/files/download", params={"path": cbct_payload["path"]}).status_code == 200
+    assert client.get("/files/download", params={"path": stl_payload["path"]}).status_code == 200
+
+
+def test_raw_upload_rejects_html_renamed_as_cbct(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/uploads/raw",
+        content=b"<!doctype html><title>not cbct</title>",
+        headers={"content-type": "application/dicom", "x-filename": "case001_cbct.dcm"},
+    )
+
+    assert response.status_code == 415
+    assert "medical 3D content" in response.json()["detail"]
+
+
+def test_three_d_modeling_job_accepts_uploaded_surface_model(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    uploaded = client.post(
+        "/uploads/raw",
+        content=b"solid mandible\nendsolid mandible\n",
+        headers={"content-type": "model/stl", "x-filename": "case001_mandible.stl"},
+    ).json()
+
+    started = client.post(
+        "/three-d/modeling-jobs",
+        json={"source_path": uploaded["path"], "case_id": "case001", "source_role": "surface", "label_value": 1},
+    )
+
+    assert started.status_code == 200
+    job = client.get(f"/three-d/modeling-jobs/{started.json()['job_id']}")
+    assert job.status_code == 200
+    payload = job.json()
+    assert payload["status"] == "completed"
+    evidence = payload["result"]["three_d_evidence"]
+    assert evidence["model_path"] == uploaded["path"]
+    assert evidence["registration_status"] == "unregistered"
+    assert evidence["navigation_ready"] is False
+
+
+def test_three_d_modeling_job_persists_surface_evidence_to_existing_case(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    case = client.post("/cases", json={"title": "persist 3D evidence"}).json()
+    uploaded = client.post(
+        "/uploads/raw",
+        content=b"solid mandible\nendsolid mandible\n",
+        headers={"content-type": "model/stl", "x-filename": "persisted_mandible.stl"},
+    ).json()
+
+    started = client.post(
+        "/three-d/modeling-jobs",
+        json={"source_path": uploaded["path"], "case_id": case["case_id"], "source_role": "surface"},
+    )
+
+    assert started.status_code == 200
+    job_id = started.json()["job_id"]
+    completed = client.get(f"/three-d/modeling-jobs/{job_id}").json()
+    assert completed["status"] == "completed"
+    assert completed["result"]["case_persistence"]["status"] == "persisted"
+    updated = client.get(f"/cases/{case['case_id']}").json()
+    assert updated["three_d_evidence"]["model_path"] == uploaded["path"]
+    assert updated["three_d_modeling"]["modeling_status"] == "surface_model_ready"
+    assert updated["review_summary"]["three_d_model_available"] is True
+    assert any(item["kind"] == "three_d_model" for item in updated["artifacts"])
+    assert any(item["kind"] == "three_d_modeling_manifest" for item in updated["artifacts"])
+
+    exported = client.post(
+        f"/cases/{case['case_id']}/exports",
+        json={"export_format": "bundle", "selected_artifacts": []},
+    ).json()
+    report = json.loads(Path(exported["report_path"]).read_text(encoding="utf-8"))
+    assert report["three_d_evidence"]["available"] is True
+    assert report["three_d_evidence"]["model_available"] is True
+    scene_manifest_path = next(
+        Path(item["path"]) for item in exported["artifact_entries"] if item["kind"] == "three_d_scene_manifest"
+    )
+    scene_manifest = json.loads(scene_manifest_path.read_text(encoding="utf-8"))
+    assert scene_manifest["available"] is True
+    assert scene_manifest["modeling_job_id"] == job_id
+
+
+def test_three_d_modeling_job_exports_uploaded_nifti_label_scene_v2(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    label_path = tmp_path / "case001_label.nii.gz"
+    data = np.zeros((8, 8, 8), dtype=np.uint8)
+    data[2:6, 2:6, 2:6] = 2
+    nib.save(nib.Nifti1Image(data, affine=np.eye(4)), str(label_path))
+    uploaded = client.post(
+        "/uploads/raw",
+        content=label_path.read_bytes(),
+        headers={"content-type": "application/gzip", "x-filename": "case001_label.nii.gz"},
+    )
+    assert uploaded.status_code == 200
+    assert uploaded.json()["input_type"] == "nifti_volume"
+
+    started = client.post(
+        "/three-d/modeling-jobs",
+        json={
+            "source_path": uploaded.json()["path"],
+            "case_id": "case001",
+            "dataset_id": "contract",
+            "source_role": "label",
+            "label_value": 2,
+        },
+    )
+
+    assert started.status_code == 200
+    payload = client.get(f"/three-d/modeling-jobs/{started.json()['job_id']}").json()
+    assert payload["status"] == "completed"
+    evidence = payload["result"]["three_d_evidence"]
+    assert evidence["scene_manifest_v2"]["schema_version"] == "osteo-vision-three-d-scene-v2"
+    assert evidence["scene_manifest_v2"]["nodes"][0]["type"] == "volume"
+    assert evidence["scene_manifest_v2"]["nodes"][1]["type"] == "segmentation"
+    assert evidence["scene_manifest_v2"]["nodes"][2]["type"] == "model"
+    assert evidence["scene_manifest_v2"]["scene"]["navigation_ready"] is False
+
+
+def test_three_d_modeling_job_reports_segmentation_required_for_uploaded_dicom(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    uploaded = client.post(
+        "/uploads/raw",
+        content=b"DICM" + b"\0" * 512,
+        headers={"content-type": "application/dicom", "x-filename": "case001_cbct.dcm"},
+    )
+    assert uploaded.status_code == 200
+
+    started = client.post(
+        "/three-d/modeling-jobs",
+        json={"source_path": uploaded.json()["path"], "case_id": "case001", "dataset_id": "contract", "label_value": 2},
+    )
+
+    assert started.status_code == 200
+    payload = client.get(f"/three-d/modeling-jobs/{started.json()['job_id']}").json()
+    assert payload["status"] == "completed"
+    result = payload["result"]
+    assert result["modeling_status"] == "segmentation_required"
+    assert result["model_path"] is None
+    assert "尚未从该格式自动生成上下颌骨表面" in result["message"]
+
+
+def test_three_d_modeling_job_can_be_canceled_in_worker_mode(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    monkeypatch.setenv("OSTEO_JOB_EXECUTION_MODE", "worker")
+    client = TestClient(create_app())
+    uploaded = client.post(
+        "/uploads/raw",
+        content=b"solid mandible\nendsolid mandible\n",
+        headers={"content-type": "model/stl", "x-filename": "case001_mandible.stl"},
+    ).json()
+    started = client.post(
+        "/three-d/modeling-jobs",
+        json={"source_path": uploaded["path"], "case_id": "case001", "source_role": "surface", "label_value": 1},
+    ).json()
+
+    canceled = client.post(f"/three-d/modeling-jobs/{started['job_id']}/cancel")
+
+    assert canceled.status_code == 200
+    payload = canceled.json()
+    assert payload["status"] == "canceled"
+    assert payload["kind"] == "cbct_surface_modeling"
 
 
 def test_raw_upload_rejects_extension_content_mismatch(tmp_path: Path, monkeypatch) -> None:

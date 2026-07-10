@@ -40,7 +40,7 @@ describe("AnalysisExportPanel", () => {
     expect(wrapper.text()).toContain("分析次数");
     expect(wrapper.text()).toContain("2");
     expect(wrapper.text()).toContain("1.5 KB");
-    expect(wrapper.text()).toContain("MP4 分割 Manifest");
+    expect(wrapper.text()).toContain("MP4 分割清单");
     expect(wrapper.text()).toContain("unknown_kind");
     expect(wrapper.text()).toContain("artifacts/platform/case/export.zip");
   });

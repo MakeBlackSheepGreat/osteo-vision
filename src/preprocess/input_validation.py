@@ -11,6 +11,9 @@ from src.io.nifti_io import is_nifti_path
 from src.io.video_io import is_video_path, video_metadata
 from src.preprocess.image_quality import assess_basic_quality
 
+MEDICAL_VOLUME_SUFFIXES = {".dicom", ".nrrd", ".mha", ".mhd"}
+SURFACE_MODEL_SUFFIXES = {".stl", ".glb", ".gltf", ".obj", ".ply"}
+
 
 def detect_input_type(path: str | Path) -> str:
     p = Path(path)
@@ -26,6 +29,10 @@ def detect_input_type(path: str | Path) -> str:
         return "dicom_series"
     if is_nifti_path(p):
         return "nifti_volume"
+    if p.suffix.lower() in MEDICAL_VOLUME_SUFFIXES:
+        return "medical_volume"
+    if p.suffix.lower() in SURFACE_MODEL_SUFFIXES:
+        return "surface_model"
     return "unknown"
 
 
@@ -47,7 +54,12 @@ def validate_input(path: str | Path) -> InputSummary:
         metadata.update({"extension": ".npz", "metadata_status": "not_loaded"})
     elif input_type == "nifti_volume":
         metadata.update({"extension": ".nii.gz" if p.name.lower().endswith(".nii.gz") else ".nii"})
+    elif input_type == "medical_volume":
+        metadata.update({"extension": p.suffix.lower(), "metadata_status": "stored_for_cbct_modeling"})
+    elif input_type == "surface_model":
+        metadata.update({"extension": p.suffix.lower(), "metadata_status": "stored_for_three_d_reference"})
     if not accepted:
         warnings.append(warning(STATUS_INVALID_INPUT, reason, True))
-    return InputSummary(path=str(p), input_type=input_type, accepted=accepted, reason=reason, metadata=metadata, warnings=warnings)
-
+    return InputSummary(
+        path=str(p), input_type=input_type, accepted=accepted, reason=reason, metadata=metadata, warnings=warnings
+    )

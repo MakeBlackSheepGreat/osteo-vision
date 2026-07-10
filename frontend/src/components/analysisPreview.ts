@@ -224,10 +224,10 @@ export function videoPreviewPanelsFromRun(
     const timestamp = formatSeconds(selectedHotspot.timestamp_sec);
     const panels = [
       panelFromPath("关键帧", `帧序号: ${frameIndex}`, `时间: ${timestamp}`, "MP4", sourcePath, previewUrl),
-      panelFromPath("分割叠加", `帧序号: ${frameIndex}`, "荧光伪彩 + 分割候选", "mask + frame", overlayPath, previewUrl),
-      panelFromPath("分割掩膜", `帧序号: ${frameIndex}`, "二值 ROI 掩膜", "threshold", maskPath || pseudoColorPath, previewUrl),
-      panelFromPath("风险图", `帧序号: ${frameIndex}`, "荧光灌注/活性风险提示", "risk", riskPath, previewUrl),
-      panelFromPath("不确定性", `帧序号: ${frameIndex}`, "低置信或质量受限区域", "uncertainty", uncertainPath, previewUrl),
+      panelFromPath("分割叠加", `帧序号: ${frameIndex}`, "荧光伪彩 + 分割候选", "掩膜 + 原帧", overlayPath, previewUrl),
+      panelFromPath("分割掩膜", `帧序号: ${frameIndex}`, "二值 ROI 掩膜", "阈值掩膜", maskPath || pseudoColorPath, previewUrl),
+      panelFromPath("风险图", `帧序号: ${frameIndex}`, "荧光灌注/活性风险提示", "风险提示", riskPath, previewUrl),
+      panelFromPath("不确定性", `帧序号: ${frameIndex}`, "低置信或质量受限区域", "不确定性", uncertainPath, previewUrl),
     ];
     return panels.filter((item): item is AnalysisPreviewPanel => item !== null);
   }
@@ -367,7 +367,7 @@ export function hotspotFrameDetailsFromRun(
       evidenceLabel: shortPath(overlayPath || evidencePath || maskPath),
       domainBoundary:
         stringFrom(detail.domain_boundary) ||
-        "Heuristic keyframe hotspot analysis; requires physician review and is not a diagnosis.",
+        "启发式关键帧热点分析，必须医生复核，不作为诊断结论。",
       reviewRequired: booleanFrom(detail.review_required) || componentCount > 0 || positiveArea > 0,
       evidenceHref: evidencePath ? previewUrl(evidencePath) : undefined,
       overlayHref: overlayPath ? previewUrl(overlayPath) : undefined,
@@ -378,7 +378,7 @@ export function hotspotFrameDetailsFromRun(
         boneGateStatus === "prompt_assisted_review"
           ? "已生成骨面门控"
           : boneGateStatus === "physician_modified_mask"
-            ? "已修改骨面 mask"
+            ? "已修改骨面掩膜"
           : boneGateStatus === "not_available_pending_review"
             ? "待生成骨面门控"
             : boneGateStatus || "待生成骨面门控",
@@ -420,7 +420,7 @@ export function timelineManifestSummaryFromRun(
     manifestPath,
     manifestHref: downloadUrl(manifestPath),
     scopeLabel: scopeLabel(stringFrom(summary.timeline_scope)),
-    samplingLabel: stringFrom(summary.sampling_strategy) || "暂无",
+    samplingLabel: samplingStrategyLabel(stringFrom(summary.sampling_strategy)),
     frameCountLabel: frameCount > 0 ? `${Math.round(frameCount)} 帧` : "暂无",
     durationLabel: durationSec > 0 ? formatSeconds(durationSec) : "暂无",
     fpsLabel: fps > 0 ? `${fps.toFixed(2)} fps` : "暂无",
@@ -566,6 +566,17 @@ function traceStatusLabel(item: Record<string, unknown>): string {
 function scopeLabel(value: string): string {
   if (value === "full_duration_index_with_scored_candidates") return "全时长低频索引";
   return value || "暂无";
+}
+
+function samplingStrategyLabel(value: string): string {
+  const labels: Record<string, string> = {
+    keyframe_stride: "关键帧步长采样",
+    uniform_stride: "等间隔采样",
+    positive_area_ranked: "按阳性面积排序",
+    candidate_ranked: "按候选分数排序",
+    quality_peak: "质量峰值采样",
+  };
+  return labels[value] ?? (value ? value.replaceAll("_", " ") : "暂无");
 }
 
 function overlayFromGeometry({

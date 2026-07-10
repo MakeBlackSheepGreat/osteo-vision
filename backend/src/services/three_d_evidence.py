@@ -19,10 +19,13 @@ def build_three_d_evidence(
     explicit = _dict_value(parameters.get("three_d_evidence"))
     explicit = _demo_evidence(parameters) | explicit
     model_path = _string(explicit.get("model_path") or parameters.get("three_d_model_path"))
-    model_format = _string(explicit.get("model_format") or parameters.get("three_d_model_format")) or _format_from_path(model_path)
-    registration_status = _string(
-        explicit.get("registration_status") or parameters.get("three_d_registration_status")
-    ).lower() or "unregistered"
+    model_format = _string(explicit.get("model_format") or parameters.get("three_d_model_format")) or _format_from_path(
+        model_path
+    )
+    registration_status = (
+        _string(explicit.get("registration_status") or parameters.get("three_d_registration_status")).lower()
+        or "unregistered"
+    )
     navigation_ready = _navigation_ready(explicit, registration_status=registration_status)
     registration_error = explicit.get("registration_error_mm", parameters.get("three_d_registration_error_mm"))
     transform_path = _string(explicit.get("transform_path") or parameters.get("three_d_transform_path"))
@@ -51,7 +54,8 @@ def build_three_d_evidence(
         "model_path": model_path or None,
         "model_format": model_format or None,
         "model_file_name": _string(explicit.get("model_file_name")) or _file_name(model_path) or None,
-        "model_source": _string(explicit.get("model_source")) or ("case_evidence_package" if model_path else "not_provided"),
+        "model_source": _string(explicit.get("model_source"))
+        or ("case_evidence_package" if model_path else "not_provided"),
         "exported_from": _string(explicit.get("exported_from")) or None,
         "dicom_series_uid": dicom_series_uid or None,
         "segmentation_source": segmentation_source or None,
@@ -76,6 +80,7 @@ def build_three_d_evidence(
         ),
         "source_inputs": _source_input_summary(source_inputs),
         "scene_manifest": _dict_value(explicit.get("scene_manifest")) or None,
+        "scene_manifest_v2": _dict_value(explicit.get("scene_manifest_v2")) or None,
         "geometry_manifest_path": _string(explicit.get("geometry_manifest_path")) or None,
         "boundary_note": boundary_note,
     }
@@ -175,6 +180,7 @@ def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
         "doctor_review_status": "not_reviewed",
         "navigation_ready": False,
         "scene_manifest": _demo_scene_manifest(),
+        "scene_manifest_v2": _demo_scene_manifest_v2(),
         "geometry_manifest_path": "frontend/public/models/local/mandible_d024_0001.brp_geometry_manifest.json",
         "boundary_note": boundary,
     }
@@ -236,6 +242,102 @@ def _demo_scene_manifest() -> dict[str, Any]:
             ],
             "segment_lengths_mm": [29.49, 28.95],
         },
+    }
+
+
+def _demo_scene_manifest_v2() -> dict[str, Any]:
+    return {
+        "schema_version": "osteo-vision-three-d-scene-v2",
+        "source_project": "3D Slicer MRML and SlicerBoneReconstructionPlanner-inspired evidence scene",
+        "case_id": "d024_0001",
+        "dataset_id": "D024",
+        "scene_id": "d024_mandible_slicer_like_scene",
+        "scene": {
+            "coordinate_space": "cbct_label_voxel_spacing_mm",
+            "registration_status": "unregistered",
+            "registration_error_mm": None,
+            "navigation_ready": False,
+            "doctor_review_status": "not_reviewed",
+        },
+        "subject_hierarchy": [
+            {"id": "case_root", "name": "病例 / 体数据", "children": ["d024_label_volume"]},
+            {
+                "id": "segmentation_models",
+                "name": "分割 / 模型",
+                "children": ["d024_mandible_segmentation", "d024_mandible_surface"],
+            },
+            {
+                "id": "markups_review",
+                "name": "标注 / 平面",
+                "children": ["d024_mandibular_reference_curve", "d024_review_plane_left"],
+            },
+            {"id": "geometry_jobs", "name": "几何任务", "children": ["d024_surface_export_job"]},
+        ],
+        "nodes": [
+            {
+                "id": "d024_label_volume",
+                "type": "volume",
+                "role": "source_cbct_label_volume",
+                "name": "D024 label volume",
+                "source": "D024 DentVoxel nnU-Net preprocessed jaw ROI labels",
+                "review_status": "public_dataset_annotation_not_case_reviewed",
+            },
+            {
+                "id": "d024_mandible_segmentation",
+                "type": "segmentation",
+                "role": "mandible_label",
+                "name": "D024 mandible label",
+                "source": "label value 2",
+                "review_status": "public_dataset_annotation_not_case_reviewed",
+            },
+            {
+                "id": "d024_mandible_surface",
+                "type": "model",
+                "role": "cbct_derived_mandible_surface",
+                "name": "mandible_d024_0001.stl",
+                "path": "frontend/public/models/local/mandible_d024_0001.stl",
+                "format": "stl",
+                "source": "marching_cubes from mandible label",
+                "review_status": "reference_only_not_physician_reviewed",
+            },
+        ],
+        "markups": [
+            {
+                "id": "d024_mandibular_reference_curve",
+                "type": "curve",
+                "role": "mandibular_reference_curve",
+                "name": "D024 mandibular reference curve",
+                "review_status": "illustrative_not_physician_reviewed",
+            },
+            {
+                "id": "d024_review_plane_left",
+                "type": "plane",
+                "role": "review_plane",
+                "name": "Reference review plane left",
+                "review_status": "illustrative_unregistered",
+            },
+        ],
+        "transforms": [
+            {
+                "id": "surface_to_video",
+                "type": "cross_modal_registration",
+                "from_node": "d024_mandible_surface",
+                "to_node": "fluorescence_video_keyframes",
+                "status": "missing",
+                "error_mm": None,
+            }
+        ],
+        "geometry_jobs": [{"id": "d024_surface_export_job", "type": "surface_export", "status": "completed"}],
+        "review_state": {
+            "segmentation": "public_dataset_annotation_not_case_reviewed",
+            "model": "reference_only_not_physician_reviewed",
+            "markups": "illustrative_not_physician_reviewed",
+            "fluorescence_video_mapping": "missing_registration",
+        },
+        "data_boundary": (
+            "D024 DentVoxel public CBCT-derived mandible surface; non-target-domain anatomy reference only. "
+            "It is not a real jaw osteomyelitis intraoperative ICG case, not registered to video, and not surgical navigation."
+        ),
     }
 
 

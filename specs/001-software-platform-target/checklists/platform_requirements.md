@@ -87,7 +87,7 @@
 - [x] CHK031 Are privacy, de-identification, and minimum-retention requirements explicitly tied to case inputs, metadata, exports, and logs? [Completeness, Constitution §IV, Tasks §Clarification Assumption]
   - Evidence: AGENTS excludes raw medical data/checkpoints from Git; DICOM SC marks identity removed; export schema keeps platform safety/de-identification boundaries.
 - [ ] CHK032 Are accessibility and basic usability requirements defined for reviewer-facing image inspection and ROI controls? [Gap, Spec §User Scenarios]
-  - Remaining gap: frontend tests cover framing and mobile viewport, but accessibility and detailed ROI usability requirements are not written.
+  - Remaining gap: frontend tests cover desktop/workstation framing, but accessibility and detailed ROI usability requirements are not written.
 - [x] CHK033 Are auditability requirements defined for review history, provenance, analysis run parameters, and export timestamps? [Completeness, Spec §FR-005, Spec §Key Entities]
   - Evidence: schemas include review events, analysis run parameters, timestamps, artifact checksums, and export manifests.
 - [ ] CHK034 Are failure messages and warning severity levels specified for medically sensitive low-confidence cases? [Gap, Spec §FR-002, Spec §FR-007]

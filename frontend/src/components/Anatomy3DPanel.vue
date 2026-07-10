@@ -1,91 +1,100 @@
 <template>
-  <section class="anatomy-3d" aria-label="Slicer 风格 CBCT/STL 三维证据工作台">
+  <section class="anatomy-3d" aria-label="CBCT/STL 三维证据工作台">
+    <input
+      ref="cbctInput"
+      class="anatomy-3d__file-input"
+      type="file"
+      multiple
+      accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd"
+      @change="handleCbctFiles"
+    />
+    <input
+      ref="surfaceInput"
+      class="anatomy-3d__file-input"
+      type="file"
+      accept=".stl,.glb,.gltf"
+      @change="handleSurfaceModelFile"
+    />
     <header class="anatomy-3d__header">
       <div class="anatomy-3d__titleblock">
-        <span>Slicer-style planning workspace</span>
-        <h2>CBCT/STL 三维证据工作台</h2>
-        <p>复刻 3D Slicer 四视图、对象树和截骨规划语义；本项目仅接入脱敏模型、ICG 候选区和医生复核边界。</p>
+        <span>三维证据参考层</span>
+        <h2>CBCT/STL 术前证据参考</h2>
+        <p>只展示已导入或已生成的三维证据；未配准前不做导航定位。</p>
       </div>
       <div class="anatomy-3d__status" :class="statusClass">
         <strong>{{ riskSummary.label }}</strong>
-        <small>{{ registrationLabel }}</small>
+        <small>{{ isRegistered ? registrationLabel : `${registrationLabel} / 非导航锁定` }}</small>
       </div>
     </header>
 
-    <nav class="anatomy-3d__slicer-menubar" aria-label="Slicer 顶部菜单复刻">
-      <span>File</span>
-      <span>Edit</span>
-      <span>View</span>
-      <span>Help</span>
-      <label>
-        Modules:
-        <strong>BoneReconstructionPlanner</strong>
-      </label>
-      <div class="anatomy-3d__layout-switcher" aria-label="视图布局切换">
-        <button
-          v-for="layout in viewLayoutOptions"
-          :key="layout.key"
-          type="button"
-          :class="{ 'is-active': viewLayoutMode === layout.key }"
-          @click="viewLayoutMode = layout.key"
-        >
-          {{ layout.label }}
-        </button>
-      </div>
-      <em>{{ isRegistered ? "Research registration reference" : "Navigation guard: OFF" }}</em>
-    </nav>
-
-    <nav class="anatomy-3d__toolbar" aria-label="三维规划工具栏">
+    <nav class="anatomy-3d__workflow-strip" aria-label="三维证据工作流状态">
       <button
-        v-for="item in toolbarItems"
-        :key="item.key"
+        v-for="step in migratedWorkflowSteps"
+        :key="step.key"
         type="button"
-        class="anatomy-3d__tool"
-        :class="{ 'is-active': activeWorkspaceTool === item.key }"
-        @click="activeWorkspaceTool = item.key"
+        class="anatomy-3d__workflow-step"
+        :class="[`is-${step.state}`]"
+        @click="selectWorkflowStep(step.tool, step.action)"
       >
-        <strong>{{ item.label }}</strong>
-        <small>{{ item.note }}</small>
+        <span>{{ step.index }}</span>
+        <strong>{{ step.title }}</strong>
+        <small>{{ step.detail }}</small>
+        <em>{{ step.stateLabel }}</em>
       </button>
     </nav>
 
     <div class="anatomy-3d__body">
       <aside class="anatomy-3d__object-tree" aria-label="对象列表">
         <div class="anatomy-3d__panel-title">
-          <span>3D Slicer 5.8.1</span>
-          <strong>BoneReconstructionPlanner 模块</strong>
+          <span>工作流</span>
+          <strong>术前几何参考</strong>
         </div>
-        <div class="anatomy-3d__module-card" aria-label="Mandible Reconstruction Planning">
+        <section class="anatomy-3d__import-card" aria-label="CBCT 导入与建模检查">
           <header>
-            <strong>Mandible Reconstruction Planning</strong>
-            <small>非导航锁定：医生复核后才允许进入真实空间解释。</small>
+            <div>
+              <span>CBCT 建模入口</span>
+              <strong>{{ cbctImportSummary.title }}</strong>
+            </div>
+            <small>{{ cbctImportSummary.detail }}</small>
           </header>
-          <div class="anatomy-3d__brp-params" aria-label="BRP 规划参数">
+          <div class="anatomy-3d__import-actions">
+            <button type="button" @click="openCbctPicker">导入 CBCT</button>
+            <button type="button" @click="openSurfacePicker">导入 STL/GLB</button>
+            <button type="button" @click="loadLocalD024ReferenceEvidence">加载公开参考</button>
+            <button type="button" :disabled="!canStartModelingJob" @click="() => startCbctModelingJob()">检查/生成表面</button>
+            <button type="button" :disabled="!canCancelModelingJob" @click="cancelCbctModelingJob">取消任务</button>
+            <button type="button" @click="clearLocalEvidence">清空本地选择</button>
+          </div>
+          <p class="anatomy-3d__job-status">{{ modelingJobStatusLabel }}</p>
+          <ol class="anatomy-3d__modeling-checks">
+            <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
+              <span>{{ check.ready ? "通过" : "待办" }}</span>
+              <p>{{ check.label }}</p>
+            </li>
+          </ol>
+        </section>
+        <details class="anatomy-3d__module-card" aria-label="三维证据高级参数">
+          <summary>
+            <strong>高级参数</strong>
+            <small>透明度、阈值和对象显示，默认收起。</small>
+          </summary>
+          <div class="anatomy-3d__brp-params" aria-label="三维检查参数">
             <label>
-              <span>Mandibulectomy mode</span>
-              <select v-model="mandibulectomyMode">
-                <option value="Segmental Mandibulectomy">Segmental Mandibulectomy</option>
-                <option value="Hemimandibulectomy">Hemimandibulectomy</option>
+              <span>模型来源方式</span>
+              <select v-model="surfaceSourceMode">
+                <option value="label">由标签生成表面</option>
+                <option value="surface">读取 STL/GLB 表面</option>
               </select>
             </label>
-            <label class="anatomy-3d__module-check">
-              <input v-model="rightSideLeg" type="checkbox" />
-              <span>Right side leg: fibula X axis kept medial</span>
-            </label>
             <label>
-              <span>Between space (mm)</span>
+              <span>预览透明度</span>
               <input v-model.number="betweenSpaceMm" type="range" min="0" max="5" step="0.5" />
               <strong>{{ betweenSpaceLabel }}</strong>
             </label>
             <label>
-              <span>Security margin of fibula pieces (mm)</span>
+              <span>质量检查阈值</span>
               <input v-model.number="securityMarginMm" type="range" min="0" max="8" step="0.5" />
               <strong>{{ securityMarginLabel }}</strong>
-            </label>
-            <label>
-              <span>Bigger miter box distance to fibula (mm)</span>
-              <input v-model.number="miterBoxDistanceMm" type="range" min="8" max="36" step="1" />
-              <strong>{{ miterBoxDistanceLabel }}</strong>
             </label>
           </div>
           <label v-for="control in moduleControls" :key="control.label" class="anatomy-3d__module-row">
@@ -106,27 +115,23 @@
           </div>
           <label class="anatomy-3d__module-check">
             <input v-model="autoPositionPlanes" type="checkbox" />
-            <span>Automatic mandibular planes positioning for maximum bones contact area</span>
+            <span>沿下颌曲线摆放复核平面</span>
           </label>
           <label class="anatomy-3d__module-check">
             <input v-model="rotatePlanesTogether" type="checkbox" />
-            <span>Make all mandible planes rotate together</span>
+            <span>联动旋转复核平面</span>
           </label>
           <label class="anatomy-3d__module-check">
             <input :checked="objectVisibility.mandible" type="checkbox" @change="toggleObjectVisibility('mandible')" />
-            <span>Show original mandible model</span>
+            <span>显示三维模型</span>
           </label>
-          <label class="anatomy-3d__module-check">
-            <input v-model="showFibulaSegmentLengths" type="checkbox" />
-            <span>Show fibula segments lengths</span>
-          </label>
-          <button class="anatomy-3d__module-update" type="button" @click="selectModuleAction('updateFibulaPlanes')">
-            Update fibula planes over fibula line; update fibula bone pieces and transform them to mandible
+          <button class="anatomy-3d__module-update" type="button" @click="selectModuleAction('refreshGeometryChecks')">
+            刷新检查
           </button>
-        </div>
+        </details>
         <div class="anatomy-3d__panel-title">
-          <span>Data / Models / Node</span>
-          <strong>对象列表</strong>
+          <span>证据节点</span>
+          <strong>病例对象</strong>
         </div>
         <ul class="anatomy-3d__subject-hierarchy">
           <li v-for="group in objectTreeGroups" :key="group.name" class="anatomy-3d__tree-group">
@@ -150,7 +155,7 @@
                 :class="{ 'is-visible': !item.muted }"
                 aria-hidden="true"
               ></span>
-              <span class="anatomy-3d__lock-state" aria-hidden="true">{{ item.locked ? "L" : "U" }}</span>
+              <span class="anatomy-3d__lock-state" aria-hidden="true">{{ item.locked ? "锁" : "开" }}</span>
               <div>
                 <strong>{{ item.name }}</strong>
                 <small>{{ item.detail }}</small>
@@ -161,7 +166,7 @@
         </ul>
       </aside>
 
-      <main class="anatomy-3d__views" :class="[`is-tool-${activeWorkspaceTool}`, `is-layout-${viewLayoutMode}`]" aria-label="四视图规划区">
+      <main class="anatomy-3d__views" :class="[`is-tool-${activeWorkspaceTool}`, `is-layout-${viewLayoutMode}`]" aria-label="三维参考视图区">
         <section
           ref="canvasHost"
           class="anatomy-3d__viewport"
@@ -170,11 +175,9 @@
         >
           <div class="anatomy-3d__view-title">
             <div>
-              <span>3D</span>
+              <span>下颌三维模型</span>
               <strong>{{ modelSourceLabel }}</strong>
               <small>{{ modelLoadNote }}</small>
-              <small>Active tool: {{ activeModuleActionLabel }}</small>
-              <small>Layout: {{ viewLayoutLabel }}</small>
             </div>
             <div class="anatomy-3d__view-badge">
               <span>{{ modelFormatLabel }}</span>
@@ -182,19 +185,37 @@
               <small>{{ coordinateSpaceLabel }}</small>
             </div>
           </div>
-          <div class="anatomy-3d__legend" aria-label="候选投影图例">
-            <span><i class="projection"></i>{{ hotspotProjectionLabel }}</span>
-            <span><i class="plane"></i>截骨/复核平面</span>
-            <span><i class="reference"></i>医生复核边界</span>
+          <div class="anatomy-3d__viewport-toolbar">
+            <div class="anatomy-3d__legend" aria-label="模型状态图例">
+              <span><i class="reference"></i>真实模型优先</span>
+              <span><i class="plane"></i>未配准不映射</span>
+              <span><i class="projection"></i>{{ hotspotProjectionLabel }}</span>
+            </div>
+            <div class="anatomy-3d__view-controls" aria-label="三维视图控制">
+              <button type="button" @click="resetCamera">重置视角</button>
+              <button
+                type="button"
+                :class="{ 'is-active': autoRotateModel }"
+                :aria-pressed="autoRotateModel"
+                @click="toggleAutoRotate"
+              >
+                自动旋转：{{ autoRotateModel ? "开" : "关" }}
+              </button>
+              <button type="button" @click="toggleObjectVisibility('mandible')">
+                {{ objectVisibility.mandible ? "隐藏模型" : "显示模型" }}
+              </button>
+              <button type="button" @click="focusFirstCandidate">定位候选区</button>
+            </div>
           </div>
-          <div class="anatomy-3d__view-controls" aria-label="三维视图控制">
-            <button type="button" @click="resetCamera">Reset camera</button>
-            <button type="button" @click="toggleObjectVisibility('mandible')">
-              {{ objectVisibility.mandible ? "Hide original mandible" : "Show original mandible" }}
-            </button>
-            <button type="button" @click="focusFirstCandidate">Focus candidate</button>
+          <div v-if="modelLoadState !== 'loaded'" class="anatomy-3d__empty-viewport">
+            <strong>未加载三维模型</strong>
+            <p>导入 Slicer 导出的 STL/GLB，或由 CBCT 标签生成表面后显示；未配准时只作参考。</p>
+            <div class="anatomy-3d__empty-actions">
+              <button type="button" @click="openSurfacePicker">导入 STL/GLB</button>
+              <button type="button" @click="openCbctPicker">导入 CBCT</button>
+            </div>
           </div>
-          <div class="anatomy-3d__viewport-label-layer" aria-label="三维标注标签">
+          <div v-if="showViewportLabels" class="anatomy-3d__viewport-label-layer" aria-label="三维标注标签">
             <button
               v-for="label in viewportLabelItems"
               :key="label.key"
@@ -215,6 +236,10 @@
               <dd>{{ modeLabel }}</dd>
             </div>
             <div>
+              <dt>方向复核</dt>
+              <dd>{{ displayUpAxisLabel }}</dd>
+            </div>
+            <div>
               <dt>配准误差</dt>
               <dd>{{ registrationErrorLabel }}</dd>
             </div>
@@ -225,96 +250,67 @@
           </dl>
         </section>
 
-        <section
-          v-for="view in sliceViews"
-          :key="view.key"
-          class="anatomy-3d__slice-view"
-          :class="`is-${view.key}`"
-          :aria-label="view.label"
-        >
+        <section class="anatomy-3d__model-check-panel" aria-label="模型检查结果">
           <header>
             <div>
-              <span>{{ view.label }}</span>
-              <strong>{{ view.position }}</strong>
+              <span>建模检查</span>
+              <strong>数据链完整性</strong>
             </div>
-            <div class="anatomy-3d__slice-controls" :aria-label="`${view.label} 切片滚动`">
-              <button type="button" @click="adjustSliceOffset(view.key, -5)">-</button>
-              <input
-                :value="sliceOffsets[view.key]"
-                type="range"
-                min="-60"
-                max="60"
-                step="1"
-                :aria-label="`${view.label} 切片位置`"
-                @input="setSliceOffset(view.key, $event)"
-              />
-              <button type="button" @click="adjustSliceOffset(view.key, 5)">+</button>
-            </div>
+            <small>{{ navigationGuardSummary }}</small>
           </header>
-          <div class="anatomy-3d__slice-canvas" :style="sliceCanvasStyle(view.key)" aria-hidden="true">
-            <i class="anatomy-3d__crosshair anatomy-3d__crosshair--x"></i>
-            <i class="anatomy-3d__crosshair anatomy-3d__crosshair--y"></i>
-            <b class="anatomy-3d__bone-contour"></b>
-            <b class="anatomy-3d__roi-contour"></b>
-          </div>
-          <p>{{ view.note }}</p>
-        </section>
-
-        <section
-          class="anatomy-3d__reconstruction-view"
-          aria-label="腓骨重建与截骨平面示意"
-          @dblclick="toggleReconstructionMaximize"
-        >
-          <header>
-            <div>
-              <span>View 2</span>
-              <strong>Fibula / Neo-mandible reconstruction reference</strong>
-            </div>
-            <small>Volume Reslice Driver 概念复刻；本项目默认只作 CBCT/STL 证据参考。</small>
-          </header>
-          <div class="anatomy-3d__fibula-stage" aria-hidden="true">
-            <b class="anatomy-3d__fibula-bone"></b>
-            <i class="anatomy-3d__fibula-piece anatomy-3d__fibula-piece--one"></i>
-            <i class="anatomy-3d__fibula-piece anatomy-3d__fibula-piece--two"></i>
-            <i class="anatomy-3d__fibula-plane anatomy-3d__fibula-plane--red"></i>
-            <i class="anatomy-3d__fibula-plane anatomy-3d__fibula-plane--green"></i>
-            <i class="anatomy-3d__fibula-plane anatomy-3d__fibula-plane--blue"></i>
-            <span v-if="showFibulaSegmentLengths" class="anatomy-3d__measurement anatomy-3d__measurement--one">
-              {{ fibulaSegmentLengthLabels[0] }}
-            </span>
-            <span v-if="showFibulaSegmentLengths" class="anatomy-3d__measurement anatomy-3d__measurement--two">
-              {{ fibulaSegmentLengthLabels[1] }}
-            </span>
-          </div>
-          <p>该区域复刻 BoneReconstructionPlanner 的 fibula line、miter boxes、bone pieces 和 transform-to-mandible 语义；在本平台中仅用于说明模型来源与术前证据链，不直接驱动术中导航。</p>
+          <ol class="anatomy-3d__model-check-list">
+            <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
+              <span>{{ check.ready ? "通过" : "待办" }}</span>
+              <div>
+                <strong>{{ check.label }}</strong>
+                <small>{{ check.detail }}</small>
+              </div>
+            </li>
+          </ol>
+          <p>没有配准矩阵、误差记录和医生复核前，荧光候选区与 CBCT/STL 只并列展示，不做空间定位。</p>
         </section>
       </main>
 
       <aside class="anatomy-3d__inspector" aria-label="三维证据与复核面板">
         <div class="anatomy-3d__panel-title">
-          <span>Evidence inspector</span>
-          <strong>证据接入与复核</strong>
+          <span>证据检查</span>
+          <strong>状态与复核</strong>
         </div>
-        <dl class="anatomy-3d__evidence-grid">
-          <div v-for="field in evidenceFields" :key="field.label">
+        <dl class="anatomy-3d__evidence-summary">
+          <div v-for="field in summaryEvidenceFields" :key="field.label">
             <dt>{{ field.label }}</dt>
             <dd>{{ field.value }}</dd>
           </div>
         </dl>
-        <div class="anatomy-3d__registration-guard" aria-label="真实导航前置条件">
-          <strong>真实空间映射前置条件</strong>
+        <details class="anatomy-3d__evidence-drawer" aria-label="完整三维证据字段">
+          <summary>
+            <strong>完整证据字段</strong>
+            <small>{{ evidenceFields.length }} 项，可展开核对路径、来源和边界。</small>
+          </summary>
+          <dl class="anatomy-3d__evidence-grid">
+            <div v-for="field in evidenceFields" :key="field.label">
+              <dt>{{ field.label }}</dt>
+              <dd>{{ field.value }}</dd>
+            </div>
+          </dl>
+        </details>
+        <details class="anatomy-3d__registration-guard" aria-label="真实导航前置条件">
+          <summary>
+            <strong>真实空间映射前置条件</strong>
+            <small>{{ navigationGuardSummary }}</small>
+          </summary>
           <ul>
             <li v-for="item in registrationGuardItems" :key="item.label" :class="{ 'is-ready': item.ready }">
-              <span>{{ item.ready ? "Ready" : "Missing" }}</span>
+              <span>{{ item.ready ? "已就绪" : "缺失" }}</span>
               <p>{{ item.label }}</p>
             </li>
           </ul>
-        </div>
-        <div class="anatomy-3d__markups" aria-label="Markups 配准点表">
-          <header>
-            <strong>Markups / Registration Table</strong>
+        </details>
+        <details class="anatomy-3d__markups" aria-label="配准点表">
+          <summary>
+            <strong>配准点表</strong>
             <small>{{ registrationMarkupsSummary }}</small>
-          </header>
+          </summary>
           <div class="anatomy-3d__markup-table">
             <button
               v-for="markup in registrationMarkupRows"
@@ -326,36 +322,43 @@
             >
               <span>{{ markup.shortLabel }}</span>
               <strong>{{ markup.label }}</strong>
-              <small>{{ markup.sourceLabel }} -> {{ markup.targetLabel }}</small>
+              <small>{{ markup.sourceLabel }} 至 {{ markup.targetLabel }}</small>
               <em>{{ markup.residualLabel }}</em>
               <b>{{ markup.statusLabel }}</b>
             </button>
           </div>
-        </div>
-        <div class="anatomy-3d__transform-chain" aria-label="坐标变换链">
-          <header>
-            <strong>Transform chain</strong>
+        </details>
+        <details class="anatomy-3d__transform-chain" aria-label="坐标变换链">
+          <summary>
+            <strong>坐标变换链</strong>
             <small>{{ transformChainSummary }}</small>
-          </header>
+          </summary>
           <ol>
             <li v-for="step in transformChainItems" :key="step.name" :class="{ 'is-ready': step.ready }">
-              <span>{{ step.ready ? "Ready" : "Missing" }}</span>
+              <span>{{ step.ready ? "已就绪" : "缺失" }}</span>
               <div>
                 <strong>{{ step.name }}</strong>
-                <small>{{ step.fromSpace }} -> {{ step.toSpace }}</small>
+                <small>{{ step.fromSpace }} 至 {{ step.toSpace }}</small>
                 <em>{{ step.detail }}</em>
               </div>
             </li>
           </ol>
-        </div>
-        <div class="anatomy-3d__workflow" aria-label="三维模型接入流程">
+        </details>
+        <details class="anatomy-3d__workflow" aria-label="三维模型接入流程">
+          <summary>
+            <strong>三维接入工作流</strong>
+            <small>展开查看输入、曲线、平面、几何计算与医生复核链路。</small>
+          </summary>
           <div v-for="step in workflowSteps" :key="step.index">
             <span>{{ step.index }}</span>
             <strong>{{ step.title }}</strong>
             <small>{{ step.detail }}</small>
           </div>
-        </div>
-        <p class="anatomy-3d__boundary">{{ boundaryNote }}</p>
+        </details>
+        <details class="anatomy-3d__boundary" aria-label="医生复核边界">
+          <summary>医生复核边界</summary>
+          <p>{{ boundaryNote }}</p>
+        </details>
         <div v-if="normalizedHotspots.length" class="anatomy-3d__hotspot-list">
           <button
             v-for="hotspot in normalizedHotspots"
@@ -378,7 +381,7 @@
     </div>
 
     <p class="anatomy-3d__disclaimer">
-      该视图用于展示脱敏 CBCT/STL/GLB 三维参考和 ICG 候选区的空间关系；未完成配准、误差记录和医生复核时仅为示意参考，不代表自动诊断、真实术中导航定位或精准切除边界。
+      该视图用于展示脱敏 CBCT/STL/GLB 三维参考和 ICG 候选区的空间关系；未完成配准、误差记录和医生复核时仅为示意参考，不代表自动诊断、真实术中导航定位或手术边界。
     </p>
   </section>
 </template>
@@ -398,30 +401,30 @@ import type {
   ThreeDEvidenceTransformStep,
   ThreeDGeometryManifest,
   ThreeDSceneManifest,
+  ThreeDSceneManifestV2,
   ThreeDScenePlane,
 } from "@/types/case";
 
 interface Props {
   candidates: CandidateRegion[];
+  caseId?: string;
   metrics?: Record<string, unknown>;
   modeLabel?: string;
   threeDEvidence?: ThreeDEvidence | null;
 }
 
 type RiskLevel = "high" | "medium" | "low";
-type WorkspaceTool = "layout" | "curve" | "planes" | "fibula" | "roi";
+type WorkspaceTool = "layout" | "curve" | "planes" | "geometry" | "roi";
 type ViewLayoutMode = "four" | "threeD" | "reconstruction";
 type SliceKey = "axial" | "coronal" | "sagittal";
 type ModuleActionKey =
   | "mandibularCurve"
-  | "fibulaLine"
   | "cutPlane"
   | "createBoneModels"
-  | "centerFibulaLine"
   | "create3dModel"
-  | "updateFibulaPlanes";
-type ObjectVisibilityKey = "cbct" | "mandible" | "curvePlanes" | "candidates" | "registration" | "fibula";
-type ViewportLabelKind = "markup" | "plane" | "hotspot" | "fibula";
+  | "refreshGeometryChecks";
+type ObjectVisibilityKey = "cbct" | "mandible" | "curvePlanes" | "candidates" | "registration";
+type ViewportLabelKind = "markup" | "plane" | "hotspot";
 
 interface RegistrationMarkupRow {
   id: string;
@@ -443,16 +446,21 @@ interface TransformChainItem {
   ready: boolean;
 }
 
-interface ToolbarItem {
-  key: WorkspaceTool;
-  label: string;
-  note: string;
-}
-
 interface ModuleAction {
   key: ModuleActionKey;
   label: string;
   state: string;
+}
+
+interface MigratedWorkflowStep {
+  key: string;
+  index: string;
+  title: string;
+  detail: string;
+  state: "ready" | "partial" | "blocked";
+  stateLabel: string;
+  tool: WorkspaceTool;
+  action: ModuleActionKey;
 }
 
 interface ObjectTreeItem {
@@ -505,6 +513,16 @@ interface ScenePlaneDisplay {
   scale: THREE.Vector3;
 }
 
+interface LocalImportedFile {
+  name: string;
+  size: number;
+  type: string;
+  kind: "cbct" | "surface";
+  backendPath?: string;
+  uploadError?: string;
+  uploadStatus?: "local" | "uploading" | "uploaded" | "failed";
+}
+
 const props = withDefaults(defineProps<Props>(), {
   metrics: () => ({}),
   modeLabel: "术中融合证据",
@@ -512,20 +530,29 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   selectCandidateFrame: [payload: { candidateId: string; frameKey: string; frameIndex: number | null; timestampSec: number | null }];
+  threeDEvidencePersisted: [];
 }>();
 
 const canvasHost = ref<HTMLDivElement | null>(null);
+const cbctInput = ref<HTMLInputElement | null>(null);
+const surfaceInput = ref<HTMLInputElement | null>(null);
 const selectedHotspotKey = ref("");
 const selectedMarkupId = ref("");
-const activeTreeNodeName = ref("Mandible surface model");
+const activeTreeNodeName = ref("下颌表面模型");
 const modelLoadState = ref<"fallback" | "loaded" | "failed">("fallback");
 const loadedModelPath = ref("");
+const localThreeDEvidence = ref<ThreeDEvidence | null>(null);
+const localImportedFiles = ref<LocalImportedFile[]>([]);
+const localSurfaceObjectUrl = ref("");
+const modelingJobId = ref("");
+const modelingJobStatus = ref<"idle" | "queued" | "running" | "completed" | "failed" | "canceled" | "segmentation_required">("idle");
+const modelingJobMessage = ref("");
 const geometryManifest = ref<ThreeDGeometryManifest | null>(null);
 const geometryLoadState = ref<"idle" | "loading" | "loaded" | "failed">("idle");
 const activeWorkspaceTool = ref<WorkspaceTool>("layout");
 const viewLayoutMode = ref<ViewLayoutMode>("four");
 const activeModuleAction = ref<ModuleActionKey>("mandibularCurve");
-const mandibulectomyMode = ref<"Segmental Mandibulectomy" | "Hemimandibulectomy">("Segmental Mandibulectomy");
+const surfaceSourceMode = ref<"label" | "surface">("label");
 const sliceOffsets = ref<Record<SliceKey, number>>({
   axial: 0,
   coronal: 0,
@@ -533,19 +560,16 @@ const sliceOffsets = ref<Record<SliceKey, number>>({
 });
 const autoPositionPlanes = ref(true);
 const rotatePlanesTogether = ref(true);
-const showFibulaSegmentLengths = ref(true);
-const rightSideLeg = ref(true);
 const betweenSpaceMm = ref(1.5);
 const securityMarginMm = ref(2);
-const miterBoxDistanceMm = ref(22);
 const objectVisibility = ref<Record<ObjectVisibilityKey, boolean>>({
   cbct: true,
   mandible: true,
   curvePlanes: true,
   candidates: true,
   registration: true,
-  fibula: true,
 });
+const autoRotateModel = ref(false);
 
 const riskColors: Record<RiskLevel, number> = {
   high: 0xd83b3e,
@@ -568,19 +592,22 @@ let boneGroup: THREE.Group | null = null;
 let hotspotGroup: THREE.Group | null = null;
 let planningGuideGroup: THREE.Group | null = null;
 let anatomyPlaneGroup: THREE.Group | null = null;
-let fibulaReferenceGroup: THREE.Group | null = null;
 let referenceStageGroup: THREE.Group | null = null;
 let registrationMarkupGroup: THREE.Group | null = null;
 let fallbackBoneGroup: THREE.Group | null = null;
 let loadedAnatomyGroup: THREE.Group | null = null;
+let modelLoadSequence = 0;
 let frameId = 0;
 let resizeObserver: ResizeObserver | null = null;
 
-const evidence = computed(() => props.threeDEvidence ?? null);
+const evidence = computed(() => localThreeDEvidence.value ?? props.threeDEvidence ?? null);
 const evidenceModelPath = computed(() => stringFromEvidence(evidence.value?.model_path));
 const evidenceModelFormat = computed(() => stringFromEvidence(evidence.value?.model_format).toLowerCase());
 const sceneManifest = computed<ThreeDSceneManifest | null>(() =>
   isEvidenceRecord(evidence.value?.scene_manifest) ? (evidence.value?.scene_manifest as ThreeDSceneManifest) : null,
+);
+const sceneManifestV2 = computed<ThreeDSceneManifestV2 | null>(() =>
+  isEvidenceRecord(evidence.value?.scene_manifest_v2) ? (evidence.value?.scene_manifest_v2 as ThreeDSceneManifestV2) : null,
 );
 const geometryManifestPath = computed(() => stringFromEvidence(evidence.value?.geometry_manifest_path));
 const hasEvidenceModel = computed(() => Boolean(evidenceModelPath.value));
@@ -589,30 +616,33 @@ const isRegistered = computed(() => stringFromEvidence(evidence.value?.registrat
 const modelSourceLabel = computed(() => {
   if (modelLoadState.value === "failed") return "三维模型加载失败";
   if (modelLoadState.value === "loaded") {
-    return stringFromEvidence(evidence.value?.model_source) || "病例三维表面模型";
+    return humanizeEvidenceText(stringFromEvidence(evidence.value?.model_source)) || "病例三维表面模型";
   }
-  return hasEvidenceModel.value ? "待接入病例三维模型" : "示意占位 / 未接入真实模型";
+  return hasEvidenceModel.value ? "待接入病例三维模型" : "未接入真实三维模型";
 });
 
-const displayModeLabel = computed(() => (modelLoadState.value === "loaded" ? "真实模型参考" : "示意占位参考"));
+const displayModeLabel = computed(() => (modelLoadState.value === "loaded" ? "真实模型参考" : "空白待接入"));
 const registrationLabel = computed(() => {
   if (isRegistered.value) return "已配准";
-  if (modelLoadState.value === "loaded") return "未配准";
   return "未配准 / 非导航";
 });
-const registrationBadgeLabel = computed(() => (isRegistered.value ? "REGISTERED" : "REFERENCE"));
-const coordinateSpaceLabel = computed(() => stringFromEvidence(evidence.value?.coordinate_space) || "坐标系未记录");
+const registrationBadgeLabel = computed(() => (isRegistered.value ? "已配准" : "参考"));
+const coordinateSpaceLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.coordinate_space)) || "坐标系未记录");
 const modelFileNameLabel = computed(() => stringFromEvidence(evidence.value?.model_file_name) || fileNameFromPath(evidenceModelPath.value) || "文件名未记录");
-const exportedFromLabel = computed(() => stringFromEvidence(evidence.value?.exported_from) || "导出工具未记录");
+const exportedFromLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.exported_from)) || "导出工具未记录");
 const dicomSeriesLabel = computed(() => stringFromEvidence(evidence.value?.dicom_series_uid) || "DICOM 序列未记录");
-const segmentationSourceLabel = computed(() => stringFromEvidence(evidence.value?.segmentation_source) || "分割来源未记录");
-const segmentationReviewStatusLabel = computed(() => stringFromEvidence(evidence.value?.segmentation_review_status) || "分割复核状态未记录");
-const registrationMethodLabel = computed(() => stringFromEvidence(evidence.value?.registration_method) || "配准方法未记录");
-const doctorReviewStatusLabel = computed(() => stringFromEvidence(evidence.value?.doctor_review_status) || "医生复核状态未记录");
-const evidenceAnalysisModeLabel = computed(() => stringFromEvidence(evidence.value?.analysis_mode) || "分析模式未记录");
-const evidenceDataBoundaryLabel = computed(() => stringFromEvidence(evidence.value?.data_boundary) || "三维数据边界未记录");
+const segmentationSourceLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.segmentation_source)) || "分割来源未记录");
+const segmentationReviewStatusLabel = computed(
+  () => statusLabel(humanizeEvidenceText(stringFromEvidence(evidence.value?.segmentation_review_status)), false) || "分割复核状态未记录",
+);
+const registrationMethodLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.registration_method)) || "配准方法未记录");
+const doctorReviewStatusLabel = computed(
+  () => statusLabel(humanizeEvidenceText(stringFromEvidence(evidence.value?.doctor_review_status)), false) || "医生复核状态未记录",
+);
+const evidenceAnalysisModeLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.analysis_mode)) || "分析模式未记录");
+const evidenceDataBoundaryLabel = computed(() => humanizeEvidenceText(stringFromEvidence(evidence.value?.data_boundary)) || "三维数据边界未记录");
 const transformPathLabel = computed(() => stringFromEvidence(evidence.value?.transform_path) || "坐标变换文件未记录");
-const modelFormatLabel = computed(() => evidenceModelFormat.value.toUpperCase() || (modelLoadState.value === "loaded" ? "3D MODEL" : "DEMO MODEL"));
+const modelFormatLabel = computed(() => evidenceModelFormat.value.toUpperCase() || (modelLoadState.value === "loaded" ? "三维模型" : "待接入"));
 const registrationErrorLabel = computed(() => {
   const value = evidence.value?.registration_error_mm;
   if (typeof value === "number" && Number.isFinite(value)) return `${value.toFixed(2)} mm`;
@@ -629,29 +659,148 @@ const navigationReady = computed(() => {
 });
 const boundaryNote = computed(
   () =>
-    stringFromEvidence(evidence.value?.boundary_note) ||
-    "当前三维视图只提供空间理解和医生复核参考；未记录配准误差时不得作为真实术中导航或切除边界。",
+    humanizeEvidenceText(stringFromEvidence(evidence.value?.boundary_note)) ||
+    "当前三维视图只提供空间理解和医生复核参考；未记录配准误差时不得作为真实术中导航或手术边界。",
 );
+const viewSpaceMapping = computed(() => evidence.value?.view_space_mapping ?? sceneManifestV2.value?.scene?.view_space_mapping ?? null);
+const orientationReviewStatus = computed(
+  () =>
+    stringFromEvidence(evidence.value?.orientation_review_status) ||
+    stringFromEvidence(sceneManifestV2.value?.scene?.orientation_review_status),
+);
+const displayOrientationStatus = computed(
+  () =>
+    stringFromEvidence(evidence.value?.display_orientation_status) ||
+    stringFromEvidence(sceneManifestV2.value?.scene?.display_orientation_status),
+);
+const inferIdentityMhaJawDisplayFlip = computed(() => {
+  const coordinateSpace = stringFromEvidence(evidence.value?.coordinate_space).toLowerCase();
+  if (!coordinateSpace.startsWith("cbct_physical_lps_mm")) return false;
+  const sceneRecord = (sceneManifestV2.value?.scene ?? null) as Record<string, unknown> | null;
+  const volumeGeometry = isEvidenceRecord(sceneRecord?.volume_geometry) ? sceneRecord?.volume_geometry : null;
+  const direction = Array.isArray(volumeGeometry?.direction) ? volumeGeometry.direction.map(Number) : [];
+  const identityDirection =
+    direction.length === 9 &&
+    direction.every((value, index) => Number.isFinite(value) && Math.abs(value - (index % 4 === 0 ? 1 : 0)) < 1e-6);
+  const sourceText = [
+    evidenceModelPath.value,
+    evidence.value?.model_source,
+    evidence.value?.segmentation_source,
+    ...(sceneManifestV2.value?.nodes ?? []).flatMap((node) => [node.name, node.path, node.source]),
+  ]
+    .map((value) => stringFromEvidence(value).toLowerCase())
+    .join(" ");
+  return identityDirection && (/\.mha\b|\.mhd\b/.test(sourceText) || sourceText.includes("toothfairy2") || sourceText.includes("d036"));
+});
+const orientationReviewLabel = computed(() => {
+  const status = orientationReviewStatus.value || displayOrientationStatus.value;
+  if (!status) return inferIdentityMhaJawDisplayFlip.value ? "MHA 轴向推断 / 待复核" : "方向复核未记录";
+  return statusLabel(humanizeEvidenceText(status), false);
+});
+const displayUpAxisLabel = computed(() => {
+  const axis = stringFromEvidence(viewSpaceMapping.value?.display_up_axis);
+  if (axis === "-physical_z") return "显示上方 = -Z 轴";
+  if (axis === "physical_z") return "显示上方 = Z 轴";
+  return inferIdentityMhaJawDisplayFlip.value ? "显示上方 = -Z 轴" : "显示上方 = Z 轴";
+});
+const modelRotationXDegrees = computed(() => {
+  const explicitRotation = numberFromEvidenceValue(viewSpaceMapping.value?.frontend_rotation_x_degrees);
+  if (explicitRotation != null) return explicitRotation;
+  return inferIdentityMhaJawDisplayFlip.value ? 90 : -90;
+});
 const hotspotProjectionLabel = computed(() => (isRegistered.value ? "已配准空间映射" : "2D 候选示意投影"));
 const modelLoadNote = computed(() => {
-  if (modelLoadState.value === "loaded") return `已加载 ${loadedModelPath.value}`;
-  if (modelLoadState.value === "failed") return "真实模型文件无法解析，已回退示意模型";
-  return "未检测到真实 STL/GLB，当前为示意占位模型";
+  if (modelLoadState.value === "loaded") return `已加载 ${fileNameFromPath(loadedModelPath.value) || "三维模型"}；完整路径见证据字段`;
+  if (modelLoadState.value === "failed") return "真实模型文件无法解析，未显示任何替代示意模型";
+  return "未检测到真实 STL/GLB，当前保持空白检查状态";
+});
+const localCbctFiles = computed(() => localImportedFiles.value.filter((file) => file.kind === "cbct"));
+const localSurfaceFiles = computed(() => localImportedFiles.value.filter((file) => file.kind === "surface"));
+const cbctImportSummary = computed(() => {
+  if (localSurfaceFiles.value.length) {
+    const file = localSurfaceFiles.value[0];
+    return {
+      title: "表面模型已接入",
+      detail: `${file.name} · ${fileSizeLabel(file.size)}；${uploadStateLabel(file)}；正在用于三维预览和检查。`,
+    };
+  }
+  if (localCbctFiles.value.length) {
+    const failed = localCbctFiles.value.find((file) => file.uploadStatus === "failed");
+    if (failed) {
+      return {
+        title: "CBCT 写入失败",
+        detail: `${failed.name}：${failed.uploadError || "后端未返回可用错误信息"}。`,
+      };
+    }
+    const uploadedCount = localCbctFiles.value.filter((file) => file.uploadStatus === "uploaded").length;
+    return {
+      title: uploadedCount ? "CBCT 体数据已写入" : "CBCT 体数据写入中",
+      detail: `${localCbctFiles.value.length} 个文件，${uploadedCount} 个已写入后端；写入后自动提交检查/建模任务。`,
+    };
+  }
+  return {
+    title: "等待 CBCT 或 STL/GLB",
+    detail: "优先导入 Slicer 导出的 STL/GLB；原始 CBCT 体数据会先进入检查清单。",
+  };
+});
+const cbctModelingChecks = computed(() => [
+  {
+    label: "体数据来源",
+    detail: "CBCT/DICOM 或 NIfTI/NRRD 已记录来源。",
+    ready: localCbctFiles.value.length > 0 || hasEvidenceModel.value,
+  },
+  {
+    label: "证据包写入",
+    detail: "CBCT/STL/GLB 写入后端 artifact 或病例证据字段。",
+    ready:
+      localImportedFiles.value.some((file) => file.uploadStatus === "uploaded") ||
+      Boolean(evidence.value?.model_path && !localThreeDEvidence.value),
+  },
+  {
+    label: "表面模型",
+    detail: "下颌分割或表面模型已接入三维预览。",
+    ready: modelLoadState.value === "loaded" || localSurfaceFiles.value.length > 0,
+  },
+  {
+    label: "复核字段",
+    detail: "坐标系、分割复核和医生边界进入证据字段。",
+    ready: Boolean(localThreeDEvidence.value) || Boolean(props.threeDEvidence),
+  },
+  {
+    label: "候选边界",
+    detail: "荧光视频候选区只作参考叠加，未配准时保持非导航。",
+    ready: true,
+  },
+]);
+const canStartModelingJob = computed(() =>
+  localImportedFiles.value.some((file) => file.uploadStatus === "uploaded" && Boolean(file.backendPath)),
+);
+const canCancelModelingJob = computed(() =>
+  Boolean(modelingJobId.value) && ["queued", "running"].includes(modelingJobStatus.value),
+);
+const modelingJobStatusLabel = computed(() => {
+  if (modelingJobStatus.value === "queued") return `建模任务已排队：${modelingJobId.value}`;
+  if (modelingJobStatus.value === "running") return modelingJobMessage.value || "正在生成表面模型...";
+  if (modelingJobStatus.value === "completed") return modelingJobMessage.value || "表面模型已生成并接入三维证据。";
+  if (modelingJobStatus.value === "canceled") return modelingJobMessage.value || "三维建模任务已取消。";
+  if (modelingJobStatus.value === "segmentation_required") return modelingJobMessage.value || "体数据已检查，仍需分割标签后才能生成表面。";
+  if (modelingJobStatus.value === "failed") return modelingJobMessage.value || "表面模型生成失败。";
+  return "可先导入 CBCT 或 Slicer 导出的 STL/GLB；体数据生成表面需要后端建模任务。";
 });
 const sceneCurveLabel = computed(
-  () => stringFromEvidence(sceneManifest.value?.mandibular_curve?.label) || "下颌曲线用于解释候选投影与规划切面关系",
+  () => humanizeEvidenceText(stringFromEvidence(sceneManifest.value?.mandibular_curve?.label)) || "下颌曲线用于解释候选投影与规划切面关系",
 );
 const sceneManifestSourceLabel = computed(
-  () => stringFromEvidence(sceneManifest.value?.source_project) || "前端示意场景",
+  () => humanizeEvidenceText(stringFromEvidence(sceneManifest.value?.source_project)) || "前端示意场景",
 );
 const geometryManifestLabel = computed(() => {
-  if (!geometryManifestPath.value) return "BRP 几何计算未生成";
+  if (!geometryManifestPath.value) return "几何计算未生成";
   if (geometryLoadState.value === "loaded") return `${geometryManifestPath.value} · 已读取`;
   if (geometryLoadState.value === "failed") return `${geometryManifestPath.value} · 读取失败`;
   if (geometryLoadState.value === "loading") return `${geometryManifestPath.value} · 读取中`;
   return geometryManifestPath.value;
 });
-const geometrySchemaLabel = computed(() => stringFromEvidence(geometryManifest.value?.schema_version) || "BRP geometry manifest 未读取");
+const geometrySchemaLabel = computed(() => stringFromEvidence(geometryManifest.value?.schema_version) || "几何清单未读取");
 const geometryStatusLabel = computed(() => {
   const status = geometryManifest.value?.geometry_status;
   if (!isEvidenceRecord(status)) return "几何状态未记录";
@@ -659,9 +808,9 @@ const geometryStatusLabel = computed(() => {
   const candidateReady = Boolean(status.candidate_projection_ready);
   const navigationReady = Boolean(status.navigation_ready);
   return [
-    planeReady ? "plane intersections ready" : "plane intersections missing",
-    candidateReady ? "candidate surface points ready" : "candidate surface points missing",
-    navigationReady ? "navigation ready" : "non-navigation",
+    planeReady ? "平面交线已计算" : "平面交线缺失",
+    candidateReady ? "候选表面点已计算" : "候选表面点缺失",
+    navigationReady ? "导航就绪" : "非导航",
   ].join(" / ");
 });
 const planeIntersectionSummaryLabel = computed(() => {
@@ -669,8 +818,36 @@ const planeIntersectionSummaryLabel = computed(() => {
   if (!Array.isArray(intersections) || !intersections.length) return "未计算";
   const readyCount = intersections.filter((item) => stringFromEvidence(item.status).toLowerCase() === "ready").length;
   const segmentCounts = intersections.map((item) => numberFromEvidenceValue(item.segment_count) ?? 0).join(", ");
-  return `${readyCount} / ${intersections.length} ready · segments [${segmentCounts}]`;
+  return `${readyCount} / ${intersections.length} 已就绪 · 交线段：${segmentCounts}`;
 });
+const surfaceQualityLabel = computed(() => {
+  const quality = evidence.value?.surface_quality;
+  if (!isEvidenceRecord(quality)) return "未记录";
+  const method = humanizeEvidenceText(stringFromEvidence(quality.method)) || "代理表面";
+  const threshold = numberFromEvidenceValue(quality.threshold_value);
+  const fillRatio = numberFromEvidenceValue(quality.fill_ratio_after_components);
+  const components = numberFromEvidenceValue(quality.kept_component_count);
+  const parts = [method];
+  if (threshold != null) parts.push(`阈值 ${threshold.toFixed(1)}`);
+  if (fillRatio != null) parts.push(`保留 ${(fillRatio * 100).toFixed(2)}%`);
+  if (components != null) parts.push(`${components} 个主要连通域`);
+  const upperJawStatus = upperJawCoverageStatus(quality);
+  if (upperJawStatus === "partial_or_crop_limited") parts.push("上颌标签偏少或被裁切");
+  if (upperJawStatus === "crop_boundary_touching") parts.push("上颌触及裁切边界");
+  if (upperJawStatus === "missing") parts.push("上颌标签缺失");
+  return parts.join(" / ");
+});
+
+function upperJawCoverageStatus(quality: Record<string, unknown>): string {
+  const perLabel = quality.per_label;
+  if (!Array.isArray(perLabel)) return "";
+  const upper = perLabel.find((item) => {
+    if (!isEvidenceRecord(item)) return false;
+    const name = stringFromEvidence(item.label_name).toLowerCase();
+    return name.includes("upper") || name.includes("maxilla") || name.includes("上颌");
+  });
+  return isEvidenceRecord(upper) ? stringFromEvidence(upper.coverage_status) : "";
+}
 
 const normalizedHotspots = computed<HotspotSpec[]>(() => {
   if (!props.candidates.length) return [];
@@ -684,7 +861,7 @@ const normalizedHotspots = computed<HotspotSpec[]>(() => {
     const timestampSec = numberFromMetadata(candidate.metadata, "timestamp_sec");
     return {
       key: candidate.candidate_id,
-      label: candidate.risk_type || `候选区域 ${index + 1}`,
+      label: humanizeEvidenceText(candidate.risk_type || "") || `候选区域 ${index + 1}`,
       shortLabel: String.fromCharCode(65 + index),
       risk,
       confidence,
@@ -729,68 +906,78 @@ const confidenceLabel = computed(() => {
   return `${Math.round(mean * 100)}%`;
 });
 
-const toolbarItems = computed<ToolbarItem[]>(() => [
-  { key: "layout", label: "四视图布局", note: "3D + 轴位 / 冠状 / 矢状" },
-  { key: "curve", label: "下颌曲线", note: "参考 Add mandibular curve" },
-  { key: "planes", label: "切割平面", note: "参考 Add cut plane" },
-  { key: "fibula", label: "腓骨线", note: "参考 Add fibula line" },
-  { key: "roi", label: "ROI 复核", note: hotspotProjectionLabel.value },
-]);
-
-const viewLayoutOptions: Array<{ key: ViewLayoutMode; label: string }> = [
-  { key: "four", label: "四视图" },
-  { key: "threeD", label: "3D 最大化" },
-  { key: "reconstruction", label: "重建最大化" },
-];
-
-const viewLayoutLabel = computed(() => viewLayoutOptions.find((item) => item.key === viewLayoutMode.value)?.label ?? "四视图");
-const betweenSpaceLabel = computed(() => `${betweenSpaceMm.value.toFixed(1)} mm`);
-const securityMarginLabel = computed(() => `${securityMarginMm.value.toFixed(1)} mm`);
-const miterBoxDistanceLabel = computed(() => `${miterBoxDistanceMm.value.toFixed(0)} mm`);
-const legSideLabel = computed(() => (rightSideLeg.value ? "Right side leg / medial X axis" : "Left side leg / mirrored reference"));
-const fibulaSegmentLengthLabels = computed(() => {
-  const measured = geometrySegmentLengthLabels();
-  if (measured.length) return [measured[0] ?? "S0: 未计算", measured[1] ?? "S1: 未计算"];
-  const lengths = sceneManifest.value?.fibula_reference?.segment_lengths_mm;
-  const values = Array.isArray(lengths) ? lengths.map(Number).filter(Number.isFinite) : [];
-  return [`S0: ${(values[0] ?? 29.49).toFixed(2)} mm`, `S1: ${(values[1] ?? 28.95).toFixed(2)} mm`];
+const migratedWorkflowSteps = computed<MigratedWorkflowStep[]>(() => {
+  const hasGeometry = geometryLoadState.value === "loaded" || Boolean(sceneManifest.value);
+  const hasCandidates = normalizedHotspots.value.length > 0;
+  return [
+    {
+      key: "model",
+      index: "01",
+      title: "模型/分割",
+      detail: hasEvidenceModel.value ? modelFileNameLabel.value : "等待 STL/GLB 或 CBCT 派生模型",
+      state: modelLoadState.value === "loaded" ? "ready" : hasEvidenceModel.value ? "partial" : "blocked",
+      stateLabel: modelLoadState.value === "loaded" ? "已接入" : hasEvidenceModel.value ? "待加载" : "缺失",
+      tool: "layout",
+      action: "createBoneModels",
+    },
+    {
+      key: "source",
+      index: "02",
+      title: "来源记录",
+      detail: segmentationSourceLabel.value,
+      state: hasEvidenceModel.value || localImportedFiles.value.length ? "ready" : "blocked",
+      stateLabel: hasEvidenceModel.value || localImportedFiles.value.length ? "已记录" : "缺失",
+      tool: "layout",
+      action: "createBoneModels",
+    },
+    {
+      key: "geometry",
+      index: "03",
+      title: "建模检查",
+      detail: hasGeometry ? geometryStatusLabel.value : modelingJobStatusLabel.value,
+      state: hasGeometry ? "partial" : "blocked",
+      stateLabel: hasGeometry ? "有清单" : "待生成",
+      tool: "planes",
+      action: "createBoneModels",
+    },
+    {
+      key: "mapping",
+      index: "04",
+      title: "荧光对应",
+      detail: hotspotProjectionLabel.value,
+      state: isRegistered.value && hasCandidates ? "ready" : hasCandidates ? "partial" : "blocked",
+      stateLabel: isRegistered.value && hasCandidates ? "已映射" : hasCandidates ? "示意" : "无候选",
+      tool: "roi",
+      action: "refreshGeometryChecks",
+    },
+  ];
 });
 
+const betweenSpaceLabel = computed(() => `${betweenSpaceMm.value.toFixed(1)} mm`);
+const securityMarginLabel = computed(() => `${securityMarginMm.value.toFixed(1)} mm`);
+
 const moduleControls = computed(() => [
-  { label: "Mandibulectomy mode", value: mandibulectomyMode.value },
-  { label: "Select mandibular segmentation", value: modelLoadState.value === "loaded" ? modelFileNameLabel.value : "Mandible seg / 示意" },
-  { label: "Select fibula segmentation", value: "Fibula seg / reference" },
-  { label: "Initial space (mm)", value: "0.0" },
-  { label: "Intersection distance multiplier", value: "1.0" },
-  { label: "Between space (mm)", value: betweenSpaceLabel.value },
-  { label: "Fibula side", value: legSideLabel.value },
-  { label: "Security margin", value: securityMarginLabel.value },
-  { label: "Miter box distance", value: miterBoxDistanceLabel.value },
-  { label: "Select mandible curve", value: "mandibularCurve" },
-  { label: "Select fibula line", value: "fibulaLine" },
-  { label: "Current Scalar Volume", value: dicomSeriesLabel.value },
-  { label: "Segmentation source", value: segmentationSourceLabel.value },
-  { label: "Segmentation review", value: segmentationReviewStatusLabel.value },
-  { label: "Scene manifest", value: sceneManifestSourceLabel.value },
+  { label: "模型文件", value: modelLoadState.value === "loaded" ? modelFileNameLabel.value : "未加载真实模型" },
+  { label: "分割来源", value: segmentationSourceLabel.value },
+  { label: "分割复核", value: segmentationReviewStatusLabel.value },
+  { label: "坐标系", value: coordinateSpaceLabel.value },
+  { label: "方向复核", value: `${orientationReviewLabel.value} / ${displayUpAxisLabel.value}` },
+  { label: "场景清单", value: sceneManifestSourceLabel.value },
+  { label: "几何清单", value: geometryStatusLabel.value },
+  { label: "医生复核", value: doctorReviewStatusLabel.value },
 ]);
 
 const moduleActions = computed<ModuleAction[]>(() => [
-  { key: "mandibularCurve", label: "Add mandibular curve", state: objectVisibility.value.curvePlanes ? "visible" : "hidden" },
-  { key: "fibulaLine", label: "Add fibula line", state: objectVisibility.value.fibula ? "visible" : "hidden" },
-  { key: "cutPlane", label: "Add cut plane", state: objectVisibility.value.curvePlanes ? "visible" : "hidden" },
-  { key: "createBoneModels", label: "Create bone models from segmentations", state: modelLoadState.value === "loaded" ? "case model" : "demo model" },
-  { key: "centerFibulaLine", label: "Center fibula line using fibula model", state: "reference" },
-  { key: "create3dModel", label: "Create 3D model of the reconstruction for 3D printing", state: "blocked for navigation" },
+  { key: "createBoneModels", label: "生成表面模型", state: modelLoadState.value === "loaded" ? "已加载" : "待生成" },
+  { key: "mandibularCurve", label: "记录参考曲线", state: sceneManifest.value?.mandibular_curve ? "有记录" : "待记录" },
+  { key: "cutPlane", label: "记录观察平面", state: geometryLoadState.value === "loaded" ? "有清单" : "待记录" },
+  { key: "refreshGeometryChecks", label: "刷新几何检查", state: geometryStatusLabel.value },
 ]);
-
-const activeModuleActionLabel = computed(
-  () => moduleActions.value.find((action) => action.key === activeModuleAction.value)?.label || "Update fibula planes",
-);
 
 const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   {
     key: "cbct" as ObjectVisibilityKey,
-    name: "CBCT volume",
+    name: "CBCT 体数据",
     detail: coordinateSpaceLabel.value,
     state: objectVisibility.value.cbct ? (hasEvidenceModel.value ? "来源记录" : "待接入") : "隐藏",
     muted: !hasEvidenceModel.value || !objectVisibility.value.cbct,
@@ -798,7 +985,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   },
   {
     key: "mandible" as ObjectVisibilityKey,
-    name: "Mandible surface model",
+    name: "下颌表面模型",
     detail: modelSourceLabel.value,
     state: objectVisibility.value.mandible ? displayModeLabel.value : "隐藏",
     muted: modelLoadState.value !== "loaded" || !objectVisibility.value.mandible,
@@ -806,7 +993,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   },
   {
     key: "curvePlanes" as ObjectVisibilityKey,
-    name: "Mandibular curve",
+    name: "下颌曲线",
     detail: sceneCurveLabel.value,
     state: objectVisibility.value.curvePlanes ? "示意" : "隐藏",
     muted: !objectVisibility.value.curvePlanes,
@@ -814,15 +1001,15 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   },
   {
     key: "curvePlanes" as ObjectVisibilityKey,
-    name: "Resection / review planes",
-    detail: "截骨平面仅作复核语义，不输出真实切除方案",
+    name: "观察 / 复核平面",
+    detail: "仅记录观察平面，不输出手术方案",
     state: objectVisibility.value.curvePlanes ? (isRegistered.value ? "待医生复核" : "非导航") : "隐藏",
     muted: !isRegistered.value || !objectVisibility.value.curvePlanes,
     locked: true,
   },
   {
     key: "candidates" as ObjectVisibilityKey,
-    name: "ICG candidate overlays",
+    name: "ICG 候选叠加",
     detail: normalizedHotspots.value.length ? `${normalizedHotspots.value.length} 个候选区` : "暂无候选区",
     state: objectVisibility.value.candidates ? hotspotProjectionLabel.value : "隐藏",
     muted: !normalizedHotspots.value.length || !objectVisibility.value.candidates,
@@ -830,48 +1017,48 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   },
   {
     key: "registration" as ObjectVisibilityKey,
-    name: "Registration transform",
+    name: "配准变换",
     detail: registrationErrorLabel.value,
     state: objectVisibility.value.registration ? registrationLabel.value : "隐藏",
     muted: !isRegistered.value || !objectVisibility.value.registration,
     locked: true,
   },
-  {
-    key: "fibula" as ObjectVisibilityKey,
-    name: "Fibula line / miter boxes",
-    detail: `${mandibulectomyMode.value} · ${betweenSpaceLabel.value} between space`,
-    state: objectVisibility.value.fibula ? "示意" : "隐藏",
-    muted: !objectVisibility.value.fibula,
-    locked: false,
-  },
 ]);
 
 const objectTreeGroups = computed<ObjectTreeGroup[]>(() => {
+  const v2Groups = objectTreeGroupsFromSceneV2();
+  if (v2Groups.length) return v2Groups;
   const items = objectTreeItems.value;
   const byName = (name: string) => items.find((item) => item.name === name);
   return [
     {
-      name: "Patient / Volume",
-      detail: "Subject hierarchy root",
-      items: [byName("CBCT volume")].filter(Boolean) as ObjectTreeItem[],
+      name: "病例 / 体数据",
+      detail: "对象树根节点",
+      items: [byName("CBCT 体数据")].filter(Boolean) as ObjectTreeItem[],
     },
     {
-      name: "Segmentations / Models",
-      detail: "Mandible surface and source segmentation",
-      items: [byName("Mandible surface model")].filter(Boolean) as ObjectTreeItem[],
+      name: "分割 / 模型",
+      detail: "下颌表面模型与来源分割",
+      items: [byName("下颌表面模型")].filter(Boolean) as ObjectTreeItem[],
     },
     {
-      name: "Markups / Planes",
-      detail: "Curves, fiducials and review planes",
-      items: [byName("Mandibular curve"), byName("Resection / review planes"), byName("Registration transform")].filter(Boolean) as ObjectTreeItem[],
+      name: "标注 / 平面",
+      detail: "曲线、配准点与复核平面",
+      items: [byName("下颌曲线"), byName("观察 / 复核平面"), byName("配准变换")].filter(Boolean) as ObjectTreeItem[],
     },
     {
-      name: "ICG / Reconstruction Reference",
-      detail: "Project evidence overlay, not navigation",
-      items: [byName("ICG candidate overlays"), byName("Fibula line / miter boxes")].filter(Boolean) as ObjectTreeItem[],
+      name: "ICG / 视频对应",
+      detail: "证据并列，不是导航",
+      items: [byName("ICG 候选叠加")].filter(Boolean) as ObjectTreeItem[],
     },
   ];
 });
+
+const showViewportLabels = computed(
+  () =>
+    modelLoadState.value === "loaded" &&
+    (isRegistered.value || normalizedHotspots.value.length > 0 || registrationMarkupRows.value.some((markup) => markup.ready)),
+);
 
 const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
   const labels: ViewportLabelItem[] = [];
@@ -881,8 +1068,8 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
         key: "plane-left",
         kind: "plane",
         shortLabel: "P0",
-        label: mandibulectomyMode.value === "Hemimandibulectomy" ? "Mandible end cut" : "Resection plane left",
-        detail: isRegistered.value ? "registered review plane" : "illustrative review plane",
+        label: "左侧复核平面",
+        detail: isRegistered.value ? "已配准复核平面" : "未配准示意平面",
         x: 30,
         y: 42,
         selected: activeModuleAction.value === "cutPlane",
@@ -893,8 +1080,8 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
         key: "plane-right",
         kind: "plane",
         shortLabel: "P1",
-        label: mandibulectomyMode.value === "Hemimandibulectomy" ? "Ramus reference plane" : "Resection plane right",
-        detail: rotatePlanesTogether.value ? "linked rotation enabled" : "independent rotation",
+        label: "右侧复核平面",
+        detail: rotatePlanesTogether.value ? "联动旋转已开启" : "独立旋转",
         x: 67,
         y: 44,
         selected: activeModuleAction.value === "cutPlane",
@@ -902,20 +1089,6 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
         targetKey: "cutPlane",
       },
     );
-  }
-  if (objectVisibility.value.fibula) {
-    labels.push({
-      key: "fibula-reference",
-      kind: "fibula",
-      shortLabel: "FIB",
-      label: "Fibula line / miter boxes",
-      detail: `${betweenSpaceLabel.value} between space · ${legSideLabel.value}`,
-      x: 54,
-      y: 70,
-      selected: activeWorkspaceTool.value === "fibula",
-      muted: false,
-      targetKey: "fibulaLine",
-    });
   }
   if (objectVisibility.value.registration) {
     registrationMarkupRows.value.slice(0, 4).forEach((markup, index) => {
@@ -955,31 +1128,36 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
 const sliceViews = computed(() => [
   {
     key: "axial" as SliceKey,
-    label: "Red 轴位 Axial",
+    label: "红色轴位",
     position: slicePositionLabel("Z", sliceOffsets.value.axial, sliceBaseMm("axial", 12.4)),
     note: sliceNote("axial", "骨窗轮廓、候选投影和十字定位线保持可追溯显示。"),
   },
   {
     key: "coronal" as SliceKey,
-    label: "Green 冠状 Coronal",
+    label: "绿色冠状位",
     position: slicePositionLabel("Y", sliceOffsets.value.coronal, sliceBaseMm("coronal", -18.2)),
     note: sliceNote("coronal", "用于观察下颌体高度、骨皮质连续性和候选区上下边界。"),
   },
   {
     key: "sagittal" as SliceKey,
-    label: "Yellow 矢状 Sagittal",
+    label: "黄色矢状位",
     position: slicePositionLabel("X", sliceOffsets.value.sagittal, sliceBaseMm("sagittal", 6.8)),
     note: sliceNote("sagittal", "用于解释候选区沿牙槽嵴和下颌支方向的空间位置。"),
   },
 ]);
 
 const evidenceFields = computed(() => [
-  { label: "证据 Schema", value: stringFromEvidence(evidence.value?.schema_version) || "three_d_evidence 未接入" },
-  { label: "Scene Manifest", value: stringFromEvidence(sceneManifest.value?.schema_version) || "three_d_scene_manifest 未接入" },
-  { label: "Geometry Manifest", value: geometryManifestLabel.value },
-  { label: "Geometry Schema", value: geometrySchemaLabel.value },
+  { label: "证据结构", value: stringFromEvidence(evidence.value?.schema_version) || "three_d_evidence 未接入" },
+  { label: "场景清单", value: stringFromEvidence(sceneManifest.value?.schema_version) || "three_d_scene_manifest 未接入" },
+  { label: "场景图 V2", value: stringFromEvidence(sceneManifestV2.value?.schema_version) || "场景图 V2 未接入" },
+  { label: "场景对象", value: sceneManifestV2.value?.nodes?.length ? `${sceneManifestV2.value.nodes.length} 个节点` : "未记录节点" },
+  { label: "标注对象", value: sceneManifestV2.value?.markups?.length ? `${sceneManifestV2.value.markups.length} 个标注` : "未记录标注" },
+  { label: "几何任务", value: sceneManifestV2.value?.geometry_jobs?.length ? `${sceneManifestV2.value.geometry_jobs.length} 个任务` : "未记录任务" },
+  { label: "几何清单", value: geometryManifestLabel.value },
+  { label: "几何结构", value: geometrySchemaLabel.value },
   { label: "几何状态", value: geometryStatusLabel.value },
-  { label: "Plane intersections", value: planeIntersectionSummaryLabel.value },
+  { label: "平面交线", value: planeIntersectionSummaryLabel.value },
+  { label: "表面质量", value: surfaceQualityLabel.value },
   { label: "分析模式", value: evidenceAnalysisModeLabel.value },
   { label: "模型来源", value: modelSourceLabel.value },
   { label: "模型路径", value: evidenceModelPath.value || "未记录真实 STL/GLB/GLTF" },
@@ -993,8 +1171,8 @@ const evidenceFields = computed(() => [
   { label: "配准状态", value: registrationLabel.value },
   { label: "配准方法", value: registrationMethodLabel.value },
   { label: "误差记录", value: registrationErrorLabel.value },
-  { label: "Fiducial 点数", value: fiducialCount.value == null ? "未记录" : `${fiducialCount.value}` },
-  { label: "Surface 点数", value: surfacePointCount.value == null ? "未记录" : `${surfacePointCount.value}` },
+  { label: "标志点数", value: fiducialCount.value == null ? "未记录" : `${fiducialCount.value}` },
+  { label: "表面点数", value: surfacePointCount.value == null ? "未记录" : `${surfacePointCount.value}` },
   { label: "变换文件", value: transformPathLabel.value },
   { label: "候选映射", value: hotspotProjectionLabel.value },
   { label: "复核状态", value: doctorReviewStatusLabel.value },
@@ -1002,10 +1180,20 @@ const evidenceFields = computed(() => [
   { label: "医生边界", value: boundaryNote.value },
 ]);
 
+const summaryEvidenceFields = computed(() => [
+  { label: "模型", value: modelFileNameLabel.value },
+  { label: "来源", value: modelSourceLabel.value },
+  { label: "坐标", value: coordinateSpaceLabel.value },
+  { label: "质量", value: surfaceQualityLabel.value },
+  { label: "配准", value: registrationLabel.value },
+  { label: "误差", value: registrationErrorLabel.value },
+  { label: "候选映射", value: hotspotProjectionLabel.value },
+]);
+
 const registrationGuardItems = computed(() => [
-  { label: "Point-based fiducials / paired landmarks 已记录", ready: isRegistered.value && (fiducialCount.value ?? 0) >= 3 },
+  { label: "点配准标志点已记录", ready: isRegistered.value && (fiducialCount.value ?? 0) >= 3 },
   {
-    label: "Surface matching point cloud / ICP 误差已记录",
+    label: "表面匹配点云与 ICP 误差已记录",
     ready: isRegistered.value && (surfacePointCount.value ?? 0) > 0 && registrationErrorLabel.value !== "未记录",
   },
   {
@@ -1018,13 +1206,22 @@ const registrationGuardItems = computed(() => [
   },
   {
     label: "医生复核边界已确认，ICG 候选区可进入空间参考层",
-    ready: isRegistered.value && ["accepted", "approved", "reviewed", "复核通过"].includes(doctorReviewStatusLabel.value.toLowerCase()),
+    ready:
+      isRegistered.value &&
+      ["accepted", "approved", "reviewed", "复核通过", "已接受", "已批准", "已复核"].includes(
+        doctorReviewStatusLabel.value.toLowerCase(),
+      ),
   },
   {
-    label: "后端明确标记 navigation_ready=true；否则继续保持非导航展示",
+    label: "后端明确标记导航就绪；否则继续保持非导航展示",
     ready: navigationReady.value && isRegistered.value,
   },
 ]);
+
+const navigationGuardSummary = computed(() => {
+  const readyCount = registrationGuardItems.value.filter((item) => item.ready).length;
+  return `${readyCount} / ${registrationGuardItems.value.length} 项满足；未全部满足时保持非导航展示。`;
+});
 
 const registrationMarkupRows = computed<RegistrationMarkupRow[]>(() => {
   const explicitRows = explicitRegistrationMarkups();
@@ -1039,11 +1236,11 @@ const registrationMarkupRows = computed<RegistrationMarkupRow[]>(() => {
     return {
       id: `expected-fiducial-${index + 1}`,
       shortLabel: `F${index + 1}`,
-      label: `F${index + 1} paired landmark`,
-      sourceLabel: ready ? "CBCT/model point count recorded" : "virtual point missing",
-      targetLabel: ready ? "tracked point count recorded" : "tracked point missing",
-      residualLabel: ready ? `residual: ${registrationErrorLabel.value}` : "residual: Missing",
-      statusLabel: ready ? "Count recorded" : "Missing",
+      label: `F${index + 1} 配准标志点`,
+      sourceLabel: ready ? "CBCT/模型点数已记录" : "模型点缺失",
+      targetLabel: ready ? "跟踪点数已记录" : "跟踪点缺失",
+      residualLabel: ready ? `残差：${registrationErrorLabel.value}` : "残差：缺失",
+      statusLabel: ready ? "已记录" : "缺失",
       ready,
       position: archPoint.position,
     };
@@ -1052,7 +1249,7 @@ const registrationMarkupRows = computed<RegistrationMarkupRow[]>(() => {
 
 const registrationMarkupsSummary = computed(() => {
   const readyCount = registrationMarkupRows.value.filter((item) => item.ready).length;
-  return `${readyCount} / ${registrationMarkupRows.value.length} paired landmarks ready`;
+  return `${readyCount} / ${registrationMarkupRows.value.length} 个配准点已就绪`;
 });
 
 const transformChainItems = computed<TransformChainItem[]>(() => {
@@ -1060,30 +1257,30 @@ const transformChainItems = computed<TransformChainItem[]>(() => {
   if (explicitSteps.length) return explicitSteps;
   return [
     {
-      name: "DICOM voxel to CBCT RAS",
-      fromSpace: "DICOM voxel",
+      name: "DICOM 体素到 CBCT 坐标",
+      fromSpace: "DICOM 体素",
       toSpace: coordinateSpaceLabel.value,
       detail: dicomSeriesLabel.value,
       ready: coordinateSpaceLabel.value !== "坐标系未记录" && dicomSeriesLabel.value !== "DICOM 序列未记录",
     },
     {
-      name: "Segmentation to surface model",
+      name: "分割结果到表面模型",
       fromSpace: segmentationSourceLabel.value,
       toSpace: modelFileNameLabel.value,
       detail: segmentationReviewStatusLabel.value,
       ready: hasEvidenceModel.value && segmentationReviewStatusLabel.value !== "分割复核状态未记录",
     },
     {
-      name: "CBCT/STL to video reference",
+      name: "CBCT/STL 到视频参考",
       fromSpace: coordinateSpaceLabel.value,
-      toSpace: "MP4/JPEG keyframe evidence",
+      toSpace: "MP4/JPEG 关键帧证据",
       detail: transformPathLabel.value,
       ready: isRegistered.value && transformPathLabel.value !== "坐标变换文件未记录",
     },
     {
-      name: "ICG candidate to 3D reference layer",
-      fromSpace: "2D keyframe candidate",
-      toSpace: isRegistered.value ? "registered reference layer" : "illustrative projection",
+      name: "ICG 候选区到三维参考层",
+      fromSpace: "二维关键帧候选区",
+      toSpace: isRegistered.value ? "已配准参考层" : "示意投影",
       detail: hotspotProjectionLabel.value,
       ready: isRegistered.value && navigationReady.value,
     },
@@ -1092,7 +1289,7 @@ const transformChainItems = computed<TransformChainItem[]>(() => {
 
 const transformChainSummary = computed(() => {
   const readyCount = transformChainItems.value.filter((item) => item.ready).length;
-  return `${readyCount} / ${transformChainItems.value.length} transforms ready`;
+  return `${readyCount} / ${transformChainItems.value.length} 项变换就绪`;
 });
 
 const workflowSteps = computed(() => [
@@ -1109,7 +1306,7 @@ const workflowSteps = computed(() => [
   {
     index: "03",
     title: "曲线 / 切面规划",
-    detail: "复刻 BoneReconstructionPlanner 的曲线、切面和导板语义。",
+    detail: "记录下颌曲线、复核平面与几何检查清单。",
   },
   {
     index: "04",
@@ -1118,15 +1315,459 @@ const workflowSteps = computed(() => [
   },
 ]);
 
+function openCbctPicker() {
+  cbctInput.value?.click();
+}
+
+function openSurfacePicker() {
+  surfaceInput.value?.click();
+}
+
+async function handleCbctFiles(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  if (!files.length) return;
+  modelingJobId.value = "";
+  modelingJobStatus.value = "running";
+  modelingJobMessage.value = "正在写入 CBCT 体数据，写入完成后会自动检查能否生成表面。";
+  const records = files.map((file) => ({
+    name: file.name,
+    size: file.size,
+    type: file.type || "medical-volume",
+    kind: "cbct" as const,
+    uploadStatus: "uploading" as const,
+  }));
+  localImportedFiles.value = [
+    ...localImportedFiles.value.filter((file) => file.kind !== "cbct"),
+    ...records,
+  ];
+  localThreeDEvidence.value = buildLocalEvidence({
+    modelPath: localSurfaceObjectUrl.value,
+    modelFile: localSurfaceFiles.value[0],
+    cbctFiles: localCbctFiles.value,
+  });
+  activeModuleAction.value = "createBoneModels";
+  activeWorkspaceTool.value = "layout";
+  input.value = "";
+  const uploaded = await uploadLocalThreeDFiles(files, "cbct");
+  if (uploaded) {
+    await startCbctModelingJob("cbct");
+  } else {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value = "CBCT 体数据未能写入后端，请检查文件格式、后端服务和上传接口。";
+  }
+}
+
+async function handleSurfaceModelFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  revokeLocalSurfaceObjectUrl();
+  localSurfaceObjectUrl.value = URL.createObjectURL(file);
+  const surfaceFile: LocalImportedFile = {
+    name: file.name,
+    size: file.size,
+    type: file.type || "surface-model",
+    kind: "surface",
+    uploadStatus: "uploading",
+  };
+  localImportedFiles.value = [
+    ...localImportedFiles.value.filter((item) => item.kind !== "surface"),
+    surfaceFile,
+  ];
+  localThreeDEvidence.value = buildLocalEvidence({
+    modelPath: localSurfaceObjectUrl.value,
+    modelFile: surfaceFile,
+    cbctFiles: localCbctFiles.value,
+  });
+  objectVisibility.value.mandible = true;
+  activeModuleAction.value = "createBoneModels";
+  activeWorkspaceTool.value = "layout";
+  if (boneGroup) void loadRealAnatomyModel();
+  input.value = "";
+  const uploaded = await uploadLocalThreeDFiles([file], "surface");
+  if (uploaded) {
+    await startCbctModelingJob("surface");
+  } else {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value = "表面模型未能写入后端，请检查文件格式、后端服务和上传接口。";
+  }
+}
+
+function clearLocalEvidence() {
+  revokeLocalSurfaceObjectUrl();
+  localImportedFiles.value = [];
+  localThreeDEvidence.value = null;
+  modelingJobId.value = "";
+  modelingJobStatus.value = "idle";
+  modelingJobMessage.value = "";
+  if (cbctInput.value) cbctInput.value.value = "";
+  if (surfaceInput.value) surfaceInput.value.value = "";
+  if (boneGroup) void loadRealAnatomyModel();
+}
+
+async function startCbctModelingJob(preferredKind: "cbct" | "surface" = "surface") {
+  const cbctSource = localCbctFiles.value.find((file) => file.backendPath);
+  const surfaceSource = localSurfaceFiles.value.find((file) => file.backendPath);
+  const source = preferredKind === "cbct"
+    ? cbctSource ?? surfaceSource
+    : surfaceSource ?? cbctSource;
+  if (!source?.backendPath) {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value = "请先完成 CBCT 或 STL/GLB 后端写入。";
+    return;
+  }
+  modelingJobStatus.value = "queued";
+  modelingJobMessage.value = "正在提交三维建模任务。";
+  try {
+    const selectedKind = source.kind;
+    const modelingParameters: Record<string, unknown> = {
+      source_path: source.backendPath,
+      source_paths: selectedKind === "cbct"
+        ? localCbctFiles.value.map((file) => file.backendPath).filter(Boolean)
+        : [source.backendPath],
+      source_role: selectedKind === "cbct" ? "volume" : "surface",
+      source_original_filename: source.name,
+      case_id: props.caseId || "frontend_local_cbct",
+      dataset_id: "frontend_local_import",
+      decimation_step: 1,
+    };
+    if (selectedKind !== "cbct") modelingParameters.label_value = 1;
+    const started = await apiClient.startThreeDModelingJob(modelingParameters);
+    modelingJobId.value = started.job_id;
+    await pollCbctModelingJob(started.job_id);
+  } catch (error) {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value = errorMessageFromUnknown(error, "三维建模任务提交失败。");
+  }
+}
+
+async function cancelCbctModelingJob() {
+  if (!modelingJobId.value) return;
+  try {
+    const canceled = await apiClient.cancelThreeDModelingJob(modelingJobId.value);
+    modelingJobStatus.value = canceled.status === "canceled" ? "canceled" : canceled.status;
+    modelingJobMessage.value = canceled.error || canceled.progress?.message || "三维建模任务已取消。";
+  } catch (error) {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value = errorMessageFromUnknown(error, "三维建模任务取消失败。");
+  }
+}
+
+async function loadLocalD024ReferenceEvidence() {
+  modelingJobStatus.value = "running";
+  modelingJobMessage.value = "正在读取本地公开 CBCT 派生三维参考。";
+  try {
+    const response = await fetch("/models/local/mandible_d024_0001.three_d_evidence.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`本地公开参考清单读取失败：${response.status}`);
+    const payload = (await response.json()) as unknown;
+    if (!isEvidenceRecord(payload) || !isEvidenceRecord(payload.three_d_evidence)) {
+      throw new Error("本地公开参考清单缺少 three_d_evidence 字段。");
+    }
+    localThreeDEvidence.value = payload.three_d_evidence as ThreeDEvidence;
+    modelingJobStatus.value = "completed";
+    modelingJobMessage.value = "已加载 D024 公开 CBCT 派生下颌参考；该模型非目标域、未配准、非导航。";
+    objectVisibility.value.mandible = true;
+    if (boneGroup) void loadRealAnatomyModel();
+    void loadGeometryManifest();
+  } catch (error) {
+    modelingJobStatus.value = "failed";
+    modelingJobMessage.value =
+      error instanceof Error
+        ? error.message
+        : "本地公开参考不可用，请先运行 scripts/export_cbct_mandible_surface.py 生成 STL 与清单。";
+  }
+}
+
+async function pollCbctModelingJob(jobId: string) {
+  let lastJob = await apiClient.getThreeDModelingJob(jobId);
+  for (let attempt = 0; attempt < 60 && ["queued", "running"].includes(lastJob.status); attempt += 1) {
+    modelingJobStatus.value = lastJob.status;
+    modelingJobMessage.value = lastJob.progress?.message || "正在生成表面模型...";
+    await sleep(1000);
+    lastJob = await apiClient.getThreeDModelingJob(jobId);
+  }
+  modelingJobStatus.value =
+    lastJob.status === "completed" && lastJob.result?.modeling_status === "segmentation_required"
+      ? "segmentation_required"
+      : lastJob.status === "completed"
+        ? "completed"
+        : lastJob.status === "failed"
+          ? "failed"
+          : "running";
+  const result = isEvidenceRecord(lastJob.result) ? lastJob.result : {};
+  modelingJobMessage.value = stringFromEvidence(result.message) || lastJob.progress?.message || lastJob.error || "";
+  if (modelingJobStatus.value === "completed" && !stringFromEvidence(result.message)) {
+    modelingJobMessage.value = "表面模型已生成并接入三维证据。";
+  }
+  const evidencePayload = result.three_d_evidence;
+  if (isEvidenceRecord(evidencePayload)) {
+    localThreeDEvidence.value = evidencePayload as ThreeDEvidence;
+    if (boneGroup) void loadRealAnatomyModel();
+  }
+  const casePersistence = isEvidenceRecord(result.case_persistence) ? result.case_persistence : {};
+  if (casePersistence.status === "persisted") {
+    emit("threeDEvidencePersisted");
+  }
+}
+
+function buildLocalEvidence({
+  modelPath,
+  modelFile,
+  cbctFiles,
+}: {
+  modelPath: string;
+  modelFile?: LocalImportedFile;
+  cbctFiles: LocalImportedFile[];
+}): ThreeDEvidence {
+  const firstCbct = cbctFiles[0];
+  const sourceNames = cbctFiles.map((file) => file.name).join(", ");
+  const modelFormat = modelFile ? modelFormatFromFileName(modelFile.name) : "";
+  return {
+    schema_version: "osteo-vision-three-d-evidence-local-v1",
+    analysis_mode: "cbct_import_modeling_review",
+    model_path: modelPath || null,
+    model_format: modelFormat || null,
+    model_file_name: modelFile?.name ?? null,
+    model_source: modelFile ? "本地导入表面模型" : "本地导入 CBCT 体数据",
+    exported_from: modelFile ? "浏览器本地 STL/GLB 预览" : "等待 Slicer/后端分割导出表面",
+    dicom_series_uid: firstCbct ? `本地文件：${firstCbct.name}` : null,
+    segmentation_source: modelFile ? "用户导入的下颌表面模型" : "待分割：需要 Slicer Segment Editor 或后端分割脚本",
+    segmentation_review_status: "not_reviewed",
+    registration_status: "unregistered",
+    registration_method: "not_recorded",
+    registration_error_mm: null,
+    coordinate_space: "local_cbct_or_surface_file_space",
+    doctor_review_status: "not_reviewed",
+    navigation_ready: false,
+    input_domain: "local_cbct_surface_import",
+    source_inputs: [
+      ...cbctFiles.map((file) => ({
+        channel: "cbct",
+        path: file.backendPath || file.name,
+        mime_type: file.type,
+        size_bytes: file.size,
+        upload_status: file.uploadStatus || "local",
+      })),
+      ...(modelFile
+        ? [{
+            channel: "surface_model",
+            path: modelFile.backendPath || modelFile.name,
+            mime_type: modelFile.type,
+            size_bytes: modelFile.size,
+            upload_status: modelFile.uploadStatus || "local",
+          }]
+        : []),
+    ],
+    scene_manifest: {
+      schema_version: "osteo-vision-three-d-scene-local-v1",
+      source_project: "3D Slicer local import workflow",
+      scene_id: "local_cbct_review_scene",
+      coordinate_space: "local_cbct_or_surface_file_space",
+      mandibular_curve: {
+        id: "local_mandibular_curve_pending_review",
+        label: "本地下颌参考曲线",
+        source: "front-end generated review scaffold; not physician markups",
+        display_points: [
+          [-1.9, 0.02, -0.08],
+          [-1.2, -0.18, 0.22],
+          [0, -0.34, 0.42],
+          [1.2, -0.18, 0.22],
+          [1.9, 0.02, -0.08],
+        ],
+      },
+      review_planes: [
+        {
+          id: "local_review_plane_left",
+          label: "本地左侧复核平面",
+          display_position: [-0.92, 0.18, 0.12],
+          display_rotation: [0, 1.44, -0.16],
+          display_scale: [1, 1.85, 1],
+          status: "illustrative_unregistered",
+        },
+        {
+          id: "local_review_plane_right",
+          label: "本地右侧复核平面",
+          display_position: [0.92, 0.22, 0.12],
+          display_rotation: [0, 1.7, 0.16],
+          display_scale: [1, 1.85, 1],
+          status: "illustrative_unregistered",
+        },
+      ],
+      migration_notes: [
+        sourceNames ? `CBCT 文件：${sourceNames}` : "未导入 CBCT 体数据",
+        modelFile ? `表面模型：${modelFile.name}` : "未导入 STL/GLB 表面模型",
+        "该场景只用于前端建模检查，不代表术中定位。",
+      ],
+    },
+    scene_manifest_v2: {
+      schema_version: "osteo-vision-three-d-scene-v2",
+      source_project: "3D Slicer MRML local evidence scene",
+      case_id: "frontend_local_cbct",
+      dataset_id: "frontend_local_import",
+      scene_id: "frontend_local_cbct_review_scene",
+      scene: {
+        coordinate_space: "local_cbct_or_surface_file_space",
+        registration_status: "unregistered",
+        registration_error_mm: null,
+        navigation_ready: false,
+        doctor_review_status: "not_reviewed",
+      },
+      subject_hierarchy: [
+        { id: "case_root", name: "病例 / 体数据", children: cbctFiles.map((file, index) => `local_cbct_${index + 1}`) },
+        { id: "segmentation_models", name: "分割 / 模型", children: modelFile ? ["local_surface_model"] : [] },
+        { id: "markups_review", name: "标注 / 平面", children: ["local_mandibular_curve", "local_review_plane_left", "local_review_plane_right"] },
+        { id: "geometry_jobs", name: "几何任务", children: ["local_import_check"] },
+      ],
+      nodes: [
+        ...cbctFiles.map((file, index) => ({
+          id: `local_cbct_${index + 1}`,
+          type: "volume",
+          role: "source_cbct_volume",
+          name: file.name,
+          path: file.backendPath || file.name,
+          source: "browser imported CBCT asset",
+          review_status: file.uploadStatus === "uploaded" ? "recorded" : "local_only",
+        })),
+        ...(modelFile
+          ? [
+              {
+                id: "local_surface_model",
+                type: "model",
+                role: "uploaded_surface_reference",
+                name: modelFile.name,
+                path: modelFile.backendPath || modelFile.name,
+                format: modelFormat,
+                source: "browser imported STL/GLB surface",
+                review_status: "not_reviewed",
+              },
+            ]
+          : []),
+      ],
+      markups: [
+        { id: "local_mandibular_curve", type: "curve", role: "mandibular_reference_curve", name: "本地下颌参考曲线", review_status: "illustrative_unregistered" },
+        { id: "local_review_plane_left", type: "plane", role: "review_plane", name: "本地左侧复核平面", review_status: "illustrative_unregistered" },
+        { id: "local_review_plane_right", type: "plane", role: "review_plane", name: "本地右侧复核平面", review_status: "illustrative_unregistered" },
+      ],
+      transforms: [
+        {
+          id: "surface_to_video",
+          type: "cross_modal_registration",
+          from_node: modelFile ? "local_surface_model" : "local_cbct_1",
+          to_node: "video_keyframe_reference",
+          status: "missing",
+        },
+      ],
+      geometry_jobs: [{ id: "local_import_check", type: "local_import_check", status: "completed" }],
+      review_state: {
+        segmentation: modelFile ? "surface_supplied_directly" : "segmentation_required",
+        model: modelFile ? "not_reviewed" : "not_available",
+        markups: "illustrative_not_physician_reviewed",
+        fluorescence_video_mapping: "missing_registration",
+      },
+      data_boundary: "Local CBCT/surface import for platform validation; unregistered and not navigation-ready.",
+    },
+    boundary_note:
+      "本地导入的 CBCT/STL/GLB 只进入三维证据检查工作流；未完成配准误差记录和医生复核前，不显示真实术中定位结论或手术方案。",
+    data_boundary:
+      "Local CBCT/surface import for platform validation; unregistered and not navigation-ready.",
+  };
+}
+
+async function uploadLocalThreeDFiles(files: File[], kind: "cbct" | "surface"): Promise<boolean> {
+  const uploads = await Promise.allSettled(files.map((file) => apiClient.uploadThreeDAsset(file)));
+  let surfacePathChanged = false;
+  let uploadedCount = 0;
+  uploads.forEach((result, index) => {
+    const source = files[index];
+    const targetIndex = localImportedFiles.value.findIndex(
+      (item) => item.kind === kind && item.name === source.name && item.size === source.size,
+    );
+    if (targetIndex < 0) return;
+    const current = localImportedFiles.value[targetIndex];
+    const updated: LocalImportedFile =
+      result.status === "fulfilled"
+        ? {
+            ...current,
+            backendPath: result.value.path,
+            type: result.value.content_type || current.type,
+            uploadError: undefined,
+            uploadStatus: "uploaded",
+          }
+        : {
+            ...current,
+            uploadError: errorMessageFromUnknown(result.reason, "后端写入失败"),
+            uploadStatus: "failed",
+          };
+    if (result.status === "fulfilled") uploadedCount += 1;
+    localImportedFiles.value.splice(targetIndex, 1, updated);
+    surfacePathChanged = surfacePathChanged || (kind === "surface" && result.status === "fulfilled");
+  });
+  localThreeDEvidence.value = buildLocalEvidence({
+    modelPath: localSurfaceFiles.value[0]?.backendPath || localSurfaceObjectUrl.value,
+    modelFile: localSurfaceFiles.value[0],
+    cbctFiles: localCbctFiles.value,
+  });
+  if (surfacePathChanged && boneGroup) void loadRealAnatomyModel();
+  return uploadedCount === files.length;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function revokeLocalSurfaceObjectUrl() {
+  if (!localSurfaceObjectUrl.value) return;
+  URL.revokeObjectURL(localSurfaceObjectUrl.value);
+  localSurfaceObjectUrl.value = "";
+}
+
+function fileSizeLabel(size: number): string {
+  if (!Number.isFinite(size) || size <= 0) return "大小未记录";
+  if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${size} B`;
+}
+
+function uploadStateLabel(file: LocalImportedFile): string {
+  if (file.uploadStatus === "uploaded") return "已写入后端证据区";
+  if (file.uploadStatus === "uploading") return "正在写入后端证据区";
+  if (file.uploadStatus === "failed") return `后端写入失败：${file.uploadError || "保留本地预览"}`;
+  return "本地预览";
+}
+
+function errorMessageFromUnknown(error: unknown, fallback: string): string {
+  const body = (error as { body?: unknown } | null)?.body;
+  if (isEvidenceRecord(body)) {
+    const detail = body.detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (isEvidenceRecord(detail)) {
+      return stringFromEvidence(detail.message) || stringFromEvidence(detail.code) || fallback;
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
+function modelFormatFromFileName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".stl")) return "stl";
+  if (lower.endsWith(".glb")) return "glb";
+  if (lower.endsWith(".gltf")) return "gltf";
+  return "";
+}
+
+function selectWorkflowStep(tool: WorkspaceTool, action: ModuleActionKey) {
+  selectModuleAction(action);
+  activeWorkspaceTool.value = tool;
+}
+
 function selectModuleAction(action: ModuleActionKey) {
   activeModuleAction.value = action;
-  if (action === "mandibularCurve" || action === "cutPlane" || action === "updateFibulaPlanes") {
+  if (action === "mandibularCurve" || action === "cutPlane" || action === "refreshGeometryChecks") {
     objectVisibility.value.curvePlanes = true;
-    activeWorkspaceTool.value = action === "mandibularCurve" ? "curve" : "planes";
-  }
-  if (action === "fibulaLine" || action === "centerFibulaLine" || action === "updateFibulaPlanes") {
-    objectVisibility.value.fibula = true;
-    activeWorkspaceTool.value = "fibula";
+    activeWorkspaceTool.value =
+      action === "mandibularCurve" ? "curve" : action === "refreshGeometryChecks" ? "geometry" : "planes";
   }
   if (action === "createBoneModels" || action === "create3dModel") {
     objectVisibility.value.mandible = true;
@@ -1151,10 +1792,6 @@ function selectViewportLabel(label: ViewportLabelItem) {
   }
   if (label.targetKey === "cutPlane") {
     selectModuleAction("cutPlane");
-    return;
-  }
-  if (label.targetKey === "fibulaLine") {
-    selectModuleAction("fibulaLine");
   }
 }
 
@@ -1165,6 +1802,14 @@ function resetCamera() {
   controls.update();
   viewLayoutMode.value = "four";
   nextTick(resize);
+}
+
+function toggleAutoRotate() {
+  autoRotateModel.value = !autoRotateModel.value;
+  if (controls) {
+    controls.autoRotate = autoRotateModel.value;
+    controls.update();
+  }
 }
 
 function focusFirstCandidate() {
@@ -1278,22 +1923,37 @@ function applySceneVisibility() {
   if (hotspotGroup) hotspotGroup.visible = objectVisibility.value.candidates;
   if (planningGuideGroup) planningGuideGroup.visible = objectVisibility.value.curvePlanes || objectVisibility.value.registration;
   if (anatomyPlaneGroup) anatomyPlaneGroup.visible = objectVisibility.value.cbct || objectVisibility.value.registration;
-  if (fibulaReferenceGroup) fibulaReferenceGroup.visible = objectVisibility.value.fibula;
   if (referenceStageGroup) referenceStageGroup.visible = objectVisibility.value.registration;
   if (registrationMarkupGroup) registrationMarkupGroup.visible = objectVisibility.value.registration;
 }
 
-onMounted(async () => {
+onMounted(() => {
+  void ensureSceneReady();
+});
+
+async function ensureSceneReady() {
   await nextTick();
+  if (!canvasHost.value) return;
+  if (scene && renderer) {
+    if (!canvasHost.value.contains(renderer.domElement)) {
+      canvasHost.value.appendChild(renderer.domElement);
+      resizeObserver?.disconnect();
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(canvasHost.value);
+    }
+    resize();
+    return;
+  }
   initScene();
   void loadGeometryManifest();
   renderHotspots();
   applySceneVisibility();
   startAnimation();
-});
+}
 
 onBeforeUnmount(() => {
   stopAnimation();
+  revokeLocalSurfaceObjectUrl();
   resizeObserver?.disconnect();
   resizeObserver = null;
   if (renderer?.domElement && canvasHost.value?.contains(renderer.domElement)) {
@@ -1310,7 +1970,6 @@ onBeforeUnmount(() => {
   hotspotGroup = null;
   planningGuideGroup = null;
   anatomyPlaneGroup = null;
-  fibulaReferenceGroup = null;
   referenceStageGroup = null;
   registrationMarkupGroup = null;
   fallbackBoneGroup = null;
@@ -1360,7 +2019,7 @@ function initScene() {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.autoRotate = true;
+  controls.autoRotate = autoRotateModel.value;
   controls.autoRotateSpeed = 0.7;
   controls.enablePan = false;
   controls.minDistance = 3.45;
@@ -1371,33 +2030,24 @@ function initScene() {
   controls.update();
 
   rootGroup = new THREE.Group();
-  rootGroup.rotation.x = -0.08;
-  rootGroup.rotation.y = -0.24;
+  rootGroup.rotation.x = -0.02;
+  rootGroup.rotation.y = -0.18;
   scene.add(rootGroup);
 
   boneGroup = new THREE.Group();
-  fallbackBoneGroup = new THREE.Group();
   hotspotGroup = new THREE.Group();
   planningGuideGroup = new THREE.Group();
   anatomyPlaneGroup = new THREE.Group();
-  fibulaReferenceGroup = new THREE.Group();
   referenceStageGroup = new THREE.Group();
   registrationMarkupGroup = new THREE.Group();
   rootGroup.add(boneGroup);
-  boneGroup.add(fallbackBoneGroup);
   rootGroup.add(planningGuideGroup);
   rootGroup.add(anatomyPlaneGroup);
-  rootGroup.add(fibulaReferenceGroup);
   rootGroup.add(referenceStageGroup);
   rootGroup.add(registrationMarkupGroup);
   rootGroup.add(hotspotGroup);
 
   addLights();
-  buildMandible();
-  buildPlanningGuides();
-  buildFibulaReference();
-  buildAnatomyPlanes();
-  buildReferenceStage();
   renderRegistrationMarkups();
   void loadRealAnatomyModel();
   resize();
@@ -1626,73 +2276,16 @@ function buildPlanningGuides() {
   planningGuideGroup.add(trajectory);
 }
 
-function buildFibulaReference() {
-  if (!fibulaReferenceGroup) return;
-  const fibulaCurve = new THREE.CatmullRomCurve3(sceneFibulaCurvePoints());
-  const fibulaMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0x8fbf7c,
-    roughness: 0.62,
-    metalness: 0.02,
-    clearcoat: 0.12,
-    transparent: true,
-    opacity: 0.88,
-  });
-  const fibula = new THREE.Mesh(new THREE.TubeGeometry(fibulaCurve, 84, 0.095, 18, false), fibulaMaterial);
-  fibula.castShadow = true;
-  fibula.receiveShadow = true;
-  fibulaReferenceGroup.add(fibula);
-
-  const pieceMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xc98c9f,
-    roughness: 0.52,
-    transparent: true,
-    opacity: 0.78,
-  });
-  [0.45, 0.56].forEach((t) => {
-    const center = fibulaCurve.getPoint(t);
-    const piece = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.38, 10, 18), pieceMaterial);
-    piece.position.copy(center);
-    piece.rotation.z = Math.PI / 2;
-    piece.rotation.y = 0.08;
-    piece.castShadow = true;
-    fibulaReferenceGroup?.add(piece);
-  });
-
-  const planeSpecs = [
-    { fallbackX: -0.64, color: 0xd9544f, fallbackTilt: -0.28 },
-    { fallbackX: -0.12, color: 0x5aa65a, fallbackTilt: 0.18 },
-    { fallbackX: 0.48, color: 0x3f93bf, fallbackTilt: -0.2 },
-  ];
-  const manifestPlanes = sceneFibulaMiterPlanes();
-  planeSpecs.forEach((spec, index) => {
-    const manifestPlane = manifestPlanes[index];
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.58, 0.92),
-      new THREE.MeshBasicMaterial({
-        color: spec.color,
-        transparent: true,
-        opacity: 0.18,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      }),
-    );
-    plane.position.copy(manifestPlane?.position ?? new THREE.Vector3(spec.fallbackX, -1.27, -0.1));
-    const rotation = manifestPlane?.rotation ?? new THREE.Vector3(0, Math.PI / 2 + spec.fallbackTilt, 0.08);
-    plane.rotation.x = rotation.x;
-    plane.rotation.y = rotation.y;
-    plane.rotation.z = rotation.z;
-    fibulaReferenceGroup?.add(plane);
-  });
-}
-
 async function loadRealAnatomyModel() {
+  const sequence = ++modelLoadSequence;
   if (!boneGroup) return;
   clearLoadedAnatomyModel();
-  ensureFallbackModel();
   const model = await findAvailableModel();
   if (!model) {
-    modelLoadState.value = "fallback";
-    loadedModelPath.value = "";
+    if (sequence === modelLoadSequence) {
+      modelLoadState.value = "fallback";
+      loadedModelPath.value = "";
+    }
     return;
   }
 
@@ -1700,7 +2293,11 @@ async function loadRealAnatomyModel() {
     const loaded = model.format === "stl"
       ? await loadStlModel(model.path)
       : await loadGltfModel(model.path);
-    normalizeLoadedModel(loaded);
+    if (sequence !== modelLoadSequence) {
+      disposeObject(loaded);
+      return;
+    }
+    normalizeLoadedModel(loaded, modelRotationXDegrees.value);
     if (fallbackBoneGroup) {
       boneGroup.remove(fallbackBoneGroup);
       disposeObject(fallbackBoneGroup);
@@ -1711,8 +2308,8 @@ async function loadRealAnatomyModel() {
     modelLoadState.value = "loaded";
     loadedModelPath.value = model.sourcePath;
   } catch {
+    if (sequence !== modelLoadSequence) return;
     clearLoadedAnatomyModel();
-    ensureFallbackModel();
     modelLoadState.value = "failed";
     loadedModelPath.value = model.sourcePath;
   }
@@ -1725,22 +2322,6 @@ async function findAvailableModel(): Promise<{ path: string; sourcePath: string;
       sourcePath: evidenceModelPath.value,
       format: modelFormatFromPath(evidenceModelPath.value),
     };
-  }
-  const paths = [
-    "/models/mandible.glb",
-    "/models/mandible.gltf",
-    "/models/mandible.stl",
-  ];
-  for (const path of paths) {
-    try {
-      const response = await fetch(path, { cache: "no-store" });
-      const contentType = response.headers.get("content-type") ?? "";
-      if (response.ok && !contentType.includes("text/html")) {
-        return { path, sourcePath: path, format: modelFormatFromPath(path) };
-      }
-    } catch {
-      // Missing local model files are expected in the default platform state.
-    }
   }
   return null;
 }
@@ -1761,6 +2342,9 @@ function ensureFallbackModel() {
 
 function modelUrlFromPath(path: string): string {
   if (/^(https?:|data:|blob:|\/)/i.test(path)) return path;
+  const normalized = path.replace(/\\/g, "/");
+  const publicPrefix = "frontend/public/";
+  if (normalized.startsWith(publicPrefix)) return `/${normalized.slice(publicPrefix.length)}`;
   return apiClient.fileDownloadUrl(path);
 }
 
@@ -1812,19 +2396,13 @@ async function loadStlModel(path: string): Promise<THREE.Group> {
   const mesh = new THREE.Mesh(
     geometry,
     new THREE.MeshPhysicalMaterial({
-      color: 0x72d9ff,
-      roughness: 0.18,
-      metalness: 0.04,
-      clearcoat: 0.72,
-      transmission: 0.18,
-      thickness: 0.8,
-      transparent: true,
-      opacity: 0.58,
-      depthWrite: false,
-      sheen: 0.58,
-      sheenColor: new THREE.Color(0xc9f7ff),
-      emissive: new THREE.Color(0x0b5d86),
-      emissiveIntensity: 0.34,
+      color: 0xd8c7b0,
+      roughness: 0.62,
+      metalness: 0.02,
+      clearcoat: 0.08,
+      transparent: false,
+      opacity: 1,
+      depthWrite: true,
       side: THREE.DoubleSide,
     }),
   );
@@ -1836,9 +2414,9 @@ async function loadStlModel(path: string): Promise<THREE.Group> {
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(geometry, 34),
     new THREE.LineBasicMaterial({
-      color: 0xc4f5ff,
+      color: 0x806f5e,
       transparent: true,
-      opacity: 0.26,
+      opacity: 0.16,
       depthWrite: false,
     }),
   );
@@ -1858,16 +2436,16 @@ function applyMedicalModelMaterial(model: THREE.Object3D) {
   });
 }
 
-function normalizeLoadedModel(model: THREE.Object3D) {
+function normalizeLoadedModel(model: THREE.Object3D, rotationXDegrees: number) {
   const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
   box.getSize(size);
   box.getCenter(center);
   const maxAxis = Math.max(size.x, size.y, size.z) || 1;
-  const scale = 3.8 / maxAxis;
+  const scale = 2.25 / maxAxis;
   model.scale.setScalar(scale);
-  model.rotation.x = -Math.PI / 2;
+  model.rotation.x = (rotationXDegrees * Math.PI) / 180;
 
   const fittedCenter = center.clone().multiplyScalar(scale).applyEuler(model.rotation);
   model.position.copy(fittedCenter.multiplyScalar(-1));
@@ -2064,7 +2642,7 @@ function startAnimation() {
   const tick = () => {
     frameId = window.requestAnimationFrame(tick);
     controls?.update();
-    if (rootGroup && !controls?.enabled) {
+    if (rootGroup && autoRotateModel.value && !controls?.enabled) {
       rootGroup.rotation.y += 0.002;
     }
     renderer?.render(scene as THREE.Scene, camera as THREE.PerspectiveCamera);
@@ -2117,49 +2695,26 @@ function sceneReviewPlanes(): ScenePlaneDisplay[] {
   return [
     {
       id: "fallback-plane-left",
-      label: "Resection plane left",
+      label: "左侧复核平面",
       position: new THREE.Vector3(-0.95, 0.18, 0.12),
       rotation: new THREE.Vector3(0, Math.PI / 2 - 0.13, -0.16),
       scale: new THREE.Vector3(1.0, 1.85, 1),
     },
     {
       id: "fallback-plane-mid",
-      label: "Resection plane middle",
+      label: "中间复核平面",
       position: new THREE.Vector3(0, 0.21, 0.12),
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       scale: new THREE.Vector3(1.0, 1.85, 1),
     },
     {
       id: "fallback-plane-right",
-      label: "Resection plane right",
+      label: "右侧复核平面",
       position: new THREE.Vector3(0.95, 0.24, 0.12),
       rotation: new THREE.Vector3(0, Math.PI / 2 + 0.13, 0.16),
       scale: new THREE.Vector3(1.0, 1.85, 1),
     },
   ];
-}
-
-function sceneFibulaCurvePoints(): THREE.Vector3[] {
-  const rawPoints = sceneManifest.value?.fibula_reference?.display_curve;
-  const points = Array.isArray(rawPoints)
-    ? rawPoints.map((point) => vectorFromScenePoint(point)).filter((point): point is THREE.Vector3 => point !== null)
-    : [];
-  if (points.length >= 2) return points;
-  return [
-    new THREE.Vector3(-1.92, -1.34, -0.26),
-    new THREE.Vector3(-0.72, -1.24, -0.18),
-    new THREE.Vector3(0.62, -1.28, -0.1),
-    new THREE.Vector3(1.84, -1.36, -0.2),
-  ];
-}
-
-function sceneFibulaMiterPlanes(): ScenePlaneDisplay[] {
-  const rawPlanes = sceneManifest.value?.fibula_reference?.miter_planes;
-  return Array.isArray(rawPlanes)
-    ? rawPlanes
-        .map((plane, index) => scenePlaneFromEvidence(plane, index))
-        .filter((plane): plane is ScenePlaneDisplay => plane !== null)
-    : [];
 }
 
 function scenePlaneFromEvidence(plane: ThreeDScenePlane, index: number): ScenePlaneDisplay | null {
@@ -2240,11 +2795,11 @@ function registrationMarkupRowFromEvidence(markup: ThreeDEvidenceMarkup, index: 
   return {
     id: stringFromEvidence(markup.id) || `registration-markup-${index + 1}`,
     shortLabel: `F${index + 1}`,
-    label: stringFromEvidence(markup.label) || `F${index + 1} paired landmark`,
-    sourceLabel: stringFromEvidence(markup.source_label) || pointLabelFromEvidence(markup.source_point_mm, "source point"),
-    targetLabel: stringFromEvidence(markup.target_label) || pointLabelFromEvidence(markup.target_point_mm, "target point"),
-    residualLabel: residual == null ? "residual: Missing" : `residual: ${residual.toFixed(2)} mm`,
-    statusLabel: status || (ready ? "Ready" : "Missing"),
+    label: humanizeEvidenceText(stringFromEvidence(markup.label)) || `F${index + 1} 配准标志点`,
+    sourceLabel: humanizeEvidenceText(stringFromEvidence(markup.source_label)) || pointLabelFromEvidence(markup.source_point_mm, "源点"),
+    targetLabel: humanizeEvidenceText(stringFromEvidence(markup.target_label)) || pointLabelFromEvidence(markup.target_point_mm, "目标点"),
+    residualLabel: residual == null ? "残差：缺失" : `残差：${residual.toFixed(2)} mm`,
+    statusLabel: statusLabel(status, ready),
     ready,
     position,
   };
@@ -2265,12 +2820,153 @@ function transformStepFromEvidence(step: ThreeDEvidenceTransformStep, index: num
   const path = stringFromEvidence(step.path);
   const ready = ["ready", "registered", "accepted", "ok", "true"].includes(status.toLowerCase());
   return {
-    name: stringFromEvidence(step.name) || `Transform ${index + 1}`,
-    fromSpace: stringFromEvidence(step.from_space) || "未记录输入坐标",
-    toSpace: stringFromEvidence(step.to_space) || "未记录输出坐标",
+    name: humanizeEvidenceText(stringFromEvidence(step.name)) || `变换 ${index + 1}`,
+    fromSpace: humanizeEvidenceText(stringFromEvidence(step.from_space)) || "未记录输入坐标",
+    toSpace: humanizeEvidenceText(stringFromEvidence(step.to_space)) || "未记录输出坐标",
     detail: [path || "变换文件未记录", error == null ? "" : `${error.toFixed(2)} mm`].filter(Boolean).join(" · "),
     ready,
   };
+}
+
+function objectTreeGroupsFromSceneV2(): ObjectTreeGroup[] {
+  const manifest = sceneManifestV2.value;
+  const hierarchy = Array.isArray(manifest?.subject_hierarchy) ? manifest.subject_hierarchy : [];
+  if (!manifest || !hierarchy.length) return [];
+  const allNodes = [
+    ...(Array.isArray(manifest.nodes) ? manifest.nodes : []),
+    ...(Array.isArray(manifest.markups) ? manifest.markups : []),
+    ...(Array.isArray(manifest.geometry_jobs)
+      ? manifest.geometry_jobs.map((job, index) => ({
+          id: stringFromEvidence(job.id) || `geometry_job_${index + 1}`,
+          type: "geometry_job",
+          role: stringFromEvidence(job.type) || "geometry_job",
+          name: stringFromEvidence(job.type) || `几何任务 ${index + 1}`,
+          review_status: stringFromEvidence(job.status),
+        }))
+      : []),
+  ].filter(isEvidenceRecord);
+  const byId = new Map(allNodes.map((node) => [stringFromEvidence(node.id), node]));
+  return hierarchy
+    .map((group) => {
+      const children = Array.isArray(group.children) ? group.children : [];
+      return {
+        name: humanizeEvidenceText(stringFromEvidence(group.name)) || stringFromEvidence(group.id) || "未命名分组",
+        detail: `${children.length} 个场景对象`,
+        items: children
+          .map((childId) => byId.get(childId))
+          .filter(isEvidenceRecord)
+          .map(sceneV2NodeToObjectTreeItem),
+      };
+    })
+    .filter((group) => group.items.length > 0);
+}
+
+function sceneV2NodeToObjectTreeItem(node: Record<string, unknown>): ObjectTreeItem {
+  const type = stringFromEvidence(node.type);
+  const status = stringFromEvidence(node.review_status || node.status);
+  const path = stringFromEvidence(node.path);
+  const source = stringFromEvidence(node.source);
+  const role = stringFromEvidence(node.role);
+  const key: ObjectVisibilityKey =
+    type === "volume"
+      ? "cbct"
+      : type === "model" || type === "segmentation"
+        ? "mandible"
+        : type === "curve" || type === "plane"
+          ? "curvePlanes"
+          : "registration";
+  return {
+    key,
+    name: humanizeEvidenceText(stringFromEvidence(node.name)) || humanizeEvidenceText(role) || humanizeEvidenceText(type) || "未命名对象",
+    detail: humanizeEvidenceText(source || path || role || type) || "对象来源未记录",
+    state: statusLabel(status, ["ready", "completed", "accepted", "recorded"].includes(status.toLowerCase())),
+    muted: !objectVisibility.value[key],
+    locked: type === "volume" || type === "segmentation" || type === "model",
+  };
+}
+
+function humanizeEvidenceText(value: string): string {
+  if (!value.trim()) return "";
+  const exact: Record<string, string> = {
+    "3D Slicer Segmentations": "3D Slicer 分割模块导出",
+    "doctor reviewed mandibular segmentation": "医生复核下颌分割",
+    accepted: "已接受",
+    approved: "已批准",
+    reviewed: "已复核",
+    registered: "已配准",
+    unregistered: "未配准",
+    ready: "已就绪",
+    "point-based + surface matching": "点配准 + 表面匹配",
+    "CBCT RAS to STL surface": "CBCT 坐标到 STL 表面",
+    "STL surface to keyframe reference": "STL 表面到关键帧参考",
+    cbct_ras: "CBCT RAS 坐标",
+    mandible_stl: "下颌 STL 表面",
+    video_keyframe_reference: "视频关键帧参考",
+    "Left mental foramen": "左侧颏孔",
+    "Right condyle": "右侧髁突",
+    "CBCT L mental foramen": "CBCT 左侧颏孔",
+    "tracked L mental foramen": "跟踪左侧颏孔",
+    "CBCT R condyle": "CBCT 右侧髁突",
+    "tracked R condyle": "跟踪右侧髁突",
+    "D024 DentVoxel public CBCT derived mandible label": "D024 DentVoxel 公开 CBCT 派生下颌标签",
+    "D024 DentVoxel label value 2 mandible": "D024 DentVoxel 标签 2：下颌骨",
+    public_dataset_annotation_not_case_reviewed: "公开数据集标注，非本病例医生复核",
+    cbct_label_voxel_spacing_mm: "CBCT 标签体素间距坐标",
+    cbct_voxel_spacing_mm_proxy: "CBCT 体素间距代理坐标",
+    cbct_physical_lps_mm_proxy: "CBCT 物理坐标代理表面",
+    "uploaded CBCT hard tissue threshold proxy": "上传 CBCT 硬组织代理表面",
+    "uploaded CBCT high-threshold hard tissue proxy": "上传 CBCT 高阈值硬组织代理表面",
+    "uploaded CBCT balanced hard tissue proxy": "上传 CBCT 自适应硬组织代理表面",
+    "automatic hard tissue proxy from raw CBCT; not mandible-specific": "原始 CBCT 自动硬组织代理，非下颌专用分割",
+    "automatic high-threshold hard tissue proxy from raw CBCT; not mandible-specific":
+      "原始 CBCT 高阈值硬组织代理，非下颌专用分割",
+    "automatic balanced hard tissue proxy from raw CBCT; not mandible-specific":
+      "原始 CBCT 自适应硬组织代理，非下颌专用分割",
+    "automatic balanced hard tissue proxy from raw CBCT; not jawbone-specific":
+      "原始 CBCT 自适应硬组织代理，非上下颌骨专用分割",
+    "automatic hard tissue proxy threshold from raw CBCT": "原始 CBCT 自动阈值硬组织代理",
+    "automatic high-threshold hard tissue proxy from raw CBCT": "原始 CBCT 高阈值硬组织代理",
+    "automatic balanced hard tissue proxy from raw CBCT": "原始 CBCT 自适应硬组织代理",
+    "CBCT DICOM voxels to hard tissue proxy STL": "CBCT DICOM 体素到硬组织代理 STL",
+    "CBCT DICOM voxels to physical hard tissue proxy STL": "CBCT DICOM 体素到物理坐标硬组织代理 STL",
+    "Proxy STL to video keyframe reference": "代理 STL 到视频关键帧参考",
+    dicom_voxel_space: "DICOM 体素空间",
+    cbct_hard_tissue_proxy_stl: "CBCT 硬组织代理 STL",
+    cbct_physical_hard_tissue_proxy_stl: "CBCT 物理坐标硬组织代理 STL",
+    uploaded_cbct_proxy_surface: "上传 CBCT 代理表面",
+    high_percentile_hard_tissue_proxy: "高阈值硬组织代理",
+    balanced_adaptive_hard_tissue_proxy: "自适应骨窗硬组织代理",
+    pending_slicer_or_physician_review: "待 Slicer 或医生复核",
+    axis_mapping_inferred_not_physician_reviewed: "轴向映射为系统推断，未医生复核",
+    not_reviewed: "未复核",
+    "SlicerBoneReconstructionPlanner-inspired scene semantics": "参考开源重建插件的场景语义",
+    "D024 mandibular reference curve": "D024 下颌参考曲线",
+    "high fluorescence prompt": "高荧光信号提示",
+  };
+  if (exact[value]) return exact[value];
+  return value
+    .replace(/public CBCT-derived mandible surface/gi, "公开 CBCT 派生下颌表面")
+    .replace(/non-target-domain anatomy reference/gi, "非目标域解剖参考")
+    .replace(/It is not surgical navigation\./gi, "不可作为手术导航。")
+    .replace(/derived from STL manifest for display; not physician markups/gi, "由 STL 清单派生用于显示，非医生标志点")
+    .replace(/Reference review plane left/gi, "左侧参考复核平面")
+    .replace(/public CBCT derived mandible label/gi, "公开 CBCT 派生下颌标签")
+    .replace(/CBCT-derived/gi, "CBCT 派生")
+    .replace(/mandible/gi, "下颌骨")
+    .replace(/surface/gi, "表面")
+    .replace(/reference/gi, "参考")
+    .replace(/ready/gi, "已就绪")
+    .replace(/missing/gi, "缺失")
+    .replace(/residual/gi, "残差")
+    .replace(/transforms/gi, "变换")
+    .replace(/segments/gi, "交线段");
+}
+
+function statusLabel(status: string, ready: boolean): string {
+  const normalized = status.toLowerCase();
+  if (["ready", "accepted", "recorded", "ok", "true"].includes(normalized)) return "已就绪";
+  if (["missing", "rejected", "unavailable"].includes(normalized)) return "缺失";
+  return status || (ready ? "已就绪" : "缺失");
 }
 
 function pointFromEvidenceValue(value: unknown, fallback: THREE.Vector3): THREE.Vector3 {
@@ -2995,7 +3691,7 @@ function fileNameFromPath(path: string): string {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, auto);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
   padding: 14px 16px;
   border-bottom: 1px solid var(--av-border);
   background: linear-gradient(180deg, var(--av-surface), var(--av-surface-soft));
@@ -3128,6 +3824,103 @@ function fileNameFromPath(path: string): string {
   background: var(--av-surface-soft);
 }
 
+.anatomy-3d__workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border-bottom: 1px solid var(--av-border);
+  background: var(--av-border);
+}
+
+.anatomy-3d__workflow-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  min-height: 64px;
+  border: 0;
+  align-content: start;
+  padding: 10px 12px;
+  background: var(--av-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.anatomy-3d__workflow-step span {
+  grid-row: span 3;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--av-border-strong);
+  border-radius: 50%;
+  color: var(--av-accent);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.anatomy-3d__workflow-step strong,
+.anatomy-3d__workflow-step small,
+.anatomy-3d__workflow-step em {
+  min-width: 0;
+}
+
+.anatomy-3d__workflow-step strong {
+  color: var(--av-text);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.anatomy-3d__workflow-step small {
+  color: var(--av-text-secondary);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.anatomy-3d__workflow-step em {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--av-surface-soft);
+  color: var(--av-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.anatomy-3d__workflow-step.is-ready span,
+.anatomy-3d__workflow-step.is-ready em {
+  border-color: color-mix(in srgb, var(--av-green) 45%, var(--av-border));
+  background: color-mix(in srgb, var(--av-green) 12%, var(--av-surface));
+  color: var(--av-green);
+}
+
+.anatomy-3d__workflow-step.is-partial span,
+.anatomy-3d__workflow-step.is-partial em {
+  border-color: color-mix(in srgb, var(--av-amber) 45%, var(--av-border));
+  background: color-mix(in srgb, var(--av-amber) 12%, var(--av-surface));
+  color: var(--av-amber);
+}
+
+.anatomy-3d__workflow-step.is-blocked span,
+.anatomy-3d__workflow-step.is-blocked em {
+  border-color: color-mix(in srgb, var(--av-red) 38%, var(--av-border));
+  background: color-mix(in srgb, var(--av-red) 9%, var(--av-surface));
+  color: var(--av-red);
+}
+
+.anatomy-3d__workflow-strip .anatomy-3d__layout-switcher {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: var(--av-surface);
+}
+
 .anatomy-3d__toolbar {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -3170,10 +3963,8 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__body {
   display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
-  grid-template-areas:
-    "tree views"
-    "inspector views";
+  grid-template-columns: minmax(220px, 240px) minmax(520px, 1fr) minmax(240px, 280px);
+  grid-template-areas: "tree views inspector";
   align-items: start;
   gap: 1px;
   min-height: 0;
@@ -3189,14 +3980,22 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__object-tree {
   grid-area: tree;
+  height: 100%;
+  max-height: none;
+  overflow: visible;
 }
 
 .anatomy-3d__views {
   grid-area: views;
+  min-height: 0;
 }
 
 .anatomy-3d__inspector {
   grid-area: inspector;
+  grid-template-columns: 1fr;
+  height: 100%;
+  max-height: none;
+  overflow: visible;
 }
 
 .anatomy-3d__object-tree,
@@ -3205,6 +4004,15 @@ function fileNameFromPath(path: string): string {
   align-content: start;
   gap: 12px;
   padding: 12px;
+}
+
+.anatomy-3d__inspector .anatomy-3d__panel-title,
+.anatomy-3d__evidence-summary,
+.anatomy-3d__evidence-drawer,
+.anatomy-3d__boundary,
+.anatomy-3d__hotspot-list,
+.anatomy-3d__empty {
+  grid-column: 1 / -1;
 }
 
 .anatomy-3d__panel-title {
@@ -3281,6 +4089,126 @@ function fileNameFromPath(path: string): string {
   line-height: 1.35;
 }
 
+.anatomy-3d__import-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--av-accent) 24%, var(--av-border));
+  border-radius: 7px;
+  padding: 9px;
+  background: color-mix(in srgb, var(--av-accent) 7%, var(--av-surface-soft));
+}
+
+.anatomy-3d__file-input {
+  display: none;
+}
+
+.anatomy-3d__import-card header {
+  display: grid;
+  gap: 4px;
+}
+
+.anatomy-3d__import-card header span {
+  color: var(--av-accent);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.anatomy-3d__import-card header strong {
+  color: var(--av-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__import-card header small {
+  color: var(--av-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.anatomy-3d__import-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.anatomy-3d__import-actions button {
+  min-height: 32px;
+  border: 1px solid var(--av-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--av-surface);
+  color: var(--av-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.anatomy-3d__import-actions button:hover,
+.anatomy-3d__import-actions button:focus-visible {
+  border-color: var(--av-accent);
+  color: var(--av-accent);
+}
+
+.anatomy-3d__import-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.anatomy-3d__job-status {
+  margin: 0;
+  border: 1px solid var(--av-border);
+  border-radius: 6px;
+  padding: 6px 7px;
+  background: var(--av-surface);
+  color: var(--av-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.anatomy-3d__modeling-checks {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anatomy-3d__modeling-checks li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.anatomy-3d__modeling-checks span {
+  border: 1px solid var(--av-border);
+  border-radius: 999px;
+  padding: 2px 6px;
+  color: var(--av-text-muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.anatomy-3d__modeling-checks p {
+  margin: 0;
+  color: var(--av-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.anatomy-3d__modeling-checks li.is-ready span {
+  border-color: color-mix(in srgb, var(--av-green) 45%, var(--av-border));
+  background: color-mix(in srgb, var(--av-green) 12%, var(--av-surface));
+  color: var(--av-green);
+}
+
 .anatomy-3d__module-card {
   display: grid;
   gap: 7px;
@@ -3290,20 +4218,44 @@ function fileNameFromPath(path: string): string {
   background: var(--av-surface-soft);
 }
 
-.anatomy-3d__module-card header {
+.anatomy-3d__module-card summary {
   display: grid;
   gap: 3px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.anatomy-3d__module-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.anatomy-3d__module-card summary::after {
+  content: "展开参数";
+  justify-self: start;
+  border: 1px solid var(--av-border);
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: var(--av-accent);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.anatomy-3d__module-card[open] summary {
   border-bottom: 1px solid var(--av-border);
   padding-bottom: 7px;
 }
 
-.anatomy-3d__module-card header strong {
+.anatomy-3d__module-card[open] summary::after {
+  content: "收起参数";
+}
+
+.anatomy-3d__module-card summary strong {
   color: var(--av-text);
   font-size: 12px;
   line-height: 1.35;
 }
 
-.anatomy-3d__module-card header small {
+.anatomy-3d__module-card summary small {
   color: var(--av-text-muted);
   font-size: 11px;
   font-weight: 800;
@@ -3591,7 +4543,8 @@ function fileNameFromPath(path: string): string {
   grid-area: three;
   position: relative;
   display: grid;
-  align-content: space-between;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  align-content: stretch;
   gap: 12px;
   min-height: 520px;
   padding: 12px;
@@ -3633,6 +4586,7 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__view-title {
+  grid-row: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -3674,14 +4628,27 @@ function fileNameFromPath(path: string): string {
   text-align: right;
 }
 
+.anatomy-3d__viewport-toolbar {
+  position: relative;
+  z-index: 2;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+  pointer-events: none;
+}
+
 .anatomy-3d__legend {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
-  align-self: end;
-  justify-self: start;
-  max-width: 100%;
+  flex: 0 1 auto;
+  max-width: min(100%, 520px);
   padding: 8px 10px;
+  pointer-events: auto;
 }
 
 .anatomy-3d__legend span {
@@ -3719,14 +4686,15 @@ function fileNameFromPath(path: string): string {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  align-self: end;
-  justify-self: end;
-  max-width: 100%;
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  max-width: min(100%, 420px);
   border: 1px solid rgba(216, 229, 242, 0.28);
   border-radius: 7px;
   padding: 7px 8px;
   background: rgba(9, 18, 28, 0.74);
   backdrop-filter: blur(10px);
+  pointer-events: auto;
 }
 
 .anatomy-3d__view-controls button {
@@ -3741,6 +4709,12 @@ function fileNameFromPath(path: string): string {
   font-weight: 900;
   line-height: 1.35;
   cursor: pointer;
+}
+
+.anatomy-3d__view-controls button.is-active {
+  border-color: rgba(242, 193, 78, 0.62);
+  background: rgba(242, 193, 78, 0.18);
+  color: #ffe7ad;
 }
 
 .anatomy-3d__viewport-label-layer {
@@ -3815,10 +4789,6 @@ function fileNameFromPath(path: string): string {
   color: #49b988;
 }
 
-.anatomy-3d__viewport-label.is-fibula span {
-  color: #83bd70;
-}
-
 .anatomy-3d__viewport-label.is-selected {
   border-color: #f2c14e;
   box-shadow: 0 0 0 2px rgba(242, 193, 78, 0.16);
@@ -3829,6 +4799,8 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__metrics {
+  grid-row: 4;
+  align-self: end;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -4053,109 +5025,23 @@ function fileNameFromPath(path: string): string {
   line-height: 1.45;
 }
 
-.anatomy-3d__fibula-stage {
-  position: relative;
-  min-height: 170px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 6px;
-  background:
-    linear-gradient(155deg, transparent 49.5%, rgba(234, 36, 222, 0.46) 49.7%, rgba(234, 36, 222, 0.46) 50.1%, transparent 50.3%),
-    linear-gradient(18deg, transparent 48%, rgba(234, 36, 222, 0.42) 48.2%, rgba(234, 36, 222, 0.42) 48.7%, transparent 48.9%),
-    radial-gradient(ellipse at 88% 62%, rgba(255, 255, 255, 0.2), transparent 21%),
-    rgba(111, 120, 169, 0.96);
-}
-
-.anatomy-3d__fibula-bone,
-.anatomy-3d__fibula-piece,
-.anatomy-3d__fibula-plane,
-.anatomy-3d__measurement {
-  position: absolute;
-  display: block;
-}
-
-.anatomy-3d__fibula-bone {
-  top: 84px;
-  left: 6%;
-  width: 88%;
-  height: 28px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 10% 50%, #74a565 0 34px, transparent 35px),
-    radial-gradient(circle at 90% 50%, #74a565 0 34px, transparent 35px),
-    linear-gradient(90deg, #82af6f, #649658 45%, #88b978 100%);
-  box-shadow:
-    0 10px 22px rgba(24, 40, 56, 0.24),
-    0 0 0 1px rgba(42, 81, 44, 0.18) inset;
-}
-
-.anatomy-3d__fibula-piece {
-  top: 80px;
-  height: 36px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #766f64, #c98191);
-  box-shadow: 0 0 0 1px rgba(58, 40, 42, 0.2) inset;
-}
-
-.anatomy-3d__fibula-piece--one {
-  left: 41%;
-  width: 9%;
-}
-
-.anatomy-3d__fibula-piece--two {
-  left: 51%;
-  width: 10%;
-}
-
-.anatomy-3d__fibula-plane {
-  top: 44px;
-  width: 70px;
-  height: 108px;
-  border: 4px solid currentColor;
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  transform: skewX(-17deg);
-}
-
-.anatomy-3d__fibula-plane--red {
-  left: 36%;
-  color: #d94d45;
-}
-
-.anatomy-3d__fibula-plane--green {
-  left: 48%;
-  color: #53ad61;
-}
-
-.anatomy-3d__fibula-plane--blue {
-  left: 58%;
-  color: #3f8caf;
-}
-
-.anatomy-3d__measurement {
-  top: 70px;
-  border-radius: 999px;
-  padding: 3px 7px;
-  background: rgba(28, 38, 52, 0.74);
-  color: #ffdad7;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.anatomy-3d__measurement--one {
-  left: 44%;
-}
-
-.anatomy-3d__measurement--two {
-  left: 55%;
-}
-
+.anatomy-3d__evidence-summary,
 .anatomy-3d__evidence-grid {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 7px;
   margin: 0;
 }
 
+.anatomy-3d__evidence-summary {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.anatomy-3d__evidence-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.anatomy-3d__evidence-summary div,
 .anatomy-3d__evidence-grid div {
   display: grid;
   gap: 3px;
@@ -4165,6 +5051,7 @@ function fileNameFromPath(path: string): string {
   background: var(--av-surface-soft);
 }
 
+.anatomy-3d__evidence-summary dt,
 .anatomy-3d__evidence-grid dt {
   color: var(--av-text-muted);
   font-size: 11px;
@@ -4172,6 +5059,7 @@ function fileNameFromPath(path: string): string {
   line-height: 1.35;
 }
 
+.anatomy-3d__evidence-summary dd,
 .anatomy-3d__evidence-grid dd {
   color: var(--av-text);
   font-size: 12px;
@@ -4179,6 +5067,7 @@ function fileNameFromPath(path: string): string {
   line-height: 1.4;
 }
 
+.anatomy-3d__evidence-drawer,
 .anatomy-3d__registration-guard {
   display: grid;
   gap: 8px;
@@ -4188,9 +5077,39 @@ function fileNameFromPath(path: string): string {
   background: var(--av-surface-soft);
 }
 
-.anatomy-3d__registration-guard > strong {
+.anatomy-3d__evidence-drawer summary,
+.anatomy-3d__registration-guard summary,
+.anatomy-3d__markups summary,
+.anatomy-3d__transform-chain summary {
+  display: grid;
+  gap: 3px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.anatomy-3d__evidence-drawer summary::-webkit-details-marker,
+.anatomy-3d__registration-guard summary::-webkit-details-marker,
+.anatomy-3d__markups summary::-webkit-details-marker,
+.anatomy-3d__transform-chain summary::-webkit-details-marker {
+  display: none;
+}
+
+.anatomy-3d__evidence-drawer summary strong,
+.anatomy-3d__registration-guard summary strong,
+.anatomy-3d__markups summary strong,
+.anatomy-3d__transform-chain summary strong {
   color: var(--av-text);
   font-size: 12px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__evidence-drawer summary small,
+.anatomy-3d__registration-guard summary small,
+.anatomy-3d__markups summary small,
+.anatomy-3d__transform-chain summary small {
+  color: var(--av-text-muted);
+  font-size: 11px;
+  font-weight: 800;
   line-height: 1.35;
 }
 
@@ -4244,27 +5163,6 @@ function fileNameFromPath(path: string): string {
   border-radius: 7px;
   padding: 9px;
   background: var(--av-surface-soft);
-}
-
-.anatomy-3d__markups header,
-.anatomy-3d__transform-chain header {
-  display: grid;
-  gap: 3px;
-}
-
-.anatomy-3d__markups header strong,
-.anatomy-3d__transform-chain header strong {
-  color: var(--av-text);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.anatomy-3d__markups header small,
-.anatomy-3d__transform-chain header small {
-  color: var(--av-text-muted);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
 }
 
 .anatomy-3d__markup-table,
@@ -4416,6 +5314,26 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__workflow {
   display: grid;
   gap: 7px;
+  border: 1px solid var(--av-border);
+  border-radius: 7px;
+  padding: 8px;
+  background: var(--av-surface-soft);
+}
+
+.anatomy-3d__workflow summary,
+.anatomy-3d__boundary summary {
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--av-text);
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.anatomy-3d__workflow summary small {
+  color: var(--av-text-muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .anatomy-3d__workflow div {
@@ -4467,6 +5385,12 @@ function fileNameFromPath(path: string): string {
   font-size: 12px;
   font-weight: 800;
   line-height: 1.5;
+}
+
+.anatomy-3d__boundary p {
+  margin: 8px 0 0;
+  color: var(--av-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .anatomy-3d__hotspot-list {
@@ -4546,6 +5470,232 @@ function fileNameFromPath(path: string): string {
   line-height: 1.55;
 }
 
+.anatomy-3d__views {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(520px, 1fr) auto;
+  grid-template-areas:
+    "three"
+    "check";
+  align-items: stretch;
+  align-self: stretch;
+  height: 100%;
+  min-height: 520px;
+}
+
+.anatomy-3d__views .anatomy-3d__viewport {
+  min-height: 520px;
+}
+
+.anatomy-3d__model-check-panel {
+  grid-area: check;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+  border-top: 1px solid rgba(216, 229, 242, 0.14);
+  padding: 12px;
+  background: #0f1c28;
+  color: #edf7ff;
+}
+
+.anatomy-3d__model-check-panel header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.anatomy-3d__model-check-panel header span,
+.anatomy-3d__model-check-panel header small {
+  color: #9edcff;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.anatomy-3d__model-check-panel header strong {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.anatomy-3d__model-check-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anatomy-3d__model-check-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 7px;
+  align-items: start;
+  border: 1px solid rgba(216, 229, 242, 0.14);
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.anatomy-3d__model-check-list span {
+  grid-row: span 2;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(170, 113, 40, 0.2);
+  color: #ffd999;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.anatomy-3d__model-check-list li.is-ready span {
+  background: rgba(63, 195, 154, 0.18);
+  color: #92e5ca;
+}
+
+.anatomy-3d__model-check-list strong,
+.anatomy-3d__model-check-list small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.anatomy-3d__model-check-list strong {
+  color: #f4fbff;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__model-check-list small {
+  color: #b8cfdd;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.anatomy-3d__model-check-panel dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.anatomy-3d__model-check-panel dl div {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(216, 229, 242, 0.16);
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.anatomy-3d__model-check-panel dt,
+.anatomy-3d__model-check-panel dd,
+.anatomy-3d__model-check-panel p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.anatomy-3d__model-check-panel dt {
+  color: #8db3c6;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.anatomy-3d__model-check-panel dd {
+  color: #f4fbff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.anatomy-3d__model-check-panel p {
+  border: 1px solid rgba(242, 193, 78, 0.26);
+  border-radius: 7px;
+  padding: 9px;
+  background: rgba(242, 193, 78, 0.08);
+  color: #ffe3a7;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.anatomy-3d__empty-viewport {
+  position: relative;
+  z-index: 3;
+  grid-row: 3;
+  align-self: center;
+  justify-self: center;
+  display: grid;
+  gap: 8px;
+  width: min(560px, calc(100% - 32px));
+  border: 1px dashed rgba(158, 220, 255, 0.36);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(8, 18, 29, 0.82);
+  color: #dff5ff;
+  text-align: left;
+}
+
+.anatomy-3d__empty-viewport strong,
+.anatomy-3d__empty-viewport p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.anatomy-3d__empty-viewport strong {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__empty-viewport p {
+  color: #a9c6d4;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.anatomy-3d__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.anatomy-3d__empty-actions button {
+  min-height: 30px;
+  border: 1px solid rgba(216, 229, 242, 0.34);
+  border-radius: 5px;
+  padding: 5px 10px;
+  background: rgba(216, 229, 242, 0.14);
+  color: #f2fbff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.anatomy-3d__subject-hierarchy {
+  max-height: none;
+  overflow: visible;
+  padding-right: 4px;
+}
+
+.anatomy-3d__views.is-layout-reconstruction,
+.anatomy-3d__views.is-layout-threeD {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "three"
+    "check";
+}
+
 @media (prefers-color-scheme: dark) {
   .anatomy-3d {
     --av-surface: #0b1826;
@@ -4570,6 +5720,15 @@ function fileNameFromPath(path: string): string {
 }
 
 @media (max-width: 1320px) {
+  .anatomy-3d__workflow-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .anatomy-3d__workflow-strip .anatomy-3d__layout-switcher {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .anatomy-3d__body {
     grid-template-columns: minmax(170px, 220px) minmax(360px, 1fr);
     grid-template-areas:
@@ -4608,6 +5767,10 @@ function fileNameFromPath(path: string): string {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .anatomy-3d__workflow-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .anatomy-3d__body {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -4624,10 +5787,7 @@ function fileNameFromPath(path: string): string {
     grid-template-columns: 1fr;
     grid-template-areas:
       "three"
-      "axial"
-      "reconstruction"
-      "coronal"
-      "sagittal";
+      "check";
   }
 
   .anatomy-3d__viewport {
@@ -4645,6 +5805,11 @@ function fileNameFromPath(path: string): string {
   }
 
   .anatomy-3d__toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .anatomy-3d__workflow-strip,
+  .anatomy-3d__workflow-strip .anatomy-3d__layout-switcher {
     grid-template-columns: 1fr;
   }
 

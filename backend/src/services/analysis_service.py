@@ -64,8 +64,13 @@ class AnalysisService:
         artifacts = artifact_dirs(load_yaml(self.config_path))
         output_dir = case_artifact_dir(artifacts["visual"] / "cases", case.case_id)
         run_id = f"run_{uuid4().hex[:10]}"
+        effective_parameters = dict(parameters)
+        if case.three_d_evidence and not isinstance(effective_parameters.get("three_d_evidence"), dict):
+            effective_parameters["three_d_evidence"] = case.three_d_evidence
         effective_roi_hints = _merge_roi_hints(case, roi_hints)
-        run_parameters = {**parameters, "roi_hints": effective_roi_hints} if effective_roi_hints else dict(parameters)
+        run_parameters = (
+            {**effective_parameters, "roi_hints": effective_roi_hints} if effective_roi_hints else effective_parameters
+        )
         run = AnalysisRun(
             run_id=run_id,
             case_id=case.case_id,
@@ -81,21 +86,21 @@ class AnalysisService:
         white = self._pick_input(selected_inputs, InputChannel.WHITE_LIGHT)
         fluor = self._pick_input(selected_inputs, InputChannel.FLUORESCENCE)
         video = self._pick_input(selected_inputs, InputChannel.VIDEO)
-        if parameters.get("mode") == "realtime_video":
+        if effective_parameters.get("mode") == "realtime_video":
             return self._complete_realtime_video_analysis(
                 case,
                 run,
-                parameters=parameters,
+                parameters=effective_parameters,
                 selection_warnings=selection_warnings,
                 effective_roi_hints=effective_roi_hints,
             )
-        if parameters.get("mode") == "video_file" or (video and not (white and fluor)):
+        if effective_parameters.get("mode") == "video_file" or (video and not (white and fluor)):
             return self._complete_video_file_analysis(
                 case,
                 run,
                 output_dir=output_dir,
                 video=video,
-                parameters=parameters,
+                parameters=effective_parameters,
                 selection_warnings=selection_warnings,
                 effective_roi_hints=effective_roi_hints,
             )
@@ -105,7 +110,7 @@ class AnalysisService:
             output_dir=output_dir,
             white=white,
             fluor=fluor,
-            parameters=parameters,
+            parameters=effective_parameters,
             selection_warnings=selection_warnings,
             effective_roi_hints=effective_roi_hints,
         )

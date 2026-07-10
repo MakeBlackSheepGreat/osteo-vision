@@ -32,7 +32,7 @@ describe("AnalysisFusionEvidencePanel", () => {
     expect(wrapper.text()).toContain("荧光融合证据");
     expect(wrapper.text()).toContain("fusion-v2");
     expect(wrapper.text()).toContain("阈值 0.37");
-    expect(wrapper.text()).toContain("Alpha 0.65");
+    expect(wrapper.text()).toContain("透明度 0.65");
     expect(wrapper.text()).toContain("白光/ICG 伪彩融合");
     expect(wrapper.text()).toContain("已扣除 · P5 · baseline 12");
     expect(wrapper.text()).toContain("已应用 · 相位相关");

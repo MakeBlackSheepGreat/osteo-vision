@@ -110,6 +110,68 @@ export interface ThreeDSceneManifest {
   migration_notes?: string[] | null;
 }
 
+export interface ThreeDSceneV2Node {
+  id?: string | null;
+  type?: string | null;
+  role?: string | null;
+  name?: string | null;
+  path?: string | null;
+  format?: string | null;
+  source?: string | null;
+  derived_from?: string[] | null;
+  review_status?: string | null;
+  display?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface ThreeDSceneV2Markup {
+  id?: string | null;
+  type?: string | null;
+  role?: string | null;
+  name?: string | null;
+  review_status?: string | null;
+  source?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ThreeDSceneV2HierarchyGroup {
+  id?: string | null;
+  name?: string | null;
+  children?: string[] | null;
+}
+
+export interface ThreeDSceneManifestV2 {
+  schema_version?: string | null;
+  source_project?: string | null;
+  case_id?: string | null;
+  dataset_id?: string | null;
+  scene_id?: string | null;
+  scene?: {
+    coordinate_space?: string | null;
+    registration_status?: string | null;
+    registration_error_mm?: number | string | null;
+    navigation_ready?: boolean | string | null;
+    doctor_review_status?: string | null;
+    orientation_review_status?: string | null;
+    display_orientation_status?: string | null;
+    view_space_mapping?: ThreeDViewSpaceMapping | null;
+    volume_geometry?: {
+      spacing_xyz_mm?: number[] | null;
+      origin_xyz_mm?: number[] | null;
+      direction?: number[] | null;
+      array_axis_order?: string | null;
+      stl_vertex_order?: string | null;
+    } | null;
+  } | null;
+  subject_hierarchy?: ThreeDSceneV2HierarchyGroup[] | null;
+  nodes?: ThreeDSceneV2Node[] | null;
+  markups?: ThreeDSceneV2Markup[] | null;
+  transforms?: Array<Record<string, unknown>> | null;
+  geometry_jobs?: Array<Record<string, unknown>> | null;
+  review_state?: Record<string, unknown> | null;
+  data_boundary?: string | null;
+}
+
 export interface ThreeDGeometryPlaneIntersection {
   id?: string | null;
   label?: string | null;
@@ -140,6 +202,15 @@ export interface ThreeDGeometryManifest {
   data_boundary?: string | null;
 }
 
+export interface ThreeDViewSpaceMapping {
+  source_vertex_order?: string | null;
+  display_up_axis?: string | null;
+  frontend_rotation_x_degrees?: number | string | null;
+  identity_direction?: boolean | string | null;
+  requires_review?: boolean | string | null;
+  reason?: string | null;
+}
+
 export interface ThreeDEvidence {
   schema_version?: string | null;
   run_id?: string | null;
@@ -164,9 +235,14 @@ export interface ThreeDEvidence {
   doctor_review_status?: string | null;
   navigation_ready?: boolean | string | null;
   input_domain?: string | null;
+  orientation_review_status?: string | null;
+  display_orientation_status?: string | null;
+  view_space_mapping?: ThreeDViewSpaceMapping | null;
   data_boundary?: string | null;
+  surface_quality?: Record<string, unknown> | null;
   source_inputs?: Array<Record<string, unknown>> | null;
   scene_manifest?: ThreeDSceneManifest | null;
+  scene_manifest_v2?: ThreeDSceneManifestV2 | null;
   geometry_manifest_path?: string | null;
   boundary_note?: string | null;
 }
@@ -210,6 +286,8 @@ export interface CaseRecord {
   version: number;
   disclaimer_version: string;
   review_summary: Record<string, unknown>;
+  three_d_evidence?: ThreeDEvidence;
+  three_d_modeling?: Record<string, unknown>;
   inputs: CaseInputAsset[];
   analysis_runs: AnalysisRun[];
   rois: RegionOfInterest[];

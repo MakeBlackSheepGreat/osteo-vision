@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from backend.src.api import analysis_runs, cases, exports, files, inputs, regions, review_events, uploads, video_library
+from backend.src.api import (
+    analysis_runs,
+    cases,
+    exports,
+    files,
+    inputs,
+    regions,
+    review_events,
+    three_d_modeling,
+    uploads,
+    video_library,
+)
 from backend.src.core.settings import Settings
 from backend.src.domains.cases.repository import build_case_repository
 from backend.src.services.analysis_service import AnalysisService
@@ -64,6 +75,16 @@ def build_router(settings: Settings) -> APIRouter:
             execution_mode=settings.job_execution_mode,
         ),
         tags=["uploads"],
+    )
+    router.include_router(
+        three_d_modeling.router(
+            settings,
+            jobs,
+            repo,
+            max_active_jobs=1,
+            execution_mode=settings.job_execution_mode,
+        ),
+        tags=["three-d-modeling"],
     )
     router.include_router(video_library.router(repo, input_service, video_library_service), tags=["video-library"])
     router.include_router(files.router(settings), tags=["files"])

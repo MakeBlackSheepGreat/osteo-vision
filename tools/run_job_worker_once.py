@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--kind",
         action="append",
-        choices=["case_analysis", "upload_keyframe_extraction"],
+        choices=["case_analysis", "upload_keyframe_extraction", "cbct_surface_modeling"],
         help="Restrict processing to one job kind. Can be repeated.",
     )
     return parser.parse_args()

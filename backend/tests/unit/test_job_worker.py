@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import cv2
+import nibabel as nib
 import numpy as np
 
 from backend.src.core.settings import Settings
@@ -87,6 +88,43 @@ def test_local_job_worker_processes_queued_upload_keyframes(tmp_path: Path) -> N
     assert Path(completed["result"]["keyframe_manifest_path"]).exists()
     assert Path(completed["result"]["frame_index_manifest_path"]).exists()
     assert Path(completed["result"]["timeline_manifest_path"]).exists()
+
+
+def test_local_job_worker_processes_queued_cbct_surface_modeling(tmp_path: Path) -> None:
+    settings = Settings(
+        artifact_root=tmp_path / "artifacts",
+        case_store_path=tmp_path / "cases.sqlite",
+        job_store_path=tmp_path / "jobs.json",
+        video_manifest_path=tmp_path / "videos.csv",
+    )
+    source_dir = settings.artifact_root / "uploads"
+    source_dir.mkdir(parents=True)
+    source = source_dir / "worker_cbct_label.nii.gz"
+    data = np.zeros((8, 8, 8), dtype=np.uint8)
+    data[2:6, 2:6, 2:6] = 1
+    nib.save(nib.Nifti1Image(data, affine=np.eye(4)), str(source))
+    registry = JobRegistry(settings.job_store_path)
+    job = registry.create(
+        kind="cbct_surface_modeling",
+        payload={
+            "source_path": str(source),
+            "source_role": "label",
+            "label_value": 1,
+            "case_id": "case_worker_cbct",
+            "dataset_id": "worker",
+            "decimation_step": 1,
+        },
+    )
+
+    result = LocalJobWorker(settings).run_once(limit=1, kinds=["cbct_surface_modeling"])
+
+    completed = JobRegistry(settings.job_store_path).get(job["job_id"])
+    assert result["processed_count"] == 1
+    assert completed is not None
+    assert completed["status"] == "completed"
+    assert completed["result"]["modeling_status"] == "completed"
+    assert Path(completed["result"]["model_path"]).exists()
+    assert completed["result"]["three_d_evidence"]["navigation_ready"] is False
 
 
 def _write_video(path: Path) -> None:

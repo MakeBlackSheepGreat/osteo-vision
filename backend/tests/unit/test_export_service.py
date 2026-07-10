@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -40,12 +41,73 @@ def test_export_service_writes_reports(tmp_path: Path) -> None:
         assert f"reports/{case.case_id}_quantification.csv" in archive.namelist()
         assert f"reports/{case.case_id}_review_manifest.json" in archive.namelist()
         assert f"reports/{case.case_id}_review_manifest.csv" in archive.namelist()
+        assert f"reports/{case.case_id}_three_d_scene_manifest.json" in archive.namelist()
     dicom = pydicom.dcmread(response.dicom_path)
     assert dicom.SOPClassUID == pydicom.uid.SecondaryCaptureImageStorage
     assert dicom.PatientIdentityRemoved == "YES"
     assert dicom.Rows > 0
     assert dicom.Columns > 0
     assert "Platform software for research and competition validation" in Path(response.report_path).read_text(
+        encoding="utf-8"
+    )
+
+
+def test_export_service_writes_three_d_scene_manifest_from_latest_run(tmp_path: Path) -> None:
+    repo = JsonCaseRepository(tmp_path / "cases.json")
+    scene_manifest_v2 = {
+        "schema_version": "osteo-vision-three-d-scene-v2",
+        "scene": {
+            "coordinate_space": "cbct_label_voxel_spacing_mm",
+            "registration_status": "unregistered",
+            "navigation_ready": False,
+        },
+        "nodes": [
+            {"id": "volume", "type": "volume", "name": "CBCT label volume"},
+            {"id": "seg", "type": "segmentation", "name": "mandible label"},
+            {"id": "model", "type": "model", "name": "mandible.stl"},
+        ],
+        "markups": [{"id": "curve", "type": "curve", "name": "mandibular curve"}],
+        "geometry_jobs": [{"id": "surface_export", "type": "surface_export", "status": "completed"}],
+        "data_boundary": "public CBCT reference; not navigation",
+    }
+    case = repo.create(
+        CaseRecord(
+            case_id="case_three_d_export",
+            title="three d export",
+            analysis_runs=[
+                AnalysisRun(
+                    run_id="run_three_d",
+                    case_id="case_three_d_export",
+                    method_id="cbct_stl_review",
+                    status="completed",
+                    fused_outputs={
+                        "three_d_evidence": {
+                            "schema_version": "osteo-vision-three-d-evidence-v1",
+                            "model_path": "artifacts/models/mandible.stl",
+                            "model_file_name": "mandible.stl",
+                            "model_source": "CBCT label surface",
+                            "registration_status": "unregistered",
+                            "navigation_ready": False,
+                            "scene_manifest_v2": scene_manifest_v2,
+                            "boundary_note": "未配准，非导航。",
+                        }
+                    },
+                )
+            ],
+        )
+    )
+
+    response = ExportService(repo, tmp_path / "exports").export_case(case, ExportRequest())
+    scene_entry = next(entry for entry in response.artifact_entries if entry["kind"] == "three_d_scene_manifest")
+    scene_payload = json.loads(Path(scene_entry["path"]).read_text(encoding="utf-8"))
+    report_payload = json.loads(Path(response.report_path).read_text(encoding="utf-8"))
+
+    assert scene_payload["available"] is True
+    assert scene_payload["scene_manifest_v2"]["schema_version"] == "osteo-vision-three-d-scene-v2"
+    assert scene_payload["scene_manifest_v2"]["nodes"][2]["type"] == "model"
+    assert report_payload["three_d_evidence"]["scene_node_count"] == 3
+    assert report_payload["three_d_evidence"]["geometry_job_count"] == 1
+    assert "Slicer-like scene" in Path(response.report_path.replace("_report.json", "_report.md")).read_text(
         encoding="utf-8"
     )
 

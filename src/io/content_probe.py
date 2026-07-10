@@ -62,6 +62,10 @@ def signature_matches_upload_suffix(path: str | Path, suffix: str) -> tuple[bool
     probe = probe_file_signature(path)
     normalized_suffix = suffix.lower()
     detected_family = str(probe.get("detected_family") or "unknown")
+    if normalized_suffix in {".dcm", ".dicom", ".nii", ".nii.gz", ".nrrd", ".mha", ".mhd", ".stl", ".glb", ".gltf"}:
+        if detected_family == "html":
+            return False, "uploaded medical 3D content looks like HTML, not CBCT or surface model data", probe
+        return True, "", probe
     if normalized_suffix in {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}:
         if detected_family == "image":
             return True, "", probe

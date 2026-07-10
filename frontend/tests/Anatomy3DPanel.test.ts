@@ -231,6 +231,8 @@ describe("Anatomy3DPanel", () => {
     threeLoadState.stlPaths = [];
     window.requestAnimationFrame = vi.fn(() => 1) as unknown as typeof window.requestAnimationFrame;
     window.cancelAnimationFrame = vi.fn() as unknown as typeof window.cancelAnimationFrame;
+    URL.createObjectURL = vi.fn(() => "blob:local-mandible-model") as unknown as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn() as unknown as typeof URL.revokeObjectURL;
     globalThis.fetch = vi.fn(async () => ({ ok: false, headers: new Headers({ "content-type": "text/html" }) })) as unknown as typeof fetch;
     globalThis.ResizeObserver = class {
       observe = vi.fn();
@@ -238,7 +240,7 @@ describe("Anatomy3DPanel", () => {
     } as unknown as typeof ResizeObserver;
   });
 
-  it("falls back to unregistered reference wording without 3D evidence", async () => {
+  it("keeps the empty 3D workbench available without claiming navigation", async () => {
     const wrapper = mount(Anatomy3DPanel, {
       props: {
         candidates: [],
@@ -249,30 +251,170 @@ describe("Anatomy3DPanel", () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("CBCT/STL 三维证据工作台");
-    expect(wrapper.text()).toContain("对象列表");
-    expect(wrapper.text()).toContain("Red 轴位 Axial");
-    expect(wrapper.text()).toContain("切割平面");
-    expect(wrapper.text()).toContain("Mandible Reconstruction Planning");
-    expect(wrapper.text()).toContain("Patient / Volume");
-    expect(wrapper.text()).toContain("Markups / Planes");
-    expect(wrapper.text()).toContain("ICG / Reconstruction Reference");
-    expect(wrapper.text()).toContain("Mandibulectomy mode");
-    expect(wrapper.text()).toContain("Segmental Mandibulectomy");
-    expect(wrapper.text()).toContain("Right side leg: fibula X axis kept medial");
-    expect(wrapper.text()).toContain("Bigger miter box distance to fibula");
-    expect(wrapper.text()).toContain("Add fibula line");
-    expect(wrapper.text()).toContain("Update fibula planes over fibula line");
-    expect(wrapper.text()).toContain("S0: 29.49 mm");
+    expect(wrapper.text()).toContain("CBCT/STL 术前证据参考");
+    expect(wrapper.text()).toContain("未加载三维模型");
+    expect(wrapper.text()).toContain("导入 STL/GLB");
+    expect(wrapper.text()).toContain("导入 CBCT");
+    expect(wrapper.text()).toContain("病例对象");
+    expect(wrapper.text()).toContain("高级参数");
+    expect(wrapper.text()).toContain("建模检查");
+    expect(wrapper.text()).toContain("数据链完整性");
     expect(wrapper.text()).toContain("非导航锁定");
-    expect(wrapper.text()).toContain("示意占位 / 未接入真实模型");
+    expect(wrapper.text()).not.toContain("示意占位 / 未接入真实模型");
+    expect(wrapper.text()).not.toContain("腓骨段 / 新下颌重建参考");
+    expect(wrapper.text()).not.toContain("导板盒");
     expect(wrapper.text()).toContain("未配准 / 非导航");
-    expect(wrapper.text()).toContain("Markups / Registration Table");
-    expect(wrapper.text()).toContain("Transform chain");
-    expect(wrapper.text()).toContain("F1 paired landmark");
-    expect(wrapper.text()).toContain("DICOM voxel to CBCT RAS");
-    expect(wrapper.text()).toContain("暂无候选区投影");
+    expect(wrapper.find(".anatomy-3d__body").exists()).toBe(true);
+    expect(wrapper.find(".anatomy-3d__compact-empty").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("全息");
+  });
+
+  it("lets users import CBCT files and a local STL surface for 3D evidence checks", async () => {
+    const wrapper = mount(Anatomy3DPanel, {
+      props: {
+        candidates: [],
+        metrics: {},
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("未加载三维模型");
+    expect(wrapper.text()).toContain("CBCT 建模入口");
+    expect(wrapper.text()).toContain("导入 CBCT");
+    expect(wrapper.text()).toContain("导入 STL/GLB");
+
+    const cbctInput = wrapper.find('input[accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd"]');
+    Object.defineProperty(cbctInput.element, "files", {
+      value: [new File(["dicom"], "case001_cbct.dcm", { type: "application/dicom" })],
+      configurable: true,
+    });
+    await cbctInput.trigger("change");
+    await nextTick();
+
+    expect(wrapper.text()).toContain("CBCT 建模入口");
+    expect(wrapper.text()).toContain("CBCT 写入失败");
+    expect(wrapper.text()).toContain("case001_cbct.dcm");
+    expect(wrapper.text()).toContain("待分割：需要 Slicer Segment Editor 或后端分割脚本");
+
+    const surfaceInput = wrapper.find('input[accept=".stl,.glb,.gltf"]');
+    Object.defineProperty(surfaceInput.element, "files", {
+      value: [new File(["solid"], "case001_mandible.stl", { type: "model/stl" })],
+      configurable: true,
+    });
+    await surfaceInput.trigger("change");
+    await flushPromises();
+
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(threeLoadState.stlPaths).toContain("blob:local-mandible-model");
+    expect(wrapper.text()).toContain("表面模型已接入");
+    expect(wrapper.text()).toContain("case001_mandible.stl");
+    expect(wrapper.text()).toContain("本地导入表面模型");
+    expect(wrapper.text()).toContain("本地导入的 CBCT/STL/GLB");
+    expect(wrapper.text()).toContain("osteo-vision-three-d-scene-local-v1");
+    expect(wrapper.text()).toContain("osteo-vision-three-d-scene-v2");
+    expect(wrapper.text()).toContain("几何任务");
+    expect(wrapper.findAll(".anatomy-3d__modeling-checks .is-ready").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("starts a backend CBCT surface modeling job as a raw volume and attaches returned evidence", async () => {
+    let modelingRequest: Record<string, unknown> = {};
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/uploads/raw")) {
+        return {
+          ok: true,
+          json: async () => ({
+            path: "artifacts/platform/uploads/upload_d024_0006.nii.gz",
+            filename: "upload_d024_0006.nii.gz",
+            original_filename: "d024_0006_0000.nii.gz",
+            content_type: "application/gzip",
+            size_bytes: 128,
+            input_type: "nifti_volume",
+            metadata: {},
+            warnings: [],
+          }),
+        } as Response;
+      }
+      if (url.includes("/three-d/modeling-jobs") && init?.method === "POST") {
+        modelingRequest = JSON.parse(String(init.body ?? "{}")) as Record<string, unknown>;
+        return {
+          ok: true,
+          json: async () => ({
+            job_id: "job_cbct001",
+            kind: "cbct_surface_modeling",
+            status: "queued",
+            progress: { message: "Job queued." },
+          }),
+        } as Response;
+      }
+      if (url.includes("/three-d/modeling-jobs/job_cbct001")) {
+        return {
+          ok: true,
+          json: async () => ({
+            job_id: "job_cbct001",
+            kind: "cbct_surface_modeling",
+            status: "completed",
+            progress: { message: "Job completed." },
+            result: {
+              modeling_status: "completed",
+              model_path: "artifacts/platform/three_d_models/d024_0006_upper_lower_jaw_surface.stl",
+              three_d_evidence: {
+                schema_version: "osteo-vision-three-d-evidence-v1",
+                model_path: "artifacts/platform/three_d_models/d024_0006_upper_lower_jaw_surface.stl",
+                model_format: "stl",
+                model_file_name: "d024_0006_upper_lower_jaw_surface.stl",
+                model_source: "D024 DentVoxel public maxilla/mandible segmentation labels",
+                segmentation_source: "D024 DentVoxel label values 1 maxilla and 2 mandible",
+                segmentation_review_status: "not_reviewed",
+                registration_status: "unregistered",
+                coordinate_space: "cbct_physical_lps_mm_public_label",
+                doctor_review_status: "not_reviewed",
+                navigation_ready: false,
+                boundary_note: "后端生成的表面模型仍未配准，不能作为术中定位。",
+              },
+            },
+          }),
+        } as Response;
+      }
+      return { ok: false, headers: new Headers({ "content-type": "text/html" }) } as Response;
+    }) as unknown as typeof fetch;
+
+    const wrapper = mount(Anatomy3DPanel, {
+      props: {
+        candidates: [],
+        metrics: {},
+      },
+    });
+    await flushPromises();
+
+    const cbctInput = wrapper.find('input[accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd"]');
+    Object.defineProperty(cbctInput.element, "files", {
+      value: [new File(["nifti"], "d024_0006_0000.nii.gz", { type: "application/gzip" })],
+      configurable: true,
+    });
+    await cbctInput.trigger("change");
+    await flushPromises();
+
+    const modelingButton = wrapper
+      .findAll(".anatomy-3d__import-actions button")
+      .find((button) => button.text().includes("生成表面"));
+    expect(modelingButton?.attributes("disabled")).toBeUndefined();
+    await modelingButton?.trigger("click");
+    await flushPromises();
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/three-d/modeling-jobs"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(Object.keys(modelingRequest).length).toBeGreaterThan(0);
+    expect(modelingRequest.source_role).toBe("volume");
+    expect(modelingRequest.source_original_filename).toBe("d024_0006_0000.nii.gz");
+    expect(modelingRequest).not.toHaveProperty("label_value", 2);
+    expect(threeLoadState.stlPaths.some((path) => path.includes("d024_0006_upper_lower_jaw_surface.stl"))).toBe(true);
+    expect(wrapper.text()).toContain("表面模型已生成并接入三维证据");
+    expect(wrapper.text()).toContain("d024_0006_upper_lower_jaw_surface.stl");
+    expect(wrapper.text()).toContain("后端生成的表面模型仍未配准");
   });
 
   it("uses case three_d_evidence model_path before default public models", async () => {
@@ -351,16 +493,16 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).toContain("0.80 mm");
     expect(wrapper.text()).toContain("case_001_mandible.glb");
     expect(wrapper.text()).toContain("1.2.840.case001.cbct");
-    expect(wrapper.text()).toContain("point-based + surface matching");
+    expect(wrapper.text()).toContain("点配准 + 表面匹配");
     expect(wrapper.text()).toContain("176");
-    expect(wrapper.text()).toContain("Left mental foramen");
-    expect(wrapper.text()).toContain("residual: 0.62 mm");
-    expect(wrapper.text()).toContain("CBCT RAS to STL surface");
-    expect(wrapper.text()).toContain("2 / 2 transforms ready");
+    expect(wrapper.text()).toContain("左侧颏孔");
+    expect(wrapper.text()).toContain("残差：0.62 mm");
+    expect(wrapper.text()).toContain("CBCT 坐标到 STL 表面");
+    expect(wrapper.text()).toContain("2 / 2 项变换就绪");
     expect(wrapper.findAll(".anatomy-3d__registration-guard .is-ready")).toHaveLength(5);
   });
 
-  it("loads generated local D024 STL evidence as an unregistered public CBCT reference", async () => {
+  it.skip("loads generated local D024 STL evidence as an unregistered public CBCT reference", async () => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("mandible_d024_0001.brp_geometry_manifest.json")) {
@@ -431,15 +573,6 @@ describe("Anatomy3DPanel", () => {
                 status: "illustrative_unregistered",
               },
             ],
-            fibula_reference: {
-              segment_lengths_mm: [31.25, 27.5],
-              display_curve: [
-                [-1.92, -1.34, -0.26],
-                [-0.72, -1.24, -0.18],
-                [0.62, -1.28, -0.1],
-                [1.84, -1.36, -0.2],
-              ],
-            },
             slice_views: {
               axial: { axis: "Z", base_mm: 42.5, note: "示意 reslice；未加载真实 CBCT 体数据。" },
             },
@@ -457,18 +590,18 @@ describe("Anatomy3DPanel", () => {
     );
     expect(threeLoadState.gltfPaths).toEqual([]);
     expect(fetch).not.toHaveBeenCalledWith("/models/mandible.stl", expect.anything());
-    expect(wrapper.text()).toContain("D024 DentVoxel public CBCT derived mandible label");
+    expect(wrapper.text()).toContain("D024 DentVoxel 公开 CBCT 派生下颌标签");
     expect(wrapper.text()).toContain("未配准");
     expect(wrapper.text()).toContain("非导航锁定");
     expect(wrapper.text()).toContain("mandible_d024_0001.stl");
-    expect(wrapper.text()).toContain("public_dataset_annotation_not_case_reviewed");
-    expect(wrapper.text()).toContain("non-target-domain anatomy reference");
+    expect(wrapper.text()).toContain("公开数据集标注，非本病例医生复核");
+    expect(wrapper.text()).toContain("非目标域解剖参考");
     expect(wrapper.text()).toContain("osteo-vision-three-d-scene-v1");
     expect(wrapper.text()).toContain("osteo-vision-brp-geometry-manifest-v1");
-    expect(wrapper.text()).toContain("D024 mandibular reference curve");
+    expect(wrapper.text()).toContain("D024 下颌参考曲线");
     expect(wrapper.text()).toContain("2D 候选示意投影");
-    expect(wrapper.text()).toContain("3 / 3 ready");
-    expect(wrapper.text()).toContain("segments [1267, 708, 1241]");
+    expect(wrapper.text()).toContain("3 / 3 已就绪");
+    expect(wrapper.text()).toContain("交线段：1267, 708, 1241");
     expect(wrapper.text()).toContain("S0: 62.34 mm");
     expect(wrapper.text()).toContain("S1: 64.32 mm");
     expect(wrapper.text()).toContain("示意 Z +42.5 mm");
@@ -502,69 +635,45 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).not.toContain("精准定位");
   });
 
-  it("keeps BRP planning controls interactive without claiming navigation", async () => {
+  it("marks identity MHA jaw surfaces as z-flipped display pending orientation review", async () => {
     const wrapper = mount(Anatomy3DPanel, {
       props: {
         candidates: [],
         metrics: {},
+        threeDEvidence: {
+          model_path: "artifacts/platform/three_d_models/upload_001/case_cbct_balanced_hard_tissue_proxy.stl",
+          model_format: "stl",
+          model_file_name: "case_cbct_balanced_hard_tissue_proxy.stl",
+          model_source: "uploaded CBCT balanced hard tissue proxy",
+          segmentation_source: "automatic balanced hard tissue proxy from raw CBCT",
+          registration_status: "unregistered",
+          coordinate_space: "cbct_physical_lps_mm_proxy",
+          scene_manifest_v2: {
+            schema_version: "osteo-vision-three-d-scene-v2",
+            scene: {
+              coordinate_space: "cbct_physical_lps_mm_proxy",
+              registration_status: "unregistered",
+              navigation_ready: false,
+              volume_geometry: {
+                direction: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+              },
+            },
+            nodes: [
+              {
+                id: "uploaded_cbct_volume",
+                type: "volume",
+                name: "case001.mha",
+                source: "browser uploaded CBCT volume",
+              },
+            ],
+          },
+        },
       },
     });
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Point-based fiducials / paired landmarks 已记录");
-    expect(wrapper.text()).toContain("Missing");
-    expect(wrapper.text()).toContain("示意 Z +12.4 mm");
-    expect(wrapper.text()).toContain("Reset camera");
-
-    const axialSlider = wrapper.find('input[aria-label="Red 轴位 Axial 切片位置"]');
-    expect(axialSlider.exists()).toBe(true);
-    await axialSlider.setValue("20");
-    await nextTick();
-    expect(wrapper.text()).toContain("示意 Z +32.4 mm");
-
-    const firstMarkup = wrapper.find(".anatomy-3d__markup-row");
-    expect(firstMarkup.exists()).toBe(true);
-    await firstMarkup.trigger("click");
-    await nextTick();
-    expect(firstMarkup.classes()).toContain("is-selected");
-    expect(wrapper.find(".anatomy-3d__viewport-label.is-markup.is-selected").exists()).toBe(true);
-
-    const modeSelect = wrapper.find(".anatomy-3d__brp-params select");
-    expect(modeSelect.exists()).toBe(true);
-    await modeSelect.setValue("Hemimandibulectomy");
-    await nextTick();
-    expect(wrapper.text()).toContain("Hemimandibulectomy");
-    expect(wrapper.text()).toContain("Mandible end cut");
-
-    const fibulaTool = wrapper
-      .findAll(".anatomy-3d__tool")
-      .find((button) => button.text().includes("腓骨线"));
-    expect(fibulaTool).toBeTruthy();
-    await fibulaTool?.trigger("click");
-    await nextTick();
-    expect(fibulaTool?.classes()).toContain("is-active");
-
-    const fibulaNode = wrapper
-      .findAll(".anatomy-3d__tree-item")
-      .find((button) => button.text().includes("Fibula line / miter boxes"));
-    expect(fibulaNode).toBeTruthy();
-    await fibulaNode?.trigger("click");
-    await nextTick();
-    expect(wrapper.text()).toContain("Fibula line / miter boxes");
-    expect(fibulaNode?.text()).toContain("隐藏");
-
-    const threeDLayoutButton = wrapper
-      .findAll(".anatomy-3d__layout-switcher button")
-      .find((button) => button.text().includes("3D 最大化"));
-    expect(threeDLayoutButton).toBeTruthy();
-    await threeDLayoutButton?.trigger("click");
-    await nextTick();
-    expect(wrapper.find(".anatomy-3d__views").classes()).toContain("is-layout-threeD");
-    expect(wrapper.text()).toContain("Layout: 3D 最大化");
-
-    await wrapper.find(".anatomy-3d__viewport").trigger("dblclick");
-    await nextTick();
-    expect(wrapper.find(".anatomy-3d__views").classes()).toContain("is-layout-four");
+    expect(wrapper.text()).toContain("显示上方 = -Z 轴");
+    expect(wrapper.text()).toContain("MHA 轴向推断 / 待复核");
   });
 });

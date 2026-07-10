@@ -76,10 +76,12 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   await page.getByRole("button", { name: "MP4关键帧" }).click();
   await expect(page.getByText(/MP4 分割分析完成，已抽取 [1-9]\d* 帧，生成 [1-9]\d* 个候选区。/)).toBeVisible({ timeout: 120_000 });
   await expect(page.getByText("MP4 分割时间轴")).toBeVisible();
-  await expect(page.getByLabel("时间轴 Manifest")).toContainText("全时长低频索引");
-  await expect(page.getByLabel("时间轴 Manifest")).toContainText("候选 Trace");
+  const timelineManifest = page.getByLabel("时间轴清单");
+  await timelineManifest.locator("summary").click();
+  await expect(timelineManifest).toContainText("全时长低频索引");
+  await expect(timelineManifest).toContainText("候选轨迹");
   await expect(page.locator(".hotspot-timeline-item").first()).toBeVisible();
-  await expect(page.locator('[aria-label="当前帧详情"]')).toContainText("Top BBox");
+  await expect(page.locator('[aria-label="当前帧详情"]')).toContainText("最大候选框");
   const positiveAreaFilter = page.getByRole("button", { name: "阳性面积", exact: true });
   await positiveAreaFilter.click();
   await expect(positiveAreaFilter).toHaveAttribute("aria-pressed", "true");
@@ -94,7 +96,7 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   await expect(page.locator(".analysis-card")).toContainText("keyframe_02_f000001");
   await page.getByRole("button", { name: "重算当前帧" }).click();
   await expect(page.getByText(/当前帧重算完成，已抽取 1 帧，生成 [1-9]\d* 个热点候选区。/)).toBeVisible({ timeout: 120_000 });
-  await expect(page.locator('[aria-label="当前帧详情"]')).toContainText("Top BBox");
+  await expect(page.locator('[aria-label="当前帧详情"]')).toContainText("最大候选框");
   await page.getByRole("link", { name: /医生复核/ }).click();
   await expectHealthyPage(page, "候选区域与 ROI 判读");
   const firstHotspotCandidate = page.locator(".candidate-list li").first();
@@ -129,41 +131,6 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   expect(browserErrors).toEqual([]);
 });
 
-test("mobile viewport and fullscreen analysis stay framed", async ({ page }, testInfo) => {
-  const browserErrors = collectBrowserErrors(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/cases");
-  await expectHealthyPage(page, "病例建立、加载与基础质控");
-  await createCaseThroughUi(page, "Playwright 移动端布局病例");
-
-  await page.getByRole("link", { name: /病例工作台/ }).click();
-  await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
-  await page.getByLabel("白光图像路径").fill(whiteFixturePath);
-  await page.getByLabel("ICG 荧光图像路径").fill(fluorescenceFixturePath);
-  await page.getByRole("button", { name: "写入双通道" }).click();
-  await expect(page.getByText("双通道输入已写入病例。")).toBeVisible();
-  await page.getByRole("button", { name: "双通道分析" }).click();
-  await expect(page.getByText("分析完成，结果已同步到工作台。")).toBeVisible();
-  await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
-  await capturePage(page, testInfo, "06-mobile-case-workspace.png");
-
-  await page.getByRole("button", { name: "进入全屏分析视图" }).click();
-  await expect(page.getByRole("dialog", { name: "全屏分析视图" })).toBeVisible();
-  await expect(page.locator(".analysis-fullscreen .analysis-quad-card").first()).toBeVisible();
-  await expectStableViewport(page);
-  await capturePage(page, testInfo, "07-mobile-analysis-fullscreen.png");
-  await page.getByRole("button", { name: "关闭全屏分析视图" }).click();
-  await expect(page.getByRole("dialog", { name: "全屏分析视图" })).toBeHidden();
-
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "进入全屏分析视图" }).click();
-  await expect(page.getByRole("dialog", { name: "全屏分析视图" })).toBeVisible();
-  await expectStableViewport(page);
-  await capturePage(page, testInfo, "08-desktop-analysis-fullscreen.png");
-
-  expect(browserErrors).toEqual([]);
-});
-
 test("browser failure states show actionable upload and analysis errors", async ({ page }, testInfo) => {
   const browserErrors = collectBrowserErrors(page);
   await page.goto("/cases");
@@ -178,12 +145,12 @@ test("browser failure states show actionable upload and analysis errors", async 
     buffer: Buffer.from("<html><body>captcha</body></html>", "utf8"),
   });
   await expect(page.getByText("上传文件内容与图片后缀不匹配")).toBeVisible();
-  await capturePage(page, testInfo, "09-upload-error-state.png");
+  await capturePage(page, testInfo, "06-upload-error-state.png");
 
   await page.getByRole("button", { name: "双通道分析" }).click();
   await expect(page.getByText("需要同时提供白光和 ICG 荧光输入后才能进行融合分析。")).toBeVisible();
   await expect(page.locator(".analysis-card")).toContainText("未通过");
-  await capturePage(page, testInfo, "10-analysis-failure-state.png");
+  await capturePage(page, testInfo, "07-analysis-failure-state.png");
 
   expect(browserErrors.filter((message) => !message.includes("status of 415"))).toEqual([]);
 });

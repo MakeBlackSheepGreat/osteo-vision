@@ -54,10 +54,16 @@ def video_signal_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def three_d_evidence_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
+def three_d_evidence_section_from_run(
+    run: dict[str, Any] | None,
+    *,
+    fallback_evidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     latest_run = run if isinstance(run, dict) else {}
     fused_outputs = latest_run.get("fused_outputs") if isinstance(latest_run.get("fused_outputs"), dict) else {}
     evidence = fused_outputs.get("three_d_evidence") if isinstance(fused_outputs.get("three_d_evidence"), dict) else {}
+    if isinstance(fallback_evidence, dict) and fallback_evidence:
+        evidence = {**evidence, **fallback_evidence}
     if not evidence:
         return {
             "available": False,
@@ -69,7 +75,15 @@ def three_d_evidence_section_from_run(run: dict[str, Any] | None) -> dict[str, A
         }
     transform_chain = evidence.get("transform_chain") if isinstance(evidence.get("transform_chain"), list) else []
     markups = evidence.get("registration_markups") if isinstance(evidence.get("registration_markups"), list) else []
-    ready_transform_count = sum(1 for item in transform_chain if isinstance(item, dict) and item.get("status") == "ready")
+    scene_manifest_v2 = evidence.get("scene_manifest_v2") if isinstance(evidence.get("scene_manifest_v2"), dict) else {}
+    scene_nodes = scene_manifest_v2.get("nodes") if isinstance(scene_manifest_v2.get("nodes"), list) else []
+    scene_markups = scene_manifest_v2.get("markups") if isinstance(scene_manifest_v2.get("markups"), list) else []
+    geometry_jobs = (
+        scene_manifest_v2.get("geometry_jobs") if isinstance(scene_manifest_v2.get("geometry_jobs"), list) else []
+    )
+    ready_transform_count = sum(
+        1 for item in transform_chain if isinstance(item, dict) and item.get("status") == "ready"
+    )
     ready_markup_count = sum(
         1
         for item in markups
@@ -92,6 +106,10 @@ def three_d_evidence_section_from_run(run: dict[str, Any] | None) -> dict[str, A
         "transform_count": len(transform_chain),
         "markup_ready_count": ready_markup_count,
         "markup_count": len(markups),
+        "scene_manifest_v2_schema": scene_manifest_v2.get("schema_version"),
+        "scene_node_count": len(scene_nodes),
+        "scene_markup_count": len(scene_markups),
+        "geometry_job_count": len(geometry_jobs),
         "boundary_note": evidence.get(
             "boundary_note",
             "CBCT/STL evidence is a reference layer only unless registration and physician review are recorded.",
@@ -110,6 +128,9 @@ def three_d_evidence_markdown_lines(section: dict[str, Any]) -> list[str]:
         f"- Coordinate space: `{section.get('coordinate_space') or 'not recorded'}`",
         f"- Transform chain: `{section.get('transform_ready_count') or 0} / {section.get('transform_count') or 0}` ready",
         f"- Markups: `{section.get('markup_ready_count') or 0} / {section.get('markup_count') or 0}` ready",
+        f"- Slicer-like scene: `{section.get('scene_manifest_v2_schema') or 'not recorded'}`",
+        f"- Scene graph: `{section.get('scene_node_count') or 0}` nodes, "
+        f"`{section.get('scene_markup_count') or 0}` markups, `{section.get('geometry_job_count') or 0}` geometry jobs",
         f"- Navigation ready: `{bool(section.get('navigation_ready'))}`",
         f"- Doctor review: `{section.get('doctor_review_status') or 'not recorded'}`",
         f"- Boundary: {section.get('boundary_note')}",

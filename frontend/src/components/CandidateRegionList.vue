@@ -21,7 +21,7 @@
             <dd>{{ candidateFrameLabel(candidate) }}</dd>
           </div>
           <div v-if="candidateBboxLabel(candidate)">
-            <dt>BBox</dt>
+            <dt>候选框</dt>
             <dd>{{ candidateBboxLabel(candidate) }}</dd>
           </div>
         </dl>

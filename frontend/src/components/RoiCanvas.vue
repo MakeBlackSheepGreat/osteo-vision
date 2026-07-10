@@ -4,7 +4,7 @@
     <div class="roi-toolbar" aria-label="ROI 标注控制">
       <label class="roi-label-field">
         <span>ROI 标签</span>
-        <input v-model="labelDraft" type="text" placeholder="manual_roi" />
+        <input v-model="labelDraft" type="text" placeholder="手动 ROI" />
       </label>
       <label class="roi-label-field">
         <span>复核状态</span>
@@ -114,7 +114,7 @@
           />
         </g>
       </svg>
-      <div class="canvas-meta top-left">WL + ICG / normalized ROI</div>
+      <div class="canvas-meta top-left">白光 + ICG / ROI 归一化</div>
       <div class="canvas-meta bottom-right">{{ geometrySummary }}</div>
       <div v-if="originalRect && hasDraftChanged" class="canvas-meta bottom-left">{{ comparisonSummary }}</div>
       <div v-if="!hasOutput && !rectDraft" class="empty-canvas-copy">

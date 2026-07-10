@@ -103,11 +103,11 @@
           {{ option.label }}
         </button>
       </div>
-      <section v-if="timelineManifestSummary" class="timeline-manifest-panel" aria-label="时间轴 Manifest">
-        <header>
+      <details v-if="timelineManifestSummary" class="timeline-manifest-panel" aria-label="时间轴清单">
+        <summary>
           <div>
             <AppIcon name="document" />
-            <strong>时间轴 Manifest</strong>
+            <strong>时间轴清单</strong>
           </div>
           <a
             v-if="timelineManifestSummary.manifestHref"
@@ -117,7 +117,7 @@
           >
             下载 JSON
           </a>
-        </header>
+        </summary>
         <dl class="timeline-summary-grid">
           <div>
             <dt>覆盖范围</dt>
@@ -161,11 +161,11 @@
           </div>
         </dl>
         <div v-if="timelineManifestSummary.traceItems.length" class="timeline-trace-list">
-          <strong>候选 Trace</strong>
+          <strong>候选轨迹</strong>
           <ul>
             <li v-for="item in timelineManifestSummary.traceItems" :key="item.key">
               <span>{{ item.frameLabel }}</span>
-              <small>{{ item.rankLabel }} · score {{ item.scoreLabel }} · {{ item.statusLabel }}</small>
+              <small>{{ item.rankLabel }} · 分数 {{ item.scoreLabel }} · {{ item.statusLabel }}</small>
             </li>
           </ul>
         </div>
@@ -178,7 +178,7 @@
             </li>
           </ul>
         </div>
-      </section>
+      </details>
       <div v-if="hotspotTimelineItems.length" class="hotspot-timeline-list">
         <button
           v-for="item in hotspotTimelineItems"
@@ -244,7 +244,7 @@
               :disabled="loading"
               @click="maskEditorOpen = true"
             >
-              编辑骨面 mask
+              编辑骨面掩膜
             </AppButton>
           </div>
         </header>
@@ -262,7 +262,7 @@
             <dd>{{ selectedHotspotFrameDetail.roiAreaLabel }}</dd>
           </div>
           <div>
-            <dt>Top BBox</dt>
+            <dt>最大候选框</dt>
             <dd>{{ selectedHotspotFrameDetail.topBBoxLabel }}</dd>
           </div>
         </dl>
@@ -367,7 +367,7 @@
               <strong>{{ detail.roiAreaLabel }}</strong>
             </span>
             <span>
-              <small>Top BBox</small>
+              <small>最大候选框</small>
               <strong>{{ detail.topBBoxLabel }}</strong>
             </span>
             <span class="frame-row-status" :class="{ review: detail.reviewRequired }">
@@ -780,19 +780,25 @@ watch(
   background: #ffffff;
 }
 
-.timeline-manifest-panel header,
-.timeline-manifest-panel header div {
+.timeline-manifest-panel summary,
+.timeline-manifest-panel summary div {
   display: flex;
   gap: 7px;
   align-items: center;
   min-width: 0;
 }
 
-.timeline-manifest-panel header {
+.timeline-manifest-panel summary {
   justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
 }
 
-.timeline-manifest-panel header a {
+.timeline-manifest-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.timeline-manifest-panel summary a {
   flex: 0 0 auto;
   border: 1px solid #c9dae8;
   border-radius: 999px;
