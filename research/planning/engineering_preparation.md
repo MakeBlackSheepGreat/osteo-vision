@@ -2,6 +2,8 @@
 
 更新时间：2026-06-12
 
+归档说明：本文记录 2026-06-12 的前期准备状态。现行平台目标、目录与验收口径以根目录 `README.md`、`README_CN.md` 和 `research/reports/planning/osteo_vision_platform_target_zh.md` 为准；文中旧目录与一次性生成脚本已经清理。
+
 ## 目标边界
 
 当前阶段的目标是搭建可演示、可复现、可接入真实样本的工程骨架。不要在没有真实术中白光/ICG样本和医生标注前承诺临床级诊断性能。
@@ -19,7 +21,7 @@
 - 文献和数据集清单：`output/literature/paper_inventory.csv`、`output/literature/dataset_inventory.csv`
 - 阶段性可行性报告：`output/literature/competition_feasibility_report.md`
 - 可用基线代码快照：`code/nnunet`
-- DOCX 生成链条：`scripts/docx-gen`
+- 当时使用的一次性 DOCX 生成链条已归档清理，历史 DOCX 作为静态阶段快照保留。
 
 待补齐：
 

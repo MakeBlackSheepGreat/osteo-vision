@@ -45,7 +45,7 @@ osteo-vision/
 - 文献与数据集清单：`research/literature/inventory/`
 - 数据获取与工程路线：`research/planning/`
 - 外部模型快照：`research/model-snapshots/code/`
-- 旧脚本：`research/scripts/legacy/`
+- 历史脚本已完成归档清理；现行工具统一位于 `scripts/` 与 `tools/`。
 
 ## 注意
 

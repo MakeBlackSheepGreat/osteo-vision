@@ -1,6 +1,8 @@
 # 大型数据集、论文 PDF 和模型产物
 research/datasets/**/raw/
 research/datasets/**/derived/
+research/datasets/**/materialized/
+research/datasets/**/metadata/Supplementary_Information.docx
 research/literature/inventory/papers/
 DentVoxel_Dataset/
 *.pdf
@@ -33,7 +35,9 @@ __pycache__/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp*/
+.pytest-tmp*/
 pytest_tmp/
+.codex_tmp/
 .ruff_cache/
 .mypy_cache/
 env/
@@ -54,6 +58,9 @@ yarn-error.log*
 pnpm-debug.log*
 frontend/test-results/
 frontend/playwright-report/
+.playwright-cli/
+frontend/pnpm-lock.yaml
+frontend/pnpm-workspace.yaml
 
 # .NET / document generator build outputs
 **/bin/
@@ -61,6 +68,8 @@ frontend/playwright-report/
 
 # 本地配置与缓存
 configs/paths.local.yml
+*.private.pem
+promotion-private-keys/
 data/
 tmp/
 temp_cache/
@@ -68,6 +77,12 @@ temp_*.txt
 *.tmp
 *.log
 output/
+outputs/
+artifacts_tavily_multimodal.json
+artifacts/runtime_logs/
+*.db
+*.sqlite
+*.sqlite3
 
 # 生成产物
 artifacts/checkpoints/*
@@ -82,6 +97,8 @@ artifacts/platform_smoke/*
 artifacts/e2e/*
 artifacts/ui/*
 artifacts/research_search/*
+artifacts/public_video_visual_review/*
+artifacts/**
 !artifacts/checkpoints/.gitkeep
 !artifacts/experiments/.gitkeep
 !artifacts/logs/.gitkeep
