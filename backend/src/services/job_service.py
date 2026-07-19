@@ -1,13 +1,28 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from threading import Lock
 from typing import Any
 from uuid import uuid4
 
-from backend.src.services.job_state import ACTIVE_JOB_STATUSES, progress, progress_percent, restart_failed_job, utc_now
+from backend.src.services.job_state import (
+    ACTIVE_JOB_STATUSES,
+    progress,
+    progress_percent,
+    restart_failed_job,
+    utc_now,
+)
 from src.core.paths import ensure_dir
+
+NAVIGATION_PIPELINE_JOB_KINDS = frozenset({"l1_static_registration", "l2_offline_pose_replay"})
+
+
+def _job_family(kind: str) -> str:
+    if kind in NAVIGATION_PIPELINE_JOB_KINDS:
+        return "navigation_pipeline"
+    return kind
 
 
 class JobCapacityError(RuntimeError):
@@ -49,6 +64,7 @@ class JobRegistry:
         job = {
             "job_id": job_id,
             "kind": kind,
+            "family": _job_family(kind),
             "status": "queued",
             "payload": job_payload,
             "result": {},
@@ -63,11 +79,21 @@ class JobRegistry:
             if max_active is not None and len(active) >= max_active:
                 raise JobCapacityError(kind=kind, max_active=max_active, active_count=len(active))
             if singleton_keys:
-                for active_job in active:
+                family = _job_family(kind)
+                family_active = [
+                    active_job
+                    for active_job in self._active_jobs_locked()
+                    if _job_family(str(active_job.get("kind") or "")) == family
+                ]
+                for active_job in family_active:
                     raw_active_payload = active_job.get("payload")
                     active_payload = raw_active_payload if isinstance(raw_active_payload, dict) else {}
                     if all(active_payload.get(key) == job_payload.get(key) for key in singleton_keys):
-                        raise JobConflictError(kind=kind, active_job=active_job, singleton_keys=singleton_keys)
+                        raise JobConflictError(
+                            kind=kind,
+                            active_job=active_job,
+                            singleton_keys=singleton_keys,
+                        )
             self._jobs[job_id] = job
             self._save_locked()
         return dict(job)
@@ -130,7 +156,13 @@ class JobRegistry:
     def mark_failed(self, job_id: str, error: str, result: dict[str, Any] | None = None) -> None:
         if self.is_canceled(job_id):
             return
-        self._update(job_id, status="failed", result=result or {}, error=error, progress=progress("failed", 100, error))
+        self._update(
+            job_id,
+            status="failed",
+            result=result or {},
+            error=error,
+            progress=progress("failed", 100, error),
+        )
 
     def update_progress(
         self,
@@ -180,7 +212,11 @@ class JobRegistry:
             self._refresh_locked()
             if job_id not in self._jobs:
                 return
-            self._jobs[job_id] = {**self._jobs[job_id], **updates, "updated_at": utc_now()}
+            self._jobs[job_id] = {
+                **self._jobs[job_id],
+                **updates,
+                "updated_at": utc_now(),
+            }
             self._save_locked()
 
     def _active_jobs_locked(self, kind: str | None = None) -> list[dict[str, Any]]:
@@ -219,4 +255,11 @@ class JobRegistry:
         tmp_path = self.storage_path.with_name(f"{self.storage_path.name}.{uuid4().hex[:8]}.tmp")
         payload = {"schema_version": "osteo-vision-job-registry-v1", "jobs": self._jobs}
         tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        tmp_path.replace(self.storage_path)
+        for attempt in range(5):
+            try:
+                tmp_path.replace(self.storage_path)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.02 * (attempt + 1))

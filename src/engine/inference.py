@@ -114,7 +114,11 @@ class MedicalImagingInferenceService:
             "task_type": selected_task,
             "model_version": self.model_version,
             "warnings": warnings,
-            "resource_summary": {"device_policy": self.runtime.get("device_policy", "auto"), "fixture": True},
+            "resource_summary": {
+                "device_policy": self.runtime.get("device_policy", "auto"),
+                "fixture": bool(self.models),
+                "runtime_profile": self.runtime.get("runtime_profile", "development"),
+            },
             "input_filename": Path(input_path).name,
             "preprocessing_summary": summary.to_dict(),
             "disclaimer_shown": True,
@@ -127,6 +131,25 @@ class MedicalImagingInferenceService:
         }
         if not summary.accepted:
             result = PredictionResult(status=STATUS_INVALID_INPUT, **base)
+            return self._with_report(result)
+        if adapter is None and (
+            bool(self.runtime.get("strict_startup"))
+            or str(self.runtime.get("model_selection_policy") or "") == "explicit"
+        ):
+            status = (
+                STATUS_SEGMENTATION_UNAVAILABLE
+                if selected_task == "segmentation"
+                else STATUS_CLASSIFICATION_UNAVAILABLE
+            )
+            base["warnings"].append(
+                warning(
+                    "strict_runtime_model_unavailable",
+                    "No explicitly approved runtime model is available for this input.",
+                    True,
+                )
+            )
+            result = PredictionResult(status=status, prediction={"available": False}, **base)
+            result.timing_ms["total"] = round((time.perf_counter() - start) * 1000, 3)
             return self._with_report(result)
         if adapter_result and adapter_result.get("prediction", {}).get("available") is False:
             status = (

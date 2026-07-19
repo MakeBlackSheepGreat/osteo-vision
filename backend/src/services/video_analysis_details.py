@@ -41,6 +41,10 @@ def build_video_frame_details(
         segmentation_mask: dict[str, Any] = (
             segmentation_mask_candidate if isinstance(segmentation_mask_candidate, dict) else {}
         )
+        inference_candidate = (
+            quantification.get("inference") or segmentation_mask.get("inference") or lesion_evidence.get("inference")
+        )
+        inference: dict[str, Any] = inference_candidate if isinstance(inference_candidate, dict) else {}
         candidates = lesion_evidence.get("candidates")
         top_component = candidates[0] if isinstance(candidates, list) and candidates else {}
         top_component = top_component if isinstance(top_component, dict) else {}
@@ -94,6 +98,11 @@ def build_video_frame_details(
                 "roi_positive_area_fraction": float(quantification.get("roi_positive_area_fraction", 0.0) or 0.0),
                 "component_count": component_count,
                 "p95_intensity": quantification.get("p95_intensity"),
+                "background_intensity": quantification.get("background_intensity", 0.0),
+                "intensity_source": quantification.get("intensity_source"),
+                "intensity_domain": quantification.get("intensity_domain"),
+                "decoded_frame_intensity": quantification.get("decoded_frame_intensity", {}),
+                "inference": inference,
                 "top_component": top_component,
                 "top_component_bbox_xyxy": bbox if isinstance(bbox, list) and len(bbox) == 4 else None,
                 "top_component_bbox_normalized": top_component_bbox_normalized,

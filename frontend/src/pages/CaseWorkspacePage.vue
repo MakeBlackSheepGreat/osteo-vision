@@ -2,7 +2,26 @@
   <main class="case-workspace">
     <header class="workspace-header">
       <div class="workspace-title">
+        <p>术中影像工作台</p>
         <h1>颌骨骨髓炎术中辅助决策平台</h1>
+      </div>
+      <div class="workspace-header-actions">
+        <div class="workspace-context" aria-label="当前工作区状态">
+          <span>{{ store.currentCase?.title || "未载入病例" }}</span>
+          <strong :class="analysisStatusClass">{{ latestRunStatusLabel }}</strong>
+        </div>
+        <RouterLink
+          v-if="store.currentCase"
+          class="navigation-workspace-link"
+          :to="navigationWorkspaceRoute"
+          title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
+        >
+          <AppIcon name="cube" />
+          <span>
+            <strong>三维导航</strong>
+            <small>{{ threeDWorkspaceStatus }}</small>
+          </span>
+        </RouterLink>
       </div>
     </header>
 
@@ -21,17 +40,20 @@
     <section class="workspace-grid">
       <aside class="workspace-sidebar" aria-label="输入控制与结果摘要">
         <CaseWorkspaceControls
-          v-model:white-light-path="whiteLightPath"
-          v-model:fluorescence-path="fluorescencePath"
-          v-model:video-path="videoPath"
+          v-model:input-mode="inputMode"
           v-model:video-timepoints="videoTimepoints"
           v-model:alpha="alpha"
           v-model:threshold="threshold"
           v-model:colormap="colormap"
+          :white-light-path="whiteLightPath"
+          :fluorescence-path="fluorescencePath"
+          :device-overlay-path="deviceOverlayPath"
+          :video-path="videoPath"
           :loading="store.loading"
           :has-case="Boolean(store.currentCase)"
           :is-uploading-white="isUploadingWhite"
           :is-uploading-fluorescence="isUploadingFluorescence"
+          :is-uploading-device-overlay="isUploadingDeviceOverlay"
           :is-uploading-video="isUploadingVideo"
           :is-loading-video-candidates="isLoadingVideoCandidates"
           :is-loading-video-preview="isLoadingVideoPreview"
@@ -39,26 +61,83 @@
           :selected-video-candidate-preview-src="selectedVideoCandidatePreviewSrc"
           :video-candidates="videoCandidates"
           :operation-message="operationMessage"
-          :operation-message-type="operationMessageType"
+           :operation-message-type="operationMessageType"
+           :image-pair-ready="imagePairReady"
+           :image-pair-options="imagePairOptions"
+           :selected-image-pair-key="selectedImagePairKey"
+           :analysis-job-polling="store.analysisJobPolling"
+           :video-ready="videoReady"
+          :camera-active="cameraActive"
+          :camera-opening="isOpeningCamera"
+          :camera-manual-analysis-busy="cameraManualAnalysisBusy"
+          :camera-analysis-running="cameraAnalysisRunning"
+          :camera-continuous-analysis-starting="cameraContinuousAnalysisStarting"
+          :camera-continuous-analysis-active="cameraContinuousAnalysisActive"
+          :camera-analysis-interval-sec="cameraAnalysisIntervalSec"
+          :camera-continuous-analysis-status="cameraContinuousAnalysisStatus"
+          :camera-status-label="cameraStatusLabel"
+          :file-video-active="fileVideoActive"
+          :video-realtime-analysis-status="videoRealtimeAnalysisStatus"
+          :live-session-ready="Boolean(store.currentCase)"
           @file-picked="handleFilePicked"
-          @import-inputs="importInputs"
-          @import-video="importVideoInput"
           @load-video-candidates="loadVideoCandidates"
           @select-video-candidate="selectVideoCandidate"
           @import-video-candidate="importSelectedVideoCandidate"
-          @run-analysis="runAnalysis"
+           @run-analysis="runAnalysis"
+           @select-image-pair="selectImagePair"
           @run-video-file-analysis="runVideoFileAnalysis"
+          @start-camera="openCameraForLiveAnalysis"
+          @stop-camera="stopCameraInput"
+          @capture-camera-frame="captureAndAnalyzeBrowserCameraFrame"
+          @start-continuous-camera-analysis="startContinuousCameraAnalysis"
+          @stop-continuous-camera-analysis="stopContinuousCameraAnalysis"
+          @update-camera-analysis-interval="setCameraAnalysisInterval"
         />
 
-        <AnalysisResultPanels
-          v-if="showResultSummary"
-          :candidates="displayCandidates"
-          :metrics="displayMetricMap"
+        <ClinicalContextPanel
+          v-if="store.currentCase"
+          :context="store.currentCase.clinical_context ?? emptyClinicalContext()"
+          :assessment="clinicalContextAssessment"
+          :disabled="store.loading"
+          :save-status="clinicalContextSaveStatus"
+          :save-error="clinicalContextSaveError"
+          @save="saveClinicalContext"
         />
+
+        <details v-if="showResultSummary" class="sidebar-summary-details">
+          <summary>
+            <span>结果摘要</span>
+            <strong>{{ displayCandidates.length }} 项候选</strong>
+          </summary>
+          <AnalysisResultPanels
+            :candidates="displayCandidates"
+            :metrics="displayMetricMap"
+          />
+        </details>
       </aside>
 
       <section class="analysis-column" aria-label="分析结果">
+        <ThreeChannelQualityPanel
+          :quality="threeChannelQuality"
+          :preview-url="apiClient.filePreviewUrl"
+          :download-url="apiClient.fileDownloadUrl"
+        />
+        <PatientConditioningEvidencePanel
+          :evidence="patientConditioningEvidence"
+          :preview-url="apiClient.filePreviewUrl"
+          :download-url="apiClient.fileDownloadUrl"
+        />
+        <BoneActivityCheckpointEvidencePanel
+          :evidence="boneActivityCheckpointEvidence"
+          :download-url="apiClient.fileDownloadUrl"
+        />
+        <ViabilitySpectrumPanel
+          :spectrum="boneActivitySpectrum"
+          :preview-url="apiClient.filePreviewUrl"
+          :download-url="apiClient.fileDownloadUrl"
+        />
         <AnalysisWorkspaceCard
+          ref="analysisWorkspaceCardRef"
           :loading="store.loading"
           :error="store.error"
           :has-case="Boolean(store.currentCase)"
@@ -71,6 +150,7 @@
           :active-analysis-job-error="store.activeAnalysisJobError"
           :active-analysis-job-progress="store.activeAnalysisJobProgress"
           :last-analysis-job-timed-out="store.lastAnalysisJobTimedOut"
+          :active-analysis-job-canceling="isCancelingAnalysisJob"
           :latest-run-status-label="latestRunStatusLabel"
           :analysis-status-class="analysisStatusClass"
           :kpi-items="kpiItems"
@@ -80,17 +160,18 @@
           :hotspot-timeline-filter="hotspotTimelineFilter"
           :selected-hotspot-timeline-key="selectedHotspotTimelineKey"
           :selected-hotspot-frame-detail="selectedHotspotFrameDetail"
+          :bone-gate-candidate-frame-indexes="boneGateCandidateFrameIndexes"
           :hotspot-frame-details="hotspotFrameDetails"
           :timeline-manifest-summary="timelineManifestSummary"
           :fusion-evidence-summary="fusionEvidenceSummary"
           :video-playback="videoPlaybackAnalysis"
           :camera-stream="cameraStream"
           :camera-active="cameraActive"
-          :camera-opening="isOpeningCamera"
           :camera-status-label="cameraStatusLabel"
+          :live-overlay-src="liveOverlaySrc"
+          :live-frame-status="liveFrameStatus"
+          :live-inference-latency-ms="liveInferenceLatencyMs"
           :analysis-expanded="analysisExpanded"
-          @start-camera="startCameraInput"
-          @stop-camera="stopCameraInput"
           @export="exportCase"
           @refresh-job="refreshAnalysisJob"
           @cancel-job="cancelAnalysisJob"
@@ -100,6 +181,9 @@
           @save-bone-gate-mask-edit="saveBoneGateMaskEditForSelectedFrame"
           @select-hotspot-frame="selectHotspotFrame"
           @update-hotspot-timeline-filter="updateHotspotTimelineFilter"
+          @playback-started="startVideoPlaybackAnalysis"
+          @playback-paused="pauseVideoPlaybackAnalysis"
+          @playback-ended="endVideoPlaybackAnalysis"
           @open-fullscreen="openAnalysisFullscreen"
           @close-fullscreen="closeAnalysisFullscreen"
         />
@@ -110,15 +194,6 @@
         </details>
       </section>
 
-      <Anatomy3DPanel
-        class="workspace-3d-row"
-        :case-id="store.currentCase?.case_id"
-        :candidates="displayCandidates"
-        :metrics="displayMetricMap"
-        :mode-label="latestMode === 'video_file_keyframes' ? 'MP4热点空间证据' : '双通道融合证据'"
-        :three-d-evidence="threeDEvidence"
-        @three-d-evidence-persisted="refreshPersistedThreeDEvidence"
-      />
     </section>
 
   </main>
@@ -130,8 +205,16 @@ import { useRoute } from "vue-router";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
-import Anatomy3DPanel from "@/components/Anatomy3DPanel.vue";
+import BoneActivityCheckpointEvidencePanel from "@/components/BoneActivityCheckpointEvidencePanel.vue";
 import CaseWorkspaceControls from "@/components/CaseWorkspaceControls.vue";
+import ClinicalContextPanel from "@/components/ClinicalContextPanel.vue";
+import PatientConditioningEvidencePanel from "@/components/PatientConditioningEvidencePanel.vue";
+import ThreeChannelQualityPanel from "@/components/ThreeChannelQualityPanel.vue";
+import ViabilitySpectrumPanel from "@/components/ViabilitySpectrumPanel.vue";
+import { boneActivityCheckpointEvidenceForFrame } from "@/utils/boneActivityCheckpointEvidence";
+import { boneActivitySpectrumForFrame } from "@/utils/boneActivitySpectrum";
+import { patientConditioningEvidenceForFrame } from "@/utils/patientConditioningEvidence";
+import { threeChannelQualityForFrame } from "@/utils/threeChannelQuality";
 import AppIcon from "@/components/AppIcon.vue";
 import {
   filterHotspotTimelineItems,
@@ -152,11 +235,19 @@ import {
 } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 import { useBrowserCamera } from "@/composables/useBrowserCamera";
+import {
+  useContinuousCameraAnalysis,
+  type ContinuousCameraFrameContext,
+  type ContinuousCameraAnalysisIntervalSec,
+} from "@/composables/useContinuousCameraAnalysis";
 import { useFullscreenPanel } from "@/composables/useFullscreenPanel";
 import { useOperationMessage } from "@/composables/useOperationMessage";
 import { apiClient } from "@/services/apiClient";
+import type { LiveFrameAnalysisResult } from "@/services/apiClient";
 import { useCaseStore } from "@/stores/caseStore";
-import type { CandidateRegion, CaseInputAsset, RegionOfInterest, ThreeDEvidence, VideoCandidate } from "@/types/case";
+import type { CandidateRegion, CaseInputAsset, ClinicalContext, ClinicalContextAssessment, RegionOfInterest, VideoCandidate } from "@/types/case";
+import { candidateForHotspotFrame, candidateFrameIndexes } from "@/utils/boneGateActions";
+import { caseImagePairs, imagePairLabel, selectedImageInputIds } from "@/utils/caseInputPairs";
 import {
   colormapLabel,
   errorMessage,
@@ -168,7 +259,6 @@ import {
 import {
   countLabel,
   hotspotFrameSelection,
-  keyframeCountFromJob,
   officialProfileLabel,
   parseVideoTimepoints,
   videoFileAnalysisParameters,
@@ -181,7 +271,10 @@ const route = useRoute();
 // 页面层保留业务流程编排：上传、写入病例、触发分析和导出。
 const whiteLightPath = ref("");
 const fluorescencePath = ref("");
+const deviceOverlayPath = ref("");
+const selectedImagePairKey = ref("");
 const videoPath = ref("");
+const inputMode = ref<"video" | "images">("video");
 const videoTimepoints = ref("");
 const syncedCaseId = ref("");
 const alpha = ref(0.45);
@@ -189,6 +282,7 @@ const threshold = ref(0.6);
 const colormap = ref<PlatformColormap>("green");
 const isUploadingWhite = ref(false);
 const isUploadingFluorescence = ref(false);
+const isUploadingDeviceOverlay = ref(false);
 const isUploadingVideo = ref(false);
 const isLoadingVideoCandidates = ref(false);
 const isLoadingVideoPreview = ref(false);
@@ -196,7 +290,13 @@ const videoCandidates = ref<VideoCandidate[]>([]);
 const selectedVideoCandidateId = ref("");
 const selectedVideoCandidatePreviewSrc = ref("");
 const selectedHotspotTimelineKey = ref("");
+const isCancelingAnalysisJob = ref(false);
+const liveFrameResult = ref<LiveFrameAnalysisResult | null>(null);
+const liveFrameSource = ref<"camera" | "video" | "">("");
+const cameraManualAnalysisBusy = ref(false);
 const hotspotTimelineFilter = ref<HotspotTimelineFilter>("all");
+const analysisWorkspaceCardRef = ref<InstanceType<typeof AnalysisWorkspaceCard> | null>(null);
+const videoPlaybackPlaying = ref(false);
 const showDebugPanel =
   import.meta.env.DEV &&
   typeof window !== "undefined" &&
@@ -207,6 +307,8 @@ const {
   open: openAnalysisFullscreen,
   close: closeAnalysisFullscreen,
 } = useFullscreenPanel();
+const liveSessionCreatePromise = ref<Promise<boolean> | null>(null);
+const liveModelWarmupPromise = ref<Promise<void> | null>(null);
 
 watch(
   () => route.query.caseId,
@@ -227,16 +329,81 @@ const {
   cameraStatusLabel,
   startCameraInput,
   stopCameraInput,
+  captureCameraFrame,
 } = useBrowserCamera({
+  onMessage: setOperationMessage,
+  onStop: () => {
+    stopContinuousCameraAnalysis(false);
+    clearLiveFrameResult("camera");
+  },
+});
+
+const {
+  active: cameraContinuousAnalysisActive,
+  starting: cameraContinuousAnalysisStarting,
+  running: cameraAnalysisRunning,
+  intervalSec: cameraAnalysisIntervalSec,
+  statusLabel: cameraContinuousAnalysisStatus,
+  setIntervalSec: setCameraAnalysisIntervalLoop,
+  start: startContinuousCameraAnalysisLoop,
+  stop: stopContinuousCameraAnalysisLoop,
+} = useContinuousCameraAnalysis({
+  captureFrame: captureCameraFrame,
+  analyzeFrame: analyzeContinuousCameraFrame,
+  canAnalyze: () => Boolean(cameraActive.value && !cameraManualAnalysisBusy.value),
+  beforeStart: prepareContinuousCameraAnalysis,
+  onMessage: setOperationMessage,
+});
+
+const {
+  active: videoPlaybackAnalysisActive,
+  running: videoPlaybackAnalysisRunning,
+  statusLabel: videoPlaybackAnalysisLoopStatus,
+  start: startVideoPlaybackAnalysisLoop,
+  stop: stopVideoPlaybackAnalysisLoop,
+} = useContinuousCameraAnalysis({
+  captureFrame: captureVideoPlaybackFrame,
+  analyzeFrame: analyzeContinuousVideoFrame,
+  canAnalyze: () =>
+    Boolean(videoPlaybackPlaying.value && fileVideoActive.value && analysisWorkspaceCardRef.value),
+  getTimestampSec: () => analysisWorkspaceCardRef.value?.currentPlaybackTimeSec(),
+  beforeStart: prepareVideoPlaybackAnalysis,
   onMessage: setOperationMessage,
 });
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1) ?? null);
+const clinicalContextAssessment = computed(() => {
+  const value = latestRun.value?.parameters?.clinical_context_assessment;
+  return isRecord(value) ? value as ClinicalContextAssessment : null;
+});
+const clinicalContextSaveStatus = ref<"idle" | "saving" | "success" | "error">("idle");
+const clinicalContextSaveError = ref("");
 const inputAssets = computed(() => store.currentCase?.inputs ?? []);
+const caseInputChannels = computed(() => inputAssets.value.map((asset) => asset.channel));
+const availableImagePairs = computed(() => caseImagePairs(inputAssets.value));
+const imagePairOptions = computed(() =>
+  availableImagePairs.value.map((pair) => ({ key: pair.key, label: imagePairLabel(pair) })),
+);
+const selectedImageInputIdList = computed(() =>
+  selectedImageInputIds(inputAssets.value, whiteLightPath.value, fluorescencePath.value, deviceOverlayPath.value),
+);
+const latestInputPathByChannel = computed(() => {
+  const latest = new Map<CaseInputAsset["channel"], string>();
+  for (const asset of inputAssets.value) {
+    latest.set(asset.channel, asset.path);
+  }
+  return latest;
+});
+const imagePairReady = computed(
+  () => selectedImageInputIdList.value.length === 2,
+);
+const videoReady = computed(
+  () => Boolean(videoPath.value) && latestInputPathByChannel.value.get("video") === videoPath.value,
+);
 const metricEntries = computed(() => Object.entries(latestRun.value?.quantitative_summary ?? {}));
 const latestCandidates = computed<CandidateRegion[]>(() => latestRun.value?.candidate_regions ?? []);
+const boneGateCandidateFrameIndexes = computed(() => candidateFrameIndexes(latestCandidates.value));
 const latestMode = computed(() => stringFrom(latestRun.value?.fused_outputs?.mode));
-
 const outputPaths = computed<Record<string, unknown>>(() => {
   const fusedOutputs = latestRun.value?.fused_outputs ?? {};
   const nestedOutputs = isRecord(fusedOutputs.outputs) ? fusedOutputs.outputs : {};
@@ -284,7 +451,7 @@ const analysisStatusClass = computed(() => {
 });
 
 const kpiItems = computed<Array<{ label: string; value: string; icon: AppIconName }>>(() => [
-  { label: "分析任务", value: latestMode.value === "video_file_keyframes" ? "MP4关键帧" : "荧光融合", icon: "clipboard" },
+  { label: "分析任务", value: latestMode.value === "video_file_keyframes" ? "MP4 视频分析" : "JPEG 图像融合", icon: "clipboard" },
   { label: "输入通道", value: `${displayInputAssets.value.length} 个`, icon: "layers" },
   { label: "候选区域", value: String(displayCandidates.value.length), icon: "target" },
   { label: "分析状态", value: latestRunStatusLabel.value, icon: "document" },
@@ -292,6 +459,8 @@ const kpiItems = computed<Array<{ label: string; value: string; icon: AppIconNam
 
 const previewPanels = computed<AnalysisPreviewPanel[]>(() => {
   const overlays = previewOverlays.value;
+  const livePanels = livePreviewPanels.value;
+  if (livePanels.length) return livePanels.map((panel) => ({ ...panel, overlays }));
   const videoPanels = videoPreviewPanelsFromRun(
     latestRun.value,
     apiClient.filePreviewUrl,
@@ -312,6 +481,36 @@ const hotspotTimelineItems = computed(() =>
 const selectedHotspotFrameDetail = computed<HotspotFrameDetail | null>(() =>
   selectedHotspotFrameDetailFromRun(latestRun.value, apiClient.filePreviewUrl, selectedHotspotTimelineKey.value),
 );
+const boneActivitySpectrum = computed<Record<string, unknown> | null>(() => boneActivitySpectrumForFrame(
+  latestRun.value,
+  {
+    key: selectedHotspotTimelineKey.value || selectedHotspotFrameDetail.value?.key,
+    frameIndex: selectedHotspotFrameDetail.value?.frameIndex,
+  },
+));
+const boneActivityCheckpointEvidence = computed<Record<string, unknown> | null>(() => (
+  boneActivityCheckpointEvidenceForFrame(
+    latestRun.value,
+    {
+      key: selectedHotspotTimelineKey.value || selectedHotspotFrameDetail.value?.key,
+      frameIndex: selectedHotspotFrameDetail.value?.frameIndex,
+    },
+  )
+));
+const patientConditioningEvidence = computed<Record<string, unknown> | null>(() => patientConditioningEvidenceForFrame(
+  latestRun.value,
+  {
+    key: selectedHotspotTimelineKey.value || selectedHotspotFrameDetail.value?.key,
+    frameIndex: selectedHotspotFrameDetail.value?.frameIndex,
+  },
+));
+const threeChannelQuality = computed<Record<string, unknown> | null>(() => threeChannelQualityForFrame(
+  latestRun.value,
+  {
+    key: selectedHotspotTimelineKey.value || selectedHotspotFrameDetail.value?.key,
+    frameIndex: selectedHotspotFrameDetail.value?.frameIndex,
+  },
+));
 const hotspotFrameDetails = computed<HotspotFrameDetail[]>(() =>
   hotspotFrameDetailsFromRun(latestRun.value, apiClient.filePreviewUrl),
 );
@@ -330,17 +529,36 @@ const videoPlaybackAnalysis = computed<VideoPlaybackAnalysis | null>(() =>
     videoPath.value,
   ),
 );
-const threeDEvidence = computed<ThreeDEvidence | null>(() => {
-  const caseEvidence = store.currentCase?.three_d_evidence;
-  if (isRecord(caseEvidence) && Object.keys(caseEvidence).length) return caseEvidence as ThreeDEvidence;
-  const value = latestRun.value?.fused_outputs?.three_d_evidence;
-  return isRecord(value) ? (value as ThreeDEvidence) : null;
+const fileVideoActive = computed(() => Boolean(videoPlaybackAnalysis.value?.videoSrc));
+const liveOverlaySrc = computed(() =>
+  liveFrameResult.value?.overlay_path ? apiClient.filePreviewUrl(liveFrameResult.value.overlay_path) : "",
+);
+const liveFrameStatus = computed(() => {
+  const result = liveFrameResult.value;
+  if (!result) return "";
+  return `${liveFrameSource.value === "video" ? "MP4 实时分割" : "实时分割"}已更新 · ${result.frame_id.slice(-6)}`;
 });
-
-async function refreshPersistedThreeDEvidence() {
-  const caseId = store.currentCase?.case_id;
-  if (caseId) await store.loadCase(caseId);
-}
+const liveInferenceLatencyMs = computed(() => liveFrameResult.value?.inference_latency_ms ?? null);
+const videoRealtimeAnalysisStatus = computed(() => {
+  if (videoPlaybackAnalysisRunning.value) return "MP4 逐帧实时分割正在处理当前播放帧。";
+  if (videoPlaybackAnalysisActive.value) {
+    return `MP4 逐帧实时分割已启动，已完成 ${videoPlaybackAnalysisLoopStatus.value.replace(/^.*已完成 /, "")}`;
+  }
+  return "MP4 播放后将自动启动逐帧实时分割。";
+});
+const navigationWorkspaceRoute = computed(() => ({
+  path: "/navigation",
+  query: { caseId: store.currentCase?.case_id ?? "" },
+}));
+const threeDWorkspaceStatus = computed(() => {
+  const evidence = store.currentCase?.three_d_evidence;
+  if (!isRecord(evidence) || !Object.keys(evidence).length) return "模型待接入";
+  const registrationStatus = stringFrom(evidence.registration_status).toLowerCase();
+  const navigationReady = evidence.navigation_ready === true || stringFrom(evidence.navigation_ready).toLowerCase() === "true";
+  if (registrationStatus === "registered" && navigationReady) return "配准证据已记录";
+  if (stringFrom(evidence.model_path)) return "模型已接入 / 未配准";
+  return "三维证据待完善";
+});
 const previewOverlays = computed(() => [
   ...roiOverlaysFromRegions(store.currentCase?.rois ?? []),
   ...candidateOverlaysFromRegions(latestCandidates.value),
@@ -351,7 +569,10 @@ watch(
     store.currentCase
       ? [
           store.currentCase.case_id,
-          ...store.currentCase.inputs.map((asset) => `${asset.input_id}:${asset.channel}:${asset.path}`),
+          ...store.currentCase.inputs.map(
+            (asset) =>
+              `${asset.input_id}:${asset.channel}:${asset.path}:${stringFrom(asset.metadata.pair_id)}:${stringFrom(asset.metadata.batch_id)}`,
+          ),
         ].join("|")
       : "",
   () => {
@@ -372,6 +593,40 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  () => [
+    route.query.frameKey,
+    store.navigationFrameSelection?.frameKey,
+    store.navigationFrameSelection?.caseId,
+    allHotspotTimelineItems.value.map((item) => item.key).join("|"),
+  ],
+  () => {
+    const routeFrameKey = Array.isArray(route.query.frameKey) ? route.query.frameKey[0] : route.query.frameKey;
+    const sharedSelection = store.navigationFrameSelection;
+    const sharedFrameKey =
+      sharedSelection && sharedSelection.caseId === store.currentCase?.case_id ? sharedSelection.frameKey : "";
+    const requestedFrameKey = typeof routeFrameKey === "string" && routeFrameKey ? routeFrameKey : sharedFrameKey;
+    if (!requestedFrameKey) return;
+    if (allHotspotTimelineItems.value.some((item) => item.key === requestedFrameKey)) {
+      selectedHotspotTimelineKey.value = requestedFrameKey;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  fileVideoActive,
+  (active) => {
+    if (active) {
+      void warmupLiveFrameModel().catch(() => undefined);
+      return;
+    }
+    videoPlaybackPlaying.value = false;
+    stopVideoPlaybackAnalysisLoop(false);
+    clearLiveFrameResult("video");
+  },
 );
 
 function previewPanel(title: string, tag: string, label: string, scale: string, path: string): AnalysisPreviewPanel {
@@ -396,16 +651,29 @@ function syncInputPathsFromCase() {
     syncedCaseId.value = caseRecord.case_id;
     whiteLightPath.value = "";
     fluorescencePath.value = "";
+    deviceOverlayPath.value = "";
+    selectedImagePairKey.value = "";
     videoPath.value = "";
   }
   const latestByChannel = (channel: CaseInputAsset["channel"]) =>
     [...caseRecord.inputs].reverse().find((asset) => asset.channel === channel)?.path ?? "";
+  const defaultPair = availableImagePairs.value.at(-1);
+  if (caseChanged && defaultPair) {
+    selectedImagePairKey.value = defaultPair.key;
+    whiteLightPath.value = defaultPair.whiteLight.path;
+    fluorescencePath.value = defaultPair.fluorescence.path;
+    deviceOverlayPath.value = defaultPair.deviceOverlay?.path ?? "";
+  }
   const white = latestByChannel("white_light");
   const fluorescence = latestByChannel("fluorescence");
   const video = latestByChannel("video");
-  if (white && (caseChanged || !whiteLightPath.value.trim())) whiteLightPath.value = white;
-  if (fluorescence && (caseChanged || !fluorescencePath.value.trim())) fluorescencePath.value = fluorescence;
+  const deviceOverlay = latestByChannel("device_overlay");
+  if (white && ((!defaultPair && caseChanged) || !whiteLightPath.value.trim())) whiteLightPath.value = white;
+  if (fluorescence && ((!defaultPair && caseChanged) || !fluorescencePath.value.trim())) {
+    fluorescencePath.value = fluorescence;
+  }
   if (video && (caseChanged || !videoPath.value.trim())) videoPath.value = video;
+  if (deviceOverlay && (caseChanged || !deviceOverlayPath.value.trim())) deviceOverlayPath.value = deviceOverlay;
 }
 
 function selectHotspotFrame(key: string) {
@@ -416,23 +684,6 @@ function updateHotspotTimelineFilter(filter: HotspotTimelineFilter) {
   hotspotTimelineFilter.value = filter;
 }
 
-async function importInputs() {
-  if (!store.currentCase) {
-    setOperationMessage("请先新建或加载病例。", "error");
-    return;
-  }
-  if (!whiteLightPath.value.trim() || !fluorescencePath.value.trim()) {
-    setOperationMessage("请先提供白光和 ICG 荧光两路输入。", "error");
-    return;
-  }
-  setOperationMessage("正在写入双通道输入...");
-  await store.importInputs([
-    { channel: "white_light", path: whiteLightPath.value.trim() },
-    { channel: "fluorescence", path: fluorescencePath.value.trim() },
-  ]);
-  setOperationMessage(store.error || "双通道输入已写入病例。", store.error ? "error" : "info");
-}
-
 async function importVideoInput(): Promise<boolean> {
   if (!store.currentCase) {
     setOperationMessage("请先新建或加载病例。", "error");
@@ -440,15 +691,15 @@ async function importVideoInput(): Promise<boolean> {
   }
   const source = videoPath.value.trim();
   if (!source) {
-    setOperationMessage("请先提供官方 MP4 视频路径。", "error");
+    setOperationMessage("请先选择 MP4 视频。", "error");
     return false;
   }
-  const exists = store.currentCase.inputs.some((asset) => asset.channel === "video" && asset.path === source);
+  const exists = [...store.currentCase.inputs]
+    .reverse()
+    .some((asset) => asset.channel === "video" && asset.path === source);
   if (exists) {
-    setOperationMessage("MP4 视频输入已存在，本次直接复用。");
     return true;
   }
-  setOperationMessage("正在写入官方 MP4 视频输入...");
   await store.importInputs([
     {
       channel: "video",
@@ -456,14 +707,53 @@ async function importVideoInput(): Promise<boolean> {
       mime_type: "video/mp4",
       metadata: {
         acquisition_mode: "official_mp4_upload",
-        official_resolution: "3840x2160",
+        official_format: "MP4",
       },
     },
   ]);
   const ok = !store.error;
-  setOperationMessage(store.error || "MP4 视频输入已写入病例。", ok ? "info" : "error");
+  if (!ok) setOperationMessage(store.error, "error");
   return ok;
 }
+
+function selectImagePair(pairKey: string) {
+  const pair = availableImagePairs.value.find((candidate) => candidate.key === pairKey);
+  if (!pair) return;
+  selectedImagePairKey.value = pair.key;
+  whiteLightPath.value = pair.whiteLight.path;
+  fluorescencePath.value = pair.fluorescence.path;
+  deviceOverlayPath.value = pair.deviceOverlay?.path ?? "";
+  setOperationMessage(`已选择同步图像对 ${imagePairLabel(pair)}。`);
+}
+
+const livePreviewPanels = computed<AnalysisPreviewPanel[]>(() => {
+  const result = liveFrameResult.value;
+  if (!result) return [];
+  const sourceLabel = liveFrameSource.value === "video" ? "MP4 播放帧" : "摄像头帧";
+  return [
+    previewPanel(
+      "实时分割掩膜",
+      sourceLabel,
+      `推理 ${Math.round(result.inference_latency_ms)} ms`,
+      "二值掩膜",
+      result.mask_path || result.probability_path || "",
+    ),
+    previewPanel(
+      "实时风险图",
+      sourceLabel,
+      "荧光/灌注风险提示",
+      "风险掩膜",
+      result.risk_mask_path || result.pseudo_color_path || "",
+    ),
+    previewPanel(
+      "实时不确定性",
+      sourceLabel,
+      "低置信或质量受限区域",
+      "不确定性掩膜",
+      result.uncertain_mask_path || "",
+    ),
+  ];
+});
 
 async function loadVideoCandidates() {
   isLoadingVideoCandidates.value = true;
@@ -488,6 +778,7 @@ async function selectVideoCandidate(recordId: string) {
   const candidate = videoCandidates.value.find((item) => item.record_id === recordId);
   if (candidate?.local_path) {
     videoPath.value = candidate.local_path;
+    inputMode.value = "video";
   }
   if (!candidate?.system_readable) return;
   if (candidate.preview_path) {
@@ -526,6 +817,7 @@ async function importSelectedVideoCandidate() {
     if (candidate?.local_path) {
       videoPath.value = candidate.local_path;
     }
+    inputMode.value = "video";
     setOperationMessage("公开视频候选已写入病例。");
   } catch (error) {
     setOperationMessage(errorMessage(error), "error");
@@ -537,16 +829,247 @@ async function runAnalysis() {
     setOperationMessage("请先新建或加载病例。", "error");
     return;
   }
-  setOperationMessage("正在运行双通道分析...");
-  await store.runAnalysis({
-    alpha: alpha.value,
-    threshold: threshold.value,
-    colormap: colormap.value,
-  }, roiHintsFromCurrentCase());
+  if (!imagePairReady.value) {
+    const message =
+      whiteLightPath.value && fluorescencePath.value
+        ? "请选择同一 pair_id 下的白光 JPEG 与 ICG 荧光 JPEG。"
+        : "请先导入白光 JPEG 与 ICG 荧光 JPEG，再进行图像融合分析。";
+    setOperationMessage(message, "error");
+    return;
+  }
+  setOperationMessage("正在运行 JPEG 图像融合分析...");
+  await store.runAnalysis(
+    {
+      alpha: alpha.value,
+      threshold: threshold.value,
+      colormap: colormap.value,
+    },
+    roiHintsFromCurrentCase(),
+    selectedImageInputIdList.value,
+  );
   setOperationMessage(
     store.error || latestRunFailureMessage() || "分析完成，结果已同步到工作台。",
     store.error || latestRunFailureMessage() ? "error" : "info",
   );
+}
+
+async function analyzeBrowserCameraFrame(blob: Blob) {
+  if (!(await ensureLiveSessionCase())) return;
+  await analyzeCameraFrame(blob, {
+    capturedAt: new Date().toISOString(),
+    sequence: 1,
+    sessionId: `browser-camera-manual-${Date.now()}`,
+    trigger: "manual",
+    source: "camera",
+  });
+}
+
+async function captureAndAnalyzeBrowserCameraFrame() {
+  if (cameraManualAnalysisBusy.value) {
+    setOperationMessage("当前手工关键帧仍在分析，请等待完成。");
+    return;
+  }
+  if (
+    cameraContinuousAnalysisStarting.value ||
+    cameraContinuousAnalysisActive.value ||
+    cameraAnalysisRunning.value
+  ) {
+    setOperationMessage("请先停止连续实时分割，再抓取手工关键帧。", "error");
+    return;
+  }
+  cameraManualAnalysisBusy.value = true;
+  try {
+    await analyzeBrowserCameraFrame(await captureCameraFrame());
+  } catch (error) {
+    setOperationMessage(errorMessage(error), "error");
+  } finally {
+    cameraManualAnalysisBusy.value = false;
+  }
+}
+
+async function analyzeContinuousCameraFrame(blob: Blob, context: ContinuousCameraFrameContext) {
+  if (!(await ensureLiveSessionCase())) {
+    throw new Error("实时会话病例创建失败。");
+  }
+  await analyzeCameraFrame(blob, {
+    ...context,
+    source: "camera",
+  });
+}
+
+async function captureVideoPlaybackFrame(): Promise<Blob> {
+  if (!analysisWorkspaceCardRef.value) {
+    throw new Error("MP4 播放视口尚未就绪。");
+  }
+  return analysisWorkspaceCardRef.value.capturePlaybackFrame();
+}
+
+async function analyzeContinuousVideoFrame(blob: Blob, context: ContinuousCameraFrameContext) {
+  if (!store.currentCase) {
+    throw new Error("请先导入 MP4 并建立病例。");
+  }
+  await analyzeCameraFrame(blob, {
+    ...context,
+    source: "video",
+  });
+}
+
+async function analyzeCameraFrame(
+  blob: Blob,
+  context: {
+    capturedAt: string;
+    sequence: number;
+    sessionId: string;
+    trigger: "manual" | "continuous";
+    source: "camera" | "video";
+    timestampSec?: number;
+  },
+) {
+  if (!store.currentCase) {
+    throw new Error("请先新建或加载病例。");
+  }
+  const sourceLabel = context.source === "video" ? "MP4 实时分割" : "实时分割";
+  setOperationMessage(
+    context.trigger === "continuous" ? `正在刷新${sourceLabel} ${context.sequence}...` : `正在刷新${sourceLabel}...`,
+  );
+  try {
+    const result = await apiClient.analyzeLiveFrame(
+      store.currentCase.case_id,
+      blob,
+      {
+        capturedAt: context.capturedAt,
+        sequence: context.sequence,
+        timestampSec: context.timestampSec,
+        threshold: threshold.value,
+        colormap: colormap.value,
+      },
+    );
+    liveFrameResult.value = result;
+    liveFrameSource.value = context.source;
+    const candidateCount = countLabel(result.quantification?.component_count);
+    setOperationMessage(
+      `${sourceLabel}已更新，生成 ${candidateCount} 个候选区，结果需医生复核。`,
+    );
+  } catch (error) {
+    setOperationMessage(errorMessage(error), "error");
+    throw error;
+  }
+}
+
+async function startContinuousCameraAnalysis() {
+  if (!cameraActive.value) {
+    setOperationMessage("请先开启摄像头。", "error");
+    return;
+  }
+  if (cameraManualAnalysisBusy.value) {
+    setOperationMessage("当前手工关键帧仍在分析，完成后可启动连续实时分割。", "error");
+    return;
+  }
+  if (cameraContinuousAnalysisStarting.value) return;
+  if (cameraContinuousAnalysisActive.value) return;
+  const started = await startContinuousCameraAnalysisLoop();
+  if (!started) {
+    setOperationMessage("实时分割启动失败，请检查摄像头连接。", "error");
+  }
+}
+
+function stopContinuousCameraAnalysis(message = true) {
+  stopContinuousCameraAnalysisLoop(message);
+  clearLiveFrameResult("camera");
+}
+
+async function startVideoPlaybackAnalysis() {
+  if (!fileVideoActive.value) return;
+  videoPlaybackPlaying.value = true;
+  if (videoPlaybackAnalysisActive.value) return;
+  const started = await startVideoPlaybackAnalysisLoop();
+  if (!started) {
+    videoPlaybackPlaying.value = false;
+    setOperationMessage("MP4 实时分割启动失败，请确认视频已开始播放。", "error");
+  }
+}
+
+function pauseVideoPlaybackAnalysis() {
+  videoPlaybackPlaying.value = false;
+  stopVideoPlaybackAnalysisLoop(false);
+  clearLiveFrameResult("video");
+  setOperationMessage("MP4 播放已暂停，逐帧实时分割已暂停。");
+}
+
+function endVideoPlaybackAnalysis() {
+  videoPlaybackPlaying.value = false;
+  stopVideoPlaybackAnalysisLoop(false);
+  clearLiveFrameResult("video");
+  setOperationMessage("MP4 播放结束，逐帧实时分割已停止。");
+}
+
+function clearLiveFrameResult(source?: "camera" | "video") {
+  if (source && liveFrameSource.value && liveFrameSource.value !== source) return;
+  liveFrameResult.value = null;
+  liveFrameSource.value = "";
+}
+
+async function prepareContinuousCameraAnalysis() {
+  if (!(await ensureLiveSessionCase())) {
+    throw new Error("实时会话病例创建失败。");
+  }
+  await warmupLiveFrameModel();
+}
+
+async function prepareVideoPlaybackAnalysis() {
+  if (!store.currentCase || !fileVideoActive.value) {
+    throw new Error("请先导入 MP4 并开始播放。");
+  }
+  await warmupLiveFrameModel();
+}
+
+async function openCameraForLiveAnalysis() {
+  const opened = await startCameraInput();
+  if (opened) {
+    void warmupLiveFrameModel().catch(() => undefined);
+  }
+}
+
+async function warmupLiveFrameModel() {
+  if (liveModelWarmupPromise.value) return liveModelWarmupPromise.value;
+  const task = (async () => {
+    setOperationMessage("摄像头已连接，正在预热实时分割模型...");
+    const warmup = await apiClient.warmupLiveFrameModel();
+    if (!warmup.available) {
+      throw new Error("实时分割模型不可用。");
+    }
+  })();
+  liveModelWarmupPromise.value = task;
+  try {
+    await task;
+  } finally {
+    liveModelWarmupPromise.value = null;
+  }
+}
+
+function setCameraAnalysisInterval(value: number) {
+  setCameraAnalysisIntervalLoop(value as ContinuousCameraAnalysisIntervalSec);
+}
+
+async function ensureLiveSessionCase(): Promise<boolean> {
+  if (store.currentCase) return true;
+  if (liveSessionCreatePromise.value) return liveSessionCreatePromise.value;
+  const task = (async () => {
+    setOperationMessage("正在创建实时视频会话...");
+    await store.createCase(`实时视频会话 ${new Date().toLocaleString("zh-CN", { hour12: false })}`);
+    if (store.error || !store.currentCase) {
+      setOperationMessage(store.error || "实时视频会话创建失败。", "error");
+      return false;
+    }
+    setOperationMessage(`实时视频会话已建立：${store.currentCase.case_id}`);
+    return true;
+  })();
+  liveSessionCreatePromise.value = task;
+  try {
+    return await task;
+  } finally {
+    liveSessionCreatePromise.value = null;
+  }
 }
 
 async function runVideoFileAnalysis() {
@@ -556,7 +1079,7 @@ async function runVideoFileAnalysis() {
   }
   const source = videoPath.value.trim();
   if (!source) {
-    setOperationMessage("请先提供官方 MP4 视频路径。", "error");
+    setOperationMessage("请先选择 MP4 视频。", "error");
     return;
   }
   const imported = await importVideoInput();
@@ -597,7 +1120,7 @@ async function reanalyzeSelectedHotspotFrame() {
   }
   const source = videoPath.value.trim();
   if (!source) {
-    setOperationMessage("请先提供官方 MP4 视频路径。", "error");
+    setOperationMessage("请先选择 MP4 视频。", "error");
     return;
   }
   const detail = selectedHotspotFrameDetail.value;
@@ -638,6 +1161,7 @@ async function reanalyzeSelectedHotspotFrame() {
 }
 
 async function generateBoneGateForSelectedFrame() {
+  if (store.loading) return;
   if (!store.currentCase) {
     setOperationMessage("请先新建或加载病例。", "error");
     return;
@@ -647,7 +1171,7 @@ async function generateBoneGateForSelectedFrame() {
     setOperationMessage("请先选择需要生成骨面门控的关键帧。", "error");
     return;
   }
-  const candidate = candidateForHotspotFrame(detail);
+  const candidate = candidateForHotspotFrame(latestCandidates.value, detail);
   if (!candidate) {
     setOperationMessage("当前关键帧缺少可用于 prompt 的候选框。", "error");
     return;
@@ -666,6 +1190,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
   reviewState: "review_required" | "accepted" | "modified" | "rejected";
   reviewerNotes: string;
 }) {
+  if (store.loading) return;
   if (!store.currentCase) {
     setOperationMessage("请先新建或加载病例。", "error");
     return;
@@ -675,7 +1200,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
     setOperationMessage("请先选择需要修改骨面掩膜的关键帧。", "error");
     return;
   }
-  const candidate = candidateForHotspotFrame(detail);
+  const candidate = candidateForHotspotFrame(latestCandidates.value, detail);
   if (!candidate) {
     setOperationMessage("当前关键帧缺少可回写的候选区。", "error");
     return;
@@ -694,6 +1219,7 @@ async function saveBoneGateMaskEditForSelectedFrame(payload: {
 }
 
 async function refreshAnalysisJob() {
+  if (isCancelingAnalysisJob.value) return;
   if (!store.activeAnalysisJobId) {
     setOperationMessage("暂无可继续查询的后台分析任务。", "error");
     return;
@@ -708,16 +1234,26 @@ async function refreshAnalysisJob() {
 }
 
 async function cancelAnalysisJob() {
+  if (isCancelingAnalysisJob.value) return;
   if (!store.activeAnalysisJobId) {
     setOperationMessage("暂无可取消的后台分析任务。", "error");
     return;
   }
+  isCancelingAnalysisJob.value = true;
   setOperationMessage("正在取消后台分析任务...");
-  await store.cancelActiveAnalysisJob();
-  setOperationMessage(store.error || `后台分析任务 ${store.activeAnalysisJobId} 已更新为 ${store.activeAnalysisJobStatus || "unknown"}。`, store.error ? "error" : "info");
+  try {
+    await store.cancelActiveAnalysisJob();
+    setOperationMessage(
+      store.error || `后台分析任务 ${store.activeAnalysisJobId} 已更新为 ${store.activeAnalysisJobStatus || "unknown"}。`,
+      store.error ? "error" : "info",
+    );
+  } finally {
+    isCancelingAnalysisJob.value = false;
+  }
 }
 
 async function retryAnalysisJob() {
+  if (isCancelingAnalysisJob.value) return;
   if (!store.activeAnalysisJobId) {
     setOperationMessage("暂无可重试的后台分析任务。", "error");
     return;
@@ -741,7 +1277,17 @@ async function exportCase() {
   setOperationMessage(store.error || `证据包已导出：${store.exportPath}`, store.error ? "error" : "info");
 }
 
-async function handleFilePicked(channel: "white_light" | "fluorescence" | "video", event: Event) {
+async function saveClinicalContext(context: ClinicalContext) {
+  clinicalContextSaveStatus.value = "saving";
+  clinicalContextSaveError.value = "";
+  setOperationMessage("正在保存患者结构化上下文...");
+  await store.saveClinicalContext(context);
+  clinicalContextSaveStatus.value = store.error ? "error" : "success";
+  clinicalContextSaveError.value = store.error;
+  setOperationMessage(store.error || "患者结构化上下文已保存，当前仅用于风险先验与校准。", store.error ? "error" : "info");
+}
+
+async function handleFilePicked(channel: "white_light" | "fluorescence" | "device_overlay" | "video", event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
@@ -753,29 +1299,49 @@ async function handleFilePicked(channel: "white_light" | "fluorescence" | "video
   await uploadSelectedImage(channel, file);
 }
 
-async function uploadSelectedImage(channel: "white_light" | "fluorescence", file: File) {
-  // 上传成功后填入后端保存路径，后续“写入输入”和“运行分析”都会使用这个真实路径。
+async function uploadSelectedImage(channel: "white_light" | "fluorescence" | "device_overlay", file: File) {
+  const isOverlay = channel === "device_overlay";
   const isWhite = channel === "white_light";
-  if (isWhite) {
+  if (isOverlay) {
+    isUploadingDeviceOverlay.value = true;
+  } else if (isWhite) {
     isUploadingWhite.value = true;
   } else {
     isUploadingFluorescence.value = true;
   }
-  setOperationMessage(`正在上传${isWhite ? "白光" : "ICG 荧光"}图像：${file.name}`);
+  const channelLabel = isOverlay ? "设备叠加" : isWhite ? "白光" : "ICG 荧光";
+  setOperationMessage(`正在上传${channelLabel}图像：${file.name}`);
   try {
     const uploaded = await apiClient.uploadRawImage(file);
-    if (isWhite) {
+    selectedImagePairKey.value = "";
+    const attached = await attachUploadedInput({
+      channel,
+      path: uploaded.path,
+      mime_type: "image/jpeg",
+      metadata: {
+        acquisition_mode: isOverlay ? "device_display_reference" : "official_jpeg_upload",
+        official_format: "JPEG",
+        original_filename: uploaded.original_filename,
+        ...(isOverlay ? { derived_by_device: true, analysis_input_allowed: false, evidence_role: "device_display_reference" } : {}),
+      },
+    });
+    if (!attached) return;
+    if (isOverlay) {
+      deviceOverlayPath.value = uploaded.path;
+    } else if (isWhite) {
       whiteLightPath.value = uploaded.path;
     } else {
       fluorescencePath.value = uploaded.path;
     }
     setOperationMessage(
-      `${isWhite ? "白光" : "ICG 荧光"}图像已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}`,
+      `${channelLabel} JPEG 已导入病例：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}`,
     );
   } catch (error) {
     setOperationMessage(errorMessage(error), "error");
   } finally {
-    if (isWhite) {
+    if (isOverlay) {
+      isUploadingDeviceOverlay.value = false;
+    } else if (isWhite) {
       isUploadingWhite.value = false;
     } else {
       isUploadingFluorescence.value = false;
@@ -789,14 +1355,24 @@ async function uploadSelectedVideo(file: File) {
   try {
     const uploaded = await apiClient.uploadRawFile(file);
     videoPath.value = uploaded.path;
+    const attached = await attachUploadedInput({
+      channel: "video",
+      path: uploaded.path,
+      mime_type: "video/mp4",
+      metadata: {
+        acquisition_mode: "official_mp4_upload",
+        official_format: "MP4",
+        original_filename: uploaded.original_filename,
+      },
+    });
+    if (!attached) return;
     if (uploaded.keyframe_job_id) {
-      setOperationMessage(`MP4 视频已保存：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；关键帧后台任务已创建。`);
-      const job = await waitForUploadJob(uploaded.keyframe_job_id);
-      const keyframeCount = keyframeCountFromJob(job.result);
-      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；后台预抽取关键帧 ${keyframeCount} 张。`);
+      setOperationMessage(
+        `MP4 视频已导入病例：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；预抽取关键帧正在后台运行，播放后可立即启动逐帧实时分割。`,
+      );
     } else {
       const keyframeCount = uploaded.keyframes?.length ?? 0;
-      setOperationMessage(`MP4 视频已上传：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；预抽取关键帧 ${keyframeCount} 张。`);
+      setOperationMessage(`MP4 视频已导入病例：${uploaded.path}；${officialProfileLabel(uploaded.metadata)}；预抽取关键帧 ${keyframeCount} 张。`);
     }
   } catch (error) {
     setOperationMessage(errorMessage(error), "error");
@@ -805,16 +1381,41 @@ async function uploadSelectedVideo(file: File) {
   }
 }
 
-async function waitForUploadJob(jobId: string) {
-  let job = await apiClient.getUploadJob(jobId);
-  for (let attempt = 0; attempt < 180 && ["queued", "running"].includes(job.status); attempt += 1) {
-    if (attempt === 20 || attempt === 60 || attempt === 120) {
-      setOperationMessage("MP4 关键帧后台任务仍在处理，可继续等待。");
-    }
-    await sleep(1000);
-    job = await apiClient.getUploadJob(jobId);
+async function attachUploadedInput(input: {
+  channel: "white_light" | "fluorescence" | "device_overlay" | "video";
+  path: string;
+  mime_type: string;
+  metadata: Record<string, unknown>;
+}): Promise<boolean> {
+  if (!store.currentCase) {
+    setOperationMessage("请先新建或加载病例。", "error");
+    return false;
   }
-  return job;
+  await store.importInputs([input]);
+  if (store.error) {
+    setOperationMessage(store.error, "error");
+    return false;
+  }
+  return true;
+}
+
+function emptyClinicalContext(): ClinicalContext {
+  return {
+    age_years: null,
+    age_group: "unknown",
+    sex_at_birth: "not_recorded",
+    comorbidities: [],
+    comorbidities_reviewed: false,
+    medications: [],
+    medications_reviewed: false,
+    labs: [],
+    source_organization: null,
+    recorded_by: null,
+    recorded_at: null,
+    review_status: "unreviewed",
+    deidentified: true,
+    clinical_use_boundary: "risk_prior_and_calibration_only_no_spatial_boundary_effect",
+  };
 }
 
 function fluorescenceControls() {
@@ -833,10 +1434,6 @@ function latestRunFailureMessage(): string {
   return warning ? normalizeWarning(warning, 0).message : "分析未通过，请检查输入和参数。";
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   return (store.currentCase?.rois ?? [])
     .filter((roi: RegionOfInterest) => roi.geometry?.type === "rect")
@@ -850,43 +1447,31 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
     }));
 }
 
-function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion | null {
-  const frameIndex = detail.frameIndex;
-  if (frameIndex === null) return latestCandidates.value[0] ?? null;
-  return (
-    latestCandidates.value.find((candidate) => Number(candidate.metadata?.frame_index) === frameIndex) ??
-    latestCandidates.value[0] ??
-    null
-  );
-}
-
 </script>
 
 <style scoped>
 .case-workspace {
   min-height: 100dvh;
   overflow-x: hidden;
-  padding: 10px 28px 24px;
-  background:
-    radial-gradient(circle at 12% 4%, rgba(44, 126, 192, 0.28), transparent 28%),
-    radial-gradient(circle at 86% 0%, rgba(58, 211, 255, 0.16), transparent 30%),
-    linear-gradient(rgba(103, 222, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 222, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, #07131f, #091724 360px, #06101b);
-  background-size: auto, auto, 28px 28px, 28px 28px, auto;
-  color: #d8edf7;
+  padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
+  background: var(--ov-bg);
+  color: var(--ov-text);
 }
 
 .workspace-header,
 .review-notice,
 .workspace-grid {
-  width: min(100%, 1540px);
+  width: min(100%, var(--ov-content-wide));
   margin-right: auto;
   margin-left: auto;
 }
 
 .workspace-header {
-  padding: 0 2px 12px;
+  display: flex;
+  gap: var(--ov-space-5);
+  align-items: end;
+  justify-content: space-between;
+  padding: 0 4px var(--ov-space-5);
 }
 
 .workspace-title {
@@ -895,20 +1480,122 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 
 .workspace-title h1 {
   margin: 0;
-  color: #f2fbff;
-  font-size: 32px;
-  line-height: 1.15;
+  color: var(--ov-text);
+  font-size: var(--ov-font-workspace-title);
+  line-height: 1.2;
   letter-spacing: 0;
-  text-shadow: 0 0 22px rgba(103, 222, 255, 0.22);
   overflow-wrap: anywhere;
 }
 
+.workspace-title p {
+  margin: 0 0 4px;
+  color: var(--ov-primary-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.workspace-context {
+  display: flex;
+  gap: var(--ov-space-3);
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--ov-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.workspace-context span,
+.workspace-context strong {
+  border: 1px solid var(--ov-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--ov-bg-elevated);
+}
+
+.workspace-context strong {
+  color: var(--ov-text-secondary);
+}
+
+.workspace-context strong.running {
+  color: var(--ov-warning);
+}
+
+.workspace-context strong.completed {
+  color: var(--ov-success);
+}
+
+.workspace-context strong.failed {
+  color: var(--ov-danger);
+}
+
+.workspace-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ov-space-3);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.navigation-workspace-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid var(--ov-border-accent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text);
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.navigation-workspace-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--ov-primary-strong);
+  background: var(--ov-bg-hover);
+}
+
+.navigation-workspace-link:focus-visible {
+  outline: 2px solid var(--ov-focus-ring);
+  outline-offset: 2px;
+}
+
+.navigation-workspace-link :deep(.app-icon) {
+  width: 18px;
+  height: 18px;
+  color: var(--ov-primary-strong);
+}
+
+.navigation-workspace-link > span {
+  display: grid;
+  gap: 1px;
+}
+
+.navigation-workspace-link strong,
+.navigation-workspace-link small {
+  line-height: 1.2;
+}
+
+.navigation-workspace-link strong {
+  font-size: 12px;
+}
+
+.navigation-workspace-link small {
+  color: var(--ov-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .review-notice {
-  margin-bottom: 12px;
-  border: 1px solid rgba(231, 174, 82, 0.5);
-  border-radius: 5px;
-  background: rgba(47, 35, 15, 0.72);
-  box-shadow: 0 0 22px rgba(231, 174, 82, 0.08);
+  margin-bottom: var(--ov-space-5);
+  border: 1px solid var(--ov-border);
+  border-left: 3px solid var(--ov-warning);
+  border-radius: 6px;
+  background: var(--ov-bg-warning);
 }
 
 .review-notice summary {
@@ -916,8 +1603,8 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
   grid-template-columns: 24px auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
-  min-height: 40px;
-  padding: 7px 12px;
+  min-height: 42px;
+  padding: 8px 14px 8px 12px;
   cursor: pointer;
   list-style: none;
 }
@@ -928,14 +1615,14 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 
 .review-notice summary::after {
   justify-self: end;
-  color: #aa7128;
+  color: var(--ov-warning);
   font-size: 12px;
   font-weight: 900;
   content: "详情";
 }
 
 .review-notice[open] summary {
-  border-bottom: 1px solid rgba(228, 155, 63, 0.34);
+  border-bottom: 1px solid var(--ov-border);
 }
 
 .review-notice[open] summary::after {
@@ -948,23 +1635,23 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 }
 
 .review-notice strong {
-  color: #ffd58f;
-  font-size: 14px;
+  color: var(--ov-warning);
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 
 .review-notice span {
   min-width: 0;
-  color: #d8c8ab;
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--ov-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .review-notice p {
   margin: 0;
   padding: 10px 14px 12px 46px;
-  color: #d8c8ab;
+  color: var(--ov-text-secondary);
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -972,51 +1659,100 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(284px, 304px) minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(304px, 326px) minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
 .workspace-sidebar {
   display: grid;
-  gap: 10px;
+  gap: 16px;
   min-width: 0;
+}
+
+.sidebar-summary-details {
+  min-width: 0;
+  border: 1px solid var(--ov-border);
+  border-radius: 7px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.sidebar-summary-details > summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--ov-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.sidebar-summary-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-summary-details > summary::after {
+  color: var(--ov-primary-strong);
+  font-size: 16px;
+  font-weight: 800;
+  content: "+";
+}
+
+.sidebar-summary-details[open] > summary {
+  border-bottom: 1px solid var(--ov-border-subtle);
+}
+
+.sidebar-summary-details[open] > summary::after {
+  content: "-";
+}
+
+.sidebar-summary-details > summary span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sidebar-summary-details > summary strong {
+  margin-left: auto;
+  color: var(--ov-text-muted);
+  font-size: 11px;
+}
+
+.sidebar-summary-details :deep(.summary-card) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .analysis-column {
   display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-.workspace-3d-row {
-  grid-column: 1 / -1;
+  gap: 16px;
   min-width: 0;
 }
 
 .result-card,
 .debug-panel {
   min-width: 0;
-  border: 1px solid rgba(123, 215, 255, 0.26);
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  background: rgba(8, 22, 36, 0.86);
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.08) inset,
-    0 14px 34px rgba(0, 0, 0, 0.16);
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 .result-card {
-  padding: 13px 15px;
+  padding: 18px;
 }
 
 .result-card :deep(.ov-section-heading) {
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(121, 209, 255, 0.22);
+  border-bottom: 1px solid var(--ov-border-subtle);
 }
 
 .result-card :deep(.ov-section-heading__title) {
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 15px;
 }
 
@@ -1026,11 +1762,11 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 
 .empty-inline {
   margin: 0;
-  border: 1px solid rgba(123, 215, 255, 0.22);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #9fb8c8;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1038,13 +1774,13 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .debug-panel {
   opacity: 0.72;
   padding: 0;
-  background: rgba(8, 22, 36, 0.86);
+  background: var(--ov-bg-elevated);
 }
 
 .debug-panel summary {
   cursor: pointer;
   padding: 8px 12px;
-  color: #9fb8c8;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1053,9 +1789,9 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
   max-height: 260px;
   margin: 0;
   overflow: auto;
-  border-top: 1px solid rgba(121, 209, 255, 0.22);
+  border-top: 1px solid var(--ov-border-subtle);
   padding: 12px 16px;
-  color: #c4d9e6;
+  color: var(--ov-text);
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1072,14 +1808,10 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.hotspot-frame-detail),
 .case-workspace :deep(.hotspot-frame-drawer),
 .case-workspace :deep(.timeline-manifest-panel) {
-  border-color: rgba(123, 215, 255, 0.25);
-  background:
-    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
-    #081624;
-  color: #d9edf7;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
-    0 14px 34px rgba(0, 0, 0, 0.18);
+  border-color: var(--ov-border);
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text);
+  box-shadow: var(--ov-shadow);
 }
 
 .case-workspace :deep(.control-card .ov-section-heading),
@@ -1088,7 +1820,7 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.fusion-evidence-panel header),
 .case-workspace :deep(.hotspot-timeline header),
 .case-workspace :deep(.timeline-manifest-panel header) {
-  border-color: rgba(121, 209, 255, 0.22);
+  border-color: var(--ov-border-subtle);
 }
 
 .case-workspace :deep(h2),
@@ -1107,7 +1839,7 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.hotspot-timeline-copy dd),
 .case-workspace :deep(.hotspot-frame-detail dd),
 .case-workspace :deep(.hotspot-frame-row strong) {
-  color: #f2fbff;
+  color: var(--ov-text);
 }
 
 .case-workspace :deep(.field span),
@@ -1129,28 +1861,28 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.hotspot-frame-detail dt),
 .case-workspace :deep(.hotspot-frame-detail p),
 .case-workspace :deep(.hotspot-frame-row small) {
-  color: #9dbccc;
+  color: var(--ov-text-secondary);
 }
 
 .case-workspace :deep(input),
 .case-workspace :deep(textarea),
 .case-workspace :deep(select),
 .case-workspace :deep(output) {
-  border-color: rgba(123, 215, 255, 0.28);
-  background: rgba(3, 14, 25, 0.78);
-  color: #eefaff;
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
 }
 
 .case-workspace :deep(input::placeholder),
 .case-workspace :deep(textarea::placeholder) {
-  color: #7694a8;
+  color: var(--ov-text-muted);
 }
 
 .case-workspace :deep(input:focus),
 .case-workspace :deep(textarea:focus),
 .case-workspace :deep(select:focus) {
-  border-color: #74d7ff;
-  outline: 2px solid rgba(116, 215, 255, 0.22);
+  border-color: var(--ov-border-accent);
+  outline: 2px solid var(--ov-focus-ring);
 }
 
 .case-workspace :deep(.video-candidate-card),
@@ -1167,61 +1899,45 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.timeline-trace-list li),
 .case-workspace :deep(.hotspot-timeline-item),
 .case-workspace :deep(.hotspot-frame-row) {
-  border-color: rgba(123, 215, 255, 0.2);
-  background: rgba(255, 255, 255, 0.045);
+  border-color: var(--ov-border-subtle);
+  background: var(--ov-bg-soft);
 }
 
 .case-workspace :deep(.analysis-quad-viewport) {
-  border-color: rgba(123, 215, 255, 0.24);
-  background:
-    linear-gradient(90deg, rgba(86, 207, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(86, 207, 255, 0.055) 1px, transparent 1px),
-    radial-gradient(circle at 50% 40%, rgba(55, 182, 255, 0.12), transparent 38%),
-    linear-gradient(180deg, #081623, #06111d);
-  background-size: 28px 28px, 28px 28px, auto, auto;
-}
-
-.case-workspace :deep(.camera-viewport) {
-  background:
-    linear-gradient(90deg, rgba(86, 207, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(86, 207, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(145deg, #0b2130, #07131f);
-  background-size: 24px 24px, 24px 24px, auto;
+  border-color: var(--ov-border-strong);
 }
 
 .case-workspace :deep(.empty-preview-copy) {
-  border-color: rgba(123, 215, 255, 0.32);
-  background: rgba(7, 20, 34, 0.78);
-  color: #9dbccc;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  border-color: var(--ov-border);
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
+  box-shadow: var(--ov-shadow);
 }
 
 .case-workspace :deep(.empty-preview-copy strong) {
-  color: #dff6ff;
+  color: var(--ov-text);
 }
 
 .case-workspace :deep(.empty-preview-copy span) {
-  color: #9dbccc;
+  color: var(--ov-text-secondary);
 }
 
 .case-workspace :deep(.app-button) {
-  border-color: rgba(116, 215, 255, 0.34);
-  background: linear-gradient(180deg, rgba(15, 45, 68, 0.96), rgba(7, 25, 41, 0.96));
-  color: #dff7ff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 8px 18px rgba(0, 0, 0, 0.18);
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
+  box-shadow: none;
 }
 
 .case-workspace :deep(.app-button--primary) {
-  border-color: #74d7ff;
-  background: linear-gradient(180deg, #2f8dcc, #155f96);
-  color: #ffffff;
+  border-color: var(--ov-border-accent);
+  background: var(--ov-button-primary-bg);
+  color: var(--ov-text-on-primary);
 }
 
 .case-workspace :deep(.app-button--ghost) {
-  background: rgba(18, 52, 76, 0.82);
-  color: #bdefff;
+  background: var(--ov-bg-hover);
+  color: var(--ov-primary-strong);
 }
 
 .case-workspace :deep(.app-button:disabled) {
@@ -1234,9 +1950,9 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 .case-workspace :deep(.hotspot-filter-group button),
 .case-workspace :deep(.timeline-manifest-panel header a),
 .case-workspace :deep(.hotspot-frame-links a) {
-  border: 1px solid rgba(123, 215, 255, 0.24);
-  background: rgba(255, 255, 255, 0.06);
-  color: #bdefff;
+  border: 1px solid var(--ov-border);
+  background: var(--ov-bg-soft);
+  color: var(--ov-primary-strong);
 }
 
 .case-workspace :deep(.analysis-header),
@@ -1268,37 +1984,142 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
 
 .case-workspace :deep(.run-pill.running),
 .case-workspace :deep(.job-panel.timeout) {
-  border-color: rgba(231, 174, 82, 0.45);
-  background: rgba(47, 35, 15, 0.62);
-  color: #ffd58f;
+  border-color: var(--ov-warning);
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
 }
 
 .case-workspace :deep(.run-pill.failed),
 .case-workspace :deep(.state-message.error),
 .case-workspace :deep(.operation-message.error) {
-  border-color: rgba(255, 116, 122, 0.42);
-  background: rgba(68, 19, 25, 0.68);
-  color: #ffd3d6;
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
 }
 
 .case-workspace :deep(.operation-message),
 .case-workspace :deep(.state-message.muted),
 .case-workspace :deep(.hotspot-empty-state),
 .case-workspace :deep(.empty-inline) {
-  border-color: rgba(123, 215, 255, 0.22);
-  background: rgba(255, 255, 255, 0.045);
-  color: #9dbccc;
+  border-color: var(--ov-border-subtle);
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
 }
 
 .case-workspace :deep(.summary-divider),
 .case-workspace :deep(.hotspot-frame-table) {
-  border-color: rgba(121, 209, 255, 0.18);
+  border-color: var(--ov-border-subtle);
   background: transparent;
+}
+
+/* Desktop clinical workstation polish: matte surfaces, fewer nested frames, clearer hierarchy. */
+.result-card,
+.debug-panel,
+.case-workspace :deep(.control-card),
+.case-workspace :deep(.analysis-card),
+.case-workspace :deep(.summary-card),
+.case-workspace :deep(.analysis-quad-card),
+.case-workspace :deep(.fusion-evidence-panel),
+.case-workspace :deep(.hotspot-timeline),
+.case-workspace :deep(.export-panel),
+.case-workspace :deep(.job-panel),
+.case-workspace :deep(.hotspot-frame-detail),
+.case-workspace :deep(.hotspot-frame-drawer),
+.case-workspace :deep(.timeline-manifest-panel) {
+  border-color: var(--ov-border);
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.case-workspace :deep(.analysis-card) {
+  padding: 20px;
+}
+
+.case-workspace :deep(.analysis-quad-card) {
+  border-color: var(--ov-border-subtle);
+  background: var(--ov-bg-panel);
+  box-shadow: none;
+}
+
+.case-workspace :deep(.analysis-quad-viewport) {
+  border-color: var(--ov-border-strong);
+}
+
+.case-workspace :deep(.empty-preview-copy) {
+  border: 0;
+  padding: 8px 12px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.case-workspace :deep(.empty-preview-copy strong) {
+  color: var(--ov-text);
+}
+
+.case-workspace :deep(.empty-preview-copy span) {
+  color: var(--ov-text-muted);
+}
+
+.case-workspace :deep(input),
+.case-workspace :deep(textarea),
+.case-workspace :deep(select),
+.case-workspace :deep(output) {
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
+}
+
+.case-workspace :deep(.app-button) {
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
+  box-shadow: none;
+}
+
+.case-workspace :deep(.app-button--primary) {
+  border-color: var(--ov-border-accent);
+  background: var(--ov-button-primary-bg);
+  color: var(--ov-text-on-primary);
+}
+
+.case-workspace :deep(.summary-chip),
+.case-workspace :deep(.run-pill),
+.case-workspace :deep(.candidate-topline span),
+.case-workspace :deep(.frame-row-status) {
+  border-radius: 6px;
+}
+
+.case-workspace :deep(.summary-chip) {
+  background: var(--ov-bg-soft);
+  font-weight: 600;
+}
+
+.case-workspace :deep(.analysis-header h2) {
+  font-size: 18px;
+}
+
+.case-workspace :deep(.analysis-quad-card header) {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.case-workspace :deep(.control-card .ov-section-heading__title),
+.case-workspace :deep(.result-card .ov-section-heading__title) {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.case-workspace :deep(.video-example-details) {
+  border-color: var(--ov-border-subtle);
+}
+
+.case-workspace :deep(.video-example-details summary) {
+  color: var(--ov-primary-strong);
 }
 
 @media (max-width: 1359px) {
   .workspace-grid {
-    grid-template-columns: minmax(278px, 296px) minmax(0, 1fr);
+    grid-template-columns: minmax(286px, 304px) minmax(0, 1fr);
   }
 }
 
@@ -1352,241 +2173,6 @@ function candidateForHotspotFrame(detail: HotspotFrameDetail): CandidateRegion |
   .review-notice p {
     grid-column: 1 / -1;
     padding: 9px 10px 11px;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  .case-workspace {
-    background:
-      radial-gradient(circle at 12% 0%, rgba(44, 126, 192, 0.12), transparent 28%),
-      radial-gradient(circle at 86% 0%, rgba(47, 141, 194, 0.1), transparent 28%),
-      linear-gradient(180deg, #f8fbff, #edf4fb 360px, #e8f0f8);
-    color: #17324a;
-  }
-
-  .workspace-title h1 {
-    color: #17324a;
-    text-shadow: none;
-  }
-
-  .review-notice {
-    border-color: #e1bf7d;
-    background: #fff8ea;
-    box-shadow: 0 8px 20px rgba(170, 113, 40, 0.08);
-  }
-
-  .review-notice strong {
-    color: #8a560b;
-  }
-
-  .review-notice span,
-  .review-notice p {
-    color: #725b39;
-  }
-
-  .result-card,
-  .debug-panel,
-  .case-workspace :deep(.control-card),
-  .case-workspace :deep(.analysis-card),
-  .case-workspace :deep(.summary-card),
-  .case-workspace :deep(.analysis-quad-card),
-  .case-workspace :deep(.fusion-evidence-panel),
-  .case-workspace :deep(.hotspot-timeline),
-  .case-workspace :deep(.export-panel),
-  .case-workspace :deep(.job-panel),
-  .case-workspace :deep(.hotspot-frame-detail),
-  .case-workspace :deep(.hotspot-frame-drawer),
-  .case-workspace :deep(.timeline-manifest-panel) {
-    border-color: #d6e0eb;
-    background: linear-gradient(180deg, #ffffff, #fbfdff);
-    color: #17324a;
-    box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
-  }
-
-  .result-card :deep(.ov-section-heading),
-  .case-workspace :deep(.control-card .ov-section-heading),
-  .case-workspace :deep(.compact-card-header),
-  .case-workspace :deep(.analysis-header),
-  .case-workspace :deep(.fusion-evidence-panel header),
-  .case-workspace :deep(.hotspot-timeline header),
-  .case-workspace :deep(.timeline-manifest-panel header) {
-    border-color: #e3ebf3;
-  }
-
-  .result-card :deep(.ov-section-heading__title),
-  .case-workspace :deep(h2),
-  .case-workspace :deep(.analysis-header h2),
-  .case-workspace :deep(.fullscreen-header h2),
-  .case-workspace :deep(.ov-section-heading__title),
-  .case-workspace :deep(.compact-card-header strong),
-  .case-workspace :deep(.summary-chip strong),
-  .case-workspace :deep(.metric-grid dd),
-  .case-workspace :deep(.candidate-topline strong),
-  .case-workspace :deep(.analysis-quad-card header),
-  .case-workspace :deep(.fusion-evidence-panel header div),
-  .case-workspace :deep(.fusion-evidence-grid dd),
-  .case-workspace :deep(.timeline-summary-grid dd),
-  .case-workspace :deep(.hotspot-timeline-copy strong),
-  .case-workspace :deep(.hotspot-timeline-copy dd),
-  .case-workspace :deep(.hotspot-frame-detail dd),
-  .case-workspace :deep(.hotspot-frame-row strong) {
-    color: #102136;
-  }
-
-  .empty-inline,
-  .debug-panel summary,
-  .case-workspace :deep(.field span),
-  .case-workspace :deep(.summary-chip),
-  .case-workspace :deep(.compact-card-header > span),
-  .case-workspace :deep(.summary-subtitle),
-  .case-workspace :deep(.metric-grid dt),
-  .case-workspace :deep(.candidate-meta p),
-  .case-workspace :deep(.analysis-quad-card p),
-  .case-workspace :deep(.state-message),
-  .case-workspace :deep(.export-path),
-  .case-workspace :deep(.fusion-evidence-grid dt),
-  .case-workspace :deep(.timeline-summary-grid dt),
-  .case-workspace :deep(.hotspot-timeline header span),
-  .case-workspace :deep(.hotspot-timeline-copy span),
-  .case-workspace :deep(.hotspot-timeline-copy dt),
-  .case-workspace :deep(.hotspot-frame-actions span),
-  .case-workspace :deep(.hotspot-frame-detail dt),
-  .case-workspace :deep(.hotspot-frame-detail p),
-  .case-workspace :deep(.hotspot-frame-row small) {
-    color: #5a6a7a;
-  }
-
-  .case-workspace :deep(.control-group-label) {
-    color: #1e6fa6;
-  }
-
-  .case-workspace :deep(input),
-  .case-workspace :deep(textarea),
-  .case-workspace :deep(select),
-  .case-workspace :deep(output) {
-    border-color: #ccd8e5;
-    background: #fbfdff;
-    color: #162020;
-  }
-
-  .case-workspace :deep(input::placeholder),
-  .case-workspace :deep(textarea::placeholder) {
-    color: #8a9caf;
-  }
-
-  .case-workspace :deep(input:focus),
-  .case-workspace :deep(textarea:focus),
-  .case-workspace :deep(select:focus) {
-    border-color: #2980b9;
-    outline: 2px solid rgba(30, 111, 166, 0.22);
-  }
-
-  .case-workspace :deep(.video-candidate-card),
-  .case-workspace :deep(.metric-grid div),
-  .case-workspace :deep(.candidate-list li),
-  .case-workspace :deep(.summary-chip),
-  .case-workspace :deep(.empty-inline),
-  .case-workspace :deep(.export-link),
-  .case-workspace :deep(.export-summary-grid div),
-  .case-workspace :deep(.export-artifact-list li),
-  .case-workspace :deep(.fusion-colorbar),
-  .case-workspace :deep(.fusion-evidence-grid div),
-  .case-workspace :deep(.timeline-summary-grid div),
-  .case-workspace :deep(.timeline-trace-list li),
-  .case-workspace :deep(.hotspot-timeline-item),
-  .case-workspace :deep(.hotspot-frame-row) {
-    border-color: #d2e2ef;
-    background: #f8fcff;
-  }
-
-  .case-workspace :deep(.analysis-quad-viewport),
-  .case-workspace :deep(.camera-viewport) {
-    border-color: #cbd8e6;
-    background:
-      linear-gradient(90deg, rgba(44, 126, 192, 0.08) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(44, 126, 192, 0.08) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 248, 254, 0.98));
-    background-size: 24px 24px, 24px 24px, auto;
-  }
-
-  .case-workspace :deep(.camera-viewport.has-file-video),
-  .case-workspace :deep(.output-viewport.has-image) {
-    background: #0f1720;
-  }
-
-  .case-workspace :deep(.empty-preview-copy) {
-    border-color: rgba(44, 126, 192, 0.28);
-    background: rgba(255, 255, 255, 0.86);
-    color: #4d6780;
-    box-shadow: 0 8px 20px rgba(22, 76, 120, 0.08);
-  }
-
-  .case-workspace :deep(.empty-preview-copy strong) {
-    color: #155f96;
-  }
-
-  .case-workspace :deep(.empty-preview-copy span) {
-    color: #6c8299;
-  }
-
-  .case-workspace :deep(.app-button) {
-    border-color: #9fc3e4;
-    background: linear-gradient(180deg, #ffffff, #f3f9ff);
-    color: #155f96;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.94) inset,
-      0 7px 16px rgba(20, 86, 138, 0.08);
-  }
-
-  .case-workspace :deep(.app-button--primary) {
-    border-color: #155f96;
-    background: linear-gradient(180deg, #2f8dcc, #155f96);
-    color: #ffffff;
-  }
-
-  .case-workspace :deep(.app-button--ghost) {
-    background: #eef7ff;
-    color: #216fa7;
-  }
-
-  .case-workspace :deep(.run-pill),
-  .case-workspace :deep(.candidate-topline span),
-  .case-workspace :deep(.frame-row-status),
-  .case-workspace :deep(.hotspot-filter-group button),
-  .case-workspace :deep(.timeline-manifest-panel header a),
-  .case-workspace :deep(.hotspot-frame-links a) {
-    border-color: #d3e2f1;
-    background: #f2f6fb;
-    color: #315f86;
-  }
-
-  .case-workspace :deep(.run-pill.running),
-  .case-workspace :deep(.job-panel.timeout) {
-    border-color: #e1bf7d;
-    background: #fff8ea;
-    color: #8a560b;
-  }
-
-  .case-workspace :deep(.run-pill.failed),
-  .case-workspace :deep(.state-message.error),
-  .case-workspace :deep(.operation-message.error) {
-    border-color: #e7b7ab;
-    background: #fff4f1;
-    color: #a23b25;
-  }
-
-  .case-workspace :deep(.operation-message),
-  .case-workspace :deep(.state-message.muted),
-  .case-workspace :deep(.hotspot-empty-state),
-  .case-workspace :deep(.empty-inline) {
-    border-color: #c7d8ea;
-    background: #f6fbff;
-    color: #315f86;
-  }
-
-  .case-workspace :deep(.summary-divider),
-  .case-workspace :deep(.hotspot-frame-table) {
-    border-color: #e3ebf3;
   }
 }
 

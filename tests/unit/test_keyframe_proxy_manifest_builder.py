@@ -53,6 +53,9 @@ def test_build_keyframe_proxy_manifest_from_mp4(tmp_path: Path) -> None:
     assert all(row["frame_index"] for row in rows)
     assert all(float(row["positive_area_fraction"]) > 0 for row in rows)
     assert all(row["quality_status"] == "accepted" for row in rows)
+    assert len({row["split"] for row in rows}) == 1
+    assert len({row["source_group_id"] for row in rows}) == 1
+    assert result["source_group_split"]["leakage_detected"] is False
 
 
 def test_video_sample_indices_even_and_stride() -> None:
@@ -67,6 +70,7 @@ def _args(tmp_path: Path, inputs: list[Path], **overrides: object) -> argparse.N
         "manifest_name": "keyframe_segmentation_proxy_manifest.csv",
         "dataset_id": "test_proxy",
         "input_domain": "unit_test_proxy",
+        "domain_tier": "proxy",
         "fluorescence_attribute": "fluorescence_like",
         "threshold": 0.55,
         "min_component_area": 8,
@@ -78,6 +82,7 @@ def _args(tmp_path: Path, inputs: list[Path], **overrides: object) -> argparse.N
         "preview_sample_count": 6,
         "review_seed_sample_count": 5,
         "val_fraction": 0.2,
+        "test_fraction": 0.1,
         "seed": 20260704,
         "include_empty": False,
     }

@@ -128,6 +128,61 @@ describe("analysis preview panels", () => {
     expect(panels[0].path).toBe("keyframe_01.jpg");
   });
 
+  it("suppresses stale live overlays while keeping the source frame inspectable", () => {
+    const run = {
+      fused_outputs: {
+        hotspot_outputs: [
+          {
+            frame_index: 1,
+            timestamp_sec: 0.1,
+            source_path: "live_frame.jpg",
+            display_allowed: false,
+            stale: true,
+            lesion_evidence: {
+              overlay_path: "stale_overlay.png",
+              mask_path: "stale_mask.png",
+              risk_mask_path: "stale_risk.png",
+            },
+          },
+        ],
+      },
+    };
+    const panels = videoPreviewPanelsFromRun(run, (path) => `/preview?path=${path}`);
+    expect(panels.map((panel) => panel.title)).toEqual(["关键帧"]);
+
+    const details = hotspotFrameDetailsFromRun(
+      {
+        fused_outputs: {
+          frame_details: [
+            {
+              frame_key: "live-1",
+              frame_index: 1,
+              timestamp_sec: 0.1,
+              evidence_path: "live_frame.jpg",
+              overlay_path: "stale_overlay.png",
+              mask_path: "stale_mask.png",
+              risk_mask_path: "stale_risk.png",
+              display_allowed: false,
+              stale: true,
+              analysis_frame_age_ms: 4321.4,
+            },
+          ],
+        },
+      },
+      (path) => `/preview?path=${path}`,
+    );
+
+    expect(details[0]).toMatchObject({
+      displayAllowed: false,
+      stale: true,
+      frameAgeLabel: "帧龄 4321 ms",
+      evidenceHref: "/preview?path=live_frame.jpg",
+      overlayHref: undefined,
+      maskHref: undefined,
+      riskMaskHref: undefined,
+    });
+  });
+
   it("switches MP4 preview panels to the selected hotspot timeline item", () => {
     const run = {
       fused_outputs: {

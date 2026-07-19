@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from src.core.executables import find_runtime_executable
 from src.io.content_probe import probe_file_signature
 from src.io.official_device_quality import assess_official_video_profile
 
@@ -65,13 +66,13 @@ def video_metadata(path: str | Path) -> dict[str, Any]:
 
 def _ffprobe_metadata(path: Path) -> dict[str, Any]:
     import json
-    import shutil
     import subprocess
 
-    if shutil.which("ffprobe") is None:
+    executable = find_runtime_executable("ffprobe")
+    if executable is None:
         return {"available": False}
     command = [
-        "ffprobe",
+        executable,
         "-v",
         "error",
         "-show_streams",

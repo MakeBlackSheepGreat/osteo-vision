@@ -55,27 +55,25 @@ const buttonClass = computed(() => [
 
 <style scoped>
 .app-button {
-  --app-icon-bg: #ffffff;
+  --app-icon-bg: var(--ov-bg-control);
   display: inline-flex;
   gap: 8px;
   align-items: center;
   justify-content: center;
   min-width: 0;
-  border: 1px solid #9fc3e4;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 6px;
-  background: #ffffff;
-  color: #155f96;
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-decoration: none;
   overflow-wrap: anywhere;
   white-space: normal;
   cursor: pointer;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.94) inset,
-    0 7px 16px rgba(20, 86, 138, 0.08);
+  box-shadow: none;
   transition:
     transform 140ms ease,
     border-color 140ms ease,
@@ -91,17 +89,17 @@ const buttonClass = computed(() => [
 }
 
 .app-button--primary :deep(.app-icon) {
-  color: #ffffff;
+  color: var(--ov-text-on-primary);
 }
 
 .app-button--md {
-  min-height: 36px;
-  padding: 8px 12px;
+  min-height: var(--ov-control-height);
+  padding: 9px 14px;
 }
 
 .app-button--sm {
-  min-height: 34px;
-  padding: 7px 10px;
+  min-height: var(--ov-control-height-sm);
+  padding: 8px 12px;
 }
 
 .app-button--block {
@@ -115,53 +113,48 @@ const buttonClass = computed(() => [
 }
 
 .app-button--primary {
-  --app-icon-bg: #1c75b7;
-  border-color: #155f96;
-  background: linear-gradient(180deg, #2f8dcc, #155f96);
-  color: #ffffff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 10px 20px rgba(21, 95, 150, 0.18);
+  --app-icon-bg: var(--ov-button-primary-bg);
+  border-color: var(--ov-border-accent);
+  background: var(--ov-button-primary-bg);
+  color: var(--ov-text-on-primary);
+  box-shadow: none;
 }
 
 .app-button--secondary {
-  --app-icon-bg: #ffffff;
-  border-color: #9fc3e4;
-  background: linear-gradient(180deg, #ffffff, #f3f9ff);
-  color: #155f96;
+  --app-icon-bg: var(--ov-bg-control);
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
 }
 
 .app-button--ghost {
-  --app-icon-bg: #edf7ff;
-  border-color: #c4d9ec;
-  background: #eef7ff;
-  color: #216fa7;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --app-icon-bg: var(--ov-bg-hover);
+  border-color: var(--ov-border);
+  background: var(--ov-bg-hover);
+  color: var(--ov-primary-strong);
+  box-shadow: none;
 }
 
 .app-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: #2c7ec0;
-  color: #0d5a91;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.96) inset,
-    0 10px 20px rgba(20, 86, 138, 0.13);
+  transform: none;
+  border-color: var(--ov-border-accent);
+  background: var(--ov-bg-hover);
+  color: var(--ov-primary-strong);
+  box-shadow: none;
 }
 
 .app-button--primary:hover:not(:disabled) {
-  color: #ffffff;
-  background: linear-gradient(180deg, #3799d9, #1c70ad);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.3) inset,
-    0 12px 22px rgba(21, 95, 150, 0.24);
+  color: var(--ov-text-on-primary);
+  background: var(--ov-button-primary-hover);
+  box-shadow: none;
 }
 
 .app-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.99);
+  transform: scale(0.98);
 }
 
 .app-button:focus-visible {
-  outline: 2px solid rgba(44, 126, 192, 0.52);
+  outline: 2px solid var(--ov-focus-ring);
   outline-offset: 2px;
 }
 

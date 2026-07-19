@@ -39,12 +39,29 @@
           >
             跳转关键帧
           </button>
-          <button type="button" @click="emit('generateBoneGate', nearestFrameDetail)">
-            生成骨面门控
+          <button
+            type="button"
+            class="bone-gate-generate-button"
+            :title="generateUnavailableReason"
+            :aria-busy="activeAction === 'generate' || loading"
+            :disabled="boneGateActionBusy || !generateAvailable"
+            @click="requestGenerateBoneGate(nearestFrameDetail)"
+          >
+            {{ activeAction === "generate" ? "正在生成..." : "生成骨面门控" }}
           </button>
-          <button type="button" @click="emit('editBoneGate', nearestFrameDetail)">
-            编辑骨面掩膜
+          <button
+            type="button"
+            class="bone-gate-edit-button"
+            :title="editUnavailableReason"
+            :aria-busy="activeAction === 'edit'"
+            :disabled="boneGateActionBusy || !editAvailable"
+            @click="requestEditBoneGate(nearestFrameDetail)"
+          >
+            {{ editorOpen ? "编辑器已打开" : "编辑骨面掩膜" }}
           </button>
+          <p v-if="boneGateActionMessage" class="bone-gate-action-message" role="status">
+            {{ boneGateActionMessage }}
+          </p>
           <figure v-if="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref">
             <img
               :src="nearestFrameDetail.boneGateOverlayHref || nearestFrameDetail.boneGateMaskHref"
@@ -97,19 +114,78 @@
 </template>
 
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from "vue";
+
 import AppIcon from "@/components/AppIcon.vue";
 import type { HotspotFrameDetail, VideoPlaybackAnalysis } from "@/components/analysisPreview";
 
-defineProps<{
-  videoPlayback: VideoPlaybackAnalysis;
-  nearestFrameDetail: HotspotFrameDetail | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    videoPlayback: VideoPlaybackAnalysis;
+    nearestFrameDetail: HotspotFrameDetail | null;
+    loading?: boolean;
+    editorOpen?: boolean;
+    generateAvailable?: boolean;
+    editAvailable?: boolean;
+    generateUnavailableReason?: string;
+    editUnavailableReason?: string;
+  }>(),
+  {
+    loading: false,
+    editorOpen: false,
+    generateAvailable: false,
+    editAvailable: false,
+    generateUnavailableReason: "当前关键帧无法生成骨面门控。",
+    editUnavailableReason: "当前关键帧没有可编辑的骨面掩膜。",
+  },
+);
 
 const emit = defineEmits<{
   jumpToFrame: [detail: HotspotFrameDetail];
   generateBoneGate: [detail: HotspotFrameDetail];
   editBoneGate: [detail: HotspotFrameDetail];
 }>();
+
+const activeAction = ref<"generate" | "edit" | null>(null);
+const boneGateActionBusy = computed(() => props.loading || props.editorOpen || activeAction.value !== null);
+const boneGateActionMessage = computed(() => {
+  if (props.loading || activeAction.value === "generate") return "骨面门控任务处理中，生成与编辑操作暂时停用。";
+  if (props.editorOpen || activeAction.value === "edit") return "骨面掩膜编辑器已打开，关闭编辑器后可继续操作。";
+  if (!props.generateAvailable && !props.editAvailable) return props.generateUnavailableReason;
+  if (!props.editAvailable) return props.editUnavailableReason;
+  if (!props.generateAvailable) return props.generateUnavailableReason;
+  return "";
+});
+
+watch(
+  () => [props.loading, props.editorOpen] as const,
+  ([loading, editorOpen]) => {
+    if (!loading && !editorOpen) activeAction.value = null;
+  },
+);
+
+watch(
+  () => props.nearestFrameDetail?.key,
+  () => {
+    if (!props.loading && !props.editorOpen) activeAction.value = null;
+  },
+);
+
+async function requestGenerateBoneGate(detail: HotspotFrameDetail) {
+  if (boneGateActionBusy.value || !props.generateAvailable) return;
+  activeAction.value = "generate";
+  emit("generateBoneGate", detail);
+  await nextTick();
+  if (!props.loading) activeAction.value = null;
+}
+
+async function requestEditBoneGate(detail: HotspotFrameDetail) {
+  if (boneGateActionBusy.value || !props.editAvailable) return;
+  activeAction.value = "edit";
+  emit("editBoneGate", detail);
+  await nextTick();
+  if (!props.editorOpen) activeAction.value = null;
+}
 </script>
 
 <style scoped>
@@ -117,10 +193,10 @@ const emit = defineEmits<{
   display: grid;
   gap: 9px;
   margin: 10px 0 0;
-  border: 1px solid #d4e2f0;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 9px 10px;
-  background: #fbfdff;
+  background: var(--ov-bg-soft);
 }
 
 .video-playback-panel header,
@@ -136,7 +212,7 @@ const emit = defineEmits<{
 }
 
 .video-playback-panel header div {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 13px;
   font-weight: 900;
 }
@@ -144,16 +220,16 @@ const emit = defineEmits<{
 .video-playback-panel header :deep(.app-icon) {
   width: 15px;
   height: 15px;
-  color: #2c7ec0;
+  color: var(--ov-primary-strong);
 }
 
 .video-playback-panel header > span {
   flex: 0 0 auto;
-  border: 1px solid #d3e2f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 999px;
   padding: 3px 8px;
-  background: #f2f7fc;
-  color: #4d6780;
+  background: var(--ov-bg-panel);
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 900;
 }
@@ -170,10 +246,10 @@ const emit = defineEmits<{
   align-content: start;
   gap: 8px;
   min-width: 0;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
   padding: 8px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .video-sync-status {
@@ -189,12 +265,12 @@ const emit = defineEmits<{
 }
 
 .video-sync-status strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 13px;
 }
 
 .video-sync-status span {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 850;
 }
@@ -208,10 +284,10 @@ const emit = defineEmits<{
 
 .video-sync-grid div {
   min-width: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 5px 7px;
-  background: #f8fbfe;
+  background: var(--ov-bg-soft);
 }
 
 .video-sync-grid dt,
@@ -222,13 +298,13 @@ const emit = defineEmits<{
 }
 
 .video-sync-grid dt {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 900;
 }
 
 .video-sync-grid dd {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -242,11 +318,11 @@ const emit = defineEmits<{
 .video-sync-previews button {
   grid-column: 1 / -1;
   min-height: 28px;
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 4px 8px;
-  background: #f8fbfe;
-  color: #145d91;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-primary);
   font: inherit;
   font-size: 12px;
   font-weight: 900;
@@ -254,8 +330,17 @@ const emit = defineEmits<{
 }
 
 .video-sync-previews button:disabled {
-  color: #8a99a8;
+  color: var(--ov-text-muted);
   cursor: not-allowed;
+}
+
+.bone-gate-action-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ov-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .video-sync-previews figure {
@@ -270,11 +355,11 @@ const emit = defineEmits<{
   aspect-ratio: 16 / 9;
   border-radius: 4px;
   object-fit: cover;
-  background: #0f1720;
+  background: var(--ov-bg-media);
 }
 
 .video-sync-previews figcaption {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 10px;
   font-weight: 900;
 }
@@ -286,11 +371,11 @@ const emit = defineEmits<{
 }
 
 .video-review-link-row a {
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 999px;
   padding: 3px 8px;
-  background: #f8fbfe;
-  color: #145d91;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-primary);
   font-size: 11px;
   font-weight: 900;
   text-decoration: none;
@@ -298,7 +383,7 @@ const emit = defineEmits<{
 
 .video-sync-panel p {
   margin: 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   line-height: 1.45;
 }

@@ -10,7 +10,7 @@ from PIL import Image
 
 from src.core.paths import ensure_dir
 from src.core.warnings import DISCLAIMER_TEXT
-from src.preprocess.roi import roi_intensity_quantification
+from src.preprocess.roi import normalized_rects_from_hints, roi_intensity_quantification
 
 
 def fuse_white_light_fluorescence(
@@ -107,7 +107,9 @@ def fuse_white_light_fluorescence(
     return report
 
 
-def normalize_fluorescence(image: np.ndarray, *, lower_percentile: float = 1.0, upper_percentile: float = 99.0) -> np.ndarray:
+def normalize_fluorescence(
+    image: np.ndarray, *, lower_percentile: float = 1.0, upper_percentile: float = 99.0
+) -> np.ndarray:
     """Robustly normalize a fluorescence intensity image to [0, 1]."""
     array = np.asarray(image, dtype=np.float32)
     finite = array[np.isfinite(array)]
@@ -207,7 +209,9 @@ def register_fluorescence_to_reference(
     try:
         import cv2
 
-        (shift_x, shift_y), response = cv2.phaseCorrelate(reference_gray.astype(np.float32), moving_norm.astype(np.float32))
+        (shift_x, shift_y), response = cv2.phaseCorrelate(
+            reference_gray.astype(np.float32), moving_norm.astype(np.float32)
+        )
     except Exception as exc:
         return moving, {
             "method": "phase_correlation_translation",
@@ -251,7 +255,9 @@ def register_fluorescence_to_reference(
     }
 
 
-def fluorescence_colorbar(*, colormap: str = "green", threshold: float = 0.6, width: int = 256, height: int = 28) -> np.ndarray:
+def fluorescence_colorbar(
+    *, colormap: str = "green", threshold: float = 0.6, width: int = 256, height: int = 28
+) -> np.ndarray:
     """Create a compact pseudo-color scale with a threshold marker."""
 
     safe_width = max(32, int(width))
@@ -280,6 +286,174 @@ def fluorescence_quantification(normalized: np.ndarray, *, threshold: float = 0.
         "positive_area_px": int(np.count_nonzero(positive)),
         "positive_area_fraction": round(float(np.mean(positive)), 6),
         "source": "normalized_fluorescence",
+    }
+
+
+def decoded_frame_fluorescence_quantification(
+    image_or_path: np.ndarray | str | Path,
+    *,
+    roi_hints: list[dict[str, Any]] | None = None,
+    background_percentile: float = 5.0,
+) -> dict[str, Any]:
+    """Measure decoded-frame luminance without using segmentation probabilities."""
+
+    if isinstance(image_or_path, (str, Path)):
+        source_path = Path(image_or_path)
+        with Image.open(source_path) as image:
+            gray = np.asarray(image.convert("L"), dtype=np.float32) / 255.0
+    else:
+        source_path = None
+        gray = _decoded_intensity_unit_range(np.asarray(image_or_path))
+
+    finite_mask = np.isfinite(gray)
+    finite_values = gray[finite_mask]
+    if finite_values.size == 0:
+        return {
+            "available": False,
+            "reason": "decoded_frame_has_no_finite_pixels",
+            "source": "decoded_keyframe_intensity",
+            "source_path": str(source_path) if source_path else None,
+        }
+
+    signal_rects, background_rects = _split_signal_and_background_rects(roi_hints)
+    signal_mask = _rect_union_mask(gray.shape, signal_rects)
+    background_mask = _rect_union_mask(gray.shape, background_rects)
+    signal_values = gray[signal_mask & finite_mask] if signal_mask.any() else finite_values
+    if background_mask.any():
+        background_values = gray[background_mask & finite_mask]
+        background_method = "explicit_background_roi_median"
+        background = float(np.median(background_values)) if background_values.size else 0.0
+    else:
+        outside_signal = finite_values if not signal_mask.any() else gray[(~signal_mask) & finite_mask]
+        background_values = outside_signal if outside_signal.size else finite_values
+        percentile = _clamp(background_percentile, 0.0, 50.0)
+        background_method = "outside_signal_roi_low_percentile" if signal_mask.any() else "whole_frame_low_percentile"
+        background = float(np.percentile(background_values, percentile))
+
+    if signal_values.size == 0:
+        signal_values = finite_values
+    return {
+        "available": True,
+        "schema_version": "osteo-vision-decoded-frame-intensity-v1",
+        "source": "decoded_keyframe_intensity",
+        "source_path": str(source_path) if source_path else None,
+        "intensity_domain": "decoded_8bit_luminance_unit_range",
+        "intensity_source_boundary": (
+            "Decoded MP4/JPEG keyframe luminance is used as the fluorescence-channel signal proxy; "
+            "raw NIR sensor values remain required for calibrated device-level quantification."
+        ),
+        "roi_applied": bool(signal_mask.any()),
+        "signal_roi_count": len(signal_rects),
+        "background_roi_count": len(background_rects),
+        "signal_pixel_count": int(signal_values.size),
+        "background_pixel_count": int(background_values.size),
+        "mean_intensity": round(float(np.mean(signal_values)), 6),
+        "max_intensity": round(float(np.max(signal_values)), 6),
+        "p95_intensity": round(float(np.percentile(signal_values, 95)), 6),
+        "background_intensity": round(background, 6),
+        "background_method": background_method,
+        "background_percentile": (None if background_mask.any() else float(_clamp(background_percentile, 0.0, 50.0))),
+    }
+
+
+def fluorescence_time_intensity_curve(
+    frame_quantifications: list[dict[str, Any]],
+    *,
+    time_key: str = "timestamp_sec",
+    intensity_key: str = "p95_intensity",
+    background_key: str = "background_intensity",
+) -> dict[str, Any]:
+    """Summarize a background-corrected, normalized keyframe intensity curve."""
+
+    points: list[tuple[float, float, float]] = []
+    invalid_timestamp_count = 0
+    invalid_intensity_count = 0
+    for item in frame_quantifications:
+        timestamp = _finite_float(item.get(time_key), fallback=None)
+        intensity = _finite_float(item.get(intensity_key), fallback=None)
+        if timestamp is None:
+            invalid_timestamp_count += 1
+            continue
+        if intensity is None:
+            invalid_intensity_count += 1
+            continue
+        background = _finite_float(item.get(background_key), fallback=0.0) or 0.0
+        points.append((timestamp, intensity, background))
+    points.sort(key=lambda point: point[0])
+    distinct_timestamp_count = len({point[0] for point in points})
+    if len(points) < 2 or distinct_timestamp_count < 2:
+        return {
+            "available": False,
+            "reason": "at_least_two_distinct_timestamped_keyframes_required",
+            "point_count": len(points),
+            "distinct_timestamp_count": distinct_timestamp_count,
+            "curve_quality": {
+                "invalid_timestamp_count": invalid_timestamp_count,
+                "invalid_intensity_count": invalid_intensity_count,
+                "duplicate_timestamp_count": max(0, len(points) - distinct_timestamp_count),
+            },
+            "medical_boundary": "Keyframe curve is an engineering perfusion reference requiring physician review.",
+        }
+
+    times = np.asarray([point[0] for point in points], dtype=np.float64)
+    corrected = np.maximum(
+        np.asarray([point[1] for point in points], dtype=np.float64)
+        - np.asarray([point[2] for point in points], dtype=np.float64),
+        0.0,
+    )
+    baseline = float(corrected[0])
+    peak = float(np.max(corrected))
+    dynamic_range = peak - baseline
+    normalized = (
+        np.clip((corrected - baseline) / dynamic_range, 0.0, 1.0) if dynamic_range > 1e-8 else np.zeros_like(corrected)
+    )
+    peak_index = int(np.argmax(corrected))
+    relative_times = times - times[0]
+    slopes = np.divide(
+        np.diff(normalized),
+        np.diff(relative_times),
+        out=np.zeros(len(normalized) - 1, dtype=np.float64),
+        where=np.diff(relative_times) > 0,
+    )
+    duplicate_timestamps = int(len(times) - len(np.unique(times)))
+    return {
+        "available": True,
+        "schema_version": "osteo-vision-keyframe-tic-v1",
+        "point_count": len(points),
+        "source_intensity_key": intensity_key,
+        "background_correction": "per_frame_background_subtraction",
+        "normalization": "baseline_to_peak_unit_range",
+        "motion_compensation": "keyframe_selection_and_existing_registration_only",
+        "baseline_corrected_intensity": round(baseline, 6),
+        "peak_corrected_intensity": round(peak, 6),
+        "time_to_peak_sec": round(float(relative_times[peak_index]), 6),
+        "max_normalized_rise_slope_per_sec": round(float(np.max(slopes)) if slopes.size else 0.0, 6),
+        "normalized_auc": round(float(np.trapezoid(normalized, relative_times)), 6),
+        "duration_sec": round(float(relative_times[-1]), 6),
+        "curve_quality": {
+            "invalid_timestamp_count": invalid_timestamp_count,
+            "invalid_intensity_count": invalid_intensity_count,
+            "duplicate_timestamp_count": duplicate_timestamps,
+            "strictly_increasing_time": bool(np.all(np.diff(times) > 0)),
+            "dynamic_range_nonzero": bool(dynamic_range > 1e-8),
+            "sparse_keyframe_curve": True,
+            "quality_status": "usable" if dynamic_range > 1e-8 and duplicate_timestamps == 0 else "limited",
+        },
+        "points": [
+            {
+                "timestamp_sec": round(float(timestamp), 6),
+                "relative_time_sec": round(float(timestamp - times[0]), 6),
+                "raw_intensity": round(float(intensity), 6),
+                "background_intensity": round(float(background), 6),
+                "corrected_intensity": round(float(value), 6),
+                "normalized_intensity": round(float(norm), 6),
+            }
+            for (timestamp, intensity, background), value, norm in zip(points, corrected, normalized)
+        ],
+        "medical_boundary": (
+            "Sparse keyframe time-intensity metrics are engineering perfusion references; locked acquisition and "
+            "injection protocols plus physician review are required for cross-case interpretation."
+        ),
     }
 
 
@@ -319,10 +493,12 @@ def blend_pseudocolor_on_reference(
     *,
     alpha: float = 0.45,
 ) -> np.ndarray:
-    reference = _as_rgb(reference_image).astype(np.float32)
-    pseudo = _as_rgb(pseudo_color_rgb).astype(np.float32)
+    reference: np.ndarray = _as_rgb(reference_image).astype(np.float32)
+    pseudo: np.ndarray = _as_rgb(pseudo_color_rgb).astype(np.float32)
     if pseudo.shape[:2] != reference.shape[:2]:
-        pseudo = np.asarray(Image.fromarray(pseudo.astype(np.uint8)).resize(reference.shape[1::-1], _bilinear_resampling()))
+        pseudo = np.asarray(
+            Image.fromarray(pseudo.astype(np.uint8)).resize(reference.shape[1::-1], _bilinear_resampling())
+        )
     alpha = _clamp(alpha, 0.0, 1.0)
     return np.clip((1.0 - alpha) * reference + alpha * pseudo, 0, 255).astype(np.uint8)
 
@@ -336,6 +512,53 @@ def _clamp(value: float, lower: float, upper: float) -> float:
     return max(lower, min(upper, float(value)))
 
 
+def _finite_float(value: Any, *, fallback: float | None) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return parsed if np.isfinite(parsed) else fallback
+
+
+def _decoded_intensity_unit_range(image: np.ndarray) -> np.ndarray:
+    gray = _to_grayscale_float(image).astype(np.float32, copy=False)
+    finite = gray[np.isfinite(gray)]
+    if finite.size == 0:
+        return gray
+    if np.issubdtype(np.asarray(image).dtype, np.integer):
+        maximum = float(np.iinfo(np.asarray(image).dtype).max)
+    else:
+        maximum = 1.0 if float(np.max(finite)) <= 1.0 else 255.0
+    return np.clip(gray / max(maximum, 1.0), 0.0, 1.0).astype(np.float32)
+
+
+def _split_signal_and_background_rects(
+    roi_hints: list[dict[str, Any]] | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    signal: list[dict[str, Any]] = []
+    background: list[dict[str, Any]] = []
+    for rect in normalized_rects_from_hints(roi_hints):
+        label = str(rect.get("label") or "").strip().lower()
+        if "background" in label or "背景" in label:
+            background.append(rect)
+        else:
+            signal.append(rect)
+    return signal, background
+
+
+def _rect_union_mask(shape: tuple[int, ...], rects: list[dict[str, Any]]) -> np.ndarray:
+    height, width = shape[:2]
+    mask = np.zeros((height, width), dtype=bool)
+    for rect in rects:
+        x0 = max(0, min(width, int(np.floor(float(rect["x"]) * width))))
+        y0 = max(0, min(height, int(np.floor(float(rect["y"]) * height))))
+        x1 = max(0, min(width, int(np.ceil((float(rect["x"]) + float(rect["width"])) * width))))
+        y1 = max(0, min(height, int(np.ceil((float(rect["y"]) + float(rect["height"])) * height))))
+        if x1 > x0 and y1 > y0:
+            mask[y0:y1, x0:x1] = True
+    return mask
+
+
 def _bilinear_resampling() -> int:
     return getattr(Image, "Resampling", Image).BILINEAR
 
@@ -346,7 +569,7 @@ def _to_grayscale_float(image: np.ndarray) -> np.ndarray:
         return array.astype(np.float32, copy=False)
     if array.ndim != 3 or array.shape[2] < 3:
         raise ValueError(f"Fluorescence image must be 2D or 3-channel, got shape {array.shape}")
-    rgb = _as_rgb(array).astype(np.float32)
+    rgb: np.ndarray = _as_rgb(array).astype(np.float32)
     return 0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2]
 
 

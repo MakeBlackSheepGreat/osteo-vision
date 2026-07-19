@@ -3,13 +3,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from backend.src.core.settings import Settings
 from backend.src.domains.cases.repository import CaseRepository
 from backend.src.domains.cases.schemas import AnalysisRunCreateRequest
-from backend.src.core.settings import Settings
-from backend.src.services.cbct_modeling_service import build_cbct_surface_model
 from backend.src.services.analysis_service import AnalysisService
+from backend.src.services.cbct_modeling_service import build_cbct_surface_model
 from backend.src.services.job_service import JobRegistry
-from backend.src.services.three_d_case_evidence import persist_three_d_modeling_result
+from backend.src.services.offline_pose_replay_service import OfflinePoseReplayRequestError, OfflinePoseReplayService
+from backend.src.services.static_registration_service import StaticRegistrationRequestError, StaticRegistrationService
+from backend.src.services.three_d_case_evidence import (
+    persist_l1_registration_result,
+    persist_l2_pose_replay_result,
+    persist_three_d_modeling_result,
+)
+from src.navigation.camera_registration import CameraRegistrationError
+from src.navigation.offline_pose_replay import OfflinePoseReplayError
+from src.navigation.rigid_registration import RigidRegistrationError
 from src.preprocess.video import extract_keyframes
 
 
@@ -130,10 +139,13 @@ def run_cbct_surface_modeling_job(
     jobs.update_progress(job_id, phase="inspect_source", percent=15, message="检查 CBCT/STL 输入与建模边界。")
     try:
         jobs.update_progress(job_id, phase="surface_modeling", percent=45, message="生成或接入上下颌骨表面模型。")
+        modeling_source_paths: list[str | Path] | None = (
+            [path for path in source_paths] if source_paths is not None else None
+        )
         result = build_cbct_surface_model(
             settings=settings,
             source_path=source_path,
-            source_paths=source_paths,
+            source_paths=modeling_source_paths,
             label_value=label_value,
             case_id=case_id,
             dataset_id=dataset_id,
@@ -165,6 +177,140 @@ def run_cbct_surface_modeling_job(
         "status": completed.get("status"),
         "result": result,
     }
+
+
+def run_l1_static_registration_job(
+    jobs: JobRegistry,
+    job_id: str,
+    settings: Settings,
+    repo: CaseRepository,
+    payload: dict[str, Any],
+    *,
+    mark_running: bool = True,
+) -> dict[str, Any]:
+    if mark_running:
+        jobs.mark_running(job_id)
+    if jobs.is_canceled(job_id):
+        return _job_result(job_id, "l1_static_registration", "canceled")
+    service = StaticRegistrationService(settings, repo)
+    jobs.update_progress(job_id, phase="validate_registration", percent=15, message="校验 L1 静态配准输入。")
+    try:
+        jobs.update_progress(job_id, phase="estimate_transform", percent=45, message="计算刚性点配准和 FRE/TRE。")
+        result = service.register(payload, job_id=job_id)
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l1_static_registration", "canceled")
+        result = persist_l1_registration_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+    except (
+        CameraRegistrationError,
+        StaticRegistrationRequestError,
+        RigidRegistrationError,
+    ) as exc:
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l1_static_registration", "canceled")
+        code = str(getattr(exc, "code", "registration_failed"))
+        result = service.failure_result(payload, job_id=job_id, code=code, message=str(exc))
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l1_static_registration", "canceled")
+        result = persist_l1_registration_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+        jobs.mark_failed(job_id, str(exc), result)
+        return {"job_id": job_id, "kind": "l1_static_registration", "status": "failed", "result": result}
+    except Exception as exc:
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l1_static_registration", "canceled")
+        result = service.failure_result(
+            payload,
+            job_id=job_id,
+            code="registration_internal_failure",
+            message="L1 registration failed during evidence generation.",
+        )
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l1_static_registration", "canceled")
+        result = persist_l1_registration_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+        jobs.mark_failed(job_id, str(exc), result)
+        return {"job_id": job_id, "kind": "l1_static_registration", "status": "failed", "result": result}
+    jobs.update_progress(job_id, phase="persist_registration", percent=90, message="写入 L1 配准证据。")
+    jobs.mark_completed(job_id, result)
+    return {"job_id": job_id, "kind": "l1_static_registration", "status": "completed", "result": result}
+
+
+def run_l2_offline_pose_replay_job(
+    jobs: JobRegistry,
+    job_id: str,
+    settings: Settings,
+    repo: CaseRepository,
+    payload: dict[str, Any],
+    *,
+    mark_running: bool = True,
+) -> dict[str, Any]:
+    if mark_running:
+        jobs.mark_running(job_id)
+    if jobs.is_canceled(job_id):
+        return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+    service = OfflinePoseReplayService(settings, repo)
+    jobs.update_progress(job_id, phase="validate_l1_evidence", percent=15, message="校验病例 L1 变换与位姿输入。")
+    try:
+        jobs.update_progress(job_id, phase="replay_poses", percent=45, message="执行 L2 离线位姿同步和失效门控。")
+        result = service.replay(payload, job_id=job_id)
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+        result = persist_l2_pose_replay_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+    except (OfflinePoseReplayRequestError, OfflinePoseReplayError) as exc:
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+        code = str(getattr(exc, "code", "pose_replay_failed"))
+        result = service.failure_result(payload, job_id=job_id, code=code, message=str(exc))
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+        result = persist_l2_pose_replay_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+        jobs.mark_failed(job_id, str(exc), result)
+        return {"job_id": job_id, "kind": "l2_offline_pose_replay", "status": "failed", "result": result}
+    except Exception as exc:
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+        result = service.failure_result(
+            payload,
+            job_id=job_id,
+            code="pose_replay_internal_failure",
+            message="L2 pose replay failed during evidence generation.",
+        )
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "l2_offline_pose_replay", "canceled")
+        result = persist_l2_pose_replay_result(
+            repo,
+            case_id=str(payload.get("case_id") or ""),
+            job_id=job_id,
+            result=result,
+        )
+        jobs.mark_failed(job_id, str(exc), result)
+        return {"job_id": job_id, "kind": "l2_offline_pose_replay", "status": "failed", "result": result}
+    jobs.update_progress(job_id, phase="persist_pose_replay", percent=90, message="写入 L2 回放 manifest 与逐帧证据。")
+    jobs.mark_completed(job_id, result)
+    return {"job_id": job_id, "kind": "l2_offline_pose_replay", "status": "completed", "result": result}
 
 
 def _job_result(job_id: str, kind: str, status: str, *, error: str | None = None) -> dict[str, Any]:

@@ -1,0 +1,23 @@
+{
+  "verified_at_utc": "2026-07-18T14:29:16.8760287Z",
+  "manifest": "bone_activity_gap_manifest.json",
+  "ok": true,
+  "checked_manifest_files": 19,
+  "all_manifest_bytes": 12572822,
+  "raw_asset_count": 12,
+  "raw_size_bytes": 12084627,
+  "zip_count": 5,
+  "jpeg_count": 7,
+  "checks": [
+    "file_exists",
+    "declared_size_matches",
+    "sha256_matches",
+    "zip_crc_valid",
+    "jpeg_signature_valid",
+    "no_html_error_page_in_raw_assets",
+    "all_records_target_domain_flag_false",
+    "all_records_training_eligible_false",
+    "csv_candidate_count_matches"
+  ],
+  "errors": []
+}

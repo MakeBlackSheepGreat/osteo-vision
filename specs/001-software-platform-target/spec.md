@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-15
 
-**Status**: Draft
+**Status**: Active implementation target; expanded 2026-07-17
 
 **Input**: User description: "Define the project target from `software_focused_realistic_platform_zh.md`."
 
@@ -83,6 +83,71 @@ system includes the warnings and low-confidence state in the exported output.
 
 ---
 
+### User Story 4 - Review patient-conditioned analysis evidence (Priority: P1)
+
+As a physician reviewer, I can record de-identified age, sex at birth, comorbidities,
+medications, laboratory values, units, collection time, and review status, then compare the
+image-only result with a future patient-conditioned result under explicit safety gates.
+
+**Independent Test**: Save clinical context with missing, stale, invalid-unit, and verified
+variants and confirm that the API, UI, persistence, and export preserve provenance and fall back
+to the image-only result whenever the context is not eligible.
+
+**Acceptance Scenarios**:
+
+1. **Given** an unauthenticated engineering session, **When** clinical context is saved, **Then**
+   it remains `review_required` and cannot be promoted to `verified`.
+2. **Given** a trusted reviewer identity and valid context, **When** the reviewer verifies the
+   record, **Then** reviewer, institution, authentication source, verification time, units, and
+   collection times are persisted.
+3. **Given** missing, stale, invalid, or out-of-distribution context, **When** analysis runs,
+   **Then** the image-only output remains authoritative and the reason for fallback is visible.
+
+---
+
+### User Story 5 - Review a bone-activity spectrum (Priority: P1)
+
+As a physician reviewer, I can inspect low-activity candidates, a transition review zone,
+high-activity references, an ignore region, a continuous activity score, and uncertainty within
+a trusted reviewed bone surface.
+
+**Independent Test**: Run the rule-derived engineering path with and without a trusted bone gate
+and confirm that spatial classes are withheld until the gate is accepted, while all confidence
+values retain their calibrated-candidate meaning.
+
+**Acceptance Scenarios**:
+
+1. **Given** no trusted reviewed bone gate, **When** activity evidence is generated, **Then**
+   spatial class masks and area percentages remain unavailable.
+2. **Given** an accepted or modified trusted bone gate, **When** activity evidence is generated,
+   **Then** class candidates, score map, uncertainty, thresholds, and provenance are traceable.
+3. **Given** any displayed value such as `0.80`, **When** it appears in the UI or report, **Then**
+   it is described as a defined candidate confidence or coverage metric and never as a resection,
+   cure, or recurrence probability.
+
+---
+
+### User Story 6 - Validate magnification-aware 3D registration (Priority: P2)
+
+As an engineering or physician reviewer, I can import CBCT/STL evidence plus offline microscope
+metadata, inspect L0/L1/L2 status, and receive fail-closed navigation readiness decisions.
+
+**Independent Test**: Exercise valid and corrupted transforms, out-of-range magnification and
+working distance, missing calibration, excessive registration error, timing faults, and lost pose
+tracking; every failed gate must remove spatial overlay readiness and return to L0.
+
+**Acceptance Scenarios**:
+
+1. **Given** only CBCT/STL and image candidates, **When** no validated coordinate transform is
+   available, **Then** the platform presents an L0 unregistered reference.
+2. **Given** a phantom registration package with a valid transform, checksum, coordinate chain,
+   calibration range, independent error evidence, and physician review, **When** validation runs,
+   **Then** the platform may present L1 static registration validation.
+3. **Given** synchronized offline pose logs and all L1 evidence, **When** dynamic validation and
+   failure injection pass, **Then** the platform may present L2 dynamic AR engineering validation.
+
+---
+
 ### Edge Cases
 
 - What happens when the white-light and fluorescence inputs do not match in size, timing, or
@@ -113,6 +178,38 @@ system includes the warnings and low-confidence state in the exported output.
   presents the output as automatic diagnosis or definitive surgical instruction.
 - **FR-008**: The platform MUST preserve the same user-facing case workflow when an approved analysis
   method is replaced with another approved analysis method.
+- **FR-009**: The platform MUST persist clinical context with de-identification confirmation,
+  value units, collection times, review status, reviewer identity, institution, authentication
+  source, verification time, schema version, and checksum.
+- **FR-010**: Only an authenticated trusted reviewer identity MAY set clinical context to
+  `verified`; all other sessions MUST remain `review_required` or `unreviewed`.
+- **FR-011**: Patient-conditioned spatial adjustment MUST remain disabled until target-domain,
+  patient-paired image, clinical-variable, and physician pixel-label evidence passes independent
+  validation, calibration, subgroup audit, and runtime safety gates.
+- **FR-012**: The platform MUST preserve image-only output, conditioned output, difference output,
+  versioned clinical feature names, present/missing/out-of-distribution masks, checkpoint-consumed
+  and spatially-applied masks, eligibility decision, unconsumed recorded-input reasons, and fallback
+  reasons whenever patient conditioning is evaluated.
+- **FR-013**: Bone-activity spatial candidates MUST be clipped to a trusted accepted or modified
+  physician-reviewed bone gate; unreviewed or engineering-only gates MUST trigger safe degradation.
+- **FR-014**: Bone-activity evidence MUST support low, transition, high, and ignore classes plus a
+  continuous score, uncertainty, thresholds, calibration status, and provenance.
+- **FR-015**: The device overlay channel MAY support display and quality review but MUST NOT be
+  treated as independent ground truth or a default training label.
+- **FR-016**: 3D evidence MUST expose L0, L1, and L2 states and MUST remove navigation readiness
+  whenever required transform, calibration, pose, synchronization, error, drift, scale, or
+  physician-review evidence is missing or invalid.
+- **FR-017**: Registration transforms MUST be validated for file existence, checksum, supported
+  format, finite invertible 4x4 matrix content, units, direction, and coordinate-chain continuity.
+- **FR-018**: Magnification and working distance MUST be checked against the calibration range used
+  by the selected camera model.
+- **FR-019**: Registration error thresholds MUST carry a source and review record; unvalidated
+  threshold values cannot enable L1 or L2 readiness.
+- **FR-020**: Enterprise SDKs and private device interfaces MUST remain outside the software
+  dependency chain; equivalent metadata can enter through files, manifests, or manual entry.
+- **FR-021**: A negative comorbidity or medication state MUST only be treated as reviewed input when
+  the corresponding list-completeness flag is explicitly confirmed; an empty unreviewed list MUST
+  remain missing.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -124,6 +221,12 @@ system includes the warnings and low-confidence state in the exported output.
 - **Quality Flag**: A status that describes input usability, signal strength, alignment, or artifact risk.
 - **Evidence Bundle**: The exported package of visuals, summaries, and report material for a case.
 - **Analysis Run**: A single processing pass that produces the visible outputs and summary results.
+- **Clinical Context**: De-identified patient-level structured variables and their review evidence.
+- **Clinical Context Assessment**: Eligibility, quality, fallback, checksum, and influence summary.
+- **Bone Activity Evidence**: Reviewed bone gate, continuous score, spatial candidate classes,
+  uncertainty, and calibration metadata.
+- **Navigation Evidence**: CBCT/STL source, coordinate transforms, calibration, microscope metadata,
+  pose/synchronization evidence, error thresholds, physician review, and L0/L1/L2 state.
 
 ### Evidence Artifacts *(include if feature produces outputs)*
 
@@ -145,6 +248,18 @@ system includes the warnings and low-confidence state in the exported output.
   record, and a platform safety-boundary disclaimer.
 - **SC-005**: No checked output contains unsupported automatic diagnosis language or claims of
   definitive clinical decision-making.
+- **SC-006**: An unauthenticated session cannot persist `verified` clinical context, and a trusted
+  verification records all required identity and timing fields.
+- **SC-007**: Every ineligible clinical-context test case produces an image-only fallback with a
+  machine-readable reason code and no patient-conditioned spatial effect.
+- **SC-008**: Bone-activity spatial masks remain unavailable without a trusted reviewed bone gate;
+  accepted or modified gates produce traceable class and score evidence.
+- **SC-009**: All tested malformed, missing, non-invertible, checksum-mismatched, direction-invalid,
+  or unit-invalid transforms result in L0 and `navigation_ready=false`.
+- **SC-010**: All tested out-of-range magnification/working-distance, excessive registration error,
+  synchronization, pose, and drift faults result in fail-closed degradation.
+- **SC-011**: Public and proxy datasets used for these capabilities retain source, license,
+  checksum, domain boundary, and `training_eligible=false` until explicit admission.
 
 ## Assumptions
 
@@ -152,3 +267,5 @@ system includes the warnings and low-confidence state in the exported output.
 - A human reviewer remains part of every case workflow.
 - Single-frame and short-sequence cases are both valid inputs for the target platform.
 - The selected analysis method may change over time without changing the case-level workflow.
+- Model retraining follows completion of data contracts, API, persistence, UI comparison,
+  reporting, and fail-closed engineering validation.

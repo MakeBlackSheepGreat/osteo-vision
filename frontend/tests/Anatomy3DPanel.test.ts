@@ -219,7 +219,7 @@ vi.mock("three", () => {
     },
     MathUtils: { clamp: (value: number, min: number, max: number) => Math.min(max, Math.max(min, value)) },
     DoubleSide: "DoubleSide",
-    PCFSoftShadowMap: "PCFSoftShadowMap",
+    PCFShadowMap: "PCFShadowMap",
     SRGBColorSpace: "SRGBColorSpace",
     ACESFilmicToneMapping: "ACESFilmicToneMapping",
   };
@@ -256,7 +256,7 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).toContain("导入 STL/GLB");
     expect(wrapper.text()).toContain("导入 CBCT");
     expect(wrapper.text()).toContain("病例对象");
-    expect(wrapper.text()).toContain("高级参数");
+    expect(wrapper.text()).not.toContain("高级参数");
     expect(wrapper.text()).toContain("建模检查");
     expect(wrapper.text()).toContain("数据链完整性");
     expect(wrapper.text()).toContain("非导航锁定");
@@ -264,9 +264,66 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).not.toContain("腓骨段 / 新下颌重建参考");
     expect(wrapper.text()).not.toContain("导板盒");
     expect(wrapper.text()).toContain("未配准 / 非导航");
-    expect(wrapper.find(".anatomy-3d__body").exists()).toBe(true);
+    expect(wrapper.find(".anatomy-3d__body").classes()).toContain("is-model-empty");
+    expect(wrapper.find(".anatomy-3d__body").classes()).not.toContain("is-model-loaded");
+    expect(wrapper.find(".anatomy-3d__viewport").classes()).toContain("is-model-empty");
+    expect(wrapper.find(".anatomy-3d__viewport").attributes("data-model-state")).toBe("fallback");
+    expect(wrapper.find(".anatomy-3d__empty-viewport").text()).toContain("当前保持空白检查状态");
     expect(wrapper.find(".anatomy-3d__compact-empty").exists()).toBe(false);
+    expect(wrapper.find(".anatomy-3d__modeling-check-details").exists()).toBe(true);
+    expect(wrapper.find(".anatomy-3d__object-browser").exists()).toBe(true);
+    expect(wrapper.find(".anatomy-3d__object-browser").attributes("open")).toBeUndefined();
+    expect(wrapper.find(".anatomy-3d__inspector-heading").text()).toContain("项证据字段");
+    expect(wrapper.findAll(".anatomy-3d__tree-item").every((item) => item.attributes("disabled") !== undefined)).toBe(true);
+    expect(wrapper.findAll(".anatomy-3d__markup-row")).toHaveLength(0);
+    expect(wrapper.find(".anatomy-3d__markup-empty").text()).toContain("没有可核验的配准点");
+    expect(wrapper.text()).not.toContain("expected-fiducial");
+    expect(wrapper.findAll(".anatomy-3d__workflow-step")).toHaveLength(4);
+    expect(wrapper.find(".anatomy-3d__workflow-step").element.tagName).toBe("LI");
+    expect(wrapper.text()).not.toContain("加载公开参考");
+    expect(wrapper.find(".anatomy-3d__module-actions").exists()).toBe(false);
+    expect(wrapper.find(".anatomy-3d__module-update").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("全息");
+  });
+
+  it("provides a focus view only after a real surface model is loaded", async () => {
+    const wrapper = mount(Anatomy3DPanel, {
+      props: {
+        candidates: [],
+        metrics: {},
+      },
+    });
+
+    await flushPromises();
+
+    expect(
+      wrapper
+        .findAll(".anatomy-3d__view-controls button")
+        .find((button) => button.text().includes("专注视图")),
+    ).toBeUndefined();
+
+    const surfaceInput = wrapper.find('input[accept=".stl,.glb,.gltf"]');
+    Object.defineProperty(surfaceInput.element, "files", {
+      value: [new File(["solid"], "focus_view_mandible.stl", { type: "model/stl" })],
+      configurable: true,
+    });
+    await surfaceInput.trigger("change");
+    await flushPromises();
+
+    const focusButton = wrapper
+      .findAll(".anatomy-3d__view-controls button")
+      .find((button) => button.text().includes("专注视图"));
+    expect(focusButton).toBeDefined();
+
+    await focusButton?.trigger("click");
+    expect(wrapper.find(".anatomy-3d__body").classes()).toContain("is-focus-view");
+    expect(wrapper.text()).toContain("退出专注");
+
+    const exitButton = wrapper
+      .findAll(".anatomy-3d__view-controls button")
+      .find((button) => button.text().includes("退出专注"));
+    await exitButton?.trigger("click");
+    expect(wrapper.find(".anatomy-3d__body").classes()).not.toContain("is-focus-view");
   });
 
   it("lets users import CBCT files and a local STL surface for 3D evidence checks", async () => {
@@ -399,9 +456,7 @@ describe("Anatomy3DPanel", () => {
     const modelingButton = wrapper
       .findAll(".anatomy-3d__import-actions button")
       .find((button) => button.text().includes("生成表面"));
-    expect(modelingButton?.attributes("disabled")).toBeUndefined();
-    await modelingButton?.trigger("click");
-    await flushPromises();
+    expect(modelingButton?.attributes("disabled")).toBeDefined();
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/three-d/modeling-jobs"),
@@ -415,6 +470,102 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).toContain("表面模型已生成并接入三维证据");
     expect(wrapper.text()).toContain("d024_0006_upper_lower_jaw_surface.stl");
     expect(wrapper.text()).toContain("后端生成的表面模型仍未配准");
+  });
+
+  it("keeps the canceled state after a stale modeling poll completes", async () => {
+    let resolveStalePoll: (() => void) | undefined;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/uploads/raw")) {
+        return {
+          ok: true,
+          json: async () => ({
+            path: "artifacts/platform/uploads/upload_cancel_case.nii.gz",
+            filename: "upload_cancel_case.nii.gz",
+            original_filename: "cancel_case.nii.gz",
+            content_type: "application/gzip",
+            size_bytes: 128,
+            input_type: "nifti_volume",
+            metadata: {},
+            warnings: [],
+          }),
+        } as Response;
+      }
+      if (url.includes("/three-d/modeling-jobs/job_cancel_case/cancel")) {
+        return {
+          ok: true,
+          json: async () => ({
+            job_id: "job_cancel_case",
+            kind: "cbct_surface_modeling",
+            status: "canceled",
+            progress: { message: "三维建模任务已取消。" },
+          }),
+        } as Response;
+      }
+      if (url.includes("/three-d/modeling-jobs") && init?.method === "POST") {
+        return {
+          ok: true,
+          json: async () => ({
+            job_id: "job_cancel_case",
+            kind: "cbct_surface_modeling",
+            status: "queued",
+            progress: { message: "已排队。" },
+          }),
+        } as Response;
+      }
+      if (url.includes("/three-d/modeling-jobs/job_cancel_case")) {
+        return new Promise<Response>((resolve) => {
+          resolveStalePoll = () => resolve({
+            ok: true,
+            json: async () => ({
+              job_id: "job_cancel_case",
+              kind: "cbct_surface_modeling",
+              status: "running",
+              progress: { message: "正在生成表面模型..." },
+            }),
+          } as Response);
+        });
+      }
+      return { ok: false, headers: new Headers({ "content-type": "text/html" }) } as Response;
+    }) as unknown as typeof fetch;
+
+    const wrapper = mount(Anatomy3DPanel, {
+      props: {
+        candidates: [],
+        metrics: {},
+      },
+    });
+    await flushPromises();
+
+    const cbctInput = wrapper.find('input[accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd"]');
+    Object.defineProperty(cbctInput.element, "files", {
+      value: [new File(["nifti"], "cancel_case.nii.gz", { type: "application/gzip" })],
+      configurable: true,
+    });
+    await cbctInput.trigger("change");
+    await flushPromises();
+
+    expect(resolveStalePoll).toBeTypeOf("function");
+    const busyButtons = wrapper.findAll(".anatomy-3d__import-actions button");
+    expect(busyButtons.find((button) => button.text().includes("导入 CBCT"))?.attributes("disabled")).toBeDefined();
+    expect(busyButtons.find((button) => button.text().includes("导入 STL/GLB"))?.attributes("disabled")).toBeDefined();
+    expect(busyButtons.find((button) => button.text().includes("生成表面"))?.attributes("disabled")).toBeDefined();
+    expect(busyButtons.find((button) => button.text().includes("清空本地选择"))).toBeUndefined();
+    const cancelButton = wrapper
+      .findAll(".anatomy-3d__import-actions button")
+      .find((button) => button.text().includes("取消任务"));
+    expect(cancelButton?.attributes("disabled")).toBeUndefined();
+    await cancelButton?.trigger("click");
+    await flushPromises();
+    expect(wrapper.find(".anatomy-3d__job-status").text()).toContain("三维建模任务已取消");
+    expect(
+      wrapper.findAll(".anatomy-3d__import-actions button").find((button) => button.text().includes("清空本地选择")),
+    ).toBeDefined();
+
+    resolveStalePoll?.();
+    await flushPromises();
+    expect(wrapper.find(".anatomy-3d__job-status").text()).toContain("三维建模任务已取消");
+    wrapper.unmount();
   });
 
   it("uses case three_d_evidence model_path before default public models", async () => {
@@ -500,8 +651,15 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).toContain("CBCT 坐标到 STL 表面");
     expect(wrapper.text()).toContain("2 / 2 项变换就绪");
     expect(wrapper.findAll(".anatomy-3d__registration-guard .is-ready")).toHaveLength(5);
+    expect(wrapper.find(".anatomy-3d__body").classes()).toContain("is-model-loaded");
+    expect(wrapper.find(".anatomy-3d__body").classes()).not.toContain("is-model-empty");
+    expect(wrapper.find(".anatomy-3d__viewport").classes()).toContain("is-model-loaded");
+    expect(wrapper.find(".anatomy-3d__viewport").attributes("data-model-state")).toBe("loaded");
+    expect(wrapper.find(".anatomy-3d__empty-viewport").exists()).toBe(false);
   });
 
+  // This legacy D024 fixture still asserts retired slice/segment-detail copy. Keep it isolated
+  // until the public reference manifest is refreshed against the current evidence panel contract.
   it.skip("loads generated local D024 STL evidence as an unregistered public CBCT reference", async () => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -585,9 +743,7 @@ describe("Anatomy3DPanel", () => {
 
     await flushPromises();
 
-    expect(threeLoadState.stlPaths[0]).toContain(
-      "frontend%2Fpublic%2Fmodels%2Flocal%2Fmandible_d024_0001.stl",
-    );
+    expect(threeLoadState.stlPaths[0]).toBe("/models/local/mandible_d024_0001.stl");
     expect(threeLoadState.gltfPaths).toEqual([]);
     expect(fetch).not.toHaveBeenCalledWith("/models/mandible.stl", expect.anything());
     expect(wrapper.text()).toContain("D024 DentVoxel 公开 CBCT 派生下颌标签");
@@ -617,6 +773,7 @@ describe("Anatomy3DPanel", () => {
             risk_type: "high fluorescence prompt",
             confidence: 0.9,
             status: "review_required",
+            metadata: { timestamp_sec: 1.25 },
           },
         ],
         metrics: {},
@@ -633,6 +790,10 @@ describe("Anatomy3DPanel", () => {
     expect(wrapper.text()).toContain("2D 候选示意投影");
     expect(wrapper.find(".anatomy-3d__hotspot.is-reference-projection").exists()).toBe(true);
     expect(wrapper.text()).not.toContain("精准定位");
+
+    await wrapper.get(".anatomy-3d__hotspot").trigger("click");
+    expect(wrapper.get(".anatomy-3d__selection-feedback").text()).toContain("候选区已联动");
+    expect(wrapper.get(".anatomy-3d__selection-feedback").text()).toContain("1.25 s");
   });
 
   it("marks identity MHA jaw surfaces as z-flipped display pending orientation review", async () => {

@@ -1,0 +1,889 @@
+{
+  "schema_version": "osteo-vision-keyframe-model-selection-summary-v1",
+  "generated_at_utc": "2026-07-15T05:59:33.682753+00:00",
+  "selection_root": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715",
+  "protocol": {
+    "task": "video_signal_segmentation",
+    "selection_rule": "validation threshold and checkpoint selection; locked test reporting",
+    "minimum_seeds": 3,
+    "sample_count_test": 24,
+    "source_group_split": {
+      "row_count": 192,
+      "group_count": 48,
+      "split_group_counts": {
+        "test": 6,
+        "train": 28,
+        "val": 14
+      },
+      "leakage_detected": false,
+      "leaking_group_count": 0,
+      "leaking_groups": {},
+      "missing_group_row_count": 0,
+      "missing_group_rows_first20": [],
+      "group_keys": [
+        "source_group_id",
+        "group_id",
+        "source_video_path",
+        "source_path",
+        "video_path",
+        "patient_id",
+        "case_id"
+      ],
+      "split_key": "split"
+    },
+    "target_domain": false
+  },
+  "baseline": {
+    "model_id": "keyframe_candidate_20260714",
+    "model_family": "convnext2d_keyframe_segmenter",
+    "seed": 20260714,
+    "threshold": 0.55,
+    "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_candidate_20260714.pt",
+    "checkpoint_sha256": "c1c53107462fcea10bc1705f25810a51d616bbd77ce62cb5701f886dddcfcf17",
+    "sample_count": 24,
+    "metrics": {
+      "foreground_mean_dice": 0.8987113079986252,
+      "foreground_mean_iou": 0.8164307287784869,
+      "foreground_precision_mean": 0.9084467917489548,
+      "foreground_recall_mean": 0.8907782247487323,
+      "boundary_f1_mean": 0.9875690889738369,
+      "ece": 0.0033419236971721964,
+      "brier_score": 0.01590844802558422,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_rate": 0.0
+    },
+    "video_group_bootstrap": {
+      "available": true,
+      "group_count": 6,
+      "iterations": 1000,
+      "metrics": {
+        "dice": {
+          "mean": 0.8987113833427429,
+          "ci95_low": 0.8885037899017334,
+          "ci95_high": 0.9093360900878906
+        },
+        "iou": {
+          "mean": 0.8164306282997131,
+          "ci95_low": 0.7995842099189758,
+          "ci95_high": 0.8340458869934082
+        },
+        "boundary_f1": {
+          "mean": 0.9875690340995789,
+          "ci95_low": 0.9834563136100769,
+          "ci95_high": 0.9915730953216553
+        }
+      }
+    },
+    "benchmark": {
+      "mean_latency_ms": 3.09335217563152,
+      "p95_latency_ms": 3.565999984741211,
+      "peak_gpu_memory_mb": 22.19287109375,
+      "parameter_count": 77258
+    },
+    "source_group_split": {
+      "row_count": 192,
+      "group_count": 48,
+      "split_group_counts": {
+        "test": 6,
+        "train": 28,
+        "val": 14
+      },
+      "leakage_detected": false,
+      "leaking_group_count": 0,
+      "leaking_groups": {},
+      "missing_group_row_count": 0,
+      "missing_group_rows_first20": [],
+      "group_keys": [
+        "source_group_id",
+        "group_id",
+        "source_video_path",
+        "source_path",
+        "video_path",
+        "patient_id",
+        "case_id"
+      ],
+      "split_key": "split"
+    },
+    "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\baseline_test\\keyframe_threshold_eval.json"
+  },
+  "candidate_families": [
+    {
+      "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+      "seed_count": 3,
+      "runs": [
+        {
+          "model_id": "keyframe_multiscale_depthwise_unet_s20260715_20260715",
+          "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+          "seed": 20260715,
+          "threshold": 0.4,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_s20260715_20260715.pt",
+          "checkpoint_sha256": "09d0cde16030e0c4a8fcf4c6acff342ea2a24b8952cca2d5e7e7d2a2af31e2db",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.8847783556086787,
+            "foreground_mean_iou": 0.7938016511010687,
+            "foreground_precision_mean": 0.8803765709215856,
+            "foreground_recall_mean": 0.8908286423338744,
+            "boundary_f1_mean": 0.9835858997742662,
+            "ece": 0.007659072739624169,
+            "brier_score": 0.018542882055044174,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.8847784399986267,
+                "ci95_low": 0.8740484118461609,
+                "ci95_high": 0.8956408500671387
+              },
+              "iou": {
+                "mean": 0.7938017249107361,
+                "ci95_low": 0.7766522765159607,
+                "ci95_high": 0.8111973404884338
+              },
+              "boundary_f1": {
+                "mean": 0.9835858345031738,
+                "ci95_low": 0.977962851524353,
+                "ci95_high": 0.9888251423835754
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 3.2835782609333326,
+            "p95_latency_ms": 4.008200168609619,
+            "peak_gpu_memory_mb": 20.138671875,
+            "parameter_count": 29414
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\keyframe_multiscale_depthwise_unet_s20260715_20260715_test\\keyframe_threshold_eval.json"
+        },
+        {
+          "model_id": "keyframe_multiscale_depthwise_unet_s20260716_20260715",
+          "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+          "seed": 20260716,
+          "threshold": 0.45,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_s20260716_20260715.pt",
+          "checkpoint_sha256": "baee40caaaa629acceec52831b5f4aefee976af3012a94da81f97c3885c36cfb",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.9039997349449195,
+            "foreground_mean_iou": 0.8250663610094106,
+            "foreground_precision_mean": 0.9108777135117277,
+            "foreground_recall_mean": 0.8987300338188028,
+            "boundary_f1_mean": 0.9869038332256895,
+            "ece": 0.005938628129030594,
+            "brier_score": 0.015428001061081886,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.9039997458457947,
+                "ci95_low": 0.8963797688484192,
+                "ci95_high": 0.9117154479026794
+              },
+              "iou": {
+                "mean": 0.825066328048706,
+                "ci95_low": 0.8123839497566223,
+                "ci95_high": 0.8379694819450378
+              },
+              "boundary_f1": {
+                "mean": 0.9869038462638855,
+                "ci95_low": 0.9829087257385254,
+                "ci95_high": 0.9908269643783569
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 3.3613956525780098,
+            "p95_latency_ms": 4.709630012512207,
+            "peak_gpu_memory_mb": 20.138671875,
+            "parameter_count": 29414
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\keyframe_multiscale_depthwise_unet_s20260716_20260715_test\\keyframe_threshold_eval.json"
+        },
+        {
+          "model_id": "keyframe_multiscale_depthwise_unet_20260715",
+          "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+          "seed": 20260714,
+          "threshold": 0.45,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_20260715.pt",
+          "checkpoint_sha256": "0af2e9758973a5707fba5b5fe5cca4194d606ff886a29ff088337bbcb0839b88",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.9045180146995531,
+            "foreground_mean_iou": 0.8259408495531567,
+            "foreground_precision_mean": 0.9208905393614737,
+            "foreground_recall_mean": 0.8902417230814917,
+            "boundary_f1_mean": 0.9868744794893457,
+            "ece": 0.007106401384885431,
+            "brier_score": 0.015374395065009594,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.9045179486274719,
+                "ci95_low": 0.8956780433654785,
+                "ci95_high": 0.9137635827064514
+              },
+              "iou": {
+                "mean": 0.8259408473968506,
+                "ci95_low": 0.8112038969993591,
+                "ci95_high": 0.8414173126220703
+              },
+              "boundary_f1": {
+                "mean": 0.9868744015693665,
+                "ci95_low": 0.98040771484375,
+                "ci95_high": 0.9921899437904358
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 3.651873913401252,
+            "p95_latency_ms": 4.045030117034912,
+            "peak_gpu_memory_mb": 20.138671875,
+            "parameter_count": 29414
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\multiscale_depthwise_test\\keyframe_threshold_eval.json"
+        }
+      ],
+      "aggregate": {
+        "foreground_mean_dice": {
+          "mean": 0.897765368417717,
+          "std": 0.0112500679887995,
+          "min": 0.8847783556086787,
+          "max": 0.9045180146995531
+        },
+        "foreground_mean_iou": {
+          "mean": 0.814936287221212,
+          "std": 0.018308353708114632,
+          "min": 0.7938016511010687,
+          "max": 0.8259408495531567
+        },
+        "foreground_precision_mean": {
+          "mean": 0.9040482745982623,
+          "std": 0.02110275661120197,
+          "min": 0.8803765709215856,
+          "max": 0.9208905393614737
+        },
+        "foreground_recall_mean": {
+          "mean": 0.893266799744723,
+          "std": 0.004740391699358232,
+          "min": 0.8902417230814917,
+          "max": 0.8987300338188028
+        },
+        "boundary_f1_mean": {
+          "mean": 0.9857880708297672,
+          "std": 0.001907192551559448,
+          "min": 0.9835858997742662,
+          "max": 0.9869038332256895
+        },
+        "ece": {
+          "mean": 0.0069013674178467314,
+          "std": 0.0008783573363158294,
+          "min": 0.005938628129030594,
+          "max": 0.007659072739624169
+        },
+        "brier_score": {
+          "mean": 0.01644842606037855,
+          "std": 0.0018140501194555782,
+          "min": 0.015374395065009594,
+          "max": 0.018542882055044174
+        },
+        "empty_mask_rate": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "over_segmentation_rate": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mean_latency_ms": {
+          "mean": 3.432282608970865,
+          "std": 0.1941111597685062,
+          "min": 3.2835782609333326,
+          "max": 3.651873913401252
+        },
+        "p95_latency_ms": {
+          "mean": 4.254286766052246,
+          "std": 0.3947685592189112,
+          "min": 4.008200168609619,
+          "max": 4.709630012512207
+        },
+        "peak_gpu_memory_mb": {
+          "mean": 20.138671875,
+          "std": 0.0,
+          "min": 20.138671875,
+          "max": 20.138671875
+        },
+        "parameter_count": {
+          "mean": 29414.0,
+          "std": 0.0,
+          "min": 29414.0,
+          "max": 29414.0
+        }
+      },
+      "gates": {
+        "minimum_seed_count_passed": true,
+        "all_seeds_above_baseline_dice_and_iou": false,
+        "empty_and_over_segmentation_rates_passed": true,
+        "eligible_for_4k_runtime_gate": false
+      },
+      "validation_selected_checkpoint": {
+        "model_id": "keyframe_multiscale_depthwise_unet_20260715",
+        "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+        "seed": 20260714,
+        "threshold": 0.45,
+        "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_20260715.pt",
+        "checkpoint_sha256": "0af2e9758973a5707fba5b5fe5cca4194d606ff886a29ff088337bbcb0839b88",
+        "sample_count": 56,
+        "metrics": {
+          "foreground_mean_dice": 0.9009542701125436,
+          "foreground_mean_iou": 0.8199186705812398,
+          "foreground_precision_mean": 0.8997279203814335,
+          "foreground_recall_mean": 0.9035294638103873,
+          "boundary_f1_mean": 0.9873648491882718,
+          "ece": 0.007888367031901364,
+          "brier_score": 0.015423379838466644,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0
+        },
+        "video_group_bootstrap": {
+          "available": true,
+          "group_count": 14,
+          "iterations": 1000,
+          "metrics": {
+            "dice": {
+              "mean": 0.9009542465209961,
+              "ci95_low": 0.8965969085693359,
+              "ci95_high": 0.9049431681632996
+            },
+            "iou": {
+              "mean": 0.8199187517166138,
+              "ci95_low": 0.8127310276031494,
+              "ci95_high": 0.8265736699104309
+            },
+            "boundary_f1": {
+              "mean": 0.9873648285865784,
+              "ci95_low": 0.9839512705802917,
+              "ci95_high": 0.9904876947402954
+            }
+          }
+        },
+        "benchmark": {
+          "mean_latency_ms": 3.7279236360601233,
+          "p95_latency_ms": 4.713109970092773,
+          "peak_gpu_memory_mb": 20.138671875,
+          "parameter_count": 29414
+        },
+        "source_group_split": {
+          "row_count": 192,
+          "group_count": 48,
+          "split_group_counts": {
+            "test": 6,
+            "train": 28,
+            "val": 14
+          },
+          "leakage_detected": false,
+          "leaking_group_count": 0,
+          "leaking_groups": {},
+          "missing_group_row_count": 0,
+          "missing_group_rows_first20": [],
+          "group_keys": [
+            "source_group_id",
+            "group_id",
+            "source_video_path",
+            "source_path",
+            "video_path",
+            "patient_id",
+            "case_id"
+          ],
+          "split_key": "split"
+        },
+        "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\multiscale_depthwise_val\\keyframe_threshold_eval.json"
+      }
+    },
+    {
+      "model_family": "residual_attention_unet_keyframe_segmenter",
+      "seed_count": 3,
+      "runs": [
+        {
+          "model_id": "keyframe_residual_attention_unet_s20260715_20260715",
+          "model_family": "residual_attention_unet_keyframe_segmenter",
+          "seed": 20260715,
+          "threshold": 0.4,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260715_20260715.pt",
+          "checkpoint_sha256": "826e90c2ee3efd45d0d0d979e85a2a3e2dcd60d853d8497f6328e46a406e0d39",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.9176808575737171,
+            "foreground_mean_iou": 0.8483354444396993,
+            "foreground_precision_mean": 0.9231171042484089,
+            "foreground_recall_mean": 0.9135025025037503,
+            "boundary_f1_mean": 0.9894770583254818,
+            "ece": 0.00494341892459064,
+            "brier_score": 0.013097568415105343,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.9176807999610901,
+                "ci95_low": 0.907478392124176,
+                "ci95_high": 0.9273574352264404
+              },
+              "iou": {
+                "mean": 0.8483354449272156,
+                "ci95_low": 0.8313541412353516,
+                "ci95_high": 0.8646485805511475
+              },
+              "boundary_f1": {
+                "mean": 0.9894770979881287,
+                "ci95_low": 0.9859579801559448,
+                "ci95_high": 0.9930031895637512
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 4.20616521707574,
+            "p95_latency_ms": 4.836150169372559,
+            "peak_gpu_memory_mb": 26.03173828125,
+            "parameter_count": 403785
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\keyframe_residual_attention_unet_s20260715_20260715_test\\keyframe_threshold_eval.json"
+        },
+        {
+          "model_id": "keyframe_residual_attention_unet_s20260716_20260715",
+          "model_family": "residual_attention_unet_keyframe_segmenter",
+          "seed": 20260716,
+          "threshold": 0.5,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260716_20260715.pt",
+          "checkpoint_sha256": "275e2714a7da98a2100670e9b27bf05c300f30ea5c3a5dfc753e10b41ae2a5a7",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.9168625871926697,
+            "foreground_mean_iou": 0.8467195356755554,
+            "foreground_precision_mean": 0.9256408158915369,
+            "foreground_recall_mean": 0.9095789389104844,
+            "boundary_f1_mean": 0.9893509397241652,
+            "ece": 0.0037451224441999408,
+            "brier_score": 0.01299632154405117,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.9168625473976135,
+                "ci95_low": 0.9098716974258423,
+                "ci95_high": 0.923848032951355
+              },
+              "iou": {
+                "mean": 0.84671950340271,
+                "ci95_low": 0.8347761631011963,
+                "ci95_high": 0.8586732149124146
+              },
+              "boundary_f1": {
+                "mean": 0.9893509745597839,
+                "ci95_low": 0.9862837791442871,
+                "ci95_high": 0.9925338625907898
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 4.127999999226354,
+            "p95_latency_ms": 4.824699878692627,
+            "peak_gpu_memory_mb": 26.03173828125,
+            "parameter_count": 403785
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\keyframe_residual_attention_unet_s20260716_20260715_test\\keyframe_threshold_eval.json"
+        },
+        {
+          "model_id": "keyframe_residual_attention_unet_20260715",
+          "model_family": "residual_attention_unet_keyframe_segmenter",
+          "seed": 20260714,
+          "threshold": 0.4,
+          "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_20260715.pt",
+          "checkpoint_sha256": "700fe08790340a9abdc7c02dc69efcb05f93360c5b12dc6a7f66b02559c1c4eb",
+          "sample_count": 24,
+          "metrics": {
+            "foreground_mean_dice": 0.9101373969076231,
+            "foreground_mean_iou": 0.8353669776007552,
+            "foreground_precision_mean": 0.9156886854959562,
+            "foreground_recall_mean": 0.9066729000390287,
+            "boundary_f1_mean": 0.9901828935494327,
+            "ece": 0.005375265526159014,
+            "brier_score": 0.014389749616384506,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0
+          },
+          "video_group_bootstrap": {
+            "available": true,
+            "group_count": 6,
+            "iterations": 1000,
+            "metrics": {
+              "dice": {
+                "mean": 0.910137414932251,
+                "ci95_low": 0.9017676711082458,
+                "ci95_high": 0.9186307787895203
+              },
+              "iou": {
+                "mean": 0.8353670239448547,
+                "ci95_low": 0.821333110332489,
+                "ci95_high": 0.8497479557991028
+              },
+              "boundary_f1": {
+                "mean": 0.9901828765869141,
+                "ci95_low": 0.9848741292953491,
+                "ci95_high": 0.9942784309387207
+              }
+            }
+          },
+          "benchmark": {
+            "mean_latency_ms": 4.861265216554191,
+            "p95_latency_ms": 5.731629848480225,
+            "peak_gpu_memory_mb": 26.03173828125,
+            "parameter_count": 403785
+          },
+          "source_group_split": {
+            "row_count": 192,
+            "group_count": 48,
+            "split_group_counts": {
+              "test": 6,
+              "train": 28,
+              "val": 14
+            },
+            "leakage_detected": false,
+            "leaking_group_count": 0,
+            "leaking_groups": {},
+            "missing_group_row_count": 0,
+            "missing_group_rows_first20": [],
+            "group_keys": [
+              "source_group_id",
+              "group_id",
+              "source_video_path",
+              "source_path",
+              "video_path",
+              "patient_id",
+              "case_id"
+            ],
+            "split_key": "split"
+          },
+          "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\residual_attention_test\\keyframe_threshold_eval.json"
+        }
+      ],
+      "aggregate": {
+        "foreground_mean_dice": {
+          "mean": 0.9148936138913366,
+          "std": 0.004139274284370231,
+          "min": 0.9101373969076231,
+          "max": 0.9176808575737171
+        },
+        "foreground_mean_iou": {
+          "mean": 0.8434739859053367,
+          "std": 0.007067211474225437,
+          "min": 0.8353669776007552,
+          "max": 0.8483354444396993
+        },
+        "foreground_precision_mean": {
+          "mean": 0.9214822018786339,
+          "std": 0.005173577502239835,
+          "min": 0.9156886854959562,
+          "max": 0.9256408158915369
+        },
+        "foreground_recall_mean": {
+          "mean": 0.9099181138177544,
+          "std": 0.0034274111468897677,
+          "min": 0.9066729000390287,
+          "max": 0.9135025025037503
+        },
+        "boundary_f1_mean": {
+          "mean": 0.9896702971996932,
+          "std": 0.00044837789722973687,
+          "min": 0.9893509397241652,
+          "max": 0.9901828935494327
+        },
+        "ece": {
+          "mean": 0.004687935631649865,
+          "std": 0.0008445681746571159,
+          "min": 0.0037451224441999408,
+          "max": 0.005375265526159014
+        },
+        "brier_score": {
+          "mean": 0.01349454652518034,
+          "std": 0.0007769196632218073,
+          "min": 0.01299632154405117,
+          "max": 0.014389749616384506
+        },
+        "empty_mask_rate": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "over_segmentation_rate": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mean_latency_ms": {
+          "mean": 4.398476810952094,
+          "std": 0.40268757317572895,
+          "min": 4.127999999226354,
+          "max": 4.861265216554191
+        },
+        "p95_latency_ms": {
+          "mean": 5.130826632181804,
+          "std": 0.5203423448318034,
+          "min": 4.824699878692627,
+          "max": 5.731629848480225
+        },
+        "peak_gpu_memory_mb": {
+          "mean": 26.03173828125,
+          "std": 0.0,
+          "min": 26.03173828125,
+          "max": 26.03173828125
+        },
+        "parameter_count": {
+          "mean": 403785.0,
+          "std": 0.0,
+          "min": 403785.0,
+          "max": 403785.0
+        }
+      },
+      "gates": {
+        "minimum_seed_count_passed": true,
+        "all_seeds_above_baseline_dice_and_iou": true,
+        "empty_and_over_segmentation_rates_passed": true,
+        "eligible_for_4k_runtime_gate": true
+      },
+      "validation_selected_checkpoint": {
+        "model_id": "keyframe_residual_attention_unet_s20260715_20260715",
+        "model_family": "residual_attention_unet_keyframe_segmenter",
+        "seed": 20260715,
+        "threshold": 0.4,
+        "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260715_20260715.pt",
+        "checkpoint_sha256": "826e90c2ee3efd45d0d0d979e85a2a3e2dcd60d853d8497f6328e46a406e0d39",
+        "sample_count": 56,
+        "metrics": {
+          "foreground_mean_dice": 0.9116606340169872,
+          "foreground_mean_iou": 0.8379281734478689,
+          "foreground_precision_mean": 0.9044517269073696,
+          "foreground_recall_mean": 0.9209566093213486,
+          "boundary_f1_mean": 0.9887202409289291,
+          "ece": 0.003229913070592362,
+          "brier_score": 0.013460574671626091,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0
+        },
+        "video_group_bootstrap": {
+          "available": true,
+          "group_count": 14,
+          "iterations": 1000,
+          "metrics": {
+            "dice": {
+              "mean": 0.9116605520248413,
+              "ci95_low": 0.906851589679718,
+              "ci95_high": 0.9162960648536682
+            },
+            "iou": {
+              "mean": 0.8379282355308533,
+              "ci95_low": 0.8298764824867249,
+              "ci95_high": 0.8456915020942688
+            },
+            "boundary_f1": {
+              "mean": 0.9887202382087708,
+              "ci95_low": 0.985715925693512,
+              "ci95_high": 0.9913185834884644
+            }
+          }
+        },
+        "benchmark": {
+          "mean_latency_ms": 4.378047272488899,
+          "p95_latency_ms": 5.211390018463135,
+          "peak_gpu_memory_mb": 26.03173828125,
+          "parameter_count": 403785
+        },
+        "source_group_split": {
+          "row_count": 192,
+          "group_count": 48,
+          "split_group_counts": {
+            "test": 6,
+            "train": 28,
+            "val": 14
+          },
+          "leakage_detected": false,
+          "leaking_group_count": 0,
+          "leaking_groups": {},
+          "missing_group_row_count": 0,
+          "missing_group_rows_first20": [],
+          "group_keys": [
+            "source_group_id",
+            "group_id",
+            "source_video_path",
+            "source_path",
+            "video_path",
+            "patient_id",
+            "case_id"
+          ],
+          "split_key": "split"
+        },
+        "report_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260715\\keyframe_residual_attention_unet_s20260715_20260715_val\\keyframe_threshold_eval.json"
+      }
+    }
+  ],
+  "recommendation": {
+    "selected_family": "residual_attention_unet_keyframe_segmenter",
+    "selected_checkpoint": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260715_20260715.pt",
+    "selected_model_id": "keyframe_residual_attention_unet_s20260715_20260715",
+    "selected_threshold": 0.4,
+    "runtime_replacement_allowed": false,
+    "next_gate": "strict_4k_tiled_runtime_and_competition_flow_validation",
+    "reason": "multi_seed_accuracy_and_safety_gates_passed; checkpoint chosen by validation Dice"
+  },
+  "medical_boundary": "All metrics use public non-target-domain fluorescence proxy masks. They do not measure clinical performance on intraoperative ICG jaw osteomyelitis and cannot justify an autonomous diagnosis claim."
+}

@@ -19,6 +19,9 @@ class ExportPaths:
     dicom: Path
     review_manifest_json: Path
     review_manifest_csv: Path
+    annotation_audit_json: Path
+    annotation_audit_csv: Path
+    annotation_manifest_registry: Path
     three_d_scene_manifest: Path
     quantification_csv: Path
     manifest: Path
@@ -34,6 +37,9 @@ class ExportPaths:
             self.quantification_csv,
             self.review_manifest_json,
             self.review_manifest_csv,
+            self.annotation_audit_json,
+            self.annotation_audit_csv,
+            self.annotation_manifest_registry,
             self.three_d_scene_manifest,
             self.bundle_manifest,
         ]
@@ -47,6 +53,9 @@ def export_paths(artifact_dir: Path, case_id: str) -> ExportPaths:
         dicom=export_dir / f"{case_id}_secondary_capture.dcm",
         review_manifest_json=export_dir / f"{case_id}_review_manifest.json",
         review_manifest_csv=export_dir / f"{case_id}_review_manifest.csv",
+        annotation_audit_json=export_dir / f"{case_id}_annotation_audit.json",
+        annotation_audit_csv=export_dir / f"{case_id}_annotation_audit.csv",
+        annotation_manifest_registry=export_dir / f"{case_id}_annotation_manifest_registry.json",
         three_d_scene_manifest=export_dir / f"{case_id}_three_d_scene_manifest.json",
         quantification_csv=export_dir / f"{case_id}_quantification.csv",
         manifest=export_dir / f"{case_id}_manifest.json",
@@ -68,6 +77,9 @@ def bundle_manifest_payload(
         "quantification_csv": str(paths.quantification_csv),
         "review_manifest_json": str(paths.review_manifest_json),
         "review_manifest_csv": str(paths.review_manifest_csv),
+        "annotation_audit_json": str(paths.annotation_audit_json),
+        "annotation_audit_csv": str(paths.annotation_audit_csv),
+        "annotation_manifest_registry": str(paths.annotation_manifest_registry),
         "three_d_scene_manifest": str(paths.three_d_scene_manifest),
         "included_artifacts": included_entries,
         "disclaimer": disclaimer_context(),
@@ -90,6 +102,9 @@ def export_manifest_payload(
         "quantification_csv_path": str(paths.quantification_csv),
         "review_manifest_json_path": str(paths.review_manifest_json),
         "review_manifest_csv_path": str(paths.review_manifest_csv),
+        "annotation_audit_json_path": str(paths.annotation_audit_json),
+        "annotation_audit_csv_path": str(paths.annotation_audit_csv),
+        "annotation_manifest_registry_path": str(paths.annotation_manifest_registry),
         "three_d_scene_manifest_path": str(paths.three_d_scene_manifest),
         "artifacts": manifest_artifacts,
         "included_artifacts": included_entries,
@@ -105,6 +120,9 @@ def core_manifest_artifacts(paths: ExportPaths) -> list[dict[str, Any]]:
         manifest_record(ArtifactKind.QUANTIFICATION_CSV.value, paths.quantification_csv),
         manifest_record(ArtifactKind.REVIEW_MANIFEST_JSON.value, paths.review_manifest_json),
         manifest_record(ArtifactKind.REVIEW_MANIFEST_CSV.value, paths.review_manifest_csv),
+        manifest_record(ArtifactKind.ANNOTATION_AUDIT_JSON.value, paths.annotation_audit_json),
+        manifest_record(ArtifactKind.ANNOTATION_AUDIT_CSV.value, paths.annotation_audit_csv),
+        manifest_record(ArtifactKind.ANNOTATION_MANIFEST_REGISTRY.value, paths.annotation_manifest_registry),
         manifest_record(ArtifactKind.THREE_D_SCENE_MANIFEST.value, paths.three_d_scene_manifest),
         manifest_record("bundle_manifest", paths.bundle_manifest),
         manifest_record(ArtifactKind.EVIDENCE_BUNDLE.value, paths.bundle),
@@ -119,6 +137,9 @@ def export_evidence_artifacts(case_id: str, paths: ExportPaths) -> list[Evidence
         (ArtifactKind.QUANTIFICATION_CSV, paths.quantification_csv),
         (ArtifactKind.REVIEW_MANIFEST_JSON, paths.review_manifest_json),
         (ArtifactKind.REVIEW_MANIFEST_CSV, paths.review_manifest_csv),
+        (ArtifactKind.ANNOTATION_AUDIT_JSON, paths.annotation_audit_json),
+        (ArtifactKind.ANNOTATION_AUDIT_CSV, paths.annotation_audit_csv),
+        (ArtifactKind.ANNOTATION_MANIFEST_REGISTRY, paths.annotation_manifest_registry),
         (ArtifactKind.THREE_D_SCENE_MANIFEST, paths.three_d_scene_manifest),
         (ArtifactKind.EVIDENCE_BUNDLE, paths.bundle),
     ]
@@ -166,6 +187,7 @@ def export_summary(
     included_artifacts: list[dict[str, Any]],
     quantification_rows: list[dict[str, Any]],
     review_manifest_rows: list[dict[str, Any]],
+    annotation_audit_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     bundle_size = bundle_path.stat().st_size if bundle_path.exists() else None
     return {
@@ -178,6 +200,7 @@ def export_summary(
         "total_artifact_count": len(manifest_artifacts) + len(included_artifacts),
         "quantification_row_count": len(quantification_rows),
         "review_manifest_row_count": len(review_manifest_rows),
+        "annotation_audit_version_count": len(annotation_audit_rows or []),
         "roi_count": len(case.rois),
         "review_event_count": len(case.review_events),
         "bundle_size_bytes": bundle_size,
@@ -190,7 +213,13 @@ def export_summary(
     }
 
 
-def write_evidence_zip(bundle_path: Path, *, core_files: list[Path], case_artifacts: list[EvidenceArtifact]) -> None:
+def write_evidence_zip(
+    bundle_path: Path,
+    *,
+    core_files: list[Path],
+    case_artifacts: list[EvidenceArtifact],
+    additional_files: list[tuple[Path, str]] | None = None,
+) -> None:
     # ZIP 内固定 reports/ 与 artifacts/ 两个目录，便于学校评估时直接定位报告和证据图像。
     seen: set[str] = set()
     with ZipFile(bundle_path, "w", compression=ZIP_DEFLATED) as archive:
@@ -200,6 +229,9 @@ def write_evidence_zip(bundle_path: Path, *, core_files: list[Path], case_artifa
             path = Path(artifact.path)
             if path.exists() and path.is_file():
                 _add_file(archive, path, f"artifacts/{artifact.kind.value}/{path.name}", seen)
+        for path, arcname in additional_files or []:
+            if path.exists() and path.is_file():
+                _add_file(archive, path, arcname, seen)
 
 
 def _add_file(archive: ZipFile, path: Path, arcname: str, seen: set[str]) -> None:

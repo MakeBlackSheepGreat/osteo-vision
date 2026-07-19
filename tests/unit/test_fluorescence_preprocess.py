@@ -5,8 +5,9 @@ from PIL import Image
 
 from src.preprocess.fluorescence import (
     apply_fluorescence_colormap,
-    fluorescence_quantification,
     fluorescence_colorbar,
+    fluorescence_quantification,
+    fluorescence_time_intensity_curve,
     fuse_white_light_fluorescence,
     normalize_fluorescence,
     subtract_fluorescence_background,
@@ -47,6 +48,23 @@ def test_fluorescence_quantification_counts_positive_area() -> None:
     }
     assert quantification["positive_area_px"] == 2
     assert quantification["positive_area_fraction"] == 0.5
+
+
+def test_fluorescence_time_intensity_curve_reports_dynamic_metrics() -> None:
+    result = fluorescence_time_intensity_curve(
+        [
+            {"timestamp_sec": 0.0, "p95_intensity": 0.2, "background_intensity": 0.1},
+            {"timestamp_sec": 2.0, "p95_intensity": 0.5, "background_intensity": 0.1},
+            {"timestamp_sec": 5.0, "p95_intensity": 0.9, "background_intensity": 0.1},
+            {"timestamp_sec": 8.0, "p95_intensity": 0.6, "background_intensity": 0.1},
+        ]
+    )
+
+    assert result["available"] is True
+    assert result["time_to_peak_sec"] == 5.0
+    assert result["normalized_auc"] > 0
+    assert result["max_normalized_rise_slope_per_sec"] > 0
+    assert result["curve_quality"]["sparse_keyframe_curve"] is True
 
 
 def test_subtract_fluorescence_background_reports_baseline() -> None:

@@ -1,0 +1,33 @@
+schema_version: osteo-vision-three-priority-promotion-policy-v1
+status: provisional_internal_engineering_gate
+clinical_claim_allowed: false
+metric_gates:
+  patient_conditioned_segmentation:
+    min_dice: 0.75
+    min_iou: 0.60
+    min_recall: 0.80
+    min_precision: 0.75
+    max_ece: 0.08
+    max_empty_mask_rate: 0.05
+    max_over_segmentation_rate: 0.10
+    min_conditioned_minus_image_only_dice: 0.00
+    min_worst_subgroup_dice_delta: -0.03
+    min_context_fallback_success_rate: 1.00
+    max_max_boundary_shift_mm: 2.00
+  bone_activity_multitask:
+    min_macro_dice: 0.70
+    min_low_activity_dice: 0.70
+    min_transition_dice: 0.65
+    min_high_activity_dice: 0.70
+    min_transition_recall: 0.75
+    min_bone_gate_dice: 0.80
+    max_ece: 0.08
+    max_abstention_error_rate: 0.05
+    max_selective_error_rate: 0.15
+    min_abstention_coverage_rate: 0.10
+    min_bone_gate_containment_rate: 1.00
+    max_activity_score_mae: 0.15
+boundary: >-
+  These thresholds are provisional internal engineering gates. Target-domain runtime replacement remains
+  prohibited until physician-reviewed jaw-osteomyelitis evidence, independent testing, calibration, and
+  subgroup audits are available.

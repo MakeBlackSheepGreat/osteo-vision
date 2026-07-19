@@ -27,28 +27,34 @@
       </div>
     </header>
 
-    <nav class="anatomy-3d__workflow-strip" aria-label="三维证据工作流状态">
-      <button
+    <ol
+      class="anatomy-3d__workflow-strip"
+      :class="{ 'is-focus-view': viewLayoutMode === 'threeD' }"
+      aria-label="三维证据工作流状态"
+    >
+      <li
         v-for="step in migratedWorkflowSteps"
         :key="step.key"
-        type="button"
         class="anatomy-3d__workflow-step"
         :class="[`is-${step.state}`]"
-        @click="selectWorkflowStep(step.tool, step.action)"
+        :title="step.detail"
       >
         <span>{{ step.index }}</span>
         <strong>{{ step.title }}</strong>
         <small>{{ step.detail }}</small>
         <em>{{ step.stateLabel }}</em>
-      </button>
-    </nav>
+      </li>
+    </ol>
 
-    <div class="anatomy-3d__body">
+    <div
+      class="anatomy-3d__body"
+      :class="{
+        'is-focus-view': viewLayoutMode === 'threeD',
+        'is-model-empty': modelLoadState !== 'loaded',
+        'is-model-loaded': modelLoadState === 'loaded',
+      }"
+    >
       <aside class="anatomy-3d__object-tree" aria-label="对象列表">
-        <div class="anatomy-3d__panel-title">
-          <span>工作流</span>
-          <strong>术前几何参考</strong>
-        </div>
         <section class="anatomy-3d__import-card" aria-label="CBCT 导入与建模检查">
           <header>
             <div>
@@ -58,118 +64,120 @@
             <small>{{ cbctImportSummary.detail }}</small>
           </header>
           <div class="anatomy-3d__import-actions">
-            <button type="button" @click="openCbctPicker">导入 CBCT</button>
-            <button type="button" @click="openSurfacePicker">导入 STL/GLB</button>
-            <button type="button" @click="loadLocalD024ReferenceEvidence">加载公开参考</button>
-            <button type="button" :disabled="!canStartModelingJob" @click="() => startCbctModelingJob()">检查/生成表面</button>
-            <button type="button" :disabled="!canCancelModelingJob" @click="cancelCbctModelingJob">取消任务</button>
-            <button type="button" @click="clearLocalEvidence">清空本地选择</button>
+            <button
+              type="button"
+              :disabled="modelingOperationBusy"
+              :title="modelingOperationBusy ? '三维建模任务处理中，请稍候' : '选择 CBCT 体数据或 DICOM 序列'"
+              @click="openCbctPicker"
+            >
+              导入 CBCT
+            </button>
+            <button
+              type="button"
+              :disabled="modelingOperationBusy"
+              :title="modelingOperationBusy ? '三维建模任务处理中，请稍候' : '选择 Slicer 导出的 STL/GLB 表面模型'"
+              @click="openSurfacePicker"
+            >
+              导入 STL/GLB
+            </button>
+            <button
+              v-if="localImportedFiles.length"
+              type="button"
+              :disabled="!canStartModelingJob"
+              :title="canStartModelingJob ? '提交三维建模检查任务' : '等待所选文件写入后端证据区'"
+              @click="() => startCbctModelingJob()"
+            >
+              检查/生成表面
+            </button>
+            <button
+              v-if="canCancelModelingJob"
+              type="button"
+              :disabled="modelingJobCanceling"
+              :title="modelingJobCanceling ? '正在取消三维建模任务' : '取消当前三维建模任务'"
+              @click="cancelCbctModelingJob"
+            >
+              {{ modelingJobCanceling ? "正在取消" : "取消任务" }}
+            </button>
+            <button
+              v-if="modelingPollingPaused"
+              type="button"
+              :disabled="modelingOperationBusy"
+              title="重新读取后端三维建模任务状态"
+              @click="refreshCbctModelingJob"
+            >
+              刷新任务状态
+            </button>
+            <button v-if="localImportedFiles.length && !modelingOperationBusy" type="button" @click="clearLocalEvidence">
+              清空本地选择
+            </button>
           </div>
-          <p class="anatomy-3d__job-status">{{ modelingJobStatusLabel }}</p>
-          <ol class="anatomy-3d__modeling-checks">
-            <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
-              <span>{{ check.ready ? "通过" : "待办" }}</span>
-              <p>{{ check.label }}</p>
-            </li>
-          </ol>
+          <p v-if="modelingJobStatus !== 'idle' || localImportedFiles.length" class="anatomy-3d__job-status">
+            {{ modelingJobStatusLabel }}
+          </p>
+          <details class="anatomy-3d__modeling-check-details">
+            <summary>
+              <strong>导入与建模检查</strong>
+              <small>{{ cbctModelingChecks.filter((check) => check.ready).length }} / {{ cbctModelingChecks.length }} 项通过</small>
+            </summary>
+            <ol class="anatomy-3d__modeling-checks">
+              <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
+                <span>{{ check.ready ? "通过" : "待办" }}</span>
+                <p>{{ check.label }}</p>
+              </li>
+            </ol>
+          </details>
         </section>
-        <details class="anatomy-3d__module-card" aria-label="三维证据高级参数">
+        <details class="anatomy-3d__sidebar-section anatomy-3d__object-browser">
           <summary>
-            <strong>高级参数</strong>
-            <small>透明度、阈值和对象显示，默认收起。</small>
+            <span>证据节点</span>
+            <strong>病例对象</strong>
+            <small>{{ objectTreeGroups.reduce((count, group) => count + group.items.length, 0) }} 个对象，可展开管理显示状态</small>
           </summary>
-          <div class="anatomy-3d__brp-params" aria-label="三维检查参数">
-            <label>
-              <span>模型来源方式</span>
-              <select v-model="surfaceSourceMode">
-                <option value="label">由标签生成表面</option>
-                <option value="surface">读取 STL/GLB 表面</option>
-              </select>
-            </label>
-            <label>
-              <span>预览透明度</span>
-              <input v-model.number="betweenSpaceMm" type="range" min="0" max="5" step="0.5" />
-              <strong>{{ betweenSpaceLabel }}</strong>
-            </label>
-            <label>
-              <span>质量检查阈值</span>
-              <input v-model.number="securityMarginMm" type="range" min="0" max="8" step="0.5" />
-              <strong>{{ securityMarginLabel }}</strong>
-            </label>
-          </div>
-          <label v-for="control in moduleControls" :key="control.label" class="anatomy-3d__module-row">
-            <span>{{ control.label }}</span>
-            <strong>{{ control.value }}</strong>
-          </label>
-          <div class="anatomy-3d__module-actions">
-            <button
-              v-for="action in moduleActions"
-              :key="action.key"
-              type="button"
-              :class="{ 'is-active': activeModuleAction === action.key }"
-              @click="selectModuleAction(action.key)"
-            >
-              <strong>{{ action.label }}</strong>
-              <small>{{ action.state }}</small>
-            </button>
-          </div>
-          <label class="anatomy-3d__module-check">
-            <input v-model="autoPositionPlanes" type="checkbox" />
-            <span>沿下颌曲线摆放复核平面</span>
-          </label>
-          <label class="anatomy-3d__module-check">
-            <input v-model="rotatePlanesTogether" type="checkbox" />
-            <span>联动旋转复核平面</span>
-          </label>
-          <label class="anatomy-3d__module-check">
-            <input :checked="objectVisibility.mandible" type="checkbox" @change="toggleObjectVisibility('mandible')" />
-            <span>显示三维模型</span>
-          </label>
-          <button class="anatomy-3d__module-update" type="button" @click="selectModuleAction('refreshGeometryChecks')">
-            刷新检查
-          </button>
+          <ul class="anatomy-3d__subject-hierarchy">
+            <li v-for="group in objectTreeGroups" :key="group.name" class="anatomy-3d__tree-group">
+              <header>
+                <span class="anatomy-3d__folder-icon" aria-hidden="true"></span>
+                <strong>{{ group.name }}</strong>
+                <small>{{ group.detail }}</small>
+              </header>
+              <button
+                v-for="item in group.items"
+                :key="item.name"
+                type="button"
+                :class="[
+                  'anatomy-3d__tree-item',
+                  { 'is-muted': item.muted, 'is-active-node': activeTreeNodeName === item.name },
+                ]"
+                :disabled="!item.interactive"
+                :title="item.interactive ? `切换${item.name}显示状态` : `${item.name}当前只读或无可渲染对象`"
+                @click="activateTreeNode(item)"
+              >
+                <span
+                  class="anatomy-3d__visibility"
+                  :class="{ 'is-visible': !item.muted }"
+                  aria-hidden="true"
+                ></span>
+                <span class="anatomy-3d__lock-state" aria-hidden="true">{{ item.locked ? "锁" : "开" }}</span>
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <small>{{ item.detail }}</small>
+                </div>
+                <em>{{ item.state }}</em>
+              </button>
+            </li>
+          </ul>
         </details>
-        <div class="anatomy-3d__panel-title">
-          <span>证据节点</span>
-          <strong>病例对象</strong>
-        </div>
-        <ul class="anatomy-3d__subject-hierarchy">
-          <li v-for="group in objectTreeGroups" :key="group.name" class="anatomy-3d__tree-group">
-            <header>
-              <span class="anatomy-3d__folder-icon" aria-hidden="true"></span>
-              <strong>{{ group.name }}</strong>
-              <small>{{ group.detail }}</small>
-            </header>
-            <button
-              v-for="item in group.items"
-              :key="item.name"
-              type="button"
-              :class="[
-                'anatomy-3d__tree-item',
-                { 'is-muted': item.muted, 'is-active-node': activeTreeNodeName === item.name },
-              ]"
-              @click="activateTreeNode(item)"
-            >
-              <span
-                class="anatomy-3d__visibility"
-                :class="{ 'is-visible': !item.muted }"
-                aria-hidden="true"
-              ></span>
-              <span class="anatomy-3d__lock-state" aria-hidden="true">{{ item.locked ? "锁" : "开" }}</span>
-              <div>
-                <strong>{{ item.name }}</strong>
-                <small>{{ item.detail }}</small>
-              </div>
-              <em>{{ item.state }}</em>
-            </button>
-          </li>
-        </ul>
       </aside>
 
       <main class="anatomy-3d__views" :class="[`is-tool-${activeWorkspaceTool}`, `is-layout-${viewLayoutMode}`]" aria-label="三维参考视图区">
         <section
           ref="canvasHost"
           class="anatomy-3d__viewport"
+          :class="{
+            'is-model-empty': modelLoadState !== 'loaded',
+            'is-model-loaded': modelLoadState === 'loaded',
+          }"
+          :data-model-state="modelLoadState"
           aria-label="三维规划视图"
           @dblclick="toggleThreeDMaximize"
         >
@@ -185,15 +193,19 @@
               <small>{{ coordinateSpaceLabel }}</small>
             </div>
           </div>
-          <div class="anatomy-3d__viewport-toolbar">
+          <div
+            v-if="modelLoadState === 'loaded'"
+            class="anatomy-3d__viewport-toolbar"
+          >
             <div class="anatomy-3d__legend" aria-label="模型状态图例">
               <span><i class="reference"></i>真实模型优先</span>
               <span><i class="plane"></i>未配准不映射</span>
               <span><i class="projection"></i>{{ hotspotProjectionLabel }}</span>
             </div>
             <div class="anatomy-3d__view-controls" aria-label="三维视图控制">
-              <button type="button" @click="resetCamera">重置视角</button>
+              <button v-if="modelLoadState === 'loaded'" type="button" @click="resetCamera">重置视角</button>
               <button
+                v-if="modelLoadState === 'loaded'"
                 type="button"
                 :class="{ 'is-active': autoRotateModel }"
                 :aria-pressed="autoRotateModel"
@@ -201,19 +213,52 @@
               >
                 自动旋转：{{ autoRotateModel ? "开" : "关" }}
               </button>
-              <button type="button" @click="toggleObjectVisibility('mandible')">
+              <button v-if="modelLoadState === 'loaded'" type="button" @click="toggleObjectVisibility('mandible')">
                 {{ objectVisibility.mandible ? "隐藏模型" : "显示模型" }}
               </button>
-              <button type="button" @click="focusFirstCandidate">定位候选区</button>
+              <button v-if="normalizedHotspots.length" type="button" @click="focusFirstCandidate">
+                {{ isRegistered ? "查看候选定位" : "查看候选示意" }}
+              </button>
+              <button
+                v-if="modelLoadState === 'loaded'"
+                type="button"
+                :aria-pressed="viewLayoutMode === 'threeD'"
+                :title="viewLayoutMode === 'threeD' ? '恢复三维工作台布局' : '展开主三维视图'"
+                @click.stop="toggleThreeDMaximize"
+              >
+                {{ viewLayoutMode === "threeD" ? "退出专注" : "专注视图" }}
+              </button>
             </div>
           </div>
           <div v-if="modelLoadState !== 'loaded'" class="anatomy-3d__empty-viewport">
             <strong>未加载三维模型</strong>
             <p>导入 Slicer 导出的 STL/GLB，或由 CBCT 标签生成表面后显示；未配准时只作参考。</p>
+            <small>{{ modelLoadNote }}</small>
+            <small v-if="normalizedHotspots.length" class="anatomy-3d__empty-hotspot-summary">
+              已联动 {{ normalizedHotspots.length }} 个视频候选区，模型载入后可继续检查空间关系。
+            </small>
             <div class="anatomy-3d__empty-actions">
-              <button type="button" @click="openSurfacePicker">导入 STL/GLB</button>
-              <button type="button" @click="openCbctPicker">导入 CBCT</button>
+              <button
+                type="button"
+                :disabled="modelingOperationBusy"
+                :title="modelingOperationBusy ? '三维建模任务处理中，请稍候' : '选择 Slicer 导出的 STL/GLB 表面模型'"
+                @click="openSurfacePicker"
+              >
+                导入 STL/GLB
+              </button>
+              <button
+                type="button"
+                :disabled="modelingOperationBusy"
+                :title="modelingOperationBusy ? '三维建模任务处理中，请稍候' : '选择 CBCT 体数据或 DICOM 序列'"
+                @click="openCbctPicker"
+              >
+                导入 CBCT
+              </button>
             </div>
+          </div>
+          <div v-if="selectedHotspot" class="anatomy-3d__selection-feedback" role="status" aria-live="polite">
+            <strong>候选区已联动</strong>
+            <span>{{ selectedHotspotFeedback }}</span>
           </div>
           <div v-if="showViewportLabels" class="anatomy-3d__viewport-label-layer" aria-label="三维标注标签">
             <button
@@ -230,7 +275,7 @@
               <small>{{ label.detail }}</small>
             </button>
           </div>
-          <dl class="anatomy-3d__metrics">
+          <dl v-if="modelLoadState === 'loaded'" class="anatomy-3d__metrics">
             <div>
               <dt>显示模式</dt>
               <dd>{{ modeLabel }}</dd>
@@ -251,30 +296,37 @@
         </section>
 
         <section class="anatomy-3d__model-check-panel" aria-label="模型检查结果">
-          <header>
-            <div>
-              <span>建模检查</span>
-              <strong>数据链完整性</strong>
-            </div>
-            <small>{{ navigationGuardSummary }}</small>
-          </header>
-          <ol class="anatomy-3d__model-check-list">
-            <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
-              <span>{{ check.ready ? "通过" : "待办" }}</span>
+          <details class="anatomy-3d__model-check-details">
+            <summary>
               <div>
-                <strong>{{ check.label }}</strong>
-                <small>{{ check.detail }}</small>
+                <span>建模检查</span>
+                <strong>数据链完整性</strong>
               </div>
-            </li>
-          </ol>
-          <p>没有配准矩阵、误差记录和医生复核前，荧光候选区与 CBCT/STL 只并列展示，不做空间定位。</p>
+              <small>{{ navigationGuardSummary }}</small>
+            </summary>
+            <div class="anatomy-3d__model-check-content">
+              <ol class="anatomy-3d__model-check-list">
+                <li v-for="check in cbctModelingChecks" :key="check.label" :class="{ 'is-ready': check.ready }">
+                  <span>{{ check.ready ? "通过" : "待办" }}</span>
+                  <div>
+                    <strong>{{ check.label }}</strong>
+                    <small>{{ check.detail }}</small>
+                  </div>
+                </li>
+              </ol>
+              <p>没有配准矩阵、误差记录和医生复核前，荧光候选区与 CBCT/STL 只并列展示，不做空间定位。</p>
+            </div>
+          </details>
         </section>
       </main>
 
       <aside class="anatomy-3d__inspector" aria-label="三维证据与复核面板">
-        <div class="anatomy-3d__panel-title">
-          <span>证据检查</span>
-          <strong>状态与复核</strong>
+        <div class="anatomy-3d__inspector-heading">
+          <div class="anatomy-3d__panel-title">
+            <span>证据检查</span>
+            <strong>状态与复核</strong>
+          </div>
+          <small>{{ evidenceFields.length }} 项证据字段</small>
         </div>
         <dl class="anatomy-3d__evidence-summary">
           <div v-for="field in summaryEvidenceFields" :key="field.label">
@@ -282,84 +334,101 @@
             <dd>{{ field.value }}</dd>
           </div>
         </dl>
-        <details class="anatomy-3d__evidence-drawer" aria-label="完整三维证据字段">
+        <details class="anatomy-3d__technical-evidence" aria-label="技术证据详情">
           <summary>
-            <strong>完整证据字段</strong>
-            <small>{{ evidenceFields.length }} 项，可展开核对路径、来源和边界。</small>
+            <strong>技术证据详情</strong>
+            <small>证据字段、配准条件与医生复核边界</small>
           </summary>
-          <dl class="anatomy-3d__evidence-grid">
-            <div v-for="field in evidenceFields" :key="field.label">
-              <dt>{{ field.label }}</dt>
-              <dd>{{ field.value }}</dd>
-            </div>
-          </dl>
-        </details>
-        <details class="anatomy-3d__registration-guard" aria-label="真实导航前置条件">
-          <summary>
-            <strong>真实空间映射前置条件</strong>
-            <small>{{ navigationGuardSummary }}</small>
-          </summary>
-          <ul>
-            <li v-for="item in registrationGuardItems" :key="item.label" :class="{ 'is-ready': item.ready }">
-              <span>{{ item.ready ? "已就绪" : "缺失" }}</span>
-              <p>{{ item.label }}</p>
-            </li>
-          </ul>
-        </details>
-        <details class="anatomy-3d__markups" aria-label="配准点表">
-          <summary>
-            <strong>配准点表</strong>
-            <small>{{ registrationMarkupsSummary }}</small>
-          </summary>
-          <div class="anatomy-3d__markup-table">
-            <button
-              v-for="markup in registrationMarkupRows"
-              :key="markup.id"
-              type="button"
-              class="anatomy-3d__markup-row"
-              :class="{ 'is-selected': selectedMarkupId === markup.id, 'is-ready': markup.ready }"
-              @click="selectMarkup(markup.id)"
-            >
-              <span>{{ markup.shortLabel }}</span>
-              <strong>{{ markup.label }}</strong>
-              <small>{{ markup.sourceLabel }} 至 {{ markup.targetLabel }}</small>
-              <em>{{ markup.residualLabel }}</em>
-              <b>{{ markup.statusLabel }}</b>
-            </button>
-          </div>
-        </details>
-        <details class="anatomy-3d__transform-chain" aria-label="坐标变换链">
-          <summary>
-            <strong>坐标变换链</strong>
-            <small>{{ transformChainSummary }}</small>
-          </summary>
-          <ol>
-            <li v-for="step in transformChainItems" :key="step.name" :class="{ 'is-ready': step.ready }">
-              <span>{{ step.ready ? "已就绪" : "缺失" }}</span>
-              <div>
-                <strong>{{ step.name }}</strong>
-                <small>{{ step.fromSpace }} 至 {{ step.toSpace }}</small>
-                <em>{{ step.detail }}</em>
+          <div class="anatomy-3d__technical-evidence-content">
+            <details class="anatomy-3d__evidence-drawer" aria-label="完整三维证据字段">
+              <summary>
+                <strong>完整证据字段</strong>
+                <small>{{ evidenceFields.length }} 项，可展开核对路径、来源和边界。</small>
+              </summary>
+              <dl class="anatomy-3d__evidence-grid">
+                <div v-for="field in evidenceFields" :key="field.label">
+                  <dt>{{ field.label }}</dt>
+                  <dd>{{ field.value }}</dd>
+                </div>
+              </dl>
+            </details>
+            <details class="anatomy-3d__registration-guard" aria-label="真实导航前置条件">
+              <summary>
+                <strong>真实空间映射前置条件</strong>
+                <small>{{ navigationGuardSummary }}</small>
+              </summary>
+              <ul>
+                <li v-for="item in registrationGuardItems" :key="item.label" :class="{ 'is-ready': item.ready }">
+                  <span>{{ item.ready ? "已就绪" : "缺失" }}</span>
+                  <p>{{ item.label }}</p>
+                </li>
+              </ul>
+            </details>
+            <details class="anatomy-3d__markups" aria-label="配准点表">
+              <summary>
+                <strong>配准点表</strong>
+                <small>{{ registrationMarkupsSummary }}</small>
+              </summary>
+              <div class="anatomy-3d__markup-table">
+                <button
+                  v-for="markup in registrationMarkupRows"
+                  :key="markup.id"
+                  type="button"
+                  class="anatomy-3d__markup-row"
+                  :class="{ 'is-selected': selectedMarkupId === markup.id, 'is-ready': markup.ready }"
+                  :disabled="!markup.ready"
+                  :title="markup.ready ? `查看${markup.label}` : `${markup.label}缺少可核验坐标，当前不可定位`"
+                  @click="selectMarkup(markup.id)"
+                >
+                  <span>{{ markup.shortLabel }}</span>
+                  <strong>{{ markup.label }}</strong>
+                  <small>{{ markup.sourceLabel }} 至 {{ markup.targetLabel }}</small>
+                  <em>{{ markup.residualLabel }}</em>
+                  <b>{{ markup.statusLabel }}</b>
+                </button>
+                <p v-if="!registrationMarkupRows.length" class="anatomy-3d__markup-empty">
+                  当前证据中没有可核验的配准点，需导入真实标志点及坐标后才能交互定位。
+                </p>
               </div>
-            </li>
-          </ol>
-        </details>
-        <details class="anatomy-3d__workflow" aria-label="三维模型接入流程">
-          <summary>
-            <strong>三维接入工作流</strong>
-            <small>展开查看输入、曲线、平面、几何计算与医生复核链路。</small>
-          </summary>
-          <div v-for="step in workflowSteps" :key="step.index">
-            <span>{{ step.index }}</span>
-            <strong>{{ step.title }}</strong>
-            <small>{{ step.detail }}</small>
+            </details>
+            <details class="anatomy-3d__transform-chain" aria-label="坐标变换链">
+              <summary>
+                <strong>坐标变换链</strong>
+                <small>{{ transformChainSummary }}</small>
+              </summary>
+              <ol>
+                <li v-for="step in transformChainItems" :key="step.name" :class="{ 'is-ready': step.ready }">
+                  <span>{{ step.ready ? "已就绪" : "缺失" }}</span>
+                  <div>
+                    <strong>{{ step.name }}</strong>
+                    <small>{{ step.fromSpace }} 至 {{ step.toSpace }}</small>
+                    <em>{{ step.detail }}</em>
+                  </div>
+                </li>
+              </ol>
+            </details>
+            <details class="anatomy-3d__workflow" aria-label="三维模型接入流程">
+              <summary>
+                <strong>三维接入工作流</strong>
+                <small>展开查看输入、曲线、平面、几何计算与医生复核链路。</small>
+              </summary>
+              <div v-for="step in workflowSteps" :key="step.index">
+                <span>{{ step.index }}</span>
+                <strong>{{ step.title }}</strong>
+                <small>{{ step.detail }}</small>
+              </div>
+            </details>
+            <details class="anatomy-3d__boundary" aria-label="医生复核边界">
+              <summary>医生复核边界</summary>
+              <p>{{ boundaryNote }}</p>
+            </details>
           </div>
-        </details>
-        <details class="anatomy-3d__boundary" aria-label="医生复核边界">
-          <summary>医生复核边界</summary>
-          <p>{{ boundaryNote }}</p>
         </details>
         <div v-if="normalizedHotspots.length" class="anatomy-3d__hotspot-list">
+          <header class="anatomy-3d__hotspot-list-heading">
+            <span>视频联动</span>
+            <strong>候选区域</strong>
+          </header>
           <button
             v-for="hotspot in normalizedHotspots"
             :key="hotspot.key"
@@ -376,7 +445,6 @@
             <small>置信度 {{ Math.round(hotspot.confidence * 100) }}% · {{ hotspotProjectionLabel }}</small>
           </button>
         </div>
-        <p v-else class="anatomy-3d__empty">暂无候选区投影；当前仅显示三维参考模型。</p>
       </aside>
     </div>
 
@@ -414,15 +482,9 @@ interface Props {
 }
 
 type RiskLevel = "high" | "medium" | "low";
-type WorkspaceTool = "layout" | "curve" | "planes" | "geometry" | "roi";
+type WorkspaceTool = "layout" | "planes" | "roi";
 type ViewLayoutMode = "four" | "threeD" | "reconstruction";
 type SliceKey = "axial" | "coronal" | "sagittal";
-type ModuleActionKey =
-  | "mandibularCurve"
-  | "cutPlane"
-  | "createBoneModels"
-  | "create3dModel"
-  | "refreshGeometryChecks";
 type ObjectVisibilityKey = "cbct" | "mandible" | "curvePlanes" | "candidates" | "registration";
 type ViewportLabelKind = "markup" | "plane" | "hotspot";
 
@@ -446,12 +508,6 @@ interface TransformChainItem {
   ready: boolean;
 }
 
-interface ModuleAction {
-  key: ModuleActionKey;
-  label: string;
-  state: string;
-}
-
 interface MigratedWorkflowStep {
   key: string;
   index: string;
@@ -459,8 +515,6 @@ interface MigratedWorkflowStep {
   detail: string;
   state: "ready" | "partial" | "blocked";
   stateLabel: string;
-  tool: WorkspaceTool;
-  action: ModuleActionKey;
 }
 
 interface ObjectTreeItem {
@@ -470,6 +524,7 @@ interface ObjectTreeItem {
   state: string;
   muted: boolean;
   locked?: boolean;
+  interactive: boolean;
 }
 
 interface ObjectTreeGroup {
@@ -547,21 +602,18 @@ const localSurfaceObjectUrl = ref("");
 const modelingJobId = ref("");
 const modelingJobStatus = ref<"idle" | "queued" | "running" | "completed" | "failed" | "canceled" | "segmentation_required">("idle");
 const modelingJobMessage = ref("");
+const modelingJobCanceling = ref(false);
+const modelingPollingPaused = ref(false);
+let modelingPollGeneration = 0;
 const geometryManifest = ref<ThreeDGeometryManifest | null>(null);
 const geometryLoadState = ref<"idle" | "loading" | "loaded" | "failed">("idle");
 const activeWorkspaceTool = ref<WorkspaceTool>("layout");
 const viewLayoutMode = ref<ViewLayoutMode>("four");
-const activeModuleAction = ref<ModuleActionKey>("mandibularCurve");
-const surfaceSourceMode = ref<"label" | "surface">("label");
 const sliceOffsets = ref<Record<SliceKey, number>>({
   axial: 0,
   coronal: 0,
   sagittal: 0,
 });
-const autoPositionPlanes = ref(true);
-const rotatePlanesTogether = ref(true);
-const betweenSpaceMm = ref(1.5);
-const securityMarginMm = ref(2);
 const objectVisibility = ref<Record<ObjectVisibilityKey, boolean>>({
   cbct: true,
   mandible: true,
@@ -772,8 +824,16 @@ const cbctModelingChecks = computed(() => [
     ready: true,
   },
 ]);
-const canStartModelingJob = computed(() =>
-  localImportedFiles.value.some((file) => file.uploadStatus === "uploaded" && Boolean(file.backendPath)),
+const evidenceUploadBusy = computed(() => localImportedFiles.value.some((file) => file.uploadStatus === "uploading"));
+const modelingJobBusy = computed(() => ["queued", "running"].includes(modelingJobStatus.value) && !evidenceUploadBusy.value);
+const modelingOperationBusy = computed(
+  () => evidenceUploadBusy.value || modelingJobBusy.value || modelingJobCanceling.value,
+);
+const canStartModelingJob = computed(
+  () =>
+    localImportedFiles.value.some((file) => file.uploadStatus === "uploaded" && Boolean(file.backendPath)) &&
+    !["completed", "segmentation_required"].includes(modelingJobStatus.value) &&
+    !modelingOperationBusy.value,
 );
 const canCancelModelingJob = computed(() =>
   Boolean(modelingJobId.value) && ["queued", "running"].includes(modelingJobStatus.value),
@@ -875,6 +935,16 @@ const normalizedHotspots = computed<HotspotSpec[]>(() => {
   });
 });
 
+const selectedHotspot = computed(() =>
+  normalizedHotspots.value.find((hotspot) => hotspot.key === selectedHotspotKey.value) ?? null,
+);
+const selectedHotspotFeedback = computed(() => {
+  const hotspot = selectedHotspot.value;
+  if (!hotspot) return "";
+  const timing = hotspot.timestampSec == null ? "时间点未记录" : `${hotspot.timestampSec.toFixed(2)} s`;
+  return `${hotspot.shortLabel} · ${hotspot.label} · ${timing} · 置信度 ${Math.round(hotspot.confidence * 100)}%`;
+});
+
 const riskSummary = computed(() => {
   const hotspots = normalizedHotspots.value;
   if (!hotspots.length) {
@@ -917,8 +987,6 @@ const migratedWorkflowSteps = computed<MigratedWorkflowStep[]>(() => {
       detail: hasEvidenceModel.value ? modelFileNameLabel.value : "等待 STL/GLB 或 CBCT 派生模型",
       state: modelLoadState.value === "loaded" ? "ready" : hasEvidenceModel.value ? "partial" : "blocked",
       stateLabel: modelLoadState.value === "loaded" ? "已接入" : hasEvidenceModel.value ? "待加载" : "缺失",
-      tool: "layout",
-      action: "createBoneModels",
     },
     {
       key: "source",
@@ -927,8 +995,6 @@ const migratedWorkflowSteps = computed<MigratedWorkflowStep[]>(() => {
       detail: segmentationSourceLabel.value,
       state: hasEvidenceModel.value || localImportedFiles.value.length ? "ready" : "blocked",
       stateLabel: hasEvidenceModel.value || localImportedFiles.value.length ? "已记录" : "缺失",
-      tool: "layout",
-      action: "createBoneModels",
     },
     {
       key: "geometry",
@@ -937,8 +1003,6 @@ const migratedWorkflowSteps = computed<MigratedWorkflowStep[]>(() => {
       detail: hasGeometry ? geometryStatusLabel.value : modelingJobStatusLabel.value,
       state: hasGeometry ? "partial" : "blocked",
       stateLabel: hasGeometry ? "有清单" : "待生成",
-      tool: "planes",
-      action: "createBoneModels",
     },
     {
       key: "mapping",
@@ -947,32 +1011,9 @@ const migratedWorkflowSteps = computed<MigratedWorkflowStep[]>(() => {
       detail: hotspotProjectionLabel.value,
       state: isRegistered.value && hasCandidates ? "ready" : hasCandidates ? "partial" : "blocked",
       stateLabel: isRegistered.value && hasCandidates ? "已映射" : hasCandidates ? "示意" : "无候选",
-      tool: "roi",
-      action: "refreshGeometryChecks",
     },
   ];
 });
-
-const betweenSpaceLabel = computed(() => `${betweenSpaceMm.value.toFixed(1)} mm`);
-const securityMarginLabel = computed(() => `${securityMarginMm.value.toFixed(1)} mm`);
-
-const moduleControls = computed(() => [
-  { label: "模型文件", value: modelLoadState.value === "loaded" ? modelFileNameLabel.value : "未加载真实模型" },
-  { label: "分割来源", value: segmentationSourceLabel.value },
-  { label: "分割复核", value: segmentationReviewStatusLabel.value },
-  { label: "坐标系", value: coordinateSpaceLabel.value },
-  { label: "方向复核", value: `${orientationReviewLabel.value} / ${displayUpAxisLabel.value}` },
-  { label: "场景清单", value: sceneManifestSourceLabel.value },
-  { label: "几何清单", value: geometryStatusLabel.value },
-  { label: "医生复核", value: doctorReviewStatusLabel.value },
-]);
-
-const moduleActions = computed<ModuleAction[]>(() => [
-  { key: "createBoneModels", label: "生成表面模型", state: modelLoadState.value === "loaded" ? "已加载" : "待生成" },
-  { key: "mandibularCurve", label: "记录参考曲线", state: sceneManifest.value?.mandibular_curve ? "有记录" : "待记录" },
-  { key: "cutPlane", label: "记录观察平面", state: geometryLoadState.value === "loaded" ? "有清单" : "待记录" },
-  { key: "refreshGeometryChecks", label: "刷新几何检查", state: geometryStatusLabel.value },
-]);
 
 const objectTreeItems = computed<ObjectTreeItem[]>(() => [
   {
@@ -982,6 +1023,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.cbct ? (hasEvidenceModel.value ? "来源记录" : "待接入") : "隐藏",
     muted: !hasEvidenceModel.value || !objectVisibility.value.cbct,
     locked: true,
+    interactive: false,
   },
   {
     key: "mandible" as ObjectVisibilityKey,
@@ -990,6 +1032,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.mandible ? displayModeLabel.value : "隐藏",
     muted: modelLoadState.value !== "loaded" || !objectVisibility.value.mandible,
     locked: !hasEvidenceModel.value,
+    interactive: modelLoadState.value === "loaded",
   },
   {
     key: "curvePlanes" as ObjectVisibilityKey,
@@ -998,6 +1041,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.curvePlanes ? "示意" : "隐藏",
     muted: !objectVisibility.value.curvePlanes,
     locked: false,
+    interactive: modelLoadState.value === "loaded",
   },
   {
     key: "curvePlanes" as ObjectVisibilityKey,
@@ -1006,6 +1050,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.curvePlanes ? (isRegistered.value ? "待医生复核" : "非导航") : "隐藏",
     muted: !isRegistered.value || !objectVisibility.value.curvePlanes,
     locked: true,
+    interactive: modelLoadState.value === "loaded" && isRegistered.value,
   },
   {
     key: "candidates" as ObjectVisibilityKey,
@@ -1014,6 +1059,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.candidates ? hotspotProjectionLabel.value : "隐藏",
     muted: !normalizedHotspots.value.length || !objectVisibility.value.candidates,
     locked: !isRegistered.value,
+    interactive: normalizedHotspots.value.length > 0,
   },
   {
     key: "registration" as ObjectVisibilityKey,
@@ -1022,6 +1068,7 @@ const objectTreeItems = computed<ObjectTreeItem[]>(() => [
     state: objectVisibility.value.registration ? registrationLabel.value : "隐藏",
     muted: !isRegistered.value || !objectVisibility.value.registration,
     locked: true,
+    interactive: isRegistered.value && registrationMarkupRows.value.some((markup) => markup.ready),
   },
 ]);
 
@@ -1048,7 +1095,7 @@ const objectTreeGroups = computed<ObjectTreeGroup[]>(() => {
     },
     {
       name: "ICG / 视频对应",
-      detail: "证据并列，不是导航",
+      detail: "证据并列，未配准时仅作参考",
       items: [byName("ICG 候选叠加")].filter(Boolean) as ObjectTreeItem[],
     },
   ];
@@ -1072,7 +1119,7 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
         detail: isRegistered.value ? "已配准复核平面" : "未配准示意平面",
         x: 30,
         y: 42,
-        selected: activeModuleAction.value === "cutPlane",
+        selected: activeWorkspaceTool.value === "planes",
         muted: !isRegistered.value,
         targetKey: "cutPlane",
       },
@@ -1081,10 +1128,10 @@ const viewportLabelItems = computed<ViewportLabelItem[]>(() => {
         kind: "plane",
         shortLabel: "P1",
         label: "右侧复核平面",
-        detail: rotatePlanesTogether.value ? "联动旋转已开启" : "独立旋转",
+        detail: isRegistered.value ? "已配准复核平面" : "未配准示意平面",
         x: 67,
         y: 44,
-        selected: activeModuleAction.value === "cutPlane",
+        selected: activeWorkspaceTool.value === "planes",
         muted: !isRegistered.value,
         targetKey: "cutPlane",
       },
@@ -1168,6 +1215,7 @@ const evidenceFields = computed(() => [
   { label: "分割来源", value: segmentationSourceLabel.value },
   { label: "分割复核", value: segmentationReviewStatusLabel.value },
   { label: "空间坐标", value: coordinateSpaceLabel.value },
+  { label: "方向复核", value: `${orientationReviewLabel.value} / ${displayUpAxisLabel.value}` },
   { label: "配准状态", value: registrationLabel.value },
   { label: "配准方法", value: registrationMethodLabel.value },
   { label: "误差记录", value: registrationErrorLabel.value },
@@ -1226,25 +1274,7 @@ const navigationGuardSummary = computed(() => {
 const registrationMarkupRows = computed<RegistrationMarkupRow[]>(() => {
   const explicitRows = explicitRegistrationMarkups();
   if (explicitRows.length) return explicitRows;
-
-  const recordedCount = fiducialCount.value ?? 0;
-  const rowCount = Math.max(3, Math.min(6, recordedCount || 3));
-  return Array.from({ length: rowCount }, (_, index) => {
-    const t = rowCount === 1 ? 0.5 : index / (rowCount - 1);
-    const archPoint = pointOnMandibleArch(THREE.MathUtils.clamp(0.12 + t * 0.76, 0.12, 0.88));
-    const ready = isRegistered.value && index < recordedCount;
-    return {
-      id: `expected-fiducial-${index + 1}`,
-      shortLabel: `F${index + 1}`,
-      label: `F${index + 1} 配准标志点`,
-      sourceLabel: ready ? "CBCT/模型点数已记录" : "模型点缺失",
-      targetLabel: ready ? "跟踪点数已记录" : "跟踪点缺失",
-      residualLabel: ready ? `残差：${registrationErrorLabel.value}` : "残差：缺失",
-      statusLabel: ready ? "已记录" : "缺失",
-      ready,
-      position: archPoint.position,
-    };
-  });
+  return [];
 });
 
 const registrationMarkupsSummary = computed(() => {
@@ -1316,15 +1346,21 @@ const workflowSteps = computed(() => [
 ]);
 
 function openCbctPicker() {
+  if (modelingOperationBusy.value) return;
   cbctInput.value?.click();
 }
 
 function openSurfacePicker() {
+  if (modelingOperationBusy.value) return;
   surfaceInput.value?.click();
 }
 
 async function handleCbctFiles(event: Event) {
   const input = event.target as HTMLInputElement;
+  if (modelingOperationBusy.value) {
+    input.value = "";
+    return;
+  }
   const files = Array.from(input.files ?? []);
   if (!files.length) return;
   modelingJobId.value = "";
@@ -1346,11 +1382,11 @@ async function handleCbctFiles(event: Event) {
     modelFile: localSurfaceFiles.value[0],
     cbctFiles: localCbctFiles.value,
   });
-  activeModuleAction.value = "createBoneModels";
   activeWorkspaceTool.value = "layout";
   input.value = "";
   const uploaded = await uploadLocalThreeDFiles(files, "cbct");
   if (uploaded) {
+    modelingJobStatus.value = "idle";
     await startCbctModelingJob("cbct");
   } else {
     modelingJobStatus.value = "failed";
@@ -1360,6 +1396,10 @@ async function handleCbctFiles(event: Event) {
 
 async function handleSurfaceModelFile(event: Event) {
   const input = event.target as HTMLInputElement;
+  if (modelingOperationBusy.value) {
+    input.value = "";
+    return;
+  }
   const file = input.files?.[0];
   if (!file) return;
   revokeLocalSurfaceObjectUrl();
@@ -1381,12 +1421,12 @@ async function handleSurfaceModelFile(event: Event) {
     cbctFiles: localCbctFiles.value,
   });
   objectVisibility.value.mandible = true;
-  activeModuleAction.value = "createBoneModels";
   activeWorkspaceTool.value = "layout";
   if (boneGroup) void loadRealAnatomyModel();
   input.value = "";
   const uploaded = await uploadLocalThreeDFiles([file], "surface");
   if (uploaded) {
+    modelingJobStatus.value = "idle";
     await startCbctModelingJob("surface");
   } else {
     modelingJobStatus.value = "failed";
@@ -1395,18 +1435,24 @@ async function handleSurfaceModelFile(event: Event) {
 }
 
 function clearLocalEvidence() {
+  if (modelingOperationBusy.value) return;
+  ++modelingPollGeneration;
   revokeLocalSurfaceObjectUrl();
   localImportedFiles.value = [];
   localThreeDEvidence.value = null;
   modelingJobId.value = "";
   modelingJobStatus.value = "idle";
   modelingJobMessage.value = "";
+  modelingPollingPaused.value = false;
   if (cbctInput.value) cbctInput.value.value = "";
   if (surfaceInput.value) surfaceInput.value.value = "";
   if (boneGroup) void loadRealAnatomyModel();
 }
 
 async function startCbctModelingJob(preferredKind: "cbct" | "surface" = "surface") {
+  if (modelingOperationBusy.value) return;
+  modelingPollingPaused.value = false;
+  const pollGeneration = ++modelingPollGeneration;
   const cbctSource = localCbctFiles.value.find((file) => file.backendPath);
   const surfaceSource = localSurfaceFiles.value.find((file) => file.backendPath);
   const source = preferredKind === "cbct"
@@ -1434,67 +1480,84 @@ async function startCbctModelingJob(preferredKind: "cbct" | "surface" = "surface
     };
     if (selectedKind !== "cbct") modelingParameters.label_value = 1;
     const started = await apiClient.startThreeDModelingJob(modelingParameters);
+    if (pollGeneration !== modelingPollGeneration) return;
     modelingJobId.value = started.job_id;
-    await pollCbctModelingJob(started.job_id);
+    await pollCbctModelingJob(started.job_id, pollGeneration);
   } catch (error) {
+    if (pollGeneration !== modelingPollGeneration) return;
     modelingJobStatus.value = "failed";
     modelingJobMessage.value = errorMessageFromUnknown(error, "三维建模任务提交失败。");
   }
 }
 
 async function cancelCbctModelingJob() {
-  if (!modelingJobId.value) return;
+  if (!modelingJobId.value || modelingJobCanceling.value) return;
+  const jobId = modelingJobId.value;
+  ++modelingPollGeneration;
+  modelingJobCanceling.value = true;
+  modelingPollingPaused.value = false;
+  modelingJobMessage.value = "正在取消三维建模任务。";
   try {
-    const canceled = await apiClient.cancelThreeDModelingJob(modelingJobId.value);
-    modelingJobStatus.value = canceled.status === "canceled" ? "canceled" : canceled.status;
-    modelingJobMessage.value = canceled.error || canceled.progress?.message || "三维建模任务已取消。";
+    const canceled = await apiClient.cancelThreeDModelingJob(jobId);
+    if (["queued", "running"].includes(canceled.status)) {
+      modelingJobStatus.value = "failed";
+      modelingPollingPaused.value = true;
+      modelingJobMessage.value = "取消请求尚未确认终态，可刷新任务状态继续核对。";
+    } else {
+      modelingJobStatus.value = canceled.status === "canceled" ? "canceled" : canceled.status;
+      modelingJobMessage.value = canceled.error || canceled.progress?.message || "三维建模任务已取消。";
+    }
   } catch (error) {
     modelingJobStatus.value = "failed";
     modelingJobMessage.value = errorMessageFromUnknown(error, "三维建模任务取消失败。");
+  } finally {
+    modelingJobCanceling.value = false;
   }
 }
 
-async function loadLocalD024ReferenceEvidence() {
+async function refreshCbctModelingJob() {
+  if (!modelingJobId.value || modelingOperationBusy.value) return;
+  const pollGeneration = ++modelingPollGeneration;
+  modelingPollingPaused.value = false;
   modelingJobStatus.value = "running";
-  modelingJobMessage.value = "正在读取本地公开 CBCT 派生三维参考。";
+  modelingJobMessage.value = "正在刷新三维建模任务状态。";
   try {
-    const response = await fetch("/models/local/mandible_d024_0001.three_d_evidence.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`本地公开参考清单读取失败：${response.status}`);
-    const payload = (await response.json()) as unknown;
-    if (!isEvidenceRecord(payload) || !isEvidenceRecord(payload.three_d_evidence)) {
-      throw new Error("本地公开参考清单缺少 three_d_evidence 字段。");
-    }
-    localThreeDEvidence.value = payload.three_d_evidence as ThreeDEvidence;
-    modelingJobStatus.value = "completed";
-    modelingJobMessage.value = "已加载 D024 公开 CBCT 派生下颌参考；该模型非目标域、未配准、非导航。";
-    objectVisibility.value.mandible = true;
-    if (boneGroup) void loadRealAnatomyModel();
-    void loadGeometryManifest();
+    await pollCbctModelingJob(modelingJobId.value, pollGeneration, 1);
   } catch (error) {
+    if (pollGeneration !== modelingPollGeneration) return;
     modelingJobStatus.value = "failed";
-    modelingJobMessage.value =
-      error instanceof Error
-        ? error.message
-        : "本地公开参考不可用，请先运行 scripts/export_cbct_mandible_surface.py 生成 STL 与清单。";
+    modelingJobMessage.value = errorMessageFromUnknown(error, "三维建模任务状态刷新失败。");
   }
 }
 
-async function pollCbctModelingJob(jobId: string) {
+async function pollCbctModelingJob(jobId: string, pollGeneration: number, maxAttempts = 60) {
   let lastJob = await apiClient.getThreeDModelingJob(jobId);
-  for (let attempt = 0; attempt < 60 && ["queued", "running"].includes(lastJob.status); attempt += 1) {
+  if (pollGeneration !== modelingPollGeneration) return;
+  for (let attempt = 0; attempt < maxAttempts && ["queued", "running"].includes(lastJob.status); attempt += 1) {
+    if (pollGeneration !== modelingPollGeneration) return;
     modelingJobStatus.value = lastJob.status;
     modelingJobMessage.value = lastJob.progress?.message || "正在生成表面模型...";
     await sleep(1000);
+    if (pollGeneration !== modelingPollGeneration) return;
     lastJob = await apiClient.getThreeDModelingJob(jobId);
+    if (pollGeneration !== modelingPollGeneration) return;
   }
+  if (pollGeneration !== modelingPollGeneration) return;
+  if (["queued", "running"].includes(lastJob.status)) {
+    modelingJobStatus.value = "failed";
+    modelingPollingPaused.value = true;
+    modelingJobMessage.value = "后端任务仍在运行，前端轮询已暂停；可刷新任务状态继续核对。";
+    return;
+  }
+  modelingPollingPaused.value = false;
   modelingJobStatus.value =
     lastJob.status === "completed" && lastJob.result?.modeling_status === "segmentation_required"
       ? "segmentation_required"
       : lastJob.status === "completed"
         ? "completed"
-        : lastJob.status === "failed"
-          ? "failed"
-          : "running";
+        : lastJob.status === "canceled"
+          ? "canceled"
+          : "failed";
   const result = isEvidenceRecord(lastJob.result) ? lastJob.result : {};
   modelingJobMessage.value = stringFromEvidence(result.message) || lastJob.progress?.message || lastJob.error || "";
   if (modelingJobStatus.value === "completed" && !stringFromEvidence(result.message)) {
@@ -1757,26 +1820,8 @@ function modelFormatFromFileName(name: string): string {
   return "";
 }
 
-function selectWorkflowStep(tool: WorkspaceTool, action: ModuleActionKey) {
-  selectModuleAction(action);
-  activeWorkspaceTool.value = tool;
-}
-
-function selectModuleAction(action: ModuleActionKey) {
-  activeModuleAction.value = action;
-  if (action === "mandibularCurve" || action === "cutPlane" || action === "refreshGeometryChecks") {
-    objectVisibility.value.curvePlanes = true;
-    activeWorkspaceTool.value =
-      action === "mandibularCurve" ? "curve" : action === "refreshGeometryChecks" ? "geometry" : "planes";
-  }
-  if (action === "createBoneModels" || action === "create3dModel") {
-    objectVisibility.value.mandible = true;
-    activeWorkspaceTool.value = "layout";
-  }
-  applySceneVisibility();
-}
-
 function activateTreeNode(item: ObjectTreeItem) {
+  if (!item.interactive) return;
   activeTreeNodeName.value = item.name;
   toggleObjectVisibility(item.key);
 }
@@ -1791,12 +1836,14 @@ function selectViewportLabel(label: ViewportLabelItem) {
     return;
   }
   if (label.targetKey === "cutPlane") {
-    selectModuleAction("cutPlane");
+    objectVisibility.value.curvePlanes = true;
+    activeWorkspaceTool.value = "planes";
+    applySceneVisibility();
   }
 }
 
 function resetCamera() {
-  if (!camera || !controls) return;
+  if (modelLoadState.value !== "loaded" || !camera || !controls) return;
   camera.position.set(0.8, 1.56, 5.75);
   controls.target.set(0.04, 0.38, 0);
   controls.update();
@@ -1846,16 +1893,15 @@ function selectHotspot(key: string) {
 }
 
 function selectMarkup(id: string) {
+  const row = registrationMarkupRows.value.find((item) => item.id === id);
+  if (!row?.ready) return;
   selectedMarkupId.value = id;
   selectedHotspotKey.value = "";
   activeWorkspaceTool.value = "layout";
   objectVisibility.value.registration = true;
-  const row = registrationMarkupRows.value.find((item) => item.id === id);
-  if (row) {
-    updateSliceOffset("axial", Math.round(row.position.z * 42));
-    updateSliceOffset("coronal", Math.round(row.position.y * 34));
-    updateSliceOffset("sagittal", Math.round(row.position.x * 24));
-  }
+  updateSliceOffset("axial", Math.round(row.position.z * 42));
+  updateSliceOffset("coronal", Math.round(row.position.y * 34));
+  updateSliceOffset("sagittal", Math.round(row.position.x * 24));
   renderRegistrationMarkups();
   applySceneVisibility();
 }
@@ -1866,8 +1912,14 @@ function toggleObjectVisibility(key: ObjectVisibilityKey) {
 }
 
 function toggleThreeDMaximize() {
+  if (modelLoadState.value !== "loaded") return;
   viewLayoutMode.value = viewLayoutMode.value === "threeD" ? "four" : "threeD";
-  nextTick(resize);
+  void nextTick(() => {
+    resize();
+    if (viewLayoutMode.value === "threeD") {
+      canvasHost.value?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    }
+  });
 }
 
 function toggleReconstructionMaximize() {
@@ -2010,7 +2062,7 @@ function initScene() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
@@ -2609,7 +2661,7 @@ function renderRegistrationMarkups() {
   if (!registrationMarkupGroup) return;
   const group = registrationMarkupGroup;
   group.clear();
-  registrationMarkupRows.value.forEach((markup, index) => {
+  registrationMarkupRows.value.filter((markup) => markup.ready).forEach((markup, index) => {
     const selected = selectedMarkupId.value === markup.id;
     const color = markup.ready ? 0x49b988 : 0x8798a8;
     const pointMaterial = new THREE.MeshBasicMaterial({
@@ -2875,6 +2927,12 @@ function sceneV2NodeToObjectTreeItem(node: Record<string, unknown>): ObjectTreeI
         : type === "curve" || type === "plane"
           ? "curvePlanes"
           : "registration";
+  const interactive =
+    type === "model"
+      ? modelLoadState.value === "loaded"
+      : type === "curve" || type === "plane"
+        ? modelLoadState.value === "loaded"
+        : false;
   return {
     key,
     name: humanizeEvidenceText(stringFromEvidence(node.name)) || humanizeEvidenceText(role) || humanizeEvidenceText(type) || "未命名对象",
@@ -2882,6 +2940,7 @@ function sceneV2NodeToObjectTreeItem(node: Record<string, unknown>): ObjectTreeI
     state: statusLabel(status, ["ready", "completed", "accepted", "recorded"].includes(status.toLowerCase())),
     muted: !objectVisibility.value[key],
     locked: type === "volume" || type === "segmentation" || type === "model",
+    interactive,
   };
 }
 
@@ -3035,641 +3094,29 @@ function fileNameFromPath(path: string): string {
 </script>
 
 <style scoped>
+/* Slicer-style planning workbench. */
 .anatomy-3d {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(123, 215, 255, 0.34);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(10, 27, 45, 0.98), rgba(6, 17, 29, 0.98) 52%, rgba(9, 29, 41, 0.98)),
-    #07131f;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.1) inset,
-    0 14px 34px rgba(7, 19, 31, 0.18);
-}
-
-.anatomy-3d::before {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(103, 222, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 222, 255, 0.055) 1px, transparent 1px);
-  background-size: 26px 26px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), transparent 70%);
-  content: "";
-}
-
-.anatomy-3d > * {
-  position: relative;
-  z-index: 1;
-}
-
-.anatomy-3d__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px 12px;
-  border-bottom: 1px solid rgba(121, 209, 255, 0.24);
-  background:
-    linear-gradient(90deg, rgba(28, 117, 183, 0.18), transparent 52%),
-    rgba(4, 16, 29, 0.54);
-}
-
-.anatomy-3d__header span,
-.anatomy-3d__rail-title span {
-  display: block;
-  margin-bottom: 4px;
-  color: #74d7ff;
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.anatomy-3d__header h2 {
-  margin: 0;
-  color: #f2fbff;
-  font-size: 23px;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-
-.anatomy-3d__status {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-  min-width: 126px;
-}
-
-.anatomy-3d__status strong {
-  border-radius: 7px;
-  padding: 8px 11px;
-  font-size: 14px;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
-}
-
-.anatomy-3d__status.is-high strong {
-  border: 1px solid rgba(255, 116, 122, 0.72);
-  background: rgba(255, 77, 86, 0.18);
-  color: #ffd3d6;
-}
-
-.anatomy-3d__status.is-medium strong {
-  border: 1px solid rgba(255, 183, 80, 0.74);
-  background: rgba(255, 170, 48, 0.16);
-  color: #ffe4b7;
-}
-
-.anatomy-3d__status.is-low strong {
-  border: 1px solid rgba(87, 223, 174, 0.74);
-  background: rgba(43, 203, 145, 0.16);
-  color: #c5ffed;
-}
-
-.anatomy-3d__status.is-reference strong {
-  border: 1px solid rgba(142, 181, 196, 0.62);
-  background: rgba(142, 181, 196, 0.12);
-  color: #d9edf7;
-}
-
-.anatomy-3d__status small {
-  color: #97b8ca;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.anatomy-3d__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px;
-  min-height: 430px;
-}
-
-.anatomy-3d__viewport {
-  position: relative;
-  min-height: 430px;
-  background:
-    linear-gradient(rgba(86, 207, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(86, 207, 255, 0.055) 1px, transparent 1px),
-    radial-gradient(circle at 49% 42%, rgba(55, 182, 255, 0.18), transparent 36%),
-    linear-gradient(180deg, #081623, #06111d);
-  background-size: 34px 34px, 34px 34px, auto, auto;
-}
-
-.anatomy-3d__viewport::before,
-.anatomy-3d__viewport::after {
-  position: absolute;
-  z-index: 2;
-  width: 54px;
-  height: 54px;
-  pointer-events: none;
-  content: "";
-}
-
-.anatomy-3d__viewport::before {
-  top: 18px;
-  left: 18px;
-  border-top: 2px solid rgba(116, 215, 255, 0.78);
-  border-left: 2px solid rgba(116, 215, 255, 0.78);
-}
-
-.anatomy-3d__viewport::after {
-  right: 18px;
-  bottom: 18px;
-  border-right: 2px solid rgba(116, 215, 255, 0.78);
-  border-bottom: 2px solid rgba(116, 215, 255, 0.78);
-}
-
-.anatomy-3d__viewport :deep(canvas) {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 430px;
-  touch-action: none;
-}
-
-.anatomy-3d__hud,
-.anatomy-3d__metrics,
-.anatomy-3d__legend,
-.anatomy-3d__scan-readout {
-  position: absolute;
-  z-index: 3;
-  border: 1px solid rgba(123, 215, 255, 0.34);
-  border-radius: 7px;
-  background: rgba(7, 20, 34, 0.72);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.24),
-    0 0 22px rgba(68, 199, 255, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.anatomy-3d__hud {
-  top: 14px;
-  left: 14px;
-  display: grid;
-  gap: 3px;
-  max-width: min(52%, 380px);
-  padding: 10px 12px;
-}
-
-.anatomy-3d__hud strong {
-  color: #f3fbff;
-  font-size: 14px;
-}
-
-.anatomy-3d__hud span {
-  color: #a3c8d9;
-  font-size: 12px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.anatomy-3d__scan-readout {
-  right: 14px;
-  top: 72px;
-  display: grid;
-  min-width: 154px;
-  gap: 2px;
-  padding: 10px 12px;
-}
-
-.anatomy-3d__scan-readout span {
-  color: #76e4ff;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.anatomy-3d__scan-readout strong {
-  color: #f4fbff;
-  font-size: 15px;
-}
-
-.anatomy-3d__scan-readout small {
-  color: #9dbccc;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.anatomy-3d__metrics {
-  right: 14px;
-  bottom: 14px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(82px, 1fr));
-  gap: 8px;
-  padding: 10px 12px;
-}
-
-.anatomy-3d__metrics dt,
-.anatomy-3d__metrics dd,
-.anatomy-3d__rail-grid dt,
-.anatomy-3d__rail-grid dd {
-  margin: 0;
-}
-
-.anatomy-3d__metrics dt,
-.anatomy-3d__rail-grid dt {
-  color: #82cde9;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.anatomy-3d__metrics dd,
-.anatomy-3d__rail-grid dd {
-  margin-top: 4px;
-  color: #f1fbff;
-  font-size: 14px;
-  font-weight: 900;
-  overflow-wrap: anywhere;
-}
-
-.anatomy-3d__legend {
-  top: 14px;
-  right: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 9px 11px;
-}
-
-.anatomy-3d__legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #d7ecf7;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.anatomy-3d__legend i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.anatomy-3d__legend .projection {
-  background: #8fb1bd;
-}
-
-.anatomy-3d__legend .reference {
-  background: #2f8dcc;
-}
-.anatomy-3d__rail {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  border-left: 1px solid rgba(121, 209, 255, 0.24);
-  padding: 16px;
-  background:
-    linear-gradient(180deg, rgba(9, 25, 40, 0.96), rgba(5, 17, 29, 0.96)),
-    #07131f;
-}
-
-.anatomy-3d__rail-title strong {
-  color: #f2fbff;
-  font-size: 16px;
-}
-
-.anatomy-3d__rail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.anatomy-3d__rail-grid div {
-  min-height: 64px;
-  border: 1px solid rgba(111, 205, 255, 0.26);
-  border-radius: 7px;
-  padding: 9px;
-  background: rgba(255, 255, 255, 0.045);
-}
-
-.anatomy-3d__interop {
-  display: grid;
-  gap: 8px;
-}
-
-.anatomy-3d__interop div {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 2px 9px;
-  align-items: center;
-  border: 1px solid rgba(106, 203, 255, 0.24);
-  border-radius: 7px;
-  padding: 9px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
-}
-
-.anatomy-3d__interop span {
-  grid-row: span 2;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1px solid rgba(117, 221, 255, 0.42);
-  background: rgba(21, 109, 156, 0.24);
-  color: #b8efff;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.anatomy-3d__interop strong {
-  min-width: 0;
-  color: #f2fbff;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.anatomy-3d__interop small {
-  min-width: 0;
-  color: #a5c4d3;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.anatomy-3d__boundary,
-.anatomy-3d__empty {
-  margin: 0;
-  border: 1px solid rgba(123, 215, 255, 0.2);
-  border-radius: 7px;
-  padding: 9px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #a5c4d3;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-}
-
-.anatomy-3d__hotspot-list {
-  display: grid;
-  gap: 9px;
-}
-
-.anatomy-3d__hotspot {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 4px 10px;
-  width: 100%;
-  border: 1px solid rgba(106, 203, 255, 0.22);
-  border-radius: 7px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.052);
-  color: #f2fbff;
-  text-align: left;
-}
-
-.anatomy-3d__hotspot span {
-  grid-row: span 2;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  color: #ffffff;
-  font-weight: 900;
-}
-
-.anatomy-3d__hotspot strong {
-  min-width: 0;
-  color: #f4fbff;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.anatomy-3d__hotspot small {
-  color: #a7c3d1;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.anatomy-3d__hotspot.is-high span {
-  background: #d83b3e;
-}
-
-.anatomy-3d__hotspot.is-medium span {
-  background: #d88b18;
-}
-
-.anatomy-3d__hotspot.is-low span {
-  background: #15966a;
-}
-
-.anatomy-3d__hotspot.is-reference-projection span {
-  background: #7f9eaa;
-}
-
-.anatomy-3d__hotspot.is-reference-projection strong {
-  color: #d7ecf7;
-}
-
-.anatomy-3d__hotspot.selected {
-  border-color: #72dfff;
-  background: rgba(66, 177, 229, 0.12);
-  box-shadow:
-    0 0 0 3px rgba(76, 198, 255, 0.13),
-    0 0 22px rgba(76, 198, 255, 0.16);
-}
-
-.anatomy-3d__disclaimer {
-  margin: 0;
-  border-top: 1px solid rgba(121, 209, 255, 0.24);
-  padding: 11px 16px;
-  background: rgba(4, 16, 29, 0.74);
-  color: #a5c0d0;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-@media (max-width: 1180px) {
-  .anatomy-3d__body {
-    grid-template-columns: 1fr;
-  }
-
-  .anatomy-3d__rail {
-    border-top: 1px solid rgba(121, 209, 255, 0.24);
-    border-left: 0;
-  }
-}
-
-@media (max-width: 760px) {
-  .anatomy-3d__header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .anatomy-3d__status {
-    justify-items: start;
-  }
-
-  .anatomy-3d__viewport,
-  .anatomy-3d__viewport :deep(canvas) {
-    min-height: 520px;
-  }
-
-  .anatomy-3d__hud {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-  }
-
-  .anatomy-3d__scan-readout {
-    top: 84px;
-    right: 10px;
-    left: 10px;
-  }
-
-  .anatomy-3d__legend {
-    top: auto;
-    right: 10px;
-    bottom: 112px;
-    left: 10px;
-  }
-
-  .anatomy-3d__metrics {
-    right: 10px;
-    bottom: 10px;
-    left: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .anatomy-3d__rail-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 520px) {
-  .anatomy-3d__viewport,
-  .anatomy-3d__viewport :deep(canvas) {
-    min-height: 590px;
-  }
-
-  .anatomy-3d__legend {
-    bottom: 204px;
-  }
-
-  .anatomy-3d__metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .anatomy-3d__rail-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  .anatomy-3d {
-    border-color: #d6e0eb;
-    background: linear-gradient(180deg, #ffffff, #f7fbff);
-    box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
-  }
-
-  .anatomy-3d::before {
-    background:
-      linear-gradient(rgba(44, 126, 192, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(44, 126, 192, 0.06) 1px, transparent 1px);
-  }
-
-  .anatomy-3d__header {
-    border-bottom-color: #e3ebf3;
-    background: linear-gradient(90deg, rgba(44, 126, 192, 0.08), transparent 52%), #ffffff;
-  }
-
-  .anatomy-3d__header span,
-  .anatomy-3d__rail-title span {
-    color: #1e6fa6;
-  }
-
-  .anatomy-3d__header h2,
-  .anatomy-3d__rail-title strong,
-  .anatomy-3d__interop strong,
-  .anatomy-3d__hotspot,
-  .anatomy-3d__hotspot strong {
-    color: #102136;
-  }
-
-  .anatomy-3d__status small,
-  .anatomy-3d__interop small,
-  .anatomy-3d__boundary,
-  .anatomy-3d__empty,
-  .anatomy-3d__hotspot small,
-  .anatomy-3d__disclaimer {
-    color: #5a6a7a;
-  }
-
-  .anatomy-3d__status.is-reference strong {
-    border-color: #b8c9d8;
-    background: #eef4f8;
-    color: #36566a;
-  }
-
-  .anatomy-3d__rail {
-    border-left-color: #e3ebf3;
-    background: #f8fcff;
-  }
-
-  .anatomy-3d__rail-grid div,
-  .anatomy-3d__interop div,
-  .anatomy-3d__boundary,
-  .anatomy-3d__empty,
-  .anatomy-3d__hotspot {
-    border-color: #d6e0eb;
-    background: #ffffff;
-  }
-
-  .anatomy-3d__metrics dt,
-  .anatomy-3d__rail-grid dt {
-    color: #4d6780;
-  }
-
-  .anatomy-3d__metrics dd,
-  .anatomy-3d__rail-grid dd {
-    color: #17324a;
-  }
-
-  .anatomy-3d__interop span {
-    border-color: #b8d9ed;
-    background: #eef8ff;
-    color: #1e6fa6;
-  }
-
-  .anatomy-3d__disclaimer {
-    border-top-color: #e3ebf3;
-    background: #ffffff;
-  }
-
-  .anatomy-3d__hud,
-  .anatomy-3d__metrics,
-  .anatomy-3d__legend,
-  .anatomy-3d__scan-readout {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(7, 20, 34, 0.74);
-  }
-}
-/* Slicer-style planning workbench override. Kept at the end to supersede the earlier compact evidence panel rules. */
-.anatomy-3d {
-  --av-surface: var(--ov-bg-elevated, #ffffff);
-  --av-surface-soft: var(--ov-bg-soft, #f4f9ff);
-  --av-surface-panel: var(--ov-bg-panel, #eef5fd);
-  --av-border: var(--ov-border-subtle, #d8e5f2);
-  --av-border-strong: var(--ov-border-strong, #9ebddb);
-  --av-text: var(--ov-text, #17324a);
-  --av-text-secondary: var(--ov-text-secondary, #4d6780);
-  --av-text-muted: var(--ov-text-muted, #6c8299);
-  --av-accent: var(--ov-primary-strong, #2c7ec0);
-  --av-blue: #2c7ec0;
-  --av-green: #2f7b63;
-  --av-amber: #aa7128;
-  --av-red: #a34933;
+  --av-surface: var(--ov-bg-elevated);
+  --av-surface-soft: var(--ov-bg-soft);
+  --av-surface-panel: var(--ov-bg-panel);
+  --av-border: var(--ov-border-subtle);
+  --av-border-strong: var(--ov-border-strong);
+  --av-text: var(--ov-text);
+  --av-text-secondary: var(--ov-text-secondary);
+  --av-text-muted: var(--ov-text-muted);
+  --av-accent: var(--ov-primary-strong);
+  --av-blue: var(--ov-primary-strong);
+  --av-green: var(--ov-success);
+  --av-amber: var(--ov-warning);
+  --av-red: var(--ov-danger);
+  --av-workbench-height: clamp(660px, 70vh, 820px);
+  --av-empty-workbench-height: clamp(520px, 56vh, 620px);
   overflow: visible;
   border: 1px solid var(--av-border-strong);
   border-radius: 8px;
   background: var(--av-surface);
   color: var(--av-text);
-  box-shadow: var(--ov-shadow, 0 14px 32px rgba(22, 76, 120, 0.08));
+  box-shadow: var(--ov-shadow);
 }
 
 .anatomy-3d::before {
@@ -3692,9 +3139,9 @@ function fileNameFromPath(path: string): string {
   grid-template-columns: minmax(0, 1fr) minmax(150px, auto);
   gap: 16px;
   align-items: stretch;
-  padding: 14px 16px;
+  padding: 20px 22px;
   border-bottom: 1px solid var(--av-border);
-  background: linear-gradient(180deg, var(--av-surface), var(--av-surface-soft));
+  background: var(--av-surface);
 }
 
 .anatomy-3d__titleblock {
@@ -3715,7 +3162,7 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__titleblock h2 {
   margin: 0;
   color: var(--av-text);
-  font-size: clamp(19px, 2vw, 24px);
+  font-size: 22px;
   line-height: 1.22;
   letter-spacing: 0;
 }
@@ -3737,12 +3184,39 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__status strong {
-  display: block;
-  border-radius: 7px;
-  padding: 8px 10px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+  padding: 4px 0;
   font-size: 13px;
   line-height: 1.35;
-  text-align: center;
+  text-align: right;
+}
+
+.anatomy-3d__status strong::before {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.anatomy-3d__status.is-high strong {
+  color: var(--av-red);
+}
+
+.anatomy-3d__status.is-medium strong {
+  color: var(--av-amber);
+}
+
+.anatomy-3d__status.is-low strong {
+  color: var(--av-green);
+}
+
+.anatomy-3d__status.is-reference strong {
+  color: var(--av-text-secondary);
 }
 
 .anatomy-3d__status small {
@@ -3760,7 +3234,7 @@ function fileNameFromPath(path: string): string {
   align-items: center;
   min-height: 40px;
   border-bottom: 1px solid var(--av-border);
-  padding: 6px 12px;
+  padding: 8px 16px;
   background: color-mix(in srgb, var(--av-surface) 78%, var(--av-surface-soft));
 }
 
@@ -3827,28 +3301,35 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__workflow-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
+  gap: 0;
+  margin: 0;
   border-bottom: 1px solid var(--av-border);
-  background: var(--av-border);
+  padding: 8px 12px;
+  background: var(--av-surface-soft);
+  list-style: none;
 }
 
 .anatomy-3d__workflow-step {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 3px 8px;
-  min-height: 64px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
   border: 0;
-  align-content: start;
-  padding: 10px 12px;
-  background: var(--av-surface);
+  padding: 8px 16px;
+  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
+}
+
+.anatomy-3d__workflow-step:not(:last-child) {
+  border-right: 1px solid var(--av-border);
 }
 
 .anatomy-3d__workflow-step span {
-  grid-row: span 3;
+  grid-row: 1;
   display: inline-grid;
   place-items: center;
   width: 24px;
@@ -3874,13 +3355,12 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__workflow-step small {
-  color: var(--av-text-secondary);
-  font-size: 11px;
-  font-weight: 750;
-  line-height: 1.35;
+  display: none;
 }
 
 .anatomy-3d__workflow-step em {
+  grid-column: 3;
+  grid-row: 1;
   justify-self: start;
   border-radius: 999px;
   padding: 2px 7px;
@@ -3911,6 +3391,27 @@ function fileNameFromPath(path: string): string {
   border-color: color-mix(in srgb, var(--av-red) 38%, var(--av-border));
   background: color-mix(in srgb, var(--av-red) 9%, var(--av-surface));
   color: var(--av-red);
+}
+
+.anatomy-3d__workflow-strip.is-focus-view .anatomy-3d__workflow-step {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 46px;
+  padding: 7px 11px;
+}
+
+.anatomy-3d__workflow-strip.is-focus-view .anatomy-3d__workflow-step span {
+  grid-row: 1;
+}
+
+.anatomy-3d__workflow-strip.is-focus-view .anatomy-3d__workflow-step small {
+  display: none;
+}
+
+.anatomy-3d__workflow-strip.is-focus-view .anatomy-3d__workflow-step em {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
 }
 
 .anatomy-3d__workflow-strip .anatomy-3d__layout-switcher {
@@ -3962,13 +3463,19 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__body {
+  --av-side-row-height: clamp(318px, 34vh, 398px);
   display: grid;
-  grid-template-columns: minmax(220px, 240px) minmax(520px, 1fr) minmax(240px, 280px);
-  grid-template-areas: "tree views inspector";
-  align-items: start;
-  gap: 1px;
+  grid-template-columns: minmax(680px, 1fr) minmax(310px, 350px);
+  grid-template-areas:
+    "viewport tree"
+    "viewport inspector"
+    "check check";
+  grid-template-rows: var(--av-side-row-height) var(--av-side-row-height) auto;
+  align-items: stretch;
+  gap: 24px;
   min-height: 0;
-  background: var(--av-border);
+  padding: 24px;
+  background: var(--av-surface-panel);
 }
 
 .anatomy-3d__object-tree,
@@ -3978,24 +3485,37 @@ function fileNameFromPath(path: string): string {
   background: var(--av-surface);
 }
 
+.anatomy-3d__object-tree,
+.anatomy-3d__inspector {
+  border: 1px solid var(--av-border);
+  border-radius: 7px;
+}
+
 .anatomy-3d__object-tree {
   grid-area: tree;
-  height: 100%;
+  align-self: stretch;
+  height: auto;
   max-height: none;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .anatomy-3d__views {
-  grid-area: views;
+  grid-area: auto;
   min-height: 0;
 }
 
 .anatomy-3d__inspector {
   grid-area: inspector;
+  align-self: stretch;
   grid-template-columns: 1fr;
-  height: 100%;
+  height: auto;
   max-height: none;
-  overflow: visible;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .anatomy-3d__object-tree,
@@ -4003,7 +3523,7 @@ function fileNameFromPath(path: string): string {
   display: grid;
   align-content: start;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .anatomy-3d__inspector .anatomy-3d__panel-title,
@@ -4023,6 +3543,21 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__panel-title strong {
   color: var(--av-text);
   font-size: 15px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__inspector-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.anatomy-3d__inspector-heading > small {
+  color: var(--av-text-muted);
+  font-size: 10px;
+  font-weight: 900;
   line-height: 1.35;
 }
 
@@ -4091,11 +3626,10 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__import-card {
   display: grid;
-  gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--av-accent) 24%, var(--av-border));
-  border-radius: 7px;
-  padding: 9px;
-  background: color-mix(in srgb, var(--av-accent) 7%, var(--av-surface-soft));
+  gap: 9px;
+  border: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .anatomy-3d__file-input {
@@ -4128,16 +3662,17 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__import-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .anatomy-3d__import-actions button {
-  min-height: 32px;
+  flex: 1 1 108px;
+  min-height: 36px;
   border: 1px solid var(--av-border);
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 7px 10px;
   background: var(--av-surface);
   color: var(--av-text);
   font: inherit;
@@ -4160,10 +3695,9 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__job-status {
   margin: 0;
-  border: 1px solid var(--av-border);
-  border-radius: 6px;
-  padding: 6px 7px;
-  background: var(--av-surface);
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--av-text-secondary);
   font-size: 11px;
   font-weight: 800;
@@ -4176,6 +3710,85 @@ function fileNameFromPath(path: string): string {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.anatomy-3d__modeling-check-details,
+.anatomy-3d__sidebar-section {
+  border: 1px solid var(--av-border);
+  border-radius: 7px;
+  background: var(--av-surface-soft);
+}
+
+.anatomy-3d__modeling-check-details {
+  padding: 7px;
+}
+
+.anatomy-3d__modeling-check-details summary,
+.anatomy-3d__sidebar-section > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.anatomy-3d__modeling-check-details summary::-webkit-details-marker,
+.anatomy-3d__sidebar-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anatomy-3d__modeling-check-details summary::after,
+.anatomy-3d__sidebar-section > summary::after {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  content: "+";
+  color: var(--av-accent);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.anatomy-3d__modeling-check-details[open] summary::after,
+.anatomy-3d__sidebar-section[open] > summary::after {
+  content: "-";
+}
+
+.anatomy-3d__modeling-check-details summary strong,
+.anatomy-3d__sidebar-section > summary strong {
+  color: var(--av-text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__modeling-check-details summary small,
+.anatomy-3d__sidebar-section > summary small {
+  color: var(--av-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.anatomy-3d__modeling-check-details[open] .anatomy-3d__modeling-checks,
+.anatomy-3d__sidebar-section[open] .anatomy-3d__subject-hierarchy {
+  margin-top: 8px;
+}
+
+.anatomy-3d__sidebar-section {
+  padding: 9px;
+}
+
+.anatomy-3d__sidebar-section > summary span {
+  grid-column: 1;
+  color: var(--av-accent);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.anatomy-3d__sidebar-section > summary strong,
+.anatomy-3d__sidebar-section > summary small {
+  grid-column: 1;
 }
 
 .anatomy-3d__modeling-checks li {
@@ -4413,13 +4026,18 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__tree-item.is-muted {
-  background: color-mix(in srgb, var(--av-surface-soft) 82%, #ffffff 18%);
+  background: color-mix(in srgb, var(--av-surface-soft) 82%, var(--av-surface) 18%);
 }
 
 .anatomy-3d__tree-item.is-active-node {
   border-color: var(--av-accent);
   background: color-mix(in srgb, var(--av-accent) 9%, var(--av-surface-soft));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--av-accent) 18%, transparent) inset;
+}
+
+.anatomy-3d__tree-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
 }
 
 .anatomy-3d__visibility {
@@ -4545,10 +4163,11 @@ function fileNameFromPath(path: string): string {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   align-content: stretch;
-  gap: 12px;
+  gap: 8px;
   min-height: 520px;
-  padding: 12px;
+  padding: 10px;
   overflow: hidden;
+  scroll-margin-top: 84px;
   background:
     linear-gradient(rgba(109, 145, 171, 0.16) 1px, transparent 1px),
     linear-gradient(90deg, rgba(109, 145, 171, 0.16) 1px, transparent 1px),
@@ -4589,9 +4208,9 @@ function fileNameFromPath(path: string): string {
   grid-row: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .anatomy-3d__view-title > div {
@@ -4618,7 +4237,7 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__view-title small,
 .anatomy-3d__view-badge small {
   color: #c5d9e6;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.45;
 }
@@ -4634,7 +4253,7 @@ function fileNameFromPath(path: string): string {
   grid-row: 2;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
   justify-content: space-between;
   min-width: 0;
@@ -4647,7 +4266,7 @@ function fileNameFromPath(path: string): string {
   gap: 8px 12px;
   flex: 0 1 auto;
   max-width: min(100%, 520px);
-  padding: 8px 10px;
+  padding: 7px 9px;
   pointer-events: auto;
 }
 
@@ -4691,14 +4310,14 @@ function fileNameFromPath(path: string): string {
   max-width: min(100%, 420px);
   border: 1px solid rgba(216, 229, 242, 0.28);
   border-radius: 7px;
-  padding: 7px 8px;
+  padding: 6px 7px;
   background: rgba(9, 18, 28, 0.74);
   backdrop-filter: blur(10px);
   pointer-events: auto;
 }
 
 .anatomy-3d__view-controls button {
-  min-height: 28px;
+  min-height: 26px;
   border: 1px solid rgba(158, 220, 255, 0.35);
   border-radius: 5px;
   padding: 4px 8px;
@@ -4715,6 +4334,11 @@ function fileNameFromPath(path: string): string {
   border-color: rgba(242, 193, 78, 0.62);
   background: rgba(242, 193, 78, 0.18);
   color: #ffe7ad;
+}
+
+.anatomy-3d__view-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .anatomy-3d__viewport-label-layer {
@@ -4802,7 +4426,7 @@ function fileNameFromPath(path: string): string {
   grid-row: 4;
   align-self: end;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   width: min(100%, 620px);
   padding: 9px 10px;
@@ -5034,6 +4658,8 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__evidence-summary {
   grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--av-border);
 }
 
 .anatomy-3d__evidence-grid {
@@ -5049,6 +4675,18 @@ function fileNameFromPath(path: string): string {
   border-radius: 7px;
   padding: 8px;
   background: var(--av-surface-soft);
+}
+
+.anatomy-3d__evidence-summary div {
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+  min-height: 0;
+  border: 0;
+  border-bottom: 1px solid var(--av-border);
+  border-radius: 0;
+  padding: 9px 0;
+  background: transparent;
 }
 
 .anatomy-3d__evidence-summary dt,
@@ -5067,6 +4705,10 @@ function fileNameFromPath(path: string): string {
   line-height: 1.4;
 }
 
+.anatomy-3d__body.is-model-empty .anatomy-3d__evidence-summary div:nth-child(n + 4) {
+  display: none;
+}
+
 .anatomy-3d__evidence-drawer,
 .anatomy-3d__registration-guard {
   display: grid;
@@ -5075,6 +4717,76 @@ function fileNameFromPath(path: string): string {
   border-radius: 7px;
   padding: 9px;
   background: var(--av-surface-soft);
+}
+
+.anatomy-3d__technical-evidence {
+  order: 4;
+  border: 1px solid var(--av-border);
+  border-radius: 7px;
+  background: var(--av-surface-soft);
+}
+
+.anatomy-3d__technical-evidence > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: center;
+  padding: 11px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.anatomy-3d__technical-evidence > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anatomy-3d__technical-evidence > summary::after {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--av-accent);
+  font-size: 16px;
+  font-weight: 900;
+  content: "+";
+}
+
+.anatomy-3d__technical-evidence[open] > summary {
+  border-bottom: 1px solid var(--av-border);
+}
+
+.anatomy-3d__technical-evidence[open] > summary::after {
+  content: "-";
+}
+
+.anatomy-3d__technical-evidence > summary strong {
+  color: var(--av-text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.anatomy-3d__technical-evidence > summary small {
+  grid-column: 1;
+  color: var(--av-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.anatomy-3d__technical-evidence-content {
+  display: grid;
+  gap: 0;
+  padding: 0 12px 10px;
+}
+
+.anatomy-3d__technical-evidence-content > details {
+  border: 0;
+  border-bottom: 1px solid var(--av-border);
+  border-radius: 0;
+  padding: 10px 0;
+  background: transparent;
+}
+
+.anatomy-3d__technical-evidence-content > details:last-child {
+  border-bottom: 0;
 }
 
 .anatomy-3d__evidence-drawer summary,
@@ -5194,8 +4906,8 @@ function fileNameFromPath(path: string): string {
   place-items: center;
   min-height: 28px;
   border-radius: 6px;
-  background: #7f9eaa;
-  color: #ffffff;
+  background: var(--av-text-muted);
+  color: var(--ov-bg-elevated);
   font-size: 11px;
   font-weight: 900;
 }
@@ -5256,6 +4968,23 @@ function fileNameFromPath(path: string): string {
   border-color: var(--av-accent);
   background: color-mix(in srgb, var(--av-accent) 10%, var(--av-surface));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-accent) 14%, transparent);
+}
+
+.anatomy-3d__markup-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.anatomy-3d__markup-empty {
+  margin: 0;
+  border: 1px dashed var(--av-border-strong);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--av-surface);
+  color: var(--av-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .anatomy-3d__transform-chain ol {
@@ -5395,7 +5124,28 @@ function fileNameFromPath(path: string): string {
 
 .anatomy-3d__hotspot-list {
   display: grid;
+  order: 3;
   gap: 8px;
+}
+
+.anatomy-3d__hotspot-list-heading {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.anatomy-3d__hotspot-list-heading span {
+  color: var(--av-accent);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.anatomy-3d__hotspot-list-heading strong {
+  color: var(--av-text);
+  font-size: 12px;
 }
 
 .anatomy-3d__hotspot {
@@ -5419,7 +5169,7 @@ function fileNameFromPath(path: string): string {
   width: 30px;
   min-height: 30px;
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--ov-text-on-primary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -5450,13 +5200,17 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__hotspot.is-reference-projection span {
-  background: #7f9eaa;
+  background: var(--ov-text-muted);
 }
 
 .anatomy-3d__hotspot.selected {
   border-color: var(--av-accent);
   background: color-mix(in srgb, var(--av-accent) 10%, var(--av-surface));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-accent) 14%, transparent);
+}
+
+.anatomy-3d__inspector > .anatomy-3d__empty {
+  order: 3;
 }
 
 .anatomy-3d__disclaimer {
@@ -5471,61 +5225,87 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__views {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(520px, 1fr) auto;
-  grid-template-areas:
-    "three"
-    "check";
-  align-items: stretch;
-  align-self: stretch;
-  height: 100%;
-  min-height: 520px;
+  display: contents;
 }
 
 .anatomy-3d__views .anatomy-3d__viewport {
-  min-height: 520px;
+  grid-area: viewport;
+  height: var(--av-workbench-height);
+  min-height: 660px;
 }
 
 .anatomy-3d__model-check-panel {
   grid-area: check;
-  display: grid;
-  align-content: start;
-  gap: 10px;
+  display: block;
   min-height: 0;
   min-width: 0;
-  border-top: 1px solid rgba(216, 229, 242, 0.14);
-  padding: 12px;
-  background: #0f1c28;
-  color: #edf7ff;
+  border: 1px solid var(--av-border);
+  border-radius: 7px;
+  padding: 0;
+  background: var(--av-surface-panel);
+  color: var(--av-text);
 }
 
-.anatomy-3d__model-check-panel header {
+.anatomy-3d__model-check-details > summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 10px 18px;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.anatomy-3d__model-check-panel header span,
-.anatomy-3d__model-check-panel header small {
-  color: #9edcff;
+.anatomy-3d__model-check-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.anatomy-3d__model-check-details > summary::after {
+  color: var(--av-accent);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 900;
+  content: "展开检查";
+}
+
+.anatomy-3d__model-check-details[open] > summary {
+  border-bottom: 1px solid var(--av-border);
+}
+
+.anatomy-3d__model-check-details[open] > summary::after {
+  content: "收起检查";
+}
+
+.anatomy-3d__model-check-details > summary div {
+  display: grid;
+  gap: 2px;
+}
+
+.anatomy-3d__model-check-details > summary span,
+.anatomy-3d__model-check-details > summary small {
+  color: var(--av-accent);
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.35;
 }
 
-.anatomy-3d__model-check-panel header strong {
-  color: #ffffff;
+.anatomy-3d__model-check-details > summary strong {
+  color: var(--av-text);
   font-size: 15px;
-  font-weight: 950;
+  font-weight: 700;
   line-height: 1.35;
+}
+
+.anatomy-3d__model-check-content {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px 14px;
 }
 
 .anatomy-3d__model-check-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -5536,26 +5316,26 @@ function fileNameFromPath(path: string): string {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px 7px;
   align-items: start;
-  border: 1px solid rgba(216, 229, 242, 0.14);
+  border: 1px solid var(--av-border);
   border-radius: 7px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  padding: 7px;
+  background: var(--av-surface);
 }
 
 .anatomy-3d__model-check-list span {
   grid-row: span 2;
   border-radius: 999px;
   padding: 2px 6px;
-  background: rgba(170, 113, 40, 0.2);
-  color: #ffd999;
+  background: var(--ov-bg-warning);
+  color: var(--av-amber);
   font-size: 10px;
   font-weight: 950;
   line-height: 1.25;
 }
 
 .anatomy-3d__model-check-list li.is-ready span {
-  background: rgba(63, 195, 154, 0.18);
-  color: #92e5ca;
+  background: var(--ov-bg-success);
+  color: var(--av-green);
 }
 
 .anatomy-3d__model-check-list strong,
@@ -5565,13 +5345,13 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__model-check-list strong {
-  color: #f4fbff;
+  color: var(--av-text);
   font-size: 12px;
   line-height: 1.35;
 }
 
 .anatomy-3d__model-check-list small {
-  color: #b8cfdd;
+  color: var(--av-text-secondary);
   font-size: 11px;
   font-weight: 800;
   line-height: 1.4;
@@ -5586,10 +5366,10 @@ function fileNameFromPath(path: string): string {
 .anatomy-3d__model-check-panel dl div {
   display: grid;
   gap: 3px;
-  border: 1px solid rgba(216, 229, 242, 0.16);
+  border: 1px solid var(--av-border);
   border-radius: 7px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--av-surface);
 }
 
 .anatomy-3d__model-check-panel dt,
@@ -5600,28 +5380,88 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__model-check-panel dt {
-  color: #8db3c6;
+  color: var(--av-text-muted);
   font-size: 11px;
   font-weight: 900;
   line-height: 1.35;
 }
 
 .anatomy-3d__model-check-panel dd {
-  color: #f4fbff;
+  color: var(--av-text);
   font-size: 12px;
   font-weight: 900;
   line-height: 1.4;
 }
 
 .anatomy-3d__model-check-panel p {
-  border: 1px solid rgba(242, 193, 78, 0.26);
+  border: 1px solid color-mix(in srgb, var(--av-amber) 34%, var(--av-border));
   border-radius: 7px;
   padding: 9px;
-  background: rgba(242, 193, 78, 0.08);
-  color: #ffe3a7;
+  background: var(--ov-bg-warning);
+  color: var(--av-amber);
   font-size: 12px;
   font-weight: 850;
   line-height: 1.5;
+}
+
+.anatomy-3d__viewport.is-model-empty {
+  background: var(--av-surface-panel);
+}
+
+.anatomy-3d__body.is-model-empty {
+  --av-side-row-height: clamp(248px, 27vh, 298px);
+}
+
+.anatomy-3d__viewport.is-model-empty :deep(canvas) {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__view-title,
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__legend,
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__metrics,
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__view-controls {
+  border-color: var(--av-border);
+  background: var(--av-surface);
+  color: var(--av-text);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.anatomy-3d__viewport.is-model-empty :is(
+    .anatomy-3d__view-title span,
+    .anatomy-3d__view-badge span,
+    .anatomy-3d__metrics dt
+  ) {
+  color: var(--av-accent);
+}
+
+.anatomy-3d__viewport.is-model-empty :is(
+    .anatomy-3d__view-title strong,
+    .anatomy-3d__view-badge strong,
+    .anatomy-3d__metrics dd
+  ) {
+  color: var(--av-text);
+}
+
+.anatomy-3d__viewport.is-model-empty :is(
+    .anatomy-3d__view-title small,
+    .anatomy-3d__view-badge small,
+    .anatomy-3d__legend span
+  ) {
+  color: var(--av-text-secondary);
+}
+
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__view-controls button {
+  border-color: var(--av-border-strong);
+  background: var(--av-surface-soft);
+  color: var(--av-text-secondary);
+}
+
+.anatomy-3d__viewport.is-model-empty .anatomy-3d__view-controls button.is-active {
+  border-color: var(--av-accent);
+  background: color-mix(in srgb, var(--av-accent) 10%, var(--av-surface));
+  color: var(--av-accent);
 }
 
 .anatomy-3d__empty-viewport {
@@ -5632,17 +5472,50 @@ function fileNameFromPath(path: string): string {
   justify-self: center;
   display: grid;
   gap: 8px;
-  width: min(560px, calc(100% - 32px));
-  border: 1px dashed rgba(158, 220, 255, 0.36);
+  width: min(460px, calc(100% - 40px));
+  border: 1px dashed var(--av-border-strong);
   border-radius: 8px;
-  padding: 16px;
-  background: rgba(8, 18, 29, 0.82);
-  color: #dff5ff;
-  text-align: left;
+  padding: 24px;
+  background: var(--av-surface);
+  color: var(--av-text);
+  box-shadow: var(--ov-shadow);
+  text-align: center;
+}
+
+.anatomy-3d__selection-feedback {
+  position: absolute;
+  z-index: 5;
+  top: 122px;
+  left: 50%;
+  display: grid;
+  gap: 2px;
+  width: min(460px, calc(100% - 40px));
+  border: 1px solid color-mix(in srgb, var(--av-accent) 42%, var(--av-border));
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--av-surface) 92%, var(--av-accent) 8%);
+  color: var(--av-text);
+  text-align: center;
+  box-shadow: var(--ov-shadow);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.anatomy-3d__selection-feedback strong {
+  color: var(--av-accent);
+  font-size: 12px;
+}
+
+.anatomy-3d__selection-feedback span {
+  color: var(--av-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .anatomy-3d__empty-viewport strong,
-.anatomy-3d__empty-viewport p {
+.anatomy-3d__empty-viewport p,
+.anatomy-3d__empty-viewport small {
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -5653,10 +5526,23 @@ function fileNameFromPath(path: string): string {
 }
 
 .anatomy-3d__empty-viewport p {
-  color: #a9c6d4;
+  color: var(--av-text-secondary);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.55;
+}
+
+.anatomy-3d__empty-viewport small {
+  color: var(--av-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.anatomy-3d__empty-viewport .anatomy-3d__empty-hotspot-summary {
+  border-top: 1px solid var(--av-border);
+  padding-top: 8px;
+  color: var(--av-accent);
 }
 
 .anatomy-3d__empty-actions {
@@ -5664,17 +5550,17 @@ function fileNameFromPath(path: string): string {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   margin-top: 2px;
 }
 
 .anatomy-3d__empty-actions button {
   min-height: 30px;
-  border: 1px solid rgba(216, 229, 242, 0.34);
+  border: 1px solid var(--av-border-strong);
   border-radius: 5px;
   padding: 5px 10px;
-  background: rgba(216, 229, 242, 0.14);
-  color: #f2fbff;
+  background: var(--av-surface-soft);
+  color: var(--av-text);
   font: inherit;
   font-size: 12px;
   font-weight: 900;
@@ -5682,70 +5568,82 @@ function fileNameFromPath(path: string): string {
   cursor: pointer;
 }
 
+.anatomy-3d__empty-actions button:hover,
+.anatomy-3d__empty-actions button:focus-visible {
+  border-color: var(--av-accent);
+  color: var(--av-accent);
+}
+
+.anatomy-3d__empty-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .anatomy-3d__subject-hierarchy {
-  max-height: none;
-  overflow: visible;
+  max-height: 430px;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .anatomy-3d__views.is-layout-reconstruction,
 .anatomy-3d__views.is-layout-threeD {
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "three"
-    "check";
+  display: contents;
 }
 
-@media (prefers-color-scheme: dark) {
-  .anatomy-3d {
-    --av-surface: #0b1826;
-    --av-surface-soft: #0f2233;
-    --av-surface-panel: #081624;
-    --av-border: rgba(121, 209, 255, 0.18);
-    --av-border-strong: rgba(123, 215, 255, 0.34);
-    --av-text: #d9edf7;
-    --av-text-secondary: #9dbccc;
-    --av-text-muted: #7fa0b3;
-    --av-accent: #74d7ff;
-    --av-blue: #74d7ff;
-    --av-green: #79dcb9;
-    --av-amber: #ffd58f;
-    --av-red: #ffd3d6;
-    background: var(--av-surface);
-  }
+.anatomy-3d__views.is-layout-threeD .anatomy-3d__viewport {
+  height: var(--av-workbench-height);
+  min-height: 660px;
+}
 
-  .anatomy-3d__tree-item.is-muted {
-    background: rgba(255, 255, 255, 0.035);
-  }
+.anatomy-3d__body.is-focus-view {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "viewport"
+    "check";
+  grid-template-rows: auto auto;
+}
+
+.anatomy-3d__body.is-focus-view .anatomy-3d__object-tree,
+.anatomy-3d__body.is-focus-view .anatomy-3d__inspector {
+  display: none;
+}
+
+.anatomy-3d__body.is-focus-view .anatomy-3d__views .anatomy-3d__viewport {
+  height: min(82vh, 940px);
+  min-height: 720px;
+}
+
+.anatomy-3d__body.is-model-empty .anatomy-3d__object-tree,
+.anatomy-3d__body.is-model-empty .anatomy-3d__inspector,
+.anatomy-3d__body.is-model-empty .anatomy-3d__views .anatomy-3d__viewport,
+.anatomy-3d__body.is-focus-view.is-model-empty .anatomy-3d__views .anatomy-3d__viewport {
+  min-height: 0;
+}
+
+.anatomy-3d__body.is-model-empty .anatomy-3d__views .anatomy-3d__viewport,
+.anatomy-3d__body.is-focus-view.is-model-empty .anatomy-3d__views .anatomy-3d__viewport {
+  height: var(--av-empty-workbench-height);
+  min-height: 520px;
+  max-height: var(--av-empty-workbench-height);
 }
 
 @media (max-width: 1320px) {
-  .anatomy-3d__workflow-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .anatomy-3d__workflow-strip .anatomy-3d__layout-switcher {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .anatomy-3d {
+    --av-workbench-height: clamp(620px, 68vh, 760px);
   }
 
   .anatomy-3d__body {
-    grid-template-columns: minmax(170px, 220px) minmax(360px, 1fr);
+    grid-template-columns: minmax(560px, 1fr) minmax(280px, 320px);
     grid-template-areas:
-      "tree views"
-      "inspector inspector";
+      "viewport tree"
+      "viewport inspector"
+      "check check";
   }
 
   .anatomy-3d__inspector {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-    align-items: start;
-  }
-
-  .anatomy-3d__inspector .anatomy-3d__panel-title,
-  .anatomy-3d__inspector .anatomy-3d__boundary,
-  .anatomy-3d__inspector .anatomy-3d__hotspot-list,
-  .anatomy-3d__inspector .anatomy-3d__empty {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -5775,8 +5673,26 @@ function fileNameFromPath(path: string): string {
     grid-template-columns: 1fr;
     grid-template-areas:
       "tree"
-      "views"
-      "inspector";
+      "viewport"
+      "inspector"
+      "check";
+    grid-template-rows: auto;
+  }
+
+  .anatomy-3d__object-tree,
+  .anatomy-3d__inspector {
+    height: auto;
+    max-height: none;
+    align-self: stretch;
+    overflow: visible;
+  }
+
+  .anatomy-3d__object-tree {
+    grid-area: tree;
+  }
+
+  .anatomy-3d__inspector {
+    grid-area: inspector;
   }
 
   .anatomy-3d__inspector {
@@ -5791,7 +5707,7 @@ function fileNameFromPath(path: string): string {
   }
 
   .anatomy-3d__viewport {
-    min-height: 540px;
+    min-height: 620px;
   }
 }
 

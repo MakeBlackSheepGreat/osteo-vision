@@ -9,11 +9,13 @@ platform description in `research/reports/planning/software_focused_realistic_pl
 
 ## Summary
 
-Build a pure software, browser-based workbench for dual-channel jaw osteomyelitis
+Build a pure software, browser-based workbench for jaw osteomyelitis fluorescence
 cases. The target shape is a Vue frontend for case review and evidence display,
 a Python/FastAPI backend for case orchestration and exports, and a PyTorch-based
 analysis layer for fluorescence fusion, quality flags, ROI quantification, and
-review-state tracking. Gradio remains a temporary bridge only.
+review-state tracking. The 2026-07-17 expansion adds patient-conditioned evidence,
+bone-activity spectrum review, and magnification-aware L0/L1/L2 3D registration
+validation. Gradio remains a temporary bridge only.
 
 ## Technical Context
 
@@ -38,8 +40,9 @@ desktops, with local deployment as the default operating mode
 a shared medical-imaging analysis core
 
 **Performance Goals**: A single representative case should load, review, and
-export quickly enough for live demonstration; short sequences should remain
-interactive during ROI selection and review
+export within the versioned acceptance limits; short sequences should remain
+interactive during ROI selection and review; safety-gate decisions should be
+available in the same API response that exposes the associated evidence
 
 **Constraints**: No live device SDKs, no hospital-system integration in v1, no
 automatic diagnosis claims, physician review required, offline or uploaded dual-
@@ -54,6 +57,12 @@ time for live demo, with batch export and later multi-case expansion kept open
 **Medical Safety Boundary**: The platform remains a research and competition
 platform, treats ICG as a perfusion/viability signal, preserves physician
 review states, and avoids unsupported clinical certainty language
+
+**Priority Capability Order**: common safety gates and regression baseline;
+versioned contracts and acceptance protocols; API/persistence/UI/report closure;
+public and proxy data admission; L1 static phantom registration; L2 offline
+dynamic validation; target-domain collection; patient-conditioned and
+bone-activity model training last
 
 **Input/Output Contract**: White-light and fluorescence images, synchronized
 frames, or short video clips in; fused overlays, heatmaps, ROI summaries,

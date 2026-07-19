@@ -4,6 +4,10 @@
       <div class="management-title">
         <h1>病例建立、加载与基础质控</h1>
       </div>
+      <RouterLink class="intake-link" to="/intake">
+        <AppIcon name="upload" />
+        <span>医院数据准入</span>
+      </RouterLink>
     </header>
 
     <section class="management-grid">
@@ -13,14 +17,28 @@
           <span>病例标题</span>
           <input v-model="caseTitle" type="text" placeholder="请输入病例标题" />
         </label>
-        <AppButton variant="primary" icon="plus" block :disabled="store.loading" @click="createCase">
+        <AppButton
+          variant="primary"
+          icon="plus"
+          block
+          :disabled="store.loading"
+          :title="store.loading ? '病例请求处理中，请稍候' : '建立新的病例记录'"
+          @click="createCase"
+        >
           新建病例
         </AppButton>
         <label class="field">
           <span>病例 ID / 既有病例载入</span>
           <input v-model="loadCaseId" type="text" placeholder="请输入病例 ID" />
         </label>
-        <AppButton variant="secondary" icon="load" block :disabled="store.loading || !canLoadCase" @click="loadCase">
+        <AppButton
+          variant="secondary"
+          icon="load"
+          block
+          :disabled="store.loading || !canLoadCase"
+          :title="store.loading ? '病例请求处理中，请稍候' : canLoadCase ? '载入指定病例' : '请输入病例 ID'"
+          @click="loadCase"
+        >
           加载病例
         </AppButton>
         <p v-if="operationMessage" class="operation-message" :class="{ error: operationMessageType === 'error' }">
@@ -105,7 +123,6 @@ import { useOperationMessage } from "@/composables/useOperationMessage";
 import { useCaseStore } from "@/stores/caseStore";
 import {
   caseStatusLabel,
-  compactPath,
   disclaimerVersionLabel,
   inputChannelLabel,
   inputMetaLabel,
@@ -130,7 +147,7 @@ const inputRows = computed(() =>
   (store.currentCase?.inputs ?? []).map((asset) => ({
     id: asset.input_id,
     channel: inputChannelLabel(asset.channel),
-    path: compactPath(asset.path),
+    path: asset.path,
     meta: inputMetaLabel(asset),
   })),
 );
@@ -147,10 +164,10 @@ const warningRows = computed(() => {
 
 async function createCase() {
   setOperationMessage("正在创建病例...");
-  await store.createCase(caseTitle.value.trim() || "颌骨骨髓炎术中演示病例");
-  if (store.currentCase?.case_id) {
-    loadCaseId.value = store.currentCase.case_id;
-    setOperationMessage(`病例已创建：${store.currentCase.case_id}`);
+  const createdCase = await store.createCase(caseTitle.value.trim() || "颌骨骨髓炎术中演示病例");
+  if (createdCase) {
+    loadCaseId.value = createdCase.case_id;
+    setOperationMessage(`病例已创建：${createdCase.case_id}`);
   } else if (store.error) {
     setOperationMessage(store.error, "error");
   }
@@ -160,8 +177,8 @@ async function loadCase() {
   const caseId = loadCaseId.value.trim() || store.currentCase?.case_id;
   if (!caseId) return;
   setOperationMessage("正在加载病例...");
-  await store.loadCase(caseId);
-  setOperationMessage(store.currentCase ? `病例已加载：${store.currentCase.case_id}` : store.error, store.currentCase ? "info" : "error");
+  const loadedCase = await store.loadCase(caseId);
+  setOperationMessage(loadedCase ? `病例已加载：${loadedCase.case_id}` : store.error, loadedCase ? "info" : "error");
 }
 
 </script>
@@ -169,65 +186,79 @@ async function loadCase() {
 <style scoped>
 .case-management-shell {
   min-height: 100dvh;
-  padding: 18px 28px 24px;
-  background:
-    radial-gradient(circle at 12% 4%, rgba(44, 126, 192, 0.28), transparent 28%),
-    radial-gradient(circle at 86% 0%, rgba(58, 211, 255, 0.16), transparent 30%),
-    linear-gradient(rgba(103, 222, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 222, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, #07131f, #091724 360px, #06101b);
-  background-size: auto, auto, 28px 28px, 28px 28px, auto;
-  color: #d8edf7;
+  padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
+  background: var(--ov-shell-background);
+  color: var(--ov-text);
 }
 
 .management-header,
 .management-grid {
-  width: min(100%, 1540px);
+  width: min(100%, var(--ov-content-standard));
   margin-right: auto;
   margin-left: auto;
 }
 
 .management-header {
-  padding: 0 2px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 24px;
+}
+
+.intake-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid var(--ov-border-strong);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--ov-bg-info);
+  color: var(--ov-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.intake-link :deep(.app-icon) {
+  width: 17px;
+  height: 17px;
 }
 
 .management-title h1 {
   margin: 0;
-  color: #f2fbff;
-  font-size: 34px;
+  color: var(--ov-text);
+  font-size: var(--ov-font-page-title);
   line-height: 1.15;
   letter-spacing: 0;
-  text-shadow: 0 0 22px rgba(103, 222, 255, 0.22);
 }
 
 .management-grid {
   display: grid;
-  grid-template-columns: minmax(290px, 0.8fr) minmax(320px, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(360px, 0.75fr) minmax(0, 1.25fr);
+  gap: 20px;
   align-items: start;
 }
 
 .management-card {
   min-width: 0;
-  border: 1px solid rgba(123, 215, 255, 0.26);
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 15px;
-  background:
-    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
-    #081624;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
-    0 14px 34px rgba(0, 0, 0, 0.18);
+  padding: 20px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 .management-card :deep(.ov-section-heading) {
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(121, 209, 255, 0.22);
+  border-bottom: 1px solid var(--ov-border-subtle);
 }
 
 .management-card :deep(.ov-section-heading__title) {
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 15px;
 }
 
@@ -237,12 +268,12 @@ async function loadCase() {
 
 .field {
   display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .field span {
-  color: #9dbccc;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -250,41 +281,41 @@ async function loadCase() {
 .field input {
   width: 100%;
   min-height: 36px;
-  border: 1px solid rgba(123, 215, 255, 0.28);
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 7px 10px;
-  background: rgba(3, 14, 25, 0.78);
-  color: #eefaff;
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
   font: inherit;
   font-size: 13px;
 }
 
 .field input:focus {
-  outline: 2px solid rgba(116, 215, 255, 0.22);
-  border-color: #74d7ff;
+  outline: 2px solid var(--ov-focus-ring);
+  border-color: var(--ov-border-accent);
 }
 
 .operation-message {
   margin: 10px 0 0;
-  border: 1px solid rgba(123, 215, 255, 0.22);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #9dbccc;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .operation-message.error {
-  border-color: rgba(255, 116, 122, 0.42);
-  background: rgba(68, 19, 25, 0.68);
-  color: #ffd3d6;
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
 }
 
 .current-case-card h2 {
   margin: 0 0 12px;
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 20px;
   line-height: 1.3;
 }
@@ -302,14 +333,14 @@ async function loadCase() {
 }
 
 .case-summary dt {
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 13px;
   font-weight: 800;
 }
 
 .case-summary dd {
   margin: 0;
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 13px;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -329,10 +360,10 @@ async function loadCase() {
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
-  border: 1px solid rgba(123, 215, 255, 0.2);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--ov-bg-soft);
 }
 
 .file-icon {
@@ -341,7 +372,7 @@ async function loadCase() {
 }
 
 .asset-stack strong {
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 13px;
 }
 
@@ -349,7 +380,7 @@ async function loadCase() {
 .asset-stack small {
   display: block;
   margin: 2px 0 0;
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -364,14 +395,14 @@ async function loadCase() {
 }
 
 .warning-stack li {
-  border: 1px solid rgba(123, 215, 255, 0.2);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 9px;
 }
 
 .warning-stack li.blocking {
-  border-color: rgba(255, 116, 122, 0.42);
-  background: rgba(68, 19, 25, 0.68);
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
 }
 
 .qc-icon {
@@ -383,24 +414,24 @@ async function loadCase() {
 .warning-stack strong,
 .qc-empty p {
   margin: 0;
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 13px;
 }
 
 .warning-stack p {
   margin: 3px 0 0;
-  color: #9dbccc;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.45;
 }
 
 .empty-inline {
   margin: 0;
-  border: 1px solid rgba(123, 215, 255, 0.22);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #9dbccc;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }

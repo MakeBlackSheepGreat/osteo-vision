@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.src.core.settings import Settings
+from backend.src.domains.annotations.repository import AnnotationRepository
 from backend.src.domains.cases.repository import build_case_repository
 from backend.src.domains.cases.schemas import AnalysisRunCreateRequest
 from backend.src.services.analysis_service import AnalysisService
@@ -11,6 +12,8 @@ from backend.src.services.job_service import JobRegistry
 from backend.src.services.job_tasks import (
     run_case_analysis_job,
     run_cbct_surface_modeling_job,
+    run_l1_static_registration_job,
+    run_l2_offline_pose_replay_job,
     run_upload_keyframes_job,
 )
 from src.core.paths import ensure_dir
@@ -28,7 +31,12 @@ class LocalJobWorker:
         self.settings = settings
         self.jobs = JobRegistry(settings.job_store_path)
         self.repo = build_case_repository(settings.case_store_path, settings.case_store_backend)
-        self.analysis_service = AnalysisService(self.repo)
+        self.annotation_repository = AnnotationRepository(settings.annotation_store_path)
+        self.analysis_service = AnalysisService(
+            self.repo,
+            str(settings.inference_config_path),
+            annotation_repository=self.annotation_repository,
+        )
 
     def run_once(self, *, limit: int = 1, kinds: list[str] | None = None) -> dict[str, Any]:
         processed: list[dict[str, Any]] = []
@@ -60,6 +68,10 @@ class LocalJobWorker:
             return self._process_upload_keyframes(job)
         if kind == "cbct_surface_modeling":
             return self._process_cbct_surface_modeling(job)
+        if kind == "l1_static_registration":
+            return self._process_l1_static_registration(job)
+        if kind == "l2_offline_pose_replay":
+            return self._process_l2_offline_pose_replay(job)
         self.jobs.mark_failed(str(job["job_id"]), f"Unsupported job kind: {kind}")
         return {"job_id": job["job_id"], "kind": kind, "status": "failed", "error": "unsupported kind"}
 
@@ -118,6 +130,26 @@ class LocalJobWorker:
             source_original_filename=(
                 str(payload.get("source_original_filename")) if payload.get("source_original_filename") else None
             ),
+            mark_running=False,
+        )
+
+    def _process_l1_static_registration(self, job: dict[str, Any]) -> dict[str, Any]:
+        return run_l1_static_registration_job(
+            self.jobs,
+            str(job["job_id"]),
+            self.settings,
+            self.repo,
+            _payload(job),
+            mark_running=False,
+        )
+
+    def _process_l2_offline_pose_replay(self, job: dict[str, Any]) -> dict[str, Any]:
+        return run_l2_offline_pose_replay_job(
+            self.jobs,
+            str(job["job_id"]),
+            self.settings,
+            self.repo,
+            _payload(job),
             mark_running=False,
         )
 

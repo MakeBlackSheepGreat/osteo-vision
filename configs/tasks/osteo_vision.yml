@@ -123,6 +123,11 @@ recommended_models:
     task_types: [segmentation]
     input_types: [2d_image]
     priority: 8
+  - model_id: keyframe_residual_attention_unet_s20260715_20260715
+    family: residual_attention_unet_keyframe_segmenter
+    task_types: [segmentation]
+    input_types: [2d_image]
+    priority: 11
   - model_id: convnext2d_keyframe_proxy_segmenter
     family: convnext2d_keyframe_segmenter
     task_types: [segmentation]

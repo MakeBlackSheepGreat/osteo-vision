@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
-from scripts.evaluate_keyframe_segmentation_proxy import parse_shape, parse_thresholds, select_recommended_threshold
+from scripts.evaluate_keyframe_segmentation_proxy import (
+    binary_precision_recall,
+    boundary_f1,
+    parse_shape,
+    parse_thresholds,
+    select_recommended_threshold,
+)
 
 
 def test_parse_thresholds_accepts_commas_spaces_and_semicolons() -> None:
@@ -52,3 +59,19 @@ def test_select_recommended_threshold_prefers_guarded_best_dice() -> None:
 
     assert result["threshold"] == 0.4
     assert result["reason"] == "max_dice_with_empty_and_oversegmentation_guards"
+
+
+def test_boundary_f1_is_one_for_identical_mask() -> None:
+    mask = np.zeros((20, 24), dtype=bool)
+    mask[4:14, 6:18] = True
+    assert boundary_f1(mask, mask) == pytest.approx(1.0)
+
+
+def test_binary_precision_recall_reports_foreground_errors() -> None:
+    target = np.asarray([[1, 1], [0, 0]], dtype=bool)
+    prediction = np.asarray([[1, 0], [1, 0]], dtype=bool)
+
+    precision, recall = binary_precision_recall(prediction, target)
+
+    assert precision == pytest.approx(0.5)
+    assert recall == pytest.approx(0.5)

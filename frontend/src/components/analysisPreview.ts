@@ -62,6 +62,9 @@ export interface HotspotFrameDetail {
   evidenceLabel: string;
   domainBoundary: string;
   reviewRequired: boolean;
+  displayAllowed?: boolean;
+  stale?: boolean;
+  frameAgeLabel?: string;
   evidenceHref?: string;
   overlayHref?: string;
   maskHref?: string;
@@ -200,11 +203,18 @@ export function videoPreviewPanelsFromRun(
 ): AnalysisPreviewPanel[] {
   const hotspots = hotspotOutputsFromRun(run);
   if (hotspots.length) {
+    const displayableHotspots = hotspots.filter(
+      (hotspot) => hotspot.display_allowed !== false && stringFrom(hotspot.display_allowed).toLowerCase() !== "false",
+    );
+    const selectableHotspots = displayableHotspots.length ? displayableHotspots : hotspots;
     const selectedHotspot =
-      hotspots.find((hotspot, index) => hotspotKey(hotspot, index) === selectedHotspotKey) ?? hotspots[0];
+      selectableHotspots.find((hotspot, index) => hotspotKey(hotspot, index) === selectedHotspotKey) ??
+      selectableHotspots[0];
+    const displayAllowed =
+      selectedHotspot.display_allowed !== false && stringFrom(selectedHotspot.display_allowed).toLowerCase() !== "false";
     const lesionEvidence = recordFrom(selectedHotspot.lesion_evidence) ? selectedHotspot.lesion_evidence : {};
     const sourcePath = stringFrom(selectedHotspot.source_path);
-    const overlayPath = stringFrom(lesionEvidence.overlay_path);
+    const overlayPath = displayAllowed ? stringFrom(lesionEvidence.overlay_path) : "";
     const segmentationMask = recordFrom(selectedHotspot.segmentation_mask) ? selectedHotspot.segmentation_mask : {};
     const signalMasks = recordFrom(selectedHotspot.video_signal_segmentation)
       ? selectedHotspot.video_signal_segmentation
@@ -215,11 +225,17 @@ export function videoPreviewPanelsFromRun(
           : recordFrom(lesionEvidence.signal_masks)
             ? lesionEvidence.signal_masks
             : {};
-    const maskPath = stringFrom(segmentationMask.path) || stringFrom(lesionEvidence.mask_path);
-    const riskPath = stringFrom(lesionEvidence.risk_mask_path) || signalMaskPath(signalMasks, "risk_mask");
+    const maskPath = displayAllowed
+      ? stringFrom(segmentationMask.path) || stringFrom(lesionEvidence.mask_path)
+      : "";
+    const riskPath = displayAllowed
+      ? stringFrom(lesionEvidence.risk_mask_path) || signalMaskPath(signalMasks, "risk_mask")
+      : "";
     const uncertainPath =
-      stringFrom(lesionEvidence.uncertain_mask_path) || signalMaskPath(signalMasks, "uncertain_mask");
-    const pseudoColorPath = stringFrom(lesionEvidence.pseudo_color_path);
+      displayAllowed
+        ? stringFrom(lesionEvidence.uncertain_mask_path) || signalMaskPath(signalMasks, "uncertain_mask")
+        : "";
+    const pseudoColorPath = displayAllowed ? stringFrom(lesionEvidence.pseudo_color_path) : "";
     const frameIndex = stringFrom(selectedHotspot.frame_index) || "-";
     const timestamp = formatSeconds(selectedHotspot.timestamp_sec);
     const panels = [
@@ -354,6 +370,8 @@ export function hotspotFrameDetailsFromRun(
     const boneGateOverlayPath =
       stringFrom(detail.bone_gate_overlay_path) || signalMaskOverlayPath(signalMasks, "bone_gate_mask");
     const boneGateStatus = signalMaskStatus(signalMasks, "bone_gate_mask");
+    const displayAllowed = detail.display_allowed !== false && stringFrom(detail.display_allowed).toLowerCase() !== "false";
+    const frameAgeMs = finiteNumberOrNull(detail.analysis_frame_age_ms);
     return {
       key,
       frameIndex: finiteNumberOrNull(detail.frame_index),
@@ -369,21 +387,28 @@ export function hotspotFrameDetailsFromRun(
         stringFrom(detail.domain_boundary) ||
         "启发式关键帧热点分析，必须医生复核，不作为诊断结论。",
       reviewRequired: booleanFrom(detail.review_required) || componentCount > 0 || positiveArea > 0,
+      displayAllowed,
+      stale: !displayAllowed || booleanFrom(detail.stale),
+      frameAgeLabel: frameAgeMs === null ? "帧龄未记录" : `帧龄 ${Math.round(frameAgeMs)} ms`,
       evidenceHref: evidencePath ? previewUrl(evidencePath) : undefined,
-      overlayHref: overlayPath ? previewUrl(overlayPath) : undefined,
-      maskHref: maskPath ? previewUrl(maskPath) : undefined,
-      boneGateMaskHref: boneGateMaskPath ? previewUrl(boneGateMaskPath) : undefined,
-      boneGateOverlayHref: boneGateOverlayPath ? previewUrl(boneGateOverlayPath) : undefined,
+      overlayHref: displayAllowed && overlayPath ? previewUrl(overlayPath) : undefined,
+      maskHref: displayAllowed && maskPath ? previewUrl(maskPath) : undefined,
+      boneGateMaskHref: displayAllowed && boneGateMaskPath ? previewUrl(boneGateMaskPath) : undefined,
+      boneGateOverlayHref: displayAllowed && boneGateOverlayPath ? previewUrl(boneGateOverlayPath) : undefined,
       boneGateStatusLabel:
         boneGateStatus === "prompt_assisted_review"
           ? "已生成骨面门控"
-          : boneGateStatus === "physician_modified_mask"
+          : [
+                "physician_modified_mask",
+                "project_reviewer_modified_mask",
+                "engineering_reviewer_modified_mask",
+              ].includes(boneGateStatus)
             ? "已修改骨面掩膜"
           : boneGateStatus === "not_available_pending_review"
             ? "待生成骨面门控"
             : boneGateStatus || "待生成骨面门控",
-      riskMaskHref: riskMaskPath ? previewUrl(riskMaskPath) : undefined,
-      uncertainMaskHref: uncertainMaskPath ? previewUrl(uncertainMaskPath) : undefined,
+      riskMaskHref: displayAllowed && riskMaskPath ? previewUrl(riskMaskPath) : undefined,
+      uncertainMaskHref: displayAllowed && uncertainMaskPath ? previewUrl(uncertainMaskPath) : undefined,
     };
   });
 }

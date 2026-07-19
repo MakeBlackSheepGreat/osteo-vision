@@ -1,0 +1,2 @@
+threshold,recommended,case_count,foreground_mean_dice,foreground_mean_iou,foreground_precision_mean,foreground_recall_mean,boundary_f1_mean,prediction_positive_fraction_mean,prediction_positive_fraction_median,empty_mask_count,empty_mask_rate,over_segmentation_count,over_segmentation_rate,over_segmentation_fraction,ece,brier_score
+0.4,True,24,0.8847783556086787,0.7938016511010687,0.8803765709215856,0.8908286423338744,0.9835858997742662,0.11087137858072915,0.11287841200828552,0,0.0,0,0.0,0.6,0.007659072739624169,0.018542882055044174

@@ -57,10 +57,8 @@ def build_hotspot_candidate_regions(
             or {}
         )
         if detail:
-            spatial_mapping = detail.get("spatial_mapping") if isinstance(detail.get("spatial_mapping"), dict) else {}
-            temporal_stability = (
-                detail.get("temporal_stability") if isinstance(detail.get("temporal_stability"), dict) else {}
-            )
+            spatial_mapping = _dict_value(detail.get("spatial_mapping"))
+            temporal_stability = _dict_value(detail.get("temporal_stability"))
             metadata.update(
                 {
                     "frame_key": detail.get("frame_key"),
@@ -184,11 +182,17 @@ def _candidate_confidence(quantification: Any) -> float:
     quant = quantification if isinstance(quantification, dict) else {}
     for key in ("max_probability", "mean_probability", "p95_intensity", "max_intensity"):
         value = quant.get(key)
+        if value is None:
+            continue
         try:
             return float(value)
         except (TypeError, ValueError):
             continue
     return 0.0
+
+
+def _dict_value(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
 
 
 def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> dict[str, Any]:
@@ -214,7 +218,9 @@ def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> 
         "source_path": output.get("source_path"),
         "overlay_path": lesion_evidence.get("overlay_path") if isinstance(lesion_evidence, dict) else None,
         "risk_mask_path": lesion_evidence.get("risk_mask_path") if isinstance(lesion_evidence, dict) else None,
-        "uncertain_mask_path": lesion_evidence.get("uncertain_mask_path") if isinstance(lesion_evidence, dict) else None,
+        "uncertain_mask_path": (
+            lesion_evidence.get("uncertain_mask_path") if isinstance(lesion_evidence, dict) else None
+        ),
         "mask_path": segmentation_mask.get("path") if isinstance(segmentation_mask, dict) else None,
         "mask_type": "boundary_risk",
         "signal_masks": signal_masks,

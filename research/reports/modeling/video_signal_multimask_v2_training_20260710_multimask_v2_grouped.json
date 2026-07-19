@@ -1,0 +1,455 @@
+{
+  "model_id": "convnext2d_video_signal_multimask_v2_grouped",
+  "model_family": "convnext2d_video_signal_multimask",
+  "model_config": {
+    "in_channels": 3,
+    "heads": [
+      "fluorescence_signal",
+      "bone_gate"
+    ],
+    "base_channels": 12
+  },
+  "training": {
+    "source_manifests": [
+      "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\video_signal_multimask_round3_20260707\\video_signal_multimask_training_manifest.csv"
+    ],
+    "row_count": 150,
+    "sample_count": 100,
+    "split_sample_counts": {
+      "train": 80,
+      "val": 10,
+      "test": 10
+    },
+    "mask_type_counts": {
+      "fluorescence_hotspot": 100,
+      "exposed_bone": 50
+    },
+    "head_supervision_counts": {
+      "fluorescence_signal": 100,
+      "bone_gate": 50
+    },
+    "review_state_counts": {
+      "review_required": 150
+    },
+    "source_group_split": {
+      "row_count": 150,
+      "group_count": 20,
+      "split_group_counts": {
+        "test": 2,
+        "train": 16,
+        "val": 2
+      },
+      "leakage_detected": false,
+      "leaking_group_count": 0,
+      "leaking_groups": {},
+      "missing_group_row_count": 0,
+      "missing_group_rows_first20": [],
+      "group_keys": [
+        "source_video_path",
+        "source_path",
+        "video_path",
+        "patient_id",
+        "case_id"
+      ],
+      "split_key": "split"
+    },
+    "completed_train_batches": 420,
+    "mean_train_loss": 0.4473797730037144,
+    "elapsed_seconds": 88.887,
+    "overfit_probe": {
+      "sample_count": 8,
+      "completed_batches": 120,
+      "initial_loss": 0.9919397234916687,
+      "final_loss": 0.46930253505706787,
+      "loss_decreased": true,
+      "metrics": {
+        "available": true,
+        "sample_count": 8,
+        "heads": {
+          "fluorescence_signal": {
+            "supervised_sample_count": 8,
+            "recommended_threshold": 0.3,
+            "recommended_metrics": {
+              "threshold": 0.3,
+              "dice": 0.3683809627693322,
+              "iou": 0.2562166685283904,
+              "prediction_positive_fraction": 0.04177579012784091,
+              "empty_mask_rate": 0.0,
+              "over_segmentation_rate": 0.0,
+              "non_empty": true
+            },
+            "threshold_scan": [
+              {
+                "threshold": 0.2,
+                "dice": 0.36473311888677507,
+                "iou": 0.2524348658470563,
+                "prediction_positive_fraction": 0.048040216619318184,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 0.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.3,
+                "dice": 0.3683809627693322,
+                "iou": 0.2562166685283904,
+                "prediction_positive_fraction": 0.04177579012784091,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 0.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.4,
+                "dice": 0.368039593970947,
+                "iou": 0.2556635350522988,
+                "prediction_positive_fraction": 0.03685968572443182,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 0.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.5,
+                "dice": 0.3668057107012114,
+                "iou": 0.25461784856647146,
+                "prediction_positive_fraction": 0.03290349786931818,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 0.0,
+                "non_empty": true
+              }
+            ]
+          },
+          "bone_gate": {
+            "supervised_sample_count": 2,
+            "recommended_threshold": 0.2,
+            "recommended_metrics": {
+              "threshold": 0.2,
+              "dice": 0.8391998122726739,
+              "iou": 0.7566583806818181,
+              "prediction_positive_fraction": 1.0,
+              "empty_mask_rate": 0.0,
+              "over_segmentation_rate": 1.0,
+              "non_empty": true
+            },
+            "threshold_scan": [
+              {
+                "threshold": 0.2,
+                "dice": 0.8391998122726739,
+                "iou": 0.7566583806818181,
+                "prediction_positive_fraction": 1.0,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 1.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.3,
+                "dice": 0.8391554191269757,
+                "iou": 0.7565696022727273,
+                "prediction_positive_fraction": 0.9999112215909092,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 1.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.4,
+                "dice": 0.8371118305460832,
+                "iou": 0.75341796875,
+                "prediction_positive_fraction": 0.9967595880681819,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 1.0,
+                "non_empty": true
+              },
+              {
+                "threshold": 0.5,
+                "dice": 0.8280723533457397,
+                "iou": 0.7398348721590909,
+                "prediction_positive_fraction": 0.9831764914772727,
+                "empty_mask_rate": 0.0,
+                "over_segmentation_rate": 1.0,
+                "non_empty": true
+              }
+            ]
+          }
+        },
+        "all_heads_non_empty": true
+      }
+    }
+  },
+  "validation": {
+    "available": true,
+    "sample_count": 10,
+    "heads": {
+      "fluorescence_signal": {
+        "supervised_sample_count": 10,
+        "recommended_threshold": 0.35,
+        "recommended_metrics": {
+          "threshold": 0.35,
+          "dice": 0.3333591495321226,
+          "iou": 0.20791181896293914,
+          "prediction_positive_fraction": 0.06554066051136362,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0,
+          "non_empty": true
+        },
+        "threshold_scan": [
+          {
+            "threshold": 0.15,
+            "dice": 0.33237605365297085,
+            "iou": 0.20475839415254032,
+            "prediction_positive_fraction": 0.09194779829545455,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.2,
+            "dice": 0.33226012758262974,
+            "iou": 0.20533673008138975,
+            "prediction_positive_fraction": 0.08312766335227272,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.25,
+            "dice": 0.33226134824282305,
+            "iou": 0.20592756792751382,
+            "prediction_positive_fraction": 0.07639382102272727,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.3,
+            "dice": 0.33211347802418023,
+            "iou": 0.206351407815735,
+            "prediction_positive_fraction": 0.07049005681818181,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.35,
+            "dice": 0.3333591495321226,
+            "iou": 0.20791181896293914,
+            "prediction_positive_fraction": 0.06554066051136362,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.4,
+            "dice": 0.33185922443332105,
+            "iou": 0.20734614244655977,
+            "prediction_positive_fraction": 0.06113725142045454,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.45,
+            "dice": 0.330212612497046,
+            "iou": 0.20661188881180545,
+            "prediction_positive_fraction": 0.05719549005681819,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.5,
+            "dice": 0.32753987131942147,
+            "iou": 0.20514945756492464,
+            "prediction_positive_fraction": 0.05348455255681818,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.6,
+            "dice": 0.32050267094354024,
+            "iou": 0.2013074410959533,
+            "prediction_positive_fraction": 0.046306818181818185,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.7,
+            "dice": 0.3031462282520968,
+            "iou": 0.18990355546892865,
+            "prediction_positive_fraction": 0.039337713068181825,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          }
+        ]
+      },
+      "bone_gate": {
+        "supervised_sample_count": 6,
+        "recommended_threshold": 0.35,
+        "recommended_metrics": {
+          "threshold": 0.35,
+          "dice": 0.8291014804820548,
+          "iou": 0.7125591431155404,
+          "prediction_positive_fraction": 0.6288914535984848,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0,
+          "non_empty": true
+        },
+        "threshold_scan": [
+          {
+            "threshold": 0.15,
+            "dice": 0.80495501763943,
+            "iou": 0.6749430118606807,
+            "prediction_positive_fraction": 0.7506584398674243,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.16666666666666666,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.2,
+            "dice": 0.8178271822193958,
+            "iou": 0.6939352063345213,
+            "prediction_positive_fraction": 0.7096576112689394,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.16666666666666666,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.25,
+            "dice": 0.8237189928079114,
+            "iou": 0.7032331388625979,
+            "prediction_positive_fraction": 0.6797466856060606,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.3,
+            "dice": 0.8271533934409705,
+            "iou": 0.7089633163284136,
+            "prediction_positive_fraction": 0.6527580492424242,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.35,
+            "dice": 0.8291014804820548,
+            "iou": 0.7125591431155404,
+            "prediction_positive_fraction": 0.6288914535984848,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.4,
+            "dice": 0.8284444719191894,
+            "iou": 0.7122608367340869,
+            "prediction_positive_fraction": 0.6091900449810606,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.45,
+            "dice": 0.8267979932823857,
+            "iou": 0.7104297138910004,
+            "prediction_positive_fraction": 0.5901026870265151,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.5,
+            "dice": 0.8252393879723238,
+            "iou": 0.7086229848432435,
+            "prediction_positive_fraction": 0.5741521661931818,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.6,
+            "dice": 0.8221954085694039,
+            "iou": 0.7055927356292265,
+            "prediction_positive_fraction": 0.5424064867424242,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          },
+          {
+            "threshold": 0.7,
+            "dice": 0.8146228656011011,
+            "iou": 0.6958945715456326,
+            "prediction_positive_fraction": 0.5094770951704546,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          }
+        ]
+      }
+    },
+    "all_heads_non_empty": true
+  },
+  "test": {
+    "available": true,
+    "sample_count": 10,
+    "heads": {
+      "fluorescence_signal": {
+        "supervised_sample_count": 10,
+        "recommended_threshold": 0.35,
+        "recommended_metrics": {
+          "threshold": 0.35,
+          "dice": 0.4983544008913123,
+          "iou": 0.33547633820389355,
+          "prediction_positive_fraction": 0.08223987926136364,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0,
+          "non_empty": true
+        },
+        "threshold_scan": [
+          {
+            "threshold": 0.35,
+            "dice": 0.4983544008913123,
+            "iou": 0.33547633820389355,
+            "prediction_positive_fraction": 0.08223987926136364,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          }
+        ]
+      },
+      "bone_gate": {
+        "supervised_sample_count": 6,
+        "recommended_threshold": 0.35,
+        "recommended_metrics": {
+          "threshold": 0.35,
+          "dice": 0.8721683386878557,
+          "iou": 0.7757744692029371,
+          "prediction_positive_fraction": 0.5626257694128788,
+          "empty_mask_rate": 0.0,
+          "over_segmentation_rate": 0.0,
+          "non_empty": true
+        },
+        "threshold_scan": [
+          {
+            "threshold": 0.35,
+            "dice": 0.8721683386878557,
+            "iou": 0.7757744692029371,
+            "prediction_positive_fraction": 0.5626257694128788,
+            "empty_mask_rate": 0.0,
+            "over_segmentation_rate": 0.0,
+            "non_empty": true
+          }
+        ]
+      }
+    },
+    "all_heads_non_empty": true
+  },
+  "runtime_allowed": false,
+  "clinical_claim_allowed": false,
+  "medical_boundary": "Multi-head checkpoint trained on public proxy fluorescence masks and prompt-assisted bone-gate seeds. Bone-gate seeds remain review-required and cannot be reported as physician ground truth.",
+  "generated_at_utc": "2026-07-10T10:24:59.271653+00:00",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_video_signal_multimask_v2_grouped.pt",
+  "checkpoint_sha256": "3a4cd7e9bd6eb22275be4ebdf2ae667eed2f06cda8850445d0337d7c4eb0e90a",
+  "filtered_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\video_signal_multimask_v2_grouped_20260710_multimask_v2_grouped.csv"
+}

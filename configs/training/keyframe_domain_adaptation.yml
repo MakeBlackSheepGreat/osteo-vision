@@ -1,0 +1,25 @@
+enabled: true
+sampling:
+  domain_tier_weights:
+    target: 4.0
+    near_target: 2.0
+    proxy: 1.0
+    synthetic: 0.75
+  review_state_weights:
+    accepted: 2.0
+    modified: 2.5
+    review_required: 0.75
+    rejected: 0.25
+  balance_source_groups: true
+augmentation:
+  probability: 0.8
+  exposure_gain: [0.75, 1.35]
+  gamma: [0.7, 1.5]
+  channel_gain: [0.85, 1.15]
+  gaussian_noise_std: [0.0, 10.0]
+  blur_probability: 0.25
+  blur_kernel_choices: [3, 5]
+  specular_probability: 0.25
+  occlusion_probability: 0.2
+  jpeg_probability: 0.3
+  jpeg_quality: [45, 90]

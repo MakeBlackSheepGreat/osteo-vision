@@ -11,6 +11,7 @@ export interface WarningRow {
 const inputChannelLabels: Record<InputChannel, string> = {
   white_light: "白光",
   fluorescence: "ICG 荧光",
+  device_overlay: "设备叠加图",
   sequence: "帧序列",
   video: "短视频 / 摄像头",
 };
@@ -145,10 +146,6 @@ export function disclaimerVersionLabel(version?: string | null): string {
   // 旧版本兼容：读取历史病例时保留识别能力，不作为当前项目自称。
   if (version === "research-prototype-v1") return "历史 V1.0.0";
   return version;
-}
-
-export function compactPath(path: string, head = 24, tail = 36): string {
-  return path.length <= head + tail + 3 ? path : `${path.slice(0, head)}...${path.slice(-tail)}`;
 }
 
 export function inputMetaLabel(asset: CaseInputAsset): string {

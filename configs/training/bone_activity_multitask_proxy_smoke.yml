@@ -1,0 +1,31 @@
+capability: bone_activity_multitask
+promotion_policy_path: configs/training/three_priority_promotion.yml
+model:
+  model_id: bone_activity_multitask_proxy_v1
+  model_family: dual_channel_bone_activity_multitask
+  base_channels: 4
+data:
+  mode: synthetic
+  domain: synthetic_bone_activity_proxy
+  target_domain: false
+  sample_count: 15
+  patient_group_count: 5
+  image_shape: [48, 64]
+training:
+  seed: 20260718
+  device: cpu
+  batch_size: 3
+  max_train_batches: 4
+  learning_rate: 0.001
+  loss_weights:
+    bone_gate: 1.0
+    activity_score: 1.0
+    class_logits: 1.0
+    uncertainty: 0.5
+safety:
+  bone_gate_threshold: 0.5
+  abstention_threshold: 0.5
+outputs:
+  checkpoint_path: artifacts/checkpoints/osteo_vision/bone_activity_multitask_proxy_smoke.pt
+  manifest_path: artifacts/checkpoints/osteo_vision/bone_activity_multitask_proxy_smoke_manifest.json
+  summary_path: research/reports/modeling/bone_activity_multitask_proxy_smoke_20260718.json

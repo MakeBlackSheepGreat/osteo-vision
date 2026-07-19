@@ -97,17 +97,17 @@ function formatBytes(value: unknown): string {
   display: grid;
   gap: 7px;
   margin: 0 0 10px;
-  border: 1px solid #cfe0ef;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #f6fbff;
+  background: var(--ov-bg-soft);
 }
 
 .export-panel-title {
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #2f638a;
+  color: var(--ov-primary);
   font-size: 12px;
 }
 
@@ -127,18 +127,18 @@ function formatBytes(value: unknown): string {
   gap: 7px;
   align-items: center;
   min-height: 28px;
-  border: 1px solid #bad4ea;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 4px 8px;
-  background: #ffffff;
-  color: #1f5f93;
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
   font-size: 12px;
   font-weight: 800;
   text-decoration: none;
 }
 
 .export-link strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 11px;
 }
 
@@ -151,10 +151,10 @@ function formatBytes(value: unknown): string {
 
 .export-summary-grid div {
   min-width: 0;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 5px 7px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .export-summary-grid dt,
@@ -165,13 +165,13 @@ function formatBytes(value: unknown): string {
 }
 
 .export-summary-grid dt {
-  color: #6a7a8a;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 800;
 }
 
 .export-summary-grid dd {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -182,7 +182,7 @@ function formatBytes(value: unknown): string {
 }
 
 .export-artifact-list > strong {
-  color: #2f638a;
+  color: var(--ov-primary);
   font-size: 12px;
 }
 
@@ -200,16 +200,16 @@ function formatBytes(value: unknown): string {
   gap: 6px;
   justify-content: space-between;
   min-width: 0;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 5px 7px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .export-artifact-list span,
 .export-artifact-list small {
   min-width: 0;
-  color: #405060;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -221,7 +221,7 @@ function formatBytes(value: unknown): string {
 
 .export-path {
   margin: 10px 0 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -229,6 +229,6 @@ function formatBytes(value: unknown): string {
 
 .export-path--inline {
   margin: 0;
-  color: #2f638a;
+  color: var(--ov-primary);
 }
 </style>

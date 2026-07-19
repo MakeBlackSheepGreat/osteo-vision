@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -48,6 +49,85 @@ def test_case_input_and_analysis_contract(tmp_path: Path, monkeypatch) -> None:
     analyzed_payload = analyzed.json()
     assert analyzed_payload["analysis_runs"]
     assert analyzed_payload["analysis_runs"][-1]["status"] == "completed"
+
+
+def test_device_overlay_is_reference_only_and_excluded_from_model_inputs(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    case_id = client.post("/cases", json={"title": "three channel evidence"}).json()["case_id"]
+    white = Path("tests/fixtures/platform/white.png").resolve()
+    fluorescence = Path("tests/fixtures/platform/fluorescence.png").resolve()
+
+    added = client.post(
+        f"/cases/{case_id}/inputs",
+        json=[
+            {"channel": "white_light", "path": str(white)},
+            {"channel": "fluorescence", "path": str(fluorescence)},
+            {
+                "channel": "device_overlay",
+                "path": str(white),
+                "metadata": {"analysis_input_allowed": True, "derived_by_device": False},
+            },
+        ],
+    )
+
+    assert added.status_code == 200
+    inputs = added.json()["inputs"]
+    overlay = next(item for item in inputs if item["channel"] == "device_overlay")
+    assert overlay["metadata"]["derived_by_device"] is True
+    assert overlay["metadata"]["analysis_input_allowed"] is False
+    assert overlay["metadata"]["evidence_role"] == "device_display_reference"
+
+    analyzed = client.post(
+        f"/cases/{case_id}/analysis-runs",
+        json={
+            "selected_input_ids": [item["input_id"] for item in inputs],
+            "parameters": {"threshold": 0.6},
+            "roi_hints": [],
+        },
+    )
+
+    assert analyzed.status_code == 200
+    run = analyzed.json()["analysis_runs"][-1]
+    reference = run["fused_outputs"]["device_overlay_reference"]
+    assert reference["input_id"] == overlay["input_id"]
+    assert reference["used_for_model_inference"] is False
+    assert reference["analysis_input_allowed"] is False
+    quality = run["fused_outputs"]["three_channel_quality"]
+    assert quality["overall"]["device_overlay_used_for_inference"] is False
+    assert Path(quality["report_path"]).exists()
+    assert Path(quality["overlay_comparison"]["difference_heatmap_path"]).exists()
+    artifact_kinds = {item["kind"] for item in analyzed.json()["artifacts"]}
+    assert "three_channel_qc_report" in artifact_kinds
+    assert "three_channel_difference_heatmap" in artifact_kinds
+
+
+def test_selected_device_overlay_from_different_pair_is_rejected(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.json"))
+    client = TestClient(create_app())
+    case_id = client.post("/cases", json={"title": "overlay mismatch"}).json()["case_id"]
+    white = Path("tests/fixtures/platform/white.png").resolve()
+    fluorescence = Path("tests/fixtures/platform/fluorescence.png").resolve()
+    added = client.post(
+        f"/cases/{case_id}/inputs",
+        json=[
+            {"channel": "white_light", "path": str(white), "metadata": {"batch_id": "b1", "pair_id": "p1"}},
+            {"channel": "fluorescence", "path": str(fluorescence), "metadata": {"batch_id": "b1", "pair_id": "p1"}},
+            {"channel": "device_overlay", "path": str(white), "metadata": {"batch_id": "b1", "pair_id": "p2"}},
+        ],
+    ).json()
+
+    analyzed = client.post(
+        f"/cases/{case_id}/analysis-runs",
+        json={"selected_input_ids": [item["input_id"] for item in added["inputs"]], "parameters": {}, "roi_hints": []},
+    )
+
+    assert analyzed.status_code == 200
+    run = analyzed.json()["analysis_runs"][-1]
+    assert run["status"] == "failed"
+    assert run["warnings"][0]["code"] == "selected_device_overlay_pair_mismatch"
 
 
 def test_saved_roi_is_used_as_analysis_hint(tmp_path: Path, monkeypatch) -> None:
@@ -109,6 +189,7 @@ def test_raw_upload_returns_backend_readable_path(tmp_path: Path, monkeypatch) -
     uploaded_path = Path(payload["path"])
     assert uploaded_path.exists()
     assert uploaded_path.read_bytes() == source.read_bytes()
+    assert payload["sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     preview = client.get("/files/preview", params={"path": payload["path"]})
     assert preview.status_code == 200
 
@@ -535,6 +616,7 @@ def test_video_input_analysis_extracts_keyframes(tmp_path: Path, monkeypatch) ->
         "fluorescence_signal_mask",
         "risk_mask",
         "uncertain_mask",
+        "bone_activity_spectrum",
     ]
     assert segmentation_manifest["summary"]["temporal_stability"]["smoothing_applied_to_mask"] is False
     assert segmentation_manifest["frames"][0]["segmentation_result"]["mask_path"]
@@ -591,7 +673,7 @@ def test_video_input_analysis_extracts_keyframes(tmp_path: Path, monkeypatch) ->
     assert reviewed_candidate["metadata"]["review_label"] == "edited_hotspot_bbox"
     assert reviewed_candidate["metadata"]["bbox_normalized"]["x"] == 0.1
     assert reviewed_candidate["metadata"]["bbox_xyxy"] == [8, 12, 32, 36]
-    assert reviewed_candidate["metadata"]["geometry_review_source"] == "physician_review"
+    assert reviewed_candidate["metadata"]["geometry_review_source"] == "engineering_reviewer"
     assert reviewed_payload["review_events"][-1]["action"] == "candidate_region_state_update"
     assert reviewed_payload["review_summary"]["accepted_candidates"] == 1
 

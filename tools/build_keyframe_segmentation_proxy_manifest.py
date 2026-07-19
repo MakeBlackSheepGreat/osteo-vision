@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.core.paths import ensure_dir, resolve_path  # noqa: E402
+from src.datasets.group_splits import assign_group_split, group_leakage_report, normalized_source_group  # noqa: E402
 from src.preprocess.fluorescence import enhance_fluorescence_signal  # noqa: E402
 from src.reports.writers import write_csv, write_json  # noqa: E402
 
@@ -33,11 +34,13 @@ MANIFEST_FIELDS = [
     "mask_path",
     "split",
     "source_path",
+    "source_group_id",
     "source_type",
     "frame_index",
     "timestamp_sec",
     "label_source",
     "input_domain",
+    "domain_tier",
     "fluorescence_attribute",
     "positive_area_fraction",
     "component_count",
@@ -118,6 +121,7 @@ def build_proxy_manifest(args: argparse.Namespace) -> dict[str, Any]:
         "sample_count": len(rows),
         "skipped_count": len(skipped),
         "split_counts": split_counts(rows),
+        "source_group_split": group_leakage_report(rows),
         "source_type_counts": value_counts(rows, "source_type"),
         "quality_status_counts": value_counts(rows, "quality_status"),
         "positive_area_fraction_stats": numeric_stats(rows, "positive_area_fraction"),
@@ -267,13 +271,20 @@ def write_proxy_sample(
         "case_id": sample_id,
         "image_path": str(image_path),
         "mask_path": str(mask_path),
-        "split": assign_split(sample_id, val_fraction=float(args.val_fraction), seed=int(args.seed)),
+        "split": assign_split(
+            str(source_path),
+            val_fraction=float(args.val_fraction),
+            test_fraction=float(getattr(args, "test_fraction", 0.1)),
+            seed=int(args.seed),
+        ),
         "source_path": str(source_path),
+        "source_group_id": normalized_source_group(source_path),
         "source_type": source_type,
         "frame_index": "" if frame_index is None else int(frame_index),
         "timestamp_sec": "" if timestamp_sec is None else float(timestamp_sec),
         "label_source": "fluorescence_intensity_proxy_mask",
         "input_domain": str(args.input_domain),
+        "domain_tier": str(getattr(args, "domain_tier", "proxy") or "proxy"),
         "fluorescence_attribute": str(args.fluorescence_attribute),
         "positive_area_fraction": round(float(positive_fraction), 8),
         "component_count": int(mask_stats["component_count"]),
@@ -366,16 +377,24 @@ def video_sample_indices(*, frame_count: int, max_frames: int, frame_stride: int
     if frame_count <= 0:
         return []
     if frame_stride > 0:
-        return list(range(0, frame_count, frame_stride))[:max(1, max_frames)]
+        return list(range(0, frame_count, frame_stride))[: max(1, max_frames)]
     count = min(max(1, max_frames), frame_count)
     return sorted({int(round(value)) for value in np.linspace(0, frame_count - 1, count)})
 
 
-def assign_split(sample_id: str, *, val_fraction: float, seed: int) -> str:
-    val_fraction = max(0.0, min(0.9, val_fraction))
-    digest = hashlib.sha256(f"{seed}:{sample_id}".encode("utf-8")).hexdigest()
-    bucket = int(digest[:8], 16) / float(0xFFFFFFFF)
-    return "val" if bucket < val_fraction else "train"
+def assign_split(
+    source_group: str,
+    *,
+    val_fraction: float,
+    seed: int,
+    test_fraction: float = 0.0,
+) -> str:
+    return assign_group_split(
+        source_group,
+        seed=seed,
+        val_fraction=val_fraction,
+        test_fraction=test_fraction,
+    )
 
 
 def sample_identifier(source_path: Path, *, frame_index: int | None, dataset_id: str) -> str:
@@ -517,17 +536,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-name", default="keyframe_segmentation_proxy_manifest.csv")
     parser.add_argument("--dataset-id", default="keyframe_proxy")
     parser.add_argument("--input-domain", default="public_or_local_proxy_keyframe")
+    parser.add_argument(
+        "--domain-tier",
+        default="proxy",
+        choices=["target", "target_domain", "near_target", "near_domain", "proxy", "synthetic"],
+    )
     parser.add_argument("--fluorescence-attribute", default="fluorescence_like_or_unknown")
     parser.add_argument("--threshold", type=float, default=0.62)
     parser.add_argument("--min-component-area", type=int, default=32)
     parser.add_argument("--min-positive-area-fraction", type=float, default=0.0005)
     parser.add_argument("--max-positive-area-fraction", type=float, default=0.6)
     parser.add_argument("--max-frames-per-video", type=int, default=12)
-    parser.add_argument("--frame-stride", type=int, default=0, help="Use fixed frame stride when > 0; otherwise sample evenly.")
+    parser.add_argument(
+        "--frame-stride", type=int, default=0, help="Use fixed frame stride when > 0; otherwise sample evenly."
+    )
     parser.add_argument("--max-samples", type=int, default=0)
     parser.add_argument("--preview-sample-count", type=int, default=30)
     parser.add_argument("--review-seed-sample-count", type=int, default=50)
     parser.add_argument("--val-fraction", type=float, default=0.2)
+    parser.add_argument("--test-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=20260704)
     parser.add_argument("--include-empty", action="store_true")
     return parser.parse_args()

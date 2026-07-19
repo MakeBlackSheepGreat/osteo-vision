@@ -1,0 +1,288 @@
+{
+  "data": {
+    "attributes": {
+      "alternateIdentifiers": [],
+      "citationCount": 0,
+      "citationsOverTime": [],
+      "container": {},
+      "contentUrl": null,
+      "contributors": [],
+      "created": "2025-05-12T20:30:49.000Z",
+      "creators": [
+        {
+          "affiliation": [],
+          "familyName": "Humbert-Vidan",
+          "givenName": "Laia",
+          "name": "Humbert-Vidan, Laia",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0002-8005-6770",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Kamel",
+          "givenName": "Serageldin",
+          "name": "Kamel, Serageldin",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0002-0046-4337",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "D Fuller",
+          "givenName": "Clifton",
+          "name": "D Fuller, Clifton",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Moreno",
+          "givenName": "Amy",
+          "name": "Moreno, Amy",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0001-6762-6807",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Lai",
+          "givenName": "Stephen",
+          "name": "Lai, Stephen",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0001-8301-7286",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        }
+      ],
+      "dates": [
+        {
+          "date": "2025-05-12",
+          "dateType": "Created"
+        },
+        {
+          "date": "2025-05-12",
+          "dateType": "Updated"
+        },
+        {
+          "date": "2025",
+          "dateType": "Issued"
+        }
+      ],
+      "descriptions": [
+        {
+          "description": "In this study, we have developed a novel time to event approach to orodental toxicity prediction, thus providing a more comprehensive estimation of the disease trajectory in order to allow effective risk stratification and surveillance strategies. The developed Weibull AFT model offers a significant advancement in predicting mandibular ORNJ risk following radiotherapy in HNC patients. Being able to predict the time to ORNJ allows for early identification and proactive management of high-risk patients with potential reduction of the severity of ORNJ and improvement of patient outcomes and quality of life.",
+          "descriptionType": "Abstract"
+        }
+      ],
+      "doi": "10.6084/m9.figshare.26240435.v1",
+      "downloadCount": 31,
+      "downloadsOverTime": [
+        {
+          "total": 0,
+          "yearMonth": "2025-05"
+        },
+        {
+          "total": 0,
+          "yearMonth": "2025-05"
+        },
+        {
+          "total": 0,
+          "yearMonth": "2025-06"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2025-09"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2025-10"
+        },
+        {
+          "total": 7,
+          "yearMonth": "2026-01"
+        },
+        {
+          "total": 4,
+          "yearMonth": "2026-02"
+        },
+        {
+          "total": 7,
+          "yearMonth": "2026-03"
+        },
+        {
+          "total": 3,
+          "yearMonth": "2026-05"
+        },
+        {
+          "total": 8,
+          "yearMonth": "2026-06"
+        }
+      ],
+      "formats": [],
+      "fundingReferences": [],
+      "geoLocations": [],
+      "identifiers": [],
+      "isActive": true,
+      "language": null,
+      "metadataVersion": 0,
+      "partCount": 0,
+      "partOfCount": 0,
+      "prefix": "10.6084",
+      "publicationYear": 2025,
+      "published": "2025",
+      "publisher": "figshare",
+      "reason": null,
+      "referenceCount": 0,
+      "registered": "2025-05-12T20:30:49.000Z",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifier": "10.6084/m9.figshare.26240435",
+          "relatedIdentifierType": "DOI",
+          "relationType": "IsIdenticalTo"
+        }
+      ],
+      "relatedItems": [],
+      "rightsList": [
+        {
+          "rights": "Creative Commons Attribution 4.0 International",
+          "rightsIdentifier": "cc-by-4.0",
+          "rightsIdentifierScheme": "SPDX",
+          "rightsUri": "https://creativecommons.org/licenses/by/4.0/legalcode",
+          "schemeUri": "https://spdx.org/licenses/"
+        }
+      ],
+      "schemaVersion": "http://datacite.org/schema/kernel-4",
+      "sizes": [
+        "403524 Bytes"
+      ],
+      "source": "mds",
+      "state": "findable",
+      "subjects": [
+        {
+          "classificationCode": "321110",
+          "schemeUri": "http://www.abs.gov.au/ausstats/abs@.nsf/0/6BB427AB9696C225CA2574180004463E",
+          "subject": "Radiation therapy",
+          "subjectScheme": "ANZSRC Fields of Research"
+        }
+      ],
+      "suffix": "m9.figshare.26240435.v1",
+      "titles": [
+        {
+          "title": "MDACC ORN Time-to-event anonymized clinical dataset"
+        }
+      ],
+      "types": {
+        "bibtex": "misc",
+        "citeproc": "dataset",
+        "resourceType": "Dataset",
+        "resourceTypeGeneral": "Dataset",
+        "ris": "DATA",
+        "schemaOrg": "Dataset"
+      },
+      "updated": "2025-06-01T05:46:12.000Z",
+      "url": "https://figshare.com/articles/dataset/MDACC_ORN_Time-to-event_anonymized_clinical_dataset/26240435/1",
+      "version": null,
+      "versionCount": 0,
+      "versionOfCount": 0,
+      "viewCount": 97,
+      "viewsOverTime": [
+        {
+          "total": 1,
+          "yearMonth": "2025-05"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2025-05"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2025-06"
+        },
+        {
+          "total": 4,
+          "yearMonth": "2025-09"
+        },
+        {
+          "total": 3,
+          "yearMonth": "2025-10"
+        },
+        {
+          "total": 12,
+          "yearMonth": "2026-01"
+        },
+        {
+          "total": 15,
+          "yearMonth": "2026-02"
+        },
+        {
+          "total": 13,
+          "yearMonth": "2026-03"
+        },
+        {
+          "total": 21,
+          "yearMonth": "2026-05"
+        },
+        {
+          "total": 26,
+          "yearMonth": "2026-06"
+        }
+      ],
+      "xml": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHJlc291cmNlIHhtbG5zPSJodHRwOi8vZGF0YWNpdGUub3JnL3NjaGVtYS9rZXJuZWwtNCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vZGF0YWNpdGUub3JnL3NjaGVtYS9rZXJuZWwtNCBodHRwOi8vc2NoZW1hLmRhdGFjaXRlLm9yZy9tZXRhL2tlcm5lbC00LjQvbWV0YWRhdGEueHNkIj4KICA8aWRlbnRpZmllciBpZGVudGlmaWVyVHlwZT0iRE9JIj4xMC42MDg0L005LkZJR1NIQVJFLjI2MjQwNDM1LlYxPC9pZGVudGlmaWVyPgogIDxjcmVhdG9ycz4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+TGFpYSBIdW1iZXJ0LVZpZGFuPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5MYWlhPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkh1bWJlcnQtVmlkYW48L2ZhbWlseU5hbWU+CiAgICAgIDxuYW1lSWRlbnRpZmllciBuYW1lSWRlbnRpZmllclNjaGVtZT0iT1JDSUQiIHNjaGVtZVVSST0iaHR0cHM6Ly9vcmNpZC5vcmciPjAwMDAtMDAwMi04MDA1LTY3NzA8L25hbWVJZGVudGlmaWVyPgogICAgPC9jcmVhdG9yPgogICAgPGNyZWF0b3I+CiAgICAgIDxjcmVhdG9yTmFtZT5TZXJhZ2VsZGluIEthbWVsPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5TZXJhZ2VsZGluPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkthbWVsPC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDAwLTAwMDItMDA0Ni00MzM3PC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+Q2xpZnRvbiBEIEZ1bGxlcjwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+Q2xpZnRvbjwvZ2l2ZW5OYW1lPgogICAgICA8ZmFtaWx5TmFtZT5EIEZ1bGxlcjwvZmFtaWx5TmFtZT4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+QW15IE1vcmVubzwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+QW15PC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPk1vcmVubzwvZmFtaWx5TmFtZT4KICAgICAgPG5hbWVJZGVudGlmaWVyIG5hbWVJZGVudGlmaWVyU2NoZW1lPSJPUkNJRCIgc2NoZW1lVVJJPSJodHRwczovL29yY2lkLm9yZyI+MDAwMC0wMDAxLTY3NjItNjgwNzwvbmFtZUlkZW50aWZpZXI+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPlN0ZXBoZW4gTGFpPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5TdGVwaGVuPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkxhaTwvZmFtaWx5TmFtZT4KICAgICAgPG5hbWVJZGVudGlmaWVyIG5hbWVJZGVudGlmaWVyU2NoZW1lPSJPUkNJRCIgc2NoZW1lVVJJPSJodHRwczovL29yY2lkLm9yZyI+MDAwMC0wMDAxLTgzMDEtNzI4NjwvbmFtZUlkZW50aWZpZXI+CiAgICA8L2NyZWF0b3I+CiAgPC9jcmVhdG9ycz4KICA8dGl0bGVzPgogICAgPHRpdGxlPk1EQUNDIE9STiBUaW1lLXRvLWV2ZW50IGFub255bWl6ZWQgY2xpbmljYWwgZGF0YXNldDwvdGl0bGU+CiAgPC90aXRsZXM+CiAgPGRlc2NyaXB0aW9ucz4KICAgIDxkZXNjcmlwdGlvbiBkZXNjcmlwdGlvblR5cGU9IkFic3RyYWN0Ij4mbHQ7cCBkaXI9Imx0ciImZ3Q7SW4gdGhpcyBzdHVkeSwgd2UgaGF2ZSBkZXZlbG9wZWQgYSBub3ZlbCB0aW1lIHRvIGV2ZW50IGFwcHJvYWNoIHRvIG9yb2RlbnRhbCB0b3hpY2l0eSBwcmVkaWN0aW9uLCB0aHVzIHByb3ZpZGluZyBhIG1vcmUgY29tcHJlaGVuc2l2ZSBlc3RpbWF0aW9uIG9mIHRoZSBkaXNlYXNlIHRyYWplY3RvcnkgaW4gb3JkZXIgdG8gYWxsb3cgZWZmZWN0aXZlIHJpc2sgc3RyYXRpZmljYXRpb24gYW5kIHN1cnZlaWxsYW5jZSBzdHJhdGVnaWVzLiBUaGUgZGV2ZWxvcGVkIFdlaWJ1bGwgQUZUIG1vZGVsIG9mZmVycyBhIHNpZ25pZmljYW50IGFkdmFuY2VtZW50IGluIHByZWRpY3RpbmcgbWFuZGlidWxhciBPUk5KIHJpc2sgZm9sbG93aW5nIHJhZGlvdGhlcmFweSBpbiBITkMgcGF0aWVudHMuIEJlaW5nIGFibGUgdG8gcHJlZGljdCB0aGUgdGltZSB0byBPUk5KIGFsbG93cyBmb3IgZWFybHkgaWRlbnRpZmljYXRpb24gYW5kIHByb2FjdGl2ZSBtYW5hZ2VtZW50IG9mIGhpZ2gtcmlzayBwYXRpZW50cyB3aXRoIHBvdGVudGlhbCByZWR1Y3Rpb24gb2YgdGhlIHNldmVyaXR5IG9mIE9STkogYW5kIGltcHJvdmVtZW50IG9mIHBhdGllbnQgb3V0Y29tZXMgYW5kIHF1YWxpdHkgb2YgbGlmZS4mbHQ7L3AmZ3Q7PC9kZXNjcmlwdGlvbj4KICA8L2Rlc2NyaXB0aW9ucz4KICA8c3ViamVjdHM+CiAgICA8c3ViamVjdCBzY2hlbWVVUkk9Imh0dHA6Ly93d3cuYWJzLmdvdi5hdS9hdXNzdGF0cy9hYnNALm5zZi8wLzZCQjQyN0FCOTY5NkMyMjVDQTI1NzQxODAwMDQ0NjNFIiBzdWJqZWN0U2NoZW1lPSJBTlpTUkMgRmllbGRzIG9mIFJlc2VhcmNoIiBjbGFzc2lmaWNhdGlvbkNvZGU9IjMyMTExMCI+UmFkaWF0aW9uIHRoZXJhcHk8L3N1YmplY3Q+CiAgPC9zdWJqZWN0cz4KICA8cHVibGlzaGVyPmZpZ3NoYXJlPC9wdWJsaXNoZXI+CiAgPHB1YmxpY2F0aW9uWWVhcj4yMDI1PC9wdWJsaWNhdGlvblllYXI+CiAgPGRhdGVzPgogICAgPGRhdGUgZGF0ZVR5cGU9IkNyZWF0ZWQiPjIwMjUtMDUtMTI8L2RhdGU+CiAgICA8ZGF0ZSBkYXRlVHlwZT0iVXBkYXRlZCI+MjAyNS0wNS0xMjwvZGF0ZT4KICA8L2RhdGVzPgogIDxyZXNvdXJjZVR5cGUgcmVzb3VyY2VUeXBlR2VuZXJhbD0iRGF0YXNldCI+RGF0YXNldDwvcmVzb3VyY2VUeXBlPgogIDxzaXplcz4KICAgIDxzaXplPjQwMzUyNCBCeXRlczwvc2l6ZT4KICA8L3NpemVzPgogIDxyZWxhdGVkSWRlbnRpZmllcnM+CiAgICA8cmVsYXRlZElkZW50aWZpZXIgcmVsYXRlZElkZW50aWZpZXJUeXBlPSJET0kiIHJlbGF0aW9uVHlwZT0iSXNJZGVudGljYWxUbyI+MTAuNjA4NC9tOS5maWdzaGFyZS4yNjI0MDQzNTwvcmVsYXRlZElkZW50aWZpZXI+CiAgPC9yZWxhdGVkSWRlbnRpZmllcnM+CiAgPHJpZ2h0c0xpc3Q+CiAgICA8cmlnaHRzIHJpZ2h0c1VSST0iaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LzQuMC8iPkNDIEJZIDQuMDwvcmlnaHRzPgogIDwvcmlnaHRzTGlzdD4KPC9yZXNvdXJjZT4="
+    },
+    "id": "10.6084/m9.figshare.26240435.v1",
+    "relationships": {
+      "citations": {
+        "data": []
+      },
+      "client": {
+        "data": {
+          "id": "figshare.ars",
+          "type": "clients"
+        }
+      },
+      "media": {
+        "data": {
+          "id": "10.6084/m9.figshare.26240435.v1",
+          "type": "media"
+        }
+      },
+      "partOf": {
+        "data": []
+      },
+      "parts": {
+        "data": []
+      },
+      "provider": {
+        "data": {
+          "id": "otjm",
+          "type": "providers"
+        }
+      },
+      "references": {
+        "data": []
+      },
+      "versionOf": {
+        "data": []
+      },
+      "versions": {
+        "data": []
+      }
+    },
+    "type": "dois"
+  }
+}

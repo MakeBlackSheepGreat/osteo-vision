@@ -83,10 +83,10 @@ function selectedMetricKeys(): string[] {
   return fluorescenceMetricKeys;
 }
 
-function p95Label(metricMap: Record<string, unknown>, fallback?: number | null): string {
+function p95Label(metricMap: Record<string, unknown>, _fallback?: number | null): string {
   const value = metricMap.p95_intensity;
   if (typeof value === "number") return value.toFixed(2);
-  return numberLabel(fallback);
+  return "暂无";
 }
 
 function areaLabel(metricMap: Record<string, unknown>, index: number, candidateScore?: number | null): string {
@@ -98,11 +98,8 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
     return `${(Math.max(0, hotspotFraction - index * 0.004) * 100).toFixed(2)}%`;
   }
   const areaPx = metricMap.positive_area_px;
-  if (typeof areaPx === "number") {
-    const area = Math.max(0.42, areaPx / 4200 - index * 0.32);
-    return `${area.toFixed(2)} cm²`;
-  }
-  return ["2.31 cm²", "1.47 cm²", "0.98 cm²"][index] ?? "暂无";
+  if (typeof areaPx === "number") return `${Math.max(0, areaPx).toFixed(0)} px`;
+  return "暂无";
 }
 
 </script>
@@ -115,11 +112,11 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 
 .result-card {
   min-width: 0;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 .compact-card-header {
@@ -129,15 +126,15 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
   justify-content: space-between;
   margin-bottom: 6px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #e3ebf3;
+  border-bottom: 1px solid var(--ov-border-subtle);
 }
 
 .compact-card-header > span {
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 3px 8px;
-  background: #f2f7fc;
-  color: #5a6a7a;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 900;
 }
@@ -150,7 +147,7 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 }
 
 .result-card :deep(.ov-section-heading__title) {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
 }
 
@@ -160,7 +157,7 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 
 .summary-subtitle {
   margin: 0 0 6px;
-  color: #315f86;
+  color: var(--ov-primary);
   font-size: 11px;
   font-weight: 900;
 }
@@ -168,7 +165,7 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 .summary-divider {
   height: 1px;
   margin: 9px 0 8px;
-  background: #e3ebf3;
+  background: var(--ov-border-subtle);
 }
 
 .metric-grid {
@@ -180,10 +177,10 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 
 .metric-grid div {
   min-width: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 6px 7px;
-  background: #fbfdff;
+  background: var(--ov-bg-soft);
 }
 
 .metric-grid dt,
@@ -194,14 +191,14 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 }
 
 .metric-grid dt {
-  color: #6a7a8a;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 800;
 }
 
 .metric-grid dd {
   margin-top: 2px;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -215,10 +212,10 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 }
 
 .candidate-list li {
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 7px 8px;
-  background: #fbfdff;
+  background: var(--ov-bg-soft);
 }
 
 .candidate-body {
@@ -235,7 +232,7 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 
 .candidate-topline strong {
   min-width: 0;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
 }
 
@@ -243,8 +240,8 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 3px 9px;
-  background: #fff0cf;
-  color: #bd650c;
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
   font-size: 12px;
   font-weight: 900;
 }
@@ -257,18 +254,18 @@ function areaLabel(metricMap: Record<string, unknown>, index: number, candidateS
 
 .candidate-meta p {
   margin: 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 10px;
   line-height: 1.35;
 }
 
 .empty-inline {
   margin: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 10px 12px;
-  background: #fbfdff;
-  color: #6a7a8a;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-muted);
   font-size: 13px;
   line-height: 1.5;
 }

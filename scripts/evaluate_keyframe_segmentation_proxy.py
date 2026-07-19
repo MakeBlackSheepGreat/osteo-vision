@@ -23,6 +23,8 @@ from scripts.train_keyframe_segmentation_proxy import (
     load_manifest_rows,
 )
 from src.core.paths import ensure_dir, resolve_path
+from src.datasets.group_splits import assert_no_group_leakage
+from src.metrics.calibration import binary_brier_score, expected_calibration_error
 from src.models.keyframe_segmenter import (
     checkpoint_sha256,
     load_keyframe_segmenter_checkpoint,
@@ -46,7 +48,15 @@ def evaluate_keyframe_thresholds(args: argparse.Namespace) -> dict[str, Any]:
     thresholds = parse_thresholds(args.thresholds)
     rows, manifest_summary = load_eval_rows(args.manifest, split=args.split, max_samples=args.max_samples)
     model, checkpoint_metadata = load_keyframe_segmenter_checkpoint(resolve_path(args.checkpoint), device=device)
-    samples = collect_probabilities(model, rows, image_shape=image_shape, device=device)
+    temperature = float((checkpoint_metadata.get("calibration") or {}).get("temperature") or 1.0)
+    samples = collect_probabilities(
+        model,
+        rows,
+        image_shape=image_shape,
+        device=device,
+        temperature=temperature,
+    )
+    inference_benchmark = summarize_inference_benchmark(samples, model=model, device=device)
     threshold_rows = [
         threshold_metrics(
             samples,
@@ -81,10 +91,13 @@ def evaluate_keyframe_thresholds(args: argparse.Namespace) -> dict[str, Any]:
             "training": checkpoint_metadata.get("training") or {},
         },
         "manifest_paths": manifest_summary["manifest_paths"],
+        "source_group_split": manifest_summary["source_group_split"],
         "split": args.split,
         "image_shape": [int(image_shape[0]), int(image_shape[1])],
         "sample_count": len(samples),
         "target_positive_fraction_stats": target_stats,
+        "calibration": calibration_summary(samples),
+        "inference_benchmark": inference_benchmark,
         "thresholds": threshold_rows,
         "recommendation": recommendation,
         "outputs": {
@@ -101,7 +114,7 @@ def evaluate_keyframe_thresholds(args: argparse.Namespace) -> dict[str, Any]:
         },
         "medical_boundary": (
             "Threshold metrics are computed against pseudo masks from public/proxy keyframes only. "
-            "They are not real intraoperative ICG jaw osteomyelitis clinical segmentation performance."
+            "Clinical performance on intraoperative ICG jaw osteomyelitis remains unmeasured."
         ),
     }
     write_json(json_path, payload)
@@ -111,20 +124,27 @@ def evaluate_keyframe_thresholds(args: argparse.Namespace) -> dict[str, Any]:
     return payload
 
 
-def load_eval_rows(manifest_paths: Iterable[str], *, split: str, max_samples: int) -> tuple[list[dict[str, str]], dict[str, Any]]:
+def load_eval_rows(
+    manifest_paths: Iterable[str], *, split: str, max_samples: int
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
     paths = [str(item) for item in manifest_paths if str(item).strip()]
     if not paths:
         raise ValueError("At least one --manifest path is required.")
     rows: list[dict[str, str]] = []
     for manifest in paths:
         rows.extend(load_manifest_rows(manifest))
+    leakage_report = assert_no_group_leakage(rows, context="keyframe evaluation manifests")
     if split != "all":
         rows = [row for row in rows if row.get("split") == split]
     if max_samples > 0:
         rows = rows[:max_samples]
     if not rows:
         raise ValueError(f"No rows found for split={split!r} in manifests: {paths}")
-    return rows, {"manifest_paths": [str(resolve_path(path)) for path in paths], "row_count": len(rows)}
+    return rows, {
+        "manifest_paths": [str(resolve_path(path)) for path in paths],
+        "row_count": len(rows),
+        "source_group_split": leakage_report,
+    }
 
 
 def collect_probabilities(
@@ -133,14 +153,30 @@ def collect_probabilities(
     *,
     image_shape: tuple[int, int],
     device: torch.device,
+    temperature: float = 1.0,
 ) -> list[dict[str, Any]]:
     dataset = ManifestKeyframeDataset(rows, image_shape=image_shape)
     samples: list[dict[str, Any]] = []
     model.eval()
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     with torch.no_grad():
         for index, (image, target, _sample_weight) in enumerate(DataLoader(dataset, batch_size=1, shuffle=False)):
             image = image.to(device=device, dtype=torch.float32)
-            probability = torch.softmax(model(image), dim=1)[0, 1].detach().cpu().numpy().astype(np.float32)
+            if device.type == "cuda":
+                torch.cuda.synchronize(device)
+            inference_started = time.perf_counter()
+            logits = model(image)
+            if device.type == "cuda":
+                torch.cuda.synchronize(device)
+            inference_ms = (time.perf_counter() - inference_started) * 1000.0
+            probability = (
+                torch.softmax(logits / max(1e-3, float(temperature)), dim=1)[0, 1]
+                .detach()
+                .cpu()
+                .numpy()
+                .astype(np.float32)
+            )
             target_np = target.numpy()[0] > 0
             samples.append(
                 {
@@ -148,9 +184,45 @@ def collect_probabilities(
                     "probability": probability,
                     "target": target_np,
                     "target_positive_fraction": float(target_np.mean()),
+                    "inference_ms": float(inference_ms),
+                    "source_group_id": rows[index].get("source_group_id")
+                    or rows[index].get("source_video_path")
+                    or rows[index].get("source_path")
+                    or rows[index].get("case_id"),
                 }
             )
     return samples
+
+
+def summarize_inference_benchmark(
+    samples: list[dict[str, Any]],
+    *,
+    model: nn.Module,
+    device: torch.device,
+) -> dict[str, Any]:
+    all_latencies = [float(sample["inference_ms"]) for sample in samples]
+    measured_latencies = all_latencies[1:] if len(all_latencies) > 1 else all_latencies
+    parameter_count = sum(parameter.numel() for parameter in model.parameters())
+    parameter_bytes = sum(parameter.numel() * parameter.element_size() for parameter in model.parameters())
+    return {
+        "warmup_samples_excluded": 1 if len(all_latencies) > 1 else 0,
+        "measured_sample_count": len(measured_latencies),
+        "mean_latency_ms": mean_or_none(measured_latencies),
+        "median_latency_ms": percentile_or_none(measured_latencies, 50),
+        "p95_latency_ms": percentile_or_none(measured_latencies, 95),
+        "throughput_fps": (
+            float(1000.0 / np.mean(measured_latencies))
+            if measured_latencies and float(np.mean(measured_latencies)) > 0.0
+            else None
+        ),
+        "peak_gpu_memory_mb": (
+            float(torch.cuda.max_memory_allocated(device) / (1024**2)) if device.type == "cuda" else None
+        ),
+        "parameter_count": int(parameter_count),
+        "parameter_memory_mb": float(parameter_bytes / (1024**2)),
+        "input_batch_size": 1,
+        "device": str(device),
+    }
 
 
 def threshold_metrics(
@@ -161,6 +233,9 @@ def threshold_metrics(
 ) -> dict[str, Any]:
     dice_scores: list[float] = []
     iou_scores: list[float] = []
+    precision_scores: list[float] = []
+    recall_scores: list[float] = []
+    boundary_scores: list[float] = []
     positive_fractions: list[float] = []
     empty_count = 0
     over_count = 0
@@ -169,19 +244,28 @@ def threshold_metrics(
         target = cast(np.ndarray, sample["target"])
         prediction = probability >= float(threshold)
         dice, iou = binary_dice_iou(prediction, target)
+        precision, recall = binary_precision_recall(prediction, target)
+        boundary_scores.append(boundary_f1(prediction, target))
         positive_fraction = float(prediction.mean()) if prediction.size else 0.0
         dice_scores.append(dice)
         iou_scores.append(iou)
+        precision_scores.append(precision)
+        recall_scores.append(recall)
         positive_fractions.append(positive_fraction)
         if positive_fraction <= 0.0:
             empty_count += 1
         if positive_fraction > over_segmentation_fraction:
             over_count += 1
+    group_intervals = video_group_bootstrap(samples, threshold=float(threshold))
+    calibration = calibration_summary(samples)
     return {
         "threshold": round(float(threshold), 6),
         "case_count": len(samples),
         "foreground_mean_dice": mean_or_none(dice_scores),
         "foreground_mean_iou": mean_or_none(iou_scores),
+        "foreground_precision_mean": mean_or_none(precision_scores),
+        "foreground_recall_mean": mean_or_none(recall_scores),
+        "boundary_f1_mean": mean_or_none(boundary_scores),
         "prediction_positive_fraction_mean": mean_or_none(positive_fractions),
         "prediction_positive_fraction_median": percentile_or_none(positive_fractions, 50),
         "prediction_positive_fraction_p25": percentile_or_none(positive_fractions, 25),
@@ -191,6 +275,112 @@ def threshold_metrics(
         "over_segmentation_count": over_count,
         "over_segmentation_rate": float(over_count / len(samples)) if samples else None,
         "over_segmentation_fraction": float(over_segmentation_fraction),
+        "video_group_bootstrap": group_intervals,
+        "ece": calibration["ece"],
+        "brier_score": calibration["brier_score"],
+    }
+
+
+def binary_precision_recall(prediction: np.ndarray, target: np.ndarray) -> tuple[float, float]:
+    pred = np.asarray(prediction, dtype=bool)
+    true = np.asarray(target, dtype=bool)
+    true_positive = float(np.logical_and(pred, true).sum())
+    false_positive = float(np.logical_and(pred, np.logical_not(true)).sum())
+    false_negative = float(np.logical_and(np.logical_not(pred), true).sum())
+    precision_denominator = true_positive + false_positive
+    recall_denominator = true_positive + false_negative
+    precision = (
+        1.0
+        if precision_denominator == 0.0 and recall_denominator == 0.0
+        else (true_positive / max(1.0, precision_denominator))
+    )
+    recall = 1.0 if recall_denominator == 0.0 else true_positive / recall_denominator
+    return float(precision), float(recall)
+
+
+def boundary_f1(prediction: np.ndarray, target: np.ndarray, *, tolerance_px: int = 2) -> float:
+    pred = np.asarray(prediction, dtype=np.uint8)
+    true = np.asarray(target, dtype=np.uint8)
+    if pred.shape != true.shape:
+        raise ValueError("prediction and target must have identical shapes")
+    pred_boundary: np.ndarray
+    true_boundary: np.ndarray
+    pred_dilated: np.ndarray
+    true_dilated: np.ndarray
+    try:
+        import cv2
+
+        kernel = np.ones((3, 3), dtype=np.uint8)
+        pred_boundary = pred - cv2.erode(pred, kernel, iterations=1)
+        true_boundary = true - cv2.erode(true, kernel, iterations=1)
+        tolerance_kernel = np.ones((2 * tolerance_px + 1, 2 * tolerance_px + 1), dtype=np.uint8)
+        pred_dilated = cv2.dilate(pred_boundary, tolerance_kernel, iterations=1)
+        true_dilated = cv2.dilate(true_boundary, tolerance_kernel, iterations=1)
+    except Exception:
+        pred_boundary = pred
+        true_boundary = true
+        pred_dilated = pred
+        true_dilated = true
+    pred_count = int(pred_boundary.sum())
+    true_count = int(true_boundary.sum())
+    if pred_count == 0 and true_count == 0:
+        return 1.0
+    precision = float(np.logical_and(pred_boundary > 0, true_dilated > 0).sum()) / max(1, pred_count)
+    recall = float(np.logical_and(true_boundary > 0, pred_dilated > 0).sum()) / max(1, true_count)
+    return float(2.0 * precision * recall / max(1e-8, precision + recall))
+
+
+def calibration_summary(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    if not samples:
+        return {"available": False, "reason": "no_samples"}
+    targets = np.concatenate([cast(np.ndarray, item["target"]).reshape(-1) for item in samples]).astype(np.float32)
+    probabilities = np.concatenate([cast(np.ndarray, item["probability"]).reshape(-1) for item in samples])
+    ece = expected_calibration_error(targets, probabilities)
+    return {
+        "available": True,
+        "ece": ece["ece"],
+        "brier_score": binary_brier_score(targets, probabilities),
+        "reliability_bins": ece["bins"],
+    }
+
+
+def video_group_bootstrap(
+    samples: list[dict[str, Any]],
+    *,
+    threshold: float,
+    iterations: int = 1000,
+    seed: int = 20260710,
+) -> dict[str, Any]:
+    by_group: dict[str, list[tuple[float, float, float]]] = {}
+    for sample in samples:
+        probability = cast(np.ndarray, sample["probability"])
+        target = cast(np.ndarray, sample["target"])
+        prediction = probability >= threshold
+        dice, iou = binary_dice_iou(prediction, target)
+        boundary = boundary_f1(prediction, target)
+        by_group.setdefault(str(sample["source_group_id"]), []).append((dice, iou, boundary))
+    group_metrics = [np.mean(np.asarray(values, dtype=np.float32), axis=0) for values in by_group.values()]
+    if not group_metrics:
+        return {"available": False, "reason": "no_groups"}
+    matrix = np.asarray(group_metrics, dtype=np.float32)
+    rng = np.random.default_rng(seed)
+    draws = np.empty((iterations, 3), dtype=np.float32)
+    for index in range(iterations):
+        sample_indexes = rng.integers(0, len(matrix), size=len(matrix))
+        draws[index] = matrix[sample_indexes].mean(axis=0)
+    names = ("dice", "iou", "boundary_f1")
+    return {
+        "available": True,
+        "group_count": len(matrix),
+        "iterations": int(iterations),
+        "metrics": {
+            name: {
+                "mean": float(matrix[:, metric_index].mean()),
+                "ci95_low": float(np.percentile(draws[:, metric_index], 2.5)),
+                "ci95_high": float(np.percentile(draws[:, metric_index], 97.5)),
+            }
+            for metric_index, name in enumerate(names)
+        },
     }
 
 
@@ -244,6 +434,9 @@ def write_threshold_csv(path: Path, rows: list[dict[str, Any]], *, recommended_t
         "case_count",
         "foreground_mean_dice",
         "foreground_mean_iou",
+        "foreground_precision_mean",
+        "foreground_recall_mean",
+        "boundary_f1_mean",
         "prediction_positive_fraction_mean",
         "prediction_positive_fraction_median",
         "empty_mask_count",
@@ -251,6 +444,8 @@ def write_threshold_csv(path: Path, rows: list[dict[str, Any]], *, recommended_t
         "over_segmentation_count",
         "over_segmentation_rate",
         "over_segmentation_fraction",
+        "ece",
+        "brier_score",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -268,6 +463,7 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
     recommendation = payload["recommendation"]
     selected = recommendation.get("selected_row") or {}
     rows = payload["thresholds"]
+    benchmark = payload.get("inference_benchmark") or {}
     table = render_threshold_table(rows, recommended_threshold=recommendation.get("threshold"))
     if language == "zh":
         lines = [
@@ -279,7 +475,9 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             f"- Manifest：{len(payload['manifest_paths'])} 个；split：`{payload['split']}`；样本数：{payload['sample_count']}。",
             f"- 推荐运行阈值：`{recommendation.get('threshold')}`；选择原因：`{recommendation.get('reason')}`。",
             f"- 推荐阈值 Dice：{fmt(selected.get('foreground_mean_dice'))}；IoU：{fmt(selected.get('foreground_mean_iou'))}。",
+            f"- 精确率：{fmt(selected.get('foreground_precision_mean'))}；召回率：{fmt(selected.get('foreground_recall_mean'))}。",
             f"- 空 mask 率：{fmt(selected.get('empty_mask_rate'))}；过分割率：{fmt(selected.get('over_segmentation_rate'))}。",
+            f"- 单帧延迟：{fmt(benchmark.get('mean_latency_ms'))} ms；P95：{fmt(benchmark.get('p95_latency_ms'))} ms；峰值显存：{fmt(benchmark.get('peak_gpu_memory_mb'))} MB。",
             "",
             "## 阈值表",
             "",
@@ -288,7 +486,7 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             "## 医学边界",
             "",
             payload["medical_boundary"],
-            "ICG 不是颌骨骨髓炎特异性探针，本报告只服务于平台软件的 MP4/JPEG keyframe 分割稳定性调参。",
+            "ICG 主要反映灌注与组织活性差异；本报告只服务于平台软件的 MP4/JPEG keyframe 分割稳定性调参。",
         ]
     else:
         lines = [
@@ -300,7 +498,9 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             f"- Manifests: {len(payload['manifest_paths'])}; split: `{payload['split']}`; samples: {payload['sample_count']}.",
             f"- Recommended runtime threshold: `{recommendation.get('threshold')}`; reason: `{recommendation.get('reason')}`.",
             f"- Recommended Dice: {fmt(selected.get('foreground_mean_dice'))}; IoU: {fmt(selected.get('foreground_mean_iou'))}.",
+            f"- Precision: {fmt(selected.get('foreground_precision_mean'))}; recall: {fmt(selected.get('foreground_recall_mean'))}.",
             f"- Empty-mask rate: {fmt(selected.get('empty_mask_rate'))}; over-segmentation rate: {fmt(selected.get('over_segmentation_rate'))}.",
+            f"- Per-frame latency: {fmt(benchmark.get('mean_latency_ms'))} ms; P95: {fmt(benchmark.get('p95_latency_ms'))} ms; peak GPU memory: {fmt(benchmark.get('peak_gpu_memory_mb'))} MB.",
             "",
             "## Threshold Table",
             "",
@@ -309,21 +509,22 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             "## Medical Boundary",
             "",
             payload["medical_boundary"],
-            "ICG is not a jaw-osteomyelitis-specific probe. This report is for MP4/JPEG keyframe segmentation stability tuning only.",
+            "ICG mainly reflects perfusion and tissue-activity differences. This report supports MP4/JPEG keyframe segmentation stability tuning only.",
         ]
     return "\n".join(lines) + "\n"
 
 
 def render_threshold_table(rows: list[dict[str, Any]], *, recommended_threshold: Any) -> str:
     lines = [
-        "| Threshold | Recommended | Dice | IoU | Pred Pos Mean | Empty Rate | OverSeg Rate |",
-        "|---:|---:|---:|---:|---:|---:|---:|",
+        "| Threshold | Recommended | Dice | IoU | Precision | Recall | Pred Pos Mean | Empty Rate | OverSeg Rate |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in rows:
         recommended = str(row.get("threshold")) == str(recommended_threshold)
         lines.append(
             f"| {row.get('threshold')} | {recommended} | {fmt(row.get('foreground_mean_dice'))} | "
-            f"{fmt(row.get('foreground_mean_iou'))} | {fmt(row.get('prediction_positive_fraction_mean'))} | "
+            f"{fmt(row.get('foreground_mean_iou'))} | {fmt(row.get('foreground_precision_mean'))} | "
+            f"{fmt(row.get('foreground_recall_mean'))} | {fmt(row.get('prediction_positive_fraction_mean'))} | "
             f"{fmt(row.get('empty_mask_rate'))} | {fmt(row.get('over_segmentation_rate'))} |"
         )
     return "\n".join(lines)
@@ -399,7 +600,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--thresholds", default=DEFAULT_THRESHOLDS)
     parser.add_argument("--image-shape", default="160x256")
-    parser.add_argument("--split", default="val", choices=["train", "val", "all"])
+    parser.add_argument("--split", default="val", choices=["train", "val", "test", "all"])
     parser.add_argument("--max-samples", type=int, default=0)
     parser.add_argument("--over-segmentation-fraction", type=float, default=0.6)
     parser.add_argument("--max-empty-mask-rate", type=float, default=0.05)

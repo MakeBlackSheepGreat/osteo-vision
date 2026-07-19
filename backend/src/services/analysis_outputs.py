@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from backend.src.core.artifacts import checksum_for_file
 from backend.src.core.disclaimers import disclaimer_context
 from backend.src.domains.cases.enums import ArtifactKind, ReviewState
-from backend.src.domains.cases.schemas import CandidateRegion, CaseInputAsset, CaseRecord, EvidenceArtifact
+from backend.src.domains.cases.schemas import (
+    CandidateRegion,
+    CaseInputAsset,
+    CaseRecord,
+    EvidenceArtifact,
+)
 from backend.src.services.video_hotspot_outputs import (
     hotspot_artifacts,
     video_manifest_artifacts,
@@ -29,10 +35,11 @@ def video_fused_outputs(
     video_segmentation_outputs: dict[str, Any],
     roi_hints: list[dict[str, Any]],
     three_d_evidence: dict[str, Any],
+    analysis_mode: str = "video_file_keyframes",
 ) -> dict[str, Any]:
     # MP4 分析结果字段较多，集中装配可以让 AnalysisService 只保留流程编排。
     return {
-        "mode": "video_file_keyframes",
+        "mode": analysis_mode,
         "source_path": source_path,
         "video_metadata": video.metadata if video else {},
         "keyframes": keyframes,
@@ -66,6 +73,8 @@ def video_quantitative_summary(
     video_segmentation_outputs: dict[str, Any],
     temporal_summary: dict[str, Any],
     hotspot_summary: dict[str, Any],
+    inference_performance: dict[str, Any] | None = None,
+    fluorescence_dynamics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     segmentation_summary = video_segmentation_outputs.get("summary", {})
     segmentation_summary = segmentation_summary if isinstance(segmentation_summary, dict) else {}
@@ -79,6 +88,8 @@ def video_quantitative_summary(
         "segmentation_frame_count": segmentation_summary.get("selected_frame_count", 0),
         "segmentation_overlay_video_available": bool(video_segmentation_outputs.get("segmentation_review_video_path")),
         "hotspot_temporal_instability_frame_count": temporal_summary.get("instability_frame_count", 0),
+        "keyframe_inference_performance": inference_performance or {"available": False},
+        "fluorescence_time_intensity_curve": fluorescence_dynamics or {"available": False},
         **hotspot_summary,
     }
 
@@ -145,13 +156,15 @@ def fusion_candidate_regions(
 ) -> list[CandidateRegion]:
     quantification = fusion_report.get("quantification", {})
     quantification = quantification if isinstance(quantification, dict) else {}
+    score = quantification.get("roi_mean_intensity", quantification.get("mean_intensity", 0.0))
+    confidence = quantification.get("roi_p95_intensity", quantification.get("p95_intensity", 0.0))
     return [
         CandidateRegion(
             candidate_id=f"cand_{uuid4().hex[:10]}",
             run_id=run_id,
-            score=float(quantification.get("roi_mean_intensity", quantification.get("mean_intensity", 0.0))),
+            score=float(score or 0.0),
             risk_type="fluorescence_hotspot",
-            confidence=float(quantification.get("roi_p95_intensity", quantification.get("p95_intensity", 0.0))),
+            confidence=float(confidence or 0.0),
             status=ReviewState.REVIEW_REQUIRED,
             explanation=(
                 "Derived from ROI-constrained fluorescence quantification heuristics."
@@ -195,6 +208,100 @@ def fusion_artifacts(case_id: str, run_id: str, outputs: dict[str, Any]) -> list
             )
         )
     return artifacts
+
+
+def patient_conditioning_artifacts(
+    case_id: str,
+    run_id: str,
+    evidence: dict[str, Any],
+) -> list[EvidenceArtifact]:
+    mapping = {
+        "image_only_probability_path": ArtifactKind.PROBABILITY_MAP,
+        "conditioned_probability_path": ArtifactKind.PROBABILITY_MAP,
+        "delta_map_path": ArtifactKind.HEATMAP,
+        "difference_mask_path": ArtifactKind.ROI_MASK,
+        "spatial_effect_mask_path": ArtifactKind.ROI_MASK,
+        "uncertainty_path": ArtifactKind.HEATMAP,
+        "image_only_mask_path": ArtifactKind.ROI_MASK,
+        "conditioned_mask_path": ArtifactKind.ROI_MASK,
+        "evidence_manifest_path": ArtifactKind.REPORT_JSON,
+    }
+    artifacts: list[EvidenceArtifact] = []
+    seen: set[Path] = set()
+    for key, kind in mapping.items():
+        value = evidence.get(key)
+        if not value:
+            continue
+        path = Path(str(value)).expanduser().resolve()
+        if path in seen or not path.is_file():
+            continue
+        seen.add(path)
+        artifacts.append(
+            EvidenceArtifact(
+                artifact_id=f"artifact_{uuid4().hex[:10]}",
+                case_id=case_id,
+                run_id=run_id,
+                kind=kind,
+                path=str(path),
+                checksum=checksum_for_file(path),
+            )
+        )
+    return artifacts
+
+
+def bone_activity_checkpoint_artifacts(
+    case_id: str,
+    run_id: str,
+    evidence: dict[str, Any],
+) -> list[EvidenceArtifact]:
+    raw_value = evidence.get("raw_engineering_outputs")
+    raw = dict(raw_value) if isinstance(raw_value, dict) else {}
+    paths = (
+        (evidence.get("evidence_manifest_path"), ArtifactKind.BONE_ACTIVITY_CHECKPOINT_EVIDENCE),
+        (raw.get("path"), ArtifactKind.BONE_ACTIVITY_RAW_ENGINEERING_OUTPUTS),
+    )
+    artifacts: list[EvidenceArtifact] = []
+    seen: set[Path] = set()
+    for value, kind in paths:
+        if not value:
+            continue
+        path = Path(str(value)).expanduser().resolve()
+        if path in seen or not path.is_file():
+            continue
+        seen.add(path)
+        artifacts.append(
+            EvidenceArtifact(
+                artifact_id=f"artifact_{uuid4().hex[:10]}",
+                case_id=case_id,
+                run_id=run_id,
+                kind=kind,
+                path=str(path),
+                checksum=checksum_for_file(path),
+            )
+        )
+    return artifacts
+
+
+def three_channel_quality_artifacts(case_id: str, run_id: str, quality: dict[str, Any]) -> list[EvidenceArtifact]:
+    paths = [
+        (quality.get("report_path"), ArtifactKind.THREE_CHANNEL_QC_REPORT),
+        (
+            (quality.get("overlay_comparison") or {}).get("difference_heatmap_path"),
+            ArtifactKind.THREE_CHANNEL_DIFFERENCE_HEATMAP,
+        ),
+    ]
+    return [
+        EvidenceArtifact(
+            artifact_id=f"artifact_{uuid4().hex[:10]}",
+            case_id=case_id,
+            run_id=run_id,
+            kind=kind,
+            path=str(path),
+            checksum=checksum_for_file(path),
+        )
+        for path, kind in paths
+        if path
+    ]
 
 
 def merge_roi_hints(case: CaseRecord, request_hints: list[dict[str, Any]]) -> list[dict[str, Any]]:

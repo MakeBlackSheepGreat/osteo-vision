@@ -1,0 +1,161 @@
+{
+  "schema_version": "osteo-vision-patient-conditioning-gap-audit-v1",
+  "generated_at_utc": "2026-07-18T14:22:38.4096775Z",
+  "dataset_count": 3,
+  "artifact_count": 10,
+  "total_size_bytes": 1492886,
+  "target_domain_flag": false,
+  "training_eligible": false,
+  "datasets": [
+    {
+      "dataset_id": "D072",
+      "dataset_name": "HCC-TACE-Seg",
+      "source_page_url": "https://www.cancerimagingarchive.net/collection/hcc-tace-seg/",
+      "license": "CC BY 4.0",
+      "governance_state": "public_open_access",
+      "patient_count": 105,
+      "modalities": ["multiphase contrast-enhanced CT", "DICOM SEG"],
+      "segmentation_labels": ["liver", "tumor", "blood vessels"],
+      "clinical_variables": [
+        "age",
+        "hepatitis status",
+        "family cancer history",
+        "family liver cancer history",
+        "tumor size",
+        "tumor nodularity",
+        "AFP",
+        "CLIP score",
+        "Okuda stage",
+        "TNM stage",
+        "BCLC stage",
+        "chemotherapy",
+        "time to progression",
+        "overall survival"
+      ],
+      "joint_linkage_evidence": "TCIA_ID links the clinical workbook to the CT and curated DICOM SEG collection. The source page states that liver, tumor and vessel segmentations were manually clinically curated.",
+      "local_artifacts": [
+        {
+          "file_role": "source_page_snapshot",
+          "direct_download_url": "https://www.cancerimagingarchive.net/collection/hcc-tace-seg/",
+          "relative_path": "d072_hcc_tace_seg/metadata/source_page.html",
+          "size_bytes": 286715,
+          "sha256": "888c60131efac44d77d5b9ed976f7febb069922337b5940b3b3af837e7173d5a"
+        },
+        {
+          "file_role": "nbia_manifest_digest",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/HCC-TACE-Seg_v1_202201-nbia-digest.xlsx",
+          "relative_path": "d072_hcc_tace_seg/metadata/HCC-TACE-Seg_v1_202201-nbia-digest.xlsx",
+          "size_bytes": 127736,
+          "sha256": "7f52fbb5e172f3d740eb6dba08629029c719a813028b67b0f5bdeacc349f90c3"
+        }
+      ],
+      "existing_paired_assets": "The clinical workbook and NBIA manifest are already verified under patient_conditioning_starter_20260717/d072_hcc_tace_seg.",
+      "recommended_use": "Open proxy for clinical-feature ingestion, patient-level linkage, grouped splitting, missing-value handling and CT segmentation conditioning experiments.",
+      "data_boundary": "Non-jaw, non-fluorescence liver cancer proxy. It cannot support jaw osteomyelitis or intraoperative ICG spatial-effect claims.",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required"
+    },
+    {
+      "dataset_id": "D077",
+      "dataset_name": "NSCLC-Radiomics Lung1",
+      "source_page_url": "https://www.cancerimagingarchive.net/collection/nsclc-radiomics/",
+      "license": "CC BY-NC 3.0",
+      "governance_state": "public_open_access_noncommercial",
+      "patient_count": 422,
+      "modalities": ["pretreatment chest CT", "DICOM SEG", "DICOM RTSTRUCT"],
+      "segmentation_labels": ["primary gross tumor volume GTV-1", "selected lung structures", "heart", "esophagus"],
+      "clinical_variables": ["age", "gender", "clinical T stage", "clinical N stage", "clinical M stage", "overall stage", "histology", "survival time", "vital status"],
+      "joint_linkage_evidence": "PatientID in the clinical CSV matches the DICOM patient names. The source page documents radiation-oncologist manual 3D delineations in RTSTRUCT and SEG.",
+      "local_artifacts": [
+        {
+          "file_role": "source_page_snapshot",
+          "direct_download_url": "https://www.cancerimagingarchive.net/collection/nsclc-radiomics/",
+          "relative_path": "d077_nsclc_radiomics/metadata/source_page.html",
+          "size_bytes": 310594,
+          "sha256": "efbc37756606c3849e4663c45d6e05703d75843b94dc2b9364820a3bc3e40a88"
+        },
+        {
+          "file_role": "clinical_context_table",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLC-Radiomics-Lung1.clinical-version3-Oct-2019.csv",
+          "relative_path": "d077_nsclc_radiomics/metadata/NSCLC-Radiomics-Lung1.clinical.csv",
+          "size_bytes": 23335,
+          "sha256": "132f72b58b9660bf5e6b24b9817b335f1896360bc253e1f2034a3ffee593e6fd"
+        },
+        {
+          "file_role": "tcia_download_manifest",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLC-Radiomics-Version-4-Oct-2020-NBIA-manifest.tcia",
+          "relative_path": "d077_nsclc_radiomics/metadata/NSCLC-Radiomics-Version-4-Oct-2020-NBIA-manifest.tcia",
+          "size_bytes": 77374,
+          "sha256": "1cef6edfa6d13c20f418df96854a764b5a9aa3cbaa79f7888f55a278ea0707be"
+        },
+        {
+          "file_role": "nbia_manifest_digest",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/NSCLC-Radiomics-Version-4-Oct-2020-NBIA-manifes-nbia-digest.xlsx",
+          "relative_path": "d077_nsclc_radiomics/metadata/NSCLC-Radiomics-Version-4-Oct-2020-NBIA-manifest-digest.xlsx",
+          "size_bytes": 236424,
+          "sha256": "e2d7d437f328b3e77ba8c2e63c7b296436fd492a42ee69b01f6d978e8abe2822"
+        }
+      ],
+      "recommended_use": "Open noncommercial proxy for image-plus-demographic conditioning, patient linkage, segmentation conversion and age/sex subgroup audits.",
+      "data_boundary": "Non-jaw, non-fluorescence thoracic oncology proxy. It has no osteomyelitis label, ICG channel, medication history or routine inflammation laboratory panel.",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required"
+    },
+    {
+      "dataset_id": "D078",
+      "dataset_name": "Head-Neck-Radiomics-HN1",
+      "source_page_url": "https://www.cancerimagingarchive.net/collection/head-neck-radiomics-hn1/",
+      "license": "Clinical metadata CC BY-NC 3.0; facial imaging governed by NIH Controlled Data Access Policy",
+      "governance_state": "metadata_public_imaging_controlled",
+      "patient_count": 137,
+      "modalities": ["head and neck CT", "PET", "DICOM SEG", "DICOM RTSTRUCT"],
+      "segmentation_labels": ["primary neoplasm gross tumor volume"],
+      "clinical_variables": ["age at diagnosis", "biological sex", "ECOG performance status", "HPV p16 status", "clinical TNM", "AJCC stage", "pretreatment hemoglobin", "surgery", "radiotherapy dose and fractions", "survival and recurrence outcomes"],
+      "joint_linkage_evidence": "The clinical id matches the HN subject identifier. The source page documents experienced radiation-oncologist 3D gross-tumor delineations and DICOM SEG/RTSTRUCT delivery.",
+      "local_artifacts": [
+        {
+          "file_role": "source_page_snapshot",
+          "direct_download_url": "https://www.cancerimagingarchive.net/collection/head-neck-radiomics-hn1/",
+          "relative_path": "d078_head_neck_radiomics_hn1/metadata/source_page.html",
+          "size_bytes": 298459,
+          "sha256": "78bf4306f6ca56dc37d56164a235c5f09c8e9423c99d63ff45d0792eb6e5e9eb"
+        },
+        {
+          "file_role": "clinical_context_table",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/HEAD-NECK-RADIOMICS-HN1-Clinical-data.csv",
+          "relative_path": "d078_head_neck_radiomics_hn1/metadata/HEAD-NECK-RADIOMICS-HN1-Clinical-data.csv",
+          "size_bytes": 13387,
+          "sha256": "b9886f90e1161dd8c0e239955bcca8f8e6a34d8e3840f5ebbf673f9202eb7a56"
+        },
+        {
+          "file_role": "controlled_collection_manifest_metadata",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/Head-Neck-Radiomics-HN1-Version-2-Sept-2019-NBIA-manifest.tcia",
+          "relative_path": "d078_head_neck_radiomics_hn1/metadata/Head-Neck-Radiomics-HN1-Version-2-NBIA-manifest.tcia",
+          "size_bytes": 29011,
+          "sha256": "71d1b32b009ce8b5190618efefe813d639f11953f5ba630187ac7711b54f8bcd"
+        },
+        {
+          "file_role": "controlled_collection_manifest_digest",
+          "direct_download_url": "https://www.cancerimagingarchive.net/wp-content/uploads/Head-Neck-Radiomics-HN1-Version-2-Sept-2019-NBIA-manifes-nbia-digest-1.xlsx",
+          "relative_path": "d078_head_neck_radiomics_hn1/metadata/Head-Neck-Radiomics-HN1-Version-2-NBIA-manifest-digest.xlsx",
+          "size_bytes": 89851,
+          "sha256": "befedae6476dccf3603edaa79c352acca57dd2d7deaea9afaf813ff5a4c24d74"
+        }
+      ],
+      "recommended_use": "Near-anatomy candidate for clinical schema design and controlled-access planning. Metadata can support age, sex, ECOG, HPV and hemoglobin ingestion tests.",
+      "data_boundary": "Imaging access requires NIH controlled-data approval. The dataset concerns head and neck cancer and has no jaw osteomyelitis, bone-viability or intraoperative ICG labels.",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "controlled_access_review_required"
+    }
+  ],
+  "downloaded_at_utc": "2026-07-18T14:22:38.4096775Z",
+  "search_status": {
+    "tavily": "failed_plan_usage_limit",
+    "fallback": "official TCIA collection pages and direct download endpoints",
+    "large_downloads_started": false
+  },
+  "remaining_gap": "No directly downloadable public dataset was confirmed that jointly contains jaw osteomyelitis or necrotic-bone white-light/ICG images, patient age/sex/comorbidity/medication/laboratory context, and doctor-reviewed pixel labels. Spatial patient conditioning therefore remains a non-target-domain engineering capability until admitted target-domain pairs are collected."
+}

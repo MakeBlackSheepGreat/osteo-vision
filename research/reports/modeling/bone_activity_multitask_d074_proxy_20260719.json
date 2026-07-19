@@ -1,0 +1,447 @@
+{
+  "schema_version": "osteo-vision-bone-activity-multitask-checkpoint-v1",
+  "capability": "bone_activity_multitask",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\bone_activity_d074_proxy\\training\\bone_activity_multitask_d074_proxy.pt",
+  "checkpoint_sha256": "e3b7f69f4ca3ff6f7a79180695e1b3e8946c082f8e9f056bbf870b4d916e8764",
+  "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\training\\bone_activity_multitask_d074_proxy.yml",
+  "config_hash": "35cc034a1460",
+  "model_id": "bone_activity_multitask_d074_proxy_v1",
+  "model_family": "dual_channel_bone_activity_multitask",
+  "model_config": {
+    "base_channels": 8
+  },
+  "training_domain": {
+    "target_domain": false,
+    "domain": "human_brain_ppix_fluorescence_proxy",
+    "domain_tier": "clinical_microscope_fluorescence_non_jaw_proxy",
+    "data_mode": "manifest",
+    "training_scope": "non_target_proxy_pretraining",
+    "channel_semantics": "single_ppix_rgb_view_with_red_channel_proxy"
+  },
+  "training": {
+    "completed": true,
+    "sample_count": 5,
+    "completed_train_batches": 48,
+    "mean_train_loss": 1.7420922542611759,
+    "patient_group_split": {
+      "leakage_detected": false,
+      "case_overlap_detected": false,
+      "asset_sha256_overlap_detected": false,
+      "source_identity_overlap_detected": false,
+      "strategy": "source_declared_patient_group_split",
+      "groups": {
+        "train": [
+          "P001"
+        ],
+        "val": [
+          "P002"
+        ],
+        "test": [
+          "P003"
+        ]
+      },
+      "sample_counts": {
+        "train": 1,
+        "val": 2,
+        "test": 2
+      }
+    },
+    "source_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\bone_activity_d074_proxy\\data\\d074_bone_activity_proxy_samples.csv",
+    "source_manifest_sha256": "a4a264a2572dbaccfbf2cf252a1a08a234afa0433afde0d9bba08f77f9e64c2a"
+  },
+  "outputs": [
+    "bone_gate",
+    "activity_score",
+    "class_logits",
+    "class_probabilities",
+    "uncertainty",
+    "abstention"
+  ],
+  "inference_thresholds": {
+    "bone_gate_threshold": 0.225,
+    "abstention_threshold": 0.86,
+    "selection_source": "validation_split",
+    "runtime_authorized": false
+  },
+  "engineering_utility": {
+    "ready": false,
+    "validation_threshold_constraints_passed": true,
+    "frozen_test_constraints_passed": false,
+    "runtime_authorized": false
+  },
+  "safety": {
+    "bone_gate_fail_closed_passed": true,
+    "abstention_passed": true
+  },
+  "labels": {
+    "class_set": [
+      "low_activity",
+      "transition",
+      "high_activity",
+      "ignore"
+    ],
+    "physician_reviewed_bone_gate": false,
+    "multi_physician_arbitration": false,
+    "label_semantics": "rule_derived_non_target_fluorescence_proxy"
+  },
+  "validation": {
+    "independent_test_set": false,
+    "calibrated": false,
+    "patient_leakage_recomputed": false,
+    "independent_institution_split": false,
+    "independent_time_split": false,
+    "metrics": {
+      "bone_gate_threshold": 0.225,
+      "abstention_threshold": 0.86,
+      "bone_gate_dice": 0.10219021558949742,
+      "bone_gate_precision": 0.07148900169204737,
+      "bone_gate_recall": 0.10917312661498708,
+      "bone_gate_oversegmentation_rate": 0.9285109983079526,
+      "activity_score_mae": 0.13142986595630646,
+      "activity_mae": 0.13142986595630646,
+      "macro_dice": 0.7330639910442822,
+      "low_activity_dice": 0.8035794183445191,
+      "transition_dice": 0.6106774898532625,
+      "high_activity_dice": 0.7849350649350649,
+      "low_activity_support_pixels": 1028.0,
+      "transition_support_pixels": 1901.0,
+      "high_activity_support_pixels": 1715.0,
+      "low_activity_support_samples": 2.0,
+      "transition_support_samples": 2.0,
+      "high_activity_support_samples": 2.0,
+      "transition_recall": 0.5144660704892162,
+      "ece": 0.11511189582967017,
+      "abstention_error_rate": 0.017011197243755383,
+      "selective_error_rate": 0.3015267175572519,
+      "abstention_coverage_rate": 0.056416881998277345,
+      "abstention_rate": 0.9435831180017227,
+      "non_abstained_pixel_count": 262.0,
+      "valid_pixel_count": 4644.0,
+      "bone_gate_containment_rate": 1.0,
+      "class_accuracy": 0.7240488529205322,
+      "mean_uncertainty": 0.8544507324695587,
+      "sample_count": 2.0
+    },
+    "proxy_validation_metrics": {
+      "bone_gate_threshold": 0.225,
+      "abstention_threshold": 0.86,
+      "bone_gate_dice": 0.2829903756595783,
+      "bone_gate_precision": 0.25454346398073135,
+      "bone_gate_recall": 0.4583086930810171,
+      "bone_gate_oversegmentation_rate": 0.7454565360192686,
+      "activity_score_mae": 0.1550918072462082,
+      "activity_mae": 0.1550918072462082,
+      "macro_dice": 0.5171019190009564,
+      "low_activity_dice": 0.8082603938730853,
+      "transition_dice": 0.27095604893520614,
+      "high_activity_dice": 0.47208931419457734,
+      "low_activity_support_pixels": 3006.0,
+      "transition_support_pixels": 1759.0,
+      "high_activity_support_pixels": 308.0,
+      "low_activity_support_samples": 2.0,
+      "transition_support_samples": 2.0,
+      "high_activity_support_samples": 2.0,
+      "transition_recall": 0.16998294485503126,
+      "ece": 0.08295000592280063,
+      "abstention_error_rate": 0.010447466982061896,
+      "selective_error_rate": 0.07162162162162163,
+      "abstention_coverage_rate": 0.1458702937118076,
+      "abstention_rate": 0.8541297062881924,
+      "non_abstained_pixel_count": 740.0,
+      "valid_pixel_count": 5073.0,
+      "bone_gate_containment_rate": 1.0,
+      "class_accuracy": 0.7027762830257416,
+      "mean_uncertainty": 0.8605089485645294,
+      "sample_count": 2.0
+    },
+    "threshold_selection": {
+      "enabled": true,
+      "selection_split": "validation",
+      "test_set_used_for_selection": false,
+      "selection_rules": {
+        "bone_gate": "maximize_dice_then_precision_then_default_proximity",
+        "abstention": "minimize_selective_error_subject_to_coverage_and_error_constraints_then_maximize_coverage",
+        "no_eligible_abstention_fallback": "lowest_threshold_most_conservative"
+      },
+      "selection_constraints": {
+        "minimum_coverage_rate": 0.1,
+        "maximum_selective_error_rate": 0.15
+      },
+      "defaults": {
+        "bone_gate_threshold": 0.5,
+        "abstention_threshold": 0.5
+      },
+      "validation_constraints_passed": true,
+      "selected": {
+        "bone_gate_threshold": 0.225,
+        "abstention_threshold": 0.86
+      },
+      "bone_gate_scan": [
+        {
+          "threshold": 0.05,
+          "bone_gate_dice": 0.09105288088946875,
+          "bone_gate_precision": 0.04884916748285994,
+          "bone_gate_recall": 0.9438202247191011,
+          "bone_gate_oversegmentation_rate": 0.95115083251714
+        },
+        {
+          "threshold": 0.075,
+          "bone_gate_dice": 0.08855232456708527,
+          "bone_gate_precision": 0.04759034298149718,
+          "bone_gate_recall": 0.9181943623102701,
+          "bone_gate_oversegmentation_rate": 0.9524096570185028
+        },
+        {
+          "threshold": 0.1,
+          "bone_gate_dice": 0.08582759193225843,
+          "bone_gate_precision": 0.04620330272223758,
+          "bone_gate_recall": 0.8896116696234969,
+          "bone_gate_oversegmentation_rate": 0.9537966972777624
+        },
+        {
+          "threshold": 0.125,
+          "bone_gate_dice": 0.0926689570888565,
+          "bone_gate_precision": 0.0482671360985807,
+          "bone_gate_recall": 0.8647742952887838,
+          "bone_gate_oversegmentation_rate": 0.9517328639014193
+        },
+        {
+          "threshold": 0.15,
+          "bone_gate_dice": 0.2053734785127309,
+          "bone_gate_precision": 0.11201379274313628,
+          "bone_gate_recall": 0.8452592154543662,
+          "bone_gate_oversegmentation_rate": 0.8879862072568637
+        },
+        {
+          "threshold": 0.175,
+          "bone_gate_dice": 0.2578102988407366,
+          "bone_gate_precision": 0.16061230964467005,
+          "bone_gate_recall": 0.7983441750443524,
+          "bone_gate_oversegmentation_rate": 0.8393876903553299
+        },
+        {
+          "threshold": 0.2,
+          "bone_gate_dice": 0.2739606164465023,
+          "bone_gate_precision": 0.19530505243088656,
+          "bone_gate_recall": 0.6461659767396019,
+          "bone_gate_oversegmentation_rate": 0.8046949475691134
+        },
+        {
+          "threshold": 0.225,
+          "bone_gate_dice": 0.2829903756595783,
+          "bone_gate_precision": 0.25454346398073135,
+          "bone_gate_recall": 0.4583086930810171,
+          "bone_gate_oversegmentation_rate": 0.7454565360192686
+        },
+        {
+          "threshold": 0.25,
+          "bone_gate_dice": 0.217446884414143,
+          "bone_gate_precision": 0.3371476416410829,
+          "bone_gate_recall": 0.23812339838359944,
+          "bone_gate_oversegmentation_rate": 0.6628523583589171
+        },
+        {
+          "threshold": 0.275,
+          "bone_gate_dice": 0.07087157324124149,
+          "bone_gate_precision": 0.5060449050086355,
+          "bone_gate_recall": 0.05775675142913463,
+          "bone_gate_oversegmentation_rate": 0.4939550949913644
+        },
+        {
+          "threshold": 0.3,
+          "bone_gate_dice": 0.0,
+          "bone_gate_precision": 0.0,
+          "bone_gate_recall": 0.0,
+          "bone_gate_oversegmentation_rate": 1.0
+        }
+      ],
+      "abstention_scan": [
+        {
+          "threshold": 0.8,
+          "coverage_rate": 0.0,
+          "selective_error_rate": 0.0,
+          "joint_non_abstained_error_rate": 0.0
+        },
+        {
+          "threshold": 0.82,
+          "coverage_rate": 0.0,
+          "selective_error_rate": 0.0,
+          "joint_non_abstained_error_rate": 0.0
+        },
+        {
+          "threshold": 0.84,
+          "coverage_rate": 0.01655824955647546,
+          "selective_error_rate": 0.03571428571428571,
+          "joint_non_abstained_error_rate": 0.0005913660555884093
+        },
+        {
+          "threshold": 0.86,
+          "coverage_rate": 0.1458702937118076,
+          "selective_error_rate": 0.07162162162162163,
+          "joint_non_abstained_error_rate": 0.010447466982061896
+        },
+        {
+          "threshold": 0.88,
+          "coverage_rate": 0.6441947565543071,
+          "selective_error_rate": 0.25489596083231336,
+          "joint_non_abstained_error_rate": 0.16420264143504829
+        },
+        {
+          "threshold": 0.9,
+          "coverage_rate": 0.8675340035481963,
+          "selective_error_rate": 0.31197455123835494,
+          "joint_non_abstained_error_rate": 0.27064853144096196
+        },
+        {
+          "threshold": 0.92,
+          "coverage_rate": 0.9020303567908535,
+          "selective_error_rate": 0.319493006993007,
+          "joint_non_abstained_error_rate": 0.28819239109008477
+        },
+        {
+          "threshold": 0.94,
+          "coverage_rate": 0.9296274393849793,
+          "selective_error_rate": 0.3231552162849873,
+          "joint_non_abstained_error_rate": 0.3004139562389119
+        },
+        {
+          "threshold": 0.96,
+          "coverage_rate": 0.9578158880346935,
+          "selective_error_rate": 0.3274336283185841,
+          "joint_non_abstained_error_rate": 0.31362113148038634
+        },
+        {
+          "threshold": 0.98,
+          "coverage_rate": 0.990341021092056,
+          "selective_error_rate": 0.33240445859872614,
+          "joint_non_abstained_error_rate": 0.3291937709442145
+        },
+        {
+          "threshold": 0.99,
+          "coverage_rate": 0.9978316577961759,
+          "selective_error_rate": 0.33010667720268666,
+          "joint_non_abstained_error_rate": 0.32939089296274393
+        }
+      ],
+      "frozen_test_evaluation": {
+        "test_set_used_for_selection": false,
+        "thresholds_reused_without_test_tuning": true,
+        "minimum_coverage_rate_passed": false,
+        "maximum_selective_error_rate_passed": false,
+        "constraints_passed": false
+      }
+    },
+    "promotion_metrics_eligible": false
+  },
+  "review": {
+    "physician_reviewed": false
+  },
+  "runtime_allowed": false,
+  "clinical_claim_allowed": false,
+  "medical_boundary": "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the competition mainline, cannot establish jaw-osteomyelitis clinical performance, and requires physician-reviewed bone gates.",
+  "generated_at_utc": "2026-07-18T19:35:28.477581+00:00",
+  "engineering_ready": true,
+  "target_domain_promotion_ready": false,
+  "runtime_replacement_allowed": false,
+  "promotion": {
+    "schema_version": "osteo-vision-three-priority-model-promotion-v2",
+    "capability": "bone_activity_multitask",
+    "engineering_ready": true,
+    "target_domain_promotion_ready": false,
+    "runtime_replacement_allowed": false,
+    "clinical_claim_allowed": false,
+    "policy_status": "provisional_internal_engineering_gate",
+    "policy_sha256": "4dfe4dc175e0934442eca53647173d98877633be58cf717b5400cee0b81cfb74",
+    "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\bone_activity_d074_proxy\\training\\bone_activity_multitask_d074_proxy.pt",
+    "checkpoint_sha256": "e3b7f69f4ca3ff6f7a79180695e1b3e8946c082f8e9f056bbf870b4d916e8764",
+    "errors": [],
+    "promotion_blockers": [
+      {
+        "actual": "provisional_internal_engineering_gate",
+        "code": "promotion_policy_not_approved"
+      },
+      {
+        "code": "target_domain_training_missing"
+      },
+      {
+        "code": "promotion_metrics_not_eligible"
+      },
+      {
+        "code": "independent_target_domain_test_missing"
+      },
+      {
+        "code": "probability_calibration_missing"
+      },
+      {
+        "code": "patient_leakage_recomputation_missing"
+      },
+      {
+        "code": "institution_independent_validation_missing"
+      },
+      {
+        "code": "time_independent_validation_missing"
+      },
+      {
+        "code": "physician_review_missing"
+      },
+      {
+        "code": "physician_reviewed_bone_gate_missing"
+      },
+      {
+        "code": "bone_activity_multi_physician_arbitration_missing"
+      },
+      {
+        "code": "bone_activity_frozen_test_selective_safety_failed"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "split_manifest"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "prediction_manifest"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "calibration_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "subgroup_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "safety_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "physician_review"
+      },
+      {
+        "code": "promotion_metric_below_minimum",
+        "metric": "transition_dice"
+      },
+      {
+        "code": "promotion_metric_below_minimum",
+        "metric": "transition_recall"
+      },
+      {
+        "code": "promotion_metric_below_minimum",
+        "metric": "bone_gate_dice"
+      },
+      {
+        "code": "promotion_metric_above_maximum",
+        "metric": "ece"
+      },
+      {
+        "code": "promotion_metric_above_maximum",
+        "metric": "selective_error_rate"
+      },
+      {
+        "code": "promotion_metric_below_minimum",
+        "metric": "abstention_coverage_rate"
+      }
+    ],
+    "medical_boundary": "Target-domain promotion requires paired jaw-osteomyelitis evidence, recomputed patient/institution/time separation, calibration, capability-specific safety metrics, and trusted physician review."
+  }
+}

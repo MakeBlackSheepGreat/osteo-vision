@@ -32,6 +32,8 @@ def test_build_datasets_merges_manifests_and_reads_sample_weight(tmp_path: Path)
                 "split": "train",
                 "sample_weight": "1.0",
                 "label_source": "fluorescence_intensity_proxy_mask",
+                "domain_tier": "proxy",
+                "source_group_id": "proxy_group",
             },
             {
                 "case_id": "proxy_val",
@@ -40,6 +42,8 @@ def test_build_datasets_merges_manifests_and_reads_sample_weight(tmp_path: Path)
                 "split": "val",
                 "sample_weight": "1.0",
                 "label_source": "fluorescence_intensity_proxy_mask",
+                "domain_tier": "proxy",
+                "source_group_id": "proxy_val_group",
             },
         ],
     )
@@ -54,6 +58,8 @@ def test_build_datasets_merges_manifests_and_reads_sample_weight(tmp_path: Path)
                 "sample_weight": "4.0",
                 "label_source": "human_reviewed_roi_geometry_mask",
                 "review_state": "modified",
+                "domain_tier": "near_target",
+                "source_group_id": "review_group",
             }
         ],
     )
@@ -63,6 +69,11 @@ def test_build_datasets_merges_manifests_and_reads_sample_weight(tmp_path: Path)
             manifest=[str(proxy_manifest), str(review_manifest)],
             synthetic_train_size=4,
             synthetic_val_size=2,
+            domain_aware=True,
+            domain_adaptation_config={"enabled": True, "augmentation": {"probability": 0.0}},
+            max_train_batches=2,
+            batch_size=2,
+            seed=7,
         ),
         image_shape=(24, 32),
     )
@@ -72,6 +83,8 @@ def test_build_datasets_merges_manifests_and_reads_sample_weight(tmp_path: Path)
     assert summary["manifest_paths"] == [str(proxy_manifest), str(review_manifest)]
     assert summary["sample_weight_stats"]["max"] == 4.0
     assert summary["label_source_counts"]["human_reviewed_roi_geometry_mask"] == 1
+    assert summary["domain_sampling"]["sample_count"] == 4
+    assert summary["domain_sampling"]["domain_tier_counts"]["near_target"] >= 1
     _image, _target, weight = train_dataset[1]
     assert float(weight.item()) == 4.0
 

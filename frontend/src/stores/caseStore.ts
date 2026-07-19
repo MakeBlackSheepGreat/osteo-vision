@@ -1,7 +1,16 @@
 import { defineStore } from "pinia";
 
 import { apiClient, type BackendJob, type BackendJobProgress } from "../services/apiClient";
-import type { CaseInputDraft, CaseRecord, ExportResponse, ReviewState } from "../types/case";
+import type {
+  CaseInputDraft,
+  CaseRecord,
+  ClinicalContext,
+  ExportResponse,
+  NavigationFrameSelection,
+  ReviewState,
+} from "../types/case";
+
+let loadCaseRequestId = 0;
 
 export const useCaseStore = defineStore("case", {
   state: () => ({
@@ -15,28 +24,44 @@ export const useCaseStore = defineStore("case", {
     activeAnalysisJobError: "",
     activeAnalysisJobProgress: {} as BackendJobProgress,
     lastAnalysisJobTimedOut: false,
+    analysisJobPolling: false,
+    navigationFrameSelection: null as NavigationFrameSelection | null,
   }),
   actions: {
+    selectNavigationFrame(selection: NavigationFrameSelection | null) {
+      this.navigationFrameSelection = selection;
+    },
     async createCase(title: string) {
       this.loading = true;
       this.error = "";
       try {
-        this.currentCase = await apiClient.createCase(title);
+        const createdCase = await apiClient.createCase(title);
+        this.resetCaseScopedState();
+        this.currentCase = createdCase;
+        return createdCase;
       } catch (error) {
         this.error = error instanceof Error ? error.message : "病例创建失败";
+        return null;
       } finally {
         this.loading = false;
       }
     },
     async loadCase(caseId: string) {
+      const requestId = ++loadCaseRequestId;
       this.loading = true;
       this.error = "";
       try {
-        this.currentCase = await apiClient.getCase(caseId);
+        const loadedCase = await apiClient.getCase(caseId);
+        if (requestId !== loadCaseRequestId) return null;
+        this.resetCaseScopedState();
+        this.currentCase = loadedCase;
+        return loadedCase;
       } catch (error) {
+        if (requestId !== loadCaseRequestId) return null;
         this.error = error instanceof Error ? error.message : "病例加载失败";
+        return null;
       } finally {
-        this.loading = false;
+        if (requestId === loadCaseRequestId) this.loading = false;
       }
     },
     async importInputs(inputs: CaseInputDraft[]) {
@@ -51,19 +76,44 @@ export const useCaseStore = defineStore("case", {
         this.loading = false;
       }
     },
-    async runAnalysis(parameters: Record<string, unknown>, roiHints: Array<Record<string, unknown>> = []) {
+    async saveClinicalContext(context: ClinicalContext) {
       if (!this.currentCase) return;
       this.loading = true;
       this.error = "";
       try {
-        this.currentCase = await apiClient.startAnalysis(this.currentCase.case_id, parameters, roiHints);
+        this.currentCase = await apiClient.updateClinicalContext(this.currentCase.case_id, context);
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : "临床上下文保存失败";
+      } finally {
+        this.loading = false;
+      }
+    },
+    async runAnalysis(
+      parameters: Record<string, unknown>,
+      roiHints: Array<Record<string, unknown>> = [],
+      selectedInputIds: string[] = [],
+    ) {
+      if (!this.currentCase) return;
+      this.loading = true;
+      this.error = "";
+      try {
+        this.currentCase = await apiClient.startAnalysis(
+          this.currentCase.case_id,
+          parameters,
+          roiHints,
+          selectedInputIds,
+        );
       } catch (error) {
         this.error = error instanceof Error ? error.message : "分析运行失败";
       } finally {
         this.loading = false;
       }
     },
-    async runAnalysisJob(parameters: Record<string, unknown>, roiHints: Array<Record<string, unknown>> = []) {
+    async runAnalysisJob(
+      parameters: Record<string, unknown>,
+      roiHints: Array<Record<string, unknown>> = [],
+      selectedInputIds: string[] = [],
+    ) {
       if (!this.currentCase) return;
       this.loading = true;
       this.error = "";
@@ -71,8 +121,9 @@ export const useCaseStore = defineStore("case", {
       this.activeAnalysisJobError = "";
       try {
         const caseId = this.currentCase.case_id;
-        const started = await apiClient.startAnalysisJob(caseId, parameters, roiHints);
+        const started = await apiClient.startAnalysisJob(caseId, parameters, roiHints, selectedInputIds);
         this.activeAnalysisJobId = started.job_id;
+        this.loading = false;
         await this.pollAnalysisJob(started, caseId, 300);
       } catch (error) {
         this.error = error instanceof Error ? error.message : "后台分析任务失败";
@@ -90,6 +141,7 @@ export const useCaseStore = defineStore("case", {
       try {
         const job = await apiClient.getAnalysisJob(this.activeAnalysisJobId);
         const caseId = stringFrom(job.result?.case_id) || stringFrom(job.payload?.case_id) || this.currentCase?.case_id;
+        this.loading = false;
         await this.pollAnalysisJob(job, caseId, maxAttempts);
       } catch (error) {
         this.error = error instanceof Error ? error.message : "后台分析任务查询失败";
@@ -126,11 +178,20 @@ export const useCaseStore = defineStore("case", {
         const caseId = stringFrom(previousJob.payload?.case_id) || stringFrom(previousJob.result?.case_id) || this.currentCase?.case_id;
         const parameters = recordFrom(previousJob.payload?.parameters) ? previousJob.payload.parameters : {};
         const roiHints = Array.isArray(previousJob.payload?.roi_hints) ? previousJob.payload.roi_hints : [];
+        const selectedInputIds = Array.isArray(previousJob.payload?.selected_input_ids)
+          ? previousJob.payload.selected_input_ids.filter((value): value is string => typeof value === "string")
+          : [];
         if (!caseId) {
           this.error = "后台分析任务缺少病例编号，无法重试";
           return;
         }
-        const retryJob = await apiClient.startAnalysisJob(caseId, parameters, roiHints as Array<Record<string, unknown>>);
+        const retryJob = await apiClient.startAnalysisJob(
+          caseId,
+          parameters,
+          roiHints as Array<Record<string, unknown>>,
+          selectedInputIds,
+        );
+        this.loading = false;
         await this.pollAnalysisJob(retryJob, caseId, maxAttempts);
       } catch (error) {
         this.error = error instanceof Error ? error.message : "后台分析任务重试失败";
@@ -140,31 +201,42 @@ export const useCaseStore = defineStore("case", {
     },
     async pollAnalysisJob(initialJob: BackendJob, caseId: string | undefined, maxAttempts: number) {
       let job = initialJob;
+      const jobId = job.job_id;
       this.activeAnalysisJobId = job.job_id;
       this.activeAnalysisJobStatus = job.status;
       this.activeAnalysisJobError = job.error ?? "";
       this.activeAnalysisJobProgress = job.progress ?? {};
       this.lastAnalysisJobTimedOut = false;
+      this.analysisJobPolling = true;
 
-      for (let attempt = 0; attempt < maxAttempts && ["queued", "running"].includes(job.status); attempt += 1) {
-        await sleep(1000);
-        job = await apiClient.getAnalysisJob(job.job_id);
-        this.activeAnalysisJobStatus = job.status;
-        this.activeAnalysisJobError = job.error ?? "";
-        this.activeAnalysisJobProgress = job.progress ?? {};
-      }
+      try {
+        for (let attempt = 0; attempt < maxAttempts && ["queued", "running"].includes(job.status); attempt += 1) {
+          await sleep(1000);
+          if (this.activeAnalysisJobId !== jobId) return;
+          job = await apiClient.getAnalysisJob(job.job_id);
+          if (this.activeAnalysisJobId !== jobId) return;
+          this.activeAnalysisJobStatus = job.status;
+          this.activeAnalysisJobError = job.error ?? "";
+          this.activeAnalysisJobProgress = job.progress ?? {};
+        }
 
-      const resolvedCaseId = caseId || stringFrom(job.result?.case_id) || stringFrom(job.payload?.case_id);
-      if (resolvedCaseId) {
-        this.currentCase = await apiClient.getCase(resolvedCaseId);
-      }
-      if (job.status === "failed") {
-        this.activeAnalysisJobError = job.error || "后台分析任务失败";
-        this.error = this.activeAnalysisJobError;
-      } else if (job.status === "canceled") {
-        this.activeAnalysisJobError = job.error || "后台分析任务已取消";
-      } else if (["queued", "running"].includes(job.status)) {
-        this.lastAnalysisJobTimedOut = true;
+        const resolvedCaseId = caseId || stringFrom(job.result?.case_id) || stringFrom(job.payload?.case_id);
+        if (resolvedCaseId && this.currentCase?.case_id === resolvedCaseId) {
+          this.currentCase = await apiClient.getCase(resolvedCaseId);
+        }
+        if (this.activeAnalysisJobId !== jobId) return;
+        if (job.status === "failed") {
+          this.activeAnalysisJobError = job.error || "后台分析任务失败";
+          this.error = this.activeAnalysisJobError;
+        } else if (job.status === "canceled") {
+          this.activeAnalysisJobError = job.error || "后台分析任务已取消";
+        } else if (["queued", "running"].includes(job.status)) {
+          this.lastAnalysisJobTimedOut = true;
+        }
+      } finally {
+        if (this.activeAnalysisJobId === jobId) {
+          this.analysisJobPolling = false;
+        }
       }
     },
     async exportCase() {
@@ -172,14 +244,27 @@ export const useCaseStore = defineStore("case", {
       this.loading = true;
       this.error = "";
       try {
-        const result = await apiClient.exportCase(this.currentCase.case_id);
+        const caseId = this.currentCase.case_id;
+        const result = await apiClient.exportCase(caseId);
         this.exportResult = result;
         this.exportPath = result.bundle_path;
+        this.currentCase = await apiClient.getCase(caseId);
       } catch (error) {
         this.error = error instanceof Error ? error.message : "证据包导出失败";
       } finally {
         this.loading = false;
       }
+    },
+    resetCaseScopedState() {
+      this.exportPath = "";
+      this.exportResult = null;
+      this.activeAnalysisJobId = "";
+      this.activeAnalysisJobStatus = "";
+      this.activeAnalysisJobError = "";
+      this.activeAnalysisJobProgress = {};
+      this.lastAnalysisJobTimedOut = false;
+      this.analysisJobPolling = false;
+      this.navigationFrameSelection = null;
     },
     async addReviewEvent(action: string, targetId: string, afterState?: string) {
       if (!this.currentCase) return;

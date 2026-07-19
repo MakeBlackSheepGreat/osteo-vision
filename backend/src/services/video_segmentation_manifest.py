@@ -6,7 +6,10 @@ from typing import Any
 
 from backend.src.core.disclaimers import disclaimer_context
 from backend.src.services.video_keyframe_metrics import video_temporal_summary
-from backend.src.services.video_review_writer import review_video_fps, write_image_sequence_video
+from backend.src.services.video_review_writer import (
+    review_video_fps,
+    write_image_sequence_video,
+)
 
 
 def write_video_frame_details_manifest(
@@ -18,6 +21,7 @@ def write_video_frame_details_manifest(
     keyframe_report: dict[str, Any],
     frame_details: list[dict[str, Any]],
     three_d_evidence: dict[str, Any] | None = None,
+    analysis_mode: str = "video_file_keyframes",
 ) -> str:
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -27,6 +31,7 @@ def write_video_frame_details_manifest(
         "case_id": case_id,
         "run_id": run_id,
         "source_path": source_path,
+        "analysis_mode": analysis_mode,
         "frame_index_manifest_path": keyframe_report.get("frame_index_manifest_path"),
         "timeline_manifest_path": keyframe_report.get("timeline_manifest_path"),
         "keyframe_manifest_path": keyframe_report.get("keyframe_manifest_path"),
@@ -52,23 +57,41 @@ def write_video_segmentation_outputs(
     frame_details: list[dict[str, Any]],
     hotspot_outputs: list[dict[str, Any]],
     three_d_evidence: dict[str, Any] | None = None,
+    analysis_mode: str = "video_file_keyframes",
 ) -> dict[str, Any]:
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
     frames = _video_segmentation_frames(frame_details, hotspot_outputs)
+    if analysis_mode == "realtime_stream_keyframes":
+        for frame, detail in zip(frames, frame_details, strict=True):
+            if detail.get("display_allowed") is not True:
+                frame["display_allowed"] = False
+                frame["stale"] = True
+                frame["frame_age_gate_reason"] = (
+                    detail.get("frame_age_gate_reason") or "missing_explicit_display_permission"
+                )
+    display_frames = [
+        frame
+        for frame in frames
+        if (
+            frame.get("display_allowed") is True
+            if analysis_mode == "realtime_stream_keyframes"
+            else frame.get("display_allowed") is not False
+        )
+    ]
     overlay_paths = [
         str(frame["fluorescence_overlay_result"]["overlay_path"])
-        for frame in frames
+        for frame in display_frames
         if frame.get("fluorescence_overlay_result", {}).get("overlay_path")
     ]
     mask_paths = [
         str(frame["segmentation_result"]["mask_path"])
-        for frame in frames
+        for frame in display_frames
         if frame.get("segmentation_result", {}).get("mask_path")
     ]
     risk_paths = [
         str(frame["video_signal_segmentation"]["risk_mask"]["path"])
-        for frame in frames
+        for frame in display_frames
         if frame.get("video_signal_segmentation", {}).get("risk_mask", {}).get("path")
     ]
     fps = review_video_fps(keyframe_report.get("fps"))
@@ -85,7 +108,10 @@ def write_video_segmentation_outputs(
     model_summary = _video_segmentation_model_summary(hotspot_outputs)
     summary = {
         "schema_version": "osteo-vision-video-segmentation-summary-v1",
-        "selected_frame_count": len(frames),
+        "captured_frame_count": len(frames),
+        "selected_frame_count": len(display_frames),
+        "stale_frame_count": len(frames) - len(display_frames),
+        "analysis_available": bool(display_frames),
         "mask_frame_count": len(mask_paths),
         "overlay_frame_count": len(overlay_paths),
         "risk_frame_count": len(risk_paths),
@@ -94,9 +120,19 @@ def write_video_segmentation_outputs(
         "model_id": model_summary["primary_model_id"],
         "model_ids": model_summary["model_ids"],
         "analysis_methods": model_summary["analysis_methods"],
-        "analysis_scope": "selected_mp4_keyframes_video_signal_segmentation",
+        "analysis_scope": (
+            "bounded_live_stream_keyframes_video_signal_segmentation"
+            if analysis_mode == "realtime_stream_keyframes"
+            else "selected_mp4_keyframes_video_signal_segmentation"
+        ),
         "temporal_stability": video_temporal_summary(frame_details),
-        "video_signal_outputs": ["bone_gate_mask", "fluorescence_signal_mask", "risk_mask", "uncertain_mask"],
+        "video_signal_outputs": [
+            "bone_gate_mask",
+            "fluorescence_signal_mask",
+            "risk_mask",
+            "uncertain_mask",
+            "bone_activity_spectrum",
+        ],
         "three_d_evidence_available": bool((three_d_evidence or {}).get("model_path")),
         "three_d_registration_status": (three_d_evidence or {}).get("registration_status") or "not_recorded",
         "three_d_navigation_ready": bool((three_d_evidence or {}).get("navigation_ready")),
@@ -111,6 +147,7 @@ def write_video_segmentation_outputs(
         "case_id": case_id,
         "run_id": run_id,
         "source_path": source_path,
+        "analysis_mode": analysis_mode,
         "source_video": {
             "width": keyframe_report.get("width"),
             "height": keyframe_report.get("height"),
@@ -147,7 +184,9 @@ def _video_segmentation_frames(
     ]
 
 
-def _video_output_indexes(outputs: list[dict[str, Any]]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+def _video_output_indexes(
+    outputs: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     return (
         {str(output.get("frame_order")): output for output in outputs if output.get("frame_order") is not None},
         {str(output.get("frame_index")): output for output in outputs if output.get("frame_index") is not None},
@@ -173,6 +212,12 @@ def _video_segmentation_frame(detail: dict[str, Any], output: dict[str, Any]) ->
         "frame_order": detail.get("frame_order"),
         "frame_index": detail.get("frame_index"),
         "timestamp_sec": detail.get("timestamp_sec"),
+        "capture_timestamp": detail.get("capture_timestamp"),
+        "analysis_frame_age_ms": detail.get("analysis_frame_age_ms"),
+        "max_frame_age_ms": detail.get("max_frame_age_ms"),
+        "display_allowed": detail.get("display_allowed", True),
+        "stale": detail.get("stale", False),
+        "frame_age_gate_reason": detail.get("frame_age_gate_reason"),
         "evidence_path": detail.get("evidence_path") or detail.get("source_path"),
         "preview_path": detail.get("preview_path"),
         "segmentation_result": _frame_segmentation_result(
@@ -243,8 +288,8 @@ def _frame_signal_result(
     if signal_masks:
         return signal_masks
     mask_path = segmentation_mask.get("path") or detail.get("mask_path")
-    risk_path = segmentation_mask.get("risk_mask_path") or lesion_evidence.get("risk_mask_path") or detail.get(
-        "risk_mask_path"
+    risk_path = (
+        segmentation_mask.get("risk_mask_path") or lesion_evidence.get("risk_mask_path") or detail.get("risk_mask_path")
     )
     uncertain_path = (
         segmentation_mask.get("uncertain_mask_path")
@@ -252,7 +297,7 @@ def _frame_signal_result(
         or detail.get("uncertain_mask_path")
     )
     return {
-        "schema_version": "osteo-vision-video-signal-masks-v1",
+        "schema_version": "osteo-vision-video-signal-masks-v2",
         "bone_gate_mask": {
             "mask_type": "exposed_bone",
             "available": False,
@@ -265,8 +310,58 @@ def _frame_signal_result(
             "path": mask_path,
             "probability_path": lesion_evidence.get("probability_path") or lesion_evidence.get("enhanced_path"),
         },
-        "risk_mask": {"mask_type": "boundary_risk", "available": bool(risk_path), "path": risk_path},
-        "uncertain_mask": {"mask_type": "uncertain", "available": bool(uncertain_path), "path": uncertain_path},
+        "risk_mask": {
+            "mask_type": "boundary_risk",
+            "available": bool(risk_path),
+            "path": risk_path,
+        },
+        "uncertain_mask": {
+            "mask_type": "uncertain",
+            "available": bool(uncertain_path),
+            "path": uncertain_path,
+        },
+        "bone_activity_spectrum": {
+            "schema_version": "osteo-vision-bone-activity-spectrum-v2",
+            "available": False,
+            "status": "pending_reviewed_bone_gate",
+            "activity_score": {
+                "available": bool(lesion_evidence.get("probability_path") or lesion_evidence.get("enhanced_path")),
+                "path": lesion_evidence.get("probability_path") or lesion_evidence.get("enhanced_path"),
+                "scale": [0.0, 1.0],
+            },
+            "activity_class_map_path": None,
+            "low_activity_candidate": {"available": False, "label": "低活性候选"},
+            "transition_candidate": {"available": False, "label": "过渡复核区"},
+            "high_activity_candidate": {"available": False, "label": "高活性参考"},
+            "ignore_region": {
+                "available": False,
+                "label": "无法判断区",
+                "positive_area_px": None,
+                "bone_gate_fraction": None,
+                "path": None,
+                "sha256": None,
+                "sources": [
+                    {
+                        "source_type": "compatibility_default_empty",
+                        "path": None,
+                        "sha256": None,
+                        "status": "not_provided",
+                    }
+                ],
+            },
+            "class_map_encoding": {
+                "0": "outside_reviewed_bone_gate",
+                "1": "low_activity_candidate",
+                "2": "transition_candidate",
+                "3": "high_activity_candidate",
+                "4": "ignore_region",
+            },
+            "partition_check": None,
+            "confidence_statement": "0.80 等数值仅表示信号候选置信度，不表示切除成功率或可切除比例。",
+            "calibration_status": "pending_target_domain_validation",
+            "spatial_effect_applied": False,
+            "review_required": True,
+        },
         "medical_boundary": detail.get(
             "video_signal_medical_boundary",
             "Video signal segmentation requires physician review and is not a diagnosis.",
@@ -315,4 +410,8 @@ def _video_segmentation_model_summary(outputs: list[dict[str, Any]]) -> dict[str
         {str(output.get("analysis_method") or "unknown") for output in outputs if isinstance(output, dict)}
     )
     primary = model_ids[0] if len(model_ids) == 1 else "mixed_keyframe_segmentation"
-    return {"primary_model_id": primary, "model_ids": model_ids, "analysis_methods": methods}
+    return {
+        "primary_model_id": primary,
+        "model_ids": model_ids,
+        "analysis_methods": methods,
+    }

@@ -1,0 +1,43 @@
+capability: patient_conditioned_segmentation
+promotion_policy_path: configs/training/three_priority_promotion.yml
+seed: 20260718
+device: cpu
+image_shape: [96, 96]
+batch_size: 4
+max_train_batches: 288
+learning_rate: 0.001
+threshold: 0.5
+threshold_candidates: [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]
+data:
+  mode: manifest
+  manifest_path: artifacts/patient_conditioned_kits23_proxy/data/patient_conditioned_kits23_proxy_samples.csv
+  expected_training_scope: non_target_proxy_pretraining
+  expected_domain_tier: kits23_abdominal_ct_public_proxy
+  expected_channel_semantics: non_fluorescence_ct_proxy
+model:
+  base_channels: 8
+  image_backbone: unet
+  modulation_basis_count: 4
+  clinical_hidden_channels: 16
+  max_logit_delta: 0.25
+  min_present_fraction: 0.8
+loss:
+  positive_class_weight: 10.0
+  bce_weight: 0.5
+  dice_weight: 0.5
+  conditioned_weight: 0.65
+  image_only_weight: 0.35
+  delta_l1_weight: 0.1
+  conditioning_warmup_batches: 256
+  freeze_image_after_warmup: true
+clinical_features:
+  names:
+    - age_years
+    - sex_at_birth_female
+    - diabetes
+    - renal_disease
+    - egfr_ml_min_1_73m2
+  mean: [60.0, 0.5, 0.2, 0.15, 75.0]
+  scale: [20.0, 0.5, 0.4, 0.35, 30.0]
+output:
+  directory: artifacts/patient_conditioned_kits23_proxy/training

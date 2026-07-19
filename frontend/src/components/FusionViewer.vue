@@ -10,10 +10,10 @@
 
 <style scoped>
 .viewer-panel {
-  border: 1px solid #c8d4e0;
+  border: 1px solid var(--ov-border);
   border-radius: 8px;
   padding: 14px;
-  background: #fff;
+  background: var(--ov-bg-elevated);
 }
 
 .panel-heading {
@@ -28,7 +28,7 @@
 
 .panel-heading p {
   margin-bottom: 6px;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -41,10 +41,10 @@
   display: grid;
   place-items: center;
   min-height: 220px;
-  border: 1px dashed #b0bcc8;
+  border: 1px dashed var(--ov-border-strong);
   border-radius: 8px;
-  background: #f2f6fa;
-  color: #5a6878;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-weight: 700;
 }
 </style>

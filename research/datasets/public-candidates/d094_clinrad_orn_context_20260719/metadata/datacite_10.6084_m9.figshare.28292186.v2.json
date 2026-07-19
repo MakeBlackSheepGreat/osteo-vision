@@ -1,0 +1,369 @@
+{
+  "data": {
+    "attributes": {
+      "alternateIdentifiers": [],
+      "citationCount": 0,
+      "citationsOverTime": [],
+      "container": {},
+      "contentUrl": null,
+      "contributors": [],
+      "created": "2025-01-28T20:51:13.000Z",
+      "creators": [
+        {
+          "affiliation": [],
+          "familyName": "Kaffey",
+          "givenName": "Zaphanlene",
+          "name": "Kaffey, Zaphanlene",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0009-0008-7999-5245",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Belal",
+          "givenName": "Zayne",
+          "name": "Belal, Zayne",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0009-0006-2668-9717",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Rigert",
+          "givenName": "Jillian",
+          "name": "Rigert, Jillian",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0001-5419-980X",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Tripuraneni",
+          "givenName": "Lavanya",
+          "name": "Tripuraneni, Lavanya",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Humbert-Vidan",
+          "givenName": "Laia",
+          "name": "Humbert-Vidan, Laia",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Sahli",
+          "givenName": "Ariana J.",
+          "name": "Sahli, Ariana J.",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Kamel",
+          "givenName": "Serageldin",
+          "name": "Kamel, Serageldin",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0002-0046-4337",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Hutcheson",
+          "givenName": "Katherine",
+          "name": "Hutcheson, Katherine",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Watson",
+          "givenName": "Erin",
+          "name": "Watson, Erin",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Hope",
+          "givenName": "Andrew",
+          "name": "Hope, Andrew",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Dede",
+          "givenName": "Cem",
+          "name": "Dede, Cem",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0002-0543-9325",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Kiat-amnuay",
+          "givenName": "Sudarat",
+          "name": "Kiat-amnuay, Sudarat",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Walji",
+          "givenName": "Muhammad",
+          "name": "Walji, Muhammad",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Mohamed",
+          "givenName": "Abdallah",
+          "name": "Mohamed, Abdallah",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0003-2064-7613",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Sandulache",
+          "givenName": "Vlad C.",
+          "name": "Sandulache, Vlad C.",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0002-9205-385X",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [
+            "National Institutes of Health"
+          ],
+          "familyName": "Fuller",
+          "givenName": "Clifton (Dave)",
+          "name": "Fuller, Clifton (Dave)",
+          "nameIdentifiers": []
+        },
+        {
+          "affiliation": [],
+          "familyName": "Lai",
+          "givenName": "Stephen",
+          "name": "Lai, Stephen",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0001-8301-7286",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        },
+        {
+          "affiliation": [],
+          "familyName": "Moreno",
+          "givenName": "Amy C.",
+          "name": "Moreno, Amy C.",
+          "nameIdentifiers": [
+            {
+              "nameIdentifier": "https://orcid.org/0000-0001-6762-6807",
+              "nameIdentifierScheme": "ORCID",
+              "schemeUri": "https://orcid.org"
+            }
+          ]
+        }
+      ],
+      "dates": [
+        {
+          "date": "2025-01-28",
+          "dateType": "Created"
+        },
+        {
+          "date": "2025-01-28",
+          "dateType": "Updated"
+        },
+        {
+          "date": "2025",
+          "dateType": "Issued"
+        }
+      ],
+      "descriptions": [
+        {
+          "description": "Anonymized data for the reported analyses from the manuscript: Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort.",
+          "descriptionType": "Abstract"
+        }
+      ],
+      "doi": "10.6084/m9.figshare.28292186.v2",
+      "downloadCount": 0,
+      "downloadsOverTime": [
+        {
+          "total": 0,
+          "yearMonth": "2025-06"
+        },
+        {
+          "total": 0,
+          "yearMonth": "2025-12"
+        },
+        {
+          "total": 0,
+          "yearMonth": "2026-05"
+        },
+        {
+          "total": 0,
+          "yearMonth": "2026-06"
+        }
+      ],
+      "formats": [],
+      "fundingReferences": [],
+      "geoLocations": [],
+      "identifiers": [],
+      "isActive": true,
+      "language": null,
+      "metadataVersion": 0,
+      "partCount": 0,
+      "partOfCount": 0,
+      "prefix": "10.6084",
+      "publicationYear": 2025,
+      "published": "2025",
+      "publisher": "figshare",
+      "reason": null,
+      "referenceCount": 0,
+      "registered": "2025-01-28T20:51:13.000Z",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifier": "10.6084/m9.figshare.28292186",
+          "relatedIdentifierType": "DOI",
+          "relationType": "IsIdenticalTo"
+        }
+      ],
+      "relatedItems": [],
+      "rightsList": [
+        {
+          "rights": "Creative Commons Attribution 4.0 International",
+          "rightsIdentifier": "cc-by-4.0",
+          "rightsIdentifierScheme": "SPDX",
+          "rightsUri": "https://creativecommons.org/licenses/by/4.0/legalcode",
+          "schemeUri": "https://spdx.org/licenses/"
+        }
+      ],
+      "schemaVersion": "http://datacite.org/schema/kernel-4",
+      "sizes": [
+        "19198 Bytes"
+      ],
+      "source": "mds",
+      "state": "findable",
+      "subjects": [
+        {
+          "classificationCode": "510502",
+          "schemeUri": "http://www.abs.gov.au/ausstats/abs@.nsf/0/6BB427AB9696C225CA2574180004463E",
+          "subject": "Medical physics",
+          "subjectScheme": "ANZSRC Fields of Research"
+        },
+        {
+          "classificationCode": "321110",
+          "schemeUri": "http://www.abs.gov.au/ausstats/abs@.nsf/0/6BB427AB9696C225CA2574180004463E",
+          "subject": "Radiation therapy",
+          "subjectScheme": "ANZSRC Fields of Research"
+        }
+      ],
+      "suffix": "m9.figshare.28292186.v2",
+      "titles": [
+        {
+          "title": "Available Data for Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort."
+        }
+      ],
+      "types": {
+        "bibtex": "misc",
+        "citeproc": "dataset",
+        "resourceType": "Dataset",
+        "resourceTypeGeneral": "Dataset",
+        "ris": "DATA",
+        "schemaOrg": "Dataset"
+      },
+      "updated": "2025-01-28T20:51:14.000Z",
+      "url": "https://figshare.com/articles/dataset/Available_Data_for_Early_Imaging_Identification_of_Osteoradionecrosis_and_Classification_Using_the_Novel_ClinRad_System_Results_from_A_Retrospective_Observational_Cohort_/28292186/2",
+      "version": null,
+      "versionCount": 0,
+      "versionOfCount": 0,
+      "viewCount": 6,
+      "viewsOverTime": [
+        {
+          "total": 2,
+          "yearMonth": "2025-06"
+        },
+        {
+          "total": 2,
+          "yearMonth": "2025-12"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2026-05"
+        },
+        {
+          "total": 1,
+          "yearMonth": "2026-06"
+        }
+      ],
+      "xml": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHJlc291cmNlIHhtbG5zPSJodHRwOi8vZGF0YWNpdGUub3JnL3NjaGVtYS9rZXJuZWwtNCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vZGF0YWNpdGUub3JnL3NjaGVtYS9rZXJuZWwtNCBodHRwOi8vc2NoZW1hLmRhdGFjaXRlLm9yZy9tZXRhL2tlcm5lbC00LjQvbWV0YWRhdGEueHNkIj4KICA8aWRlbnRpZmllciBpZGVudGlmaWVyVHlwZT0iRE9JIj4xMC42MDg0L005LkZJR1NIQVJFLjI4MjkyMTg2LlYyPC9pZGVudGlmaWVyPgogIDxjcmVhdG9ycz4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+WmFwaGFubGVuZSBLYWZmZXk8L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPlphcGhhbmxlbmU8L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+S2FmZmV5PC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDA5LTAwMDgtNzk5OS01MjQ1PC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+WmF5bmUgQmVsYWw8L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPlpheW5lPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkJlbGFsPC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDA5LTAwMDYtMjY2OC05NzE3PC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+SmlsbGlhbiBSaWdlcnQ8L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPkppbGxpYW48L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+UmlnZXJ0PC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDAwLTAwMDEtNTQxOS05ODBYPC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+TGF2YW55YSBUcmlwdXJhbmVuaTwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+TGF2YW55YTwvZ2l2ZW5OYW1lPgogICAgICA8ZmFtaWx5TmFtZT5UcmlwdXJhbmVuaTwvZmFtaWx5TmFtZT4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+TGFpYSBIdW1iZXJ0LVZpZGFuPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5MYWlhPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkh1bWJlcnQtVmlkYW48L2ZhbWlseU5hbWU+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPkFyaWFuYSBKLiBTYWhsaTwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+QXJpYW5hIEouPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPlNhaGxpPC9mYW1pbHlOYW1lPgogICAgPC9jcmVhdG9yPgogICAgPGNyZWF0b3I+CiAgICAgIDxjcmVhdG9yTmFtZT5TZXJhZ2VsZGluIEthbWVsPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5TZXJhZ2VsZGluPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkthbWVsPC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDAwLTAwMDItMDA0Ni00MzM3PC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+S2F0aGVyaW5lIEh1dGNoZXNvbjwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+S2F0aGVyaW5lPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkh1dGNoZXNvbjwvZmFtaWx5TmFtZT4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+RXJpbiBXYXRzb248L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPkVyaW48L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+V2F0c29uPC9mYW1pbHlOYW1lPgogICAgPC9jcmVhdG9yPgogICAgPGNyZWF0b3I+CiAgICAgIDxjcmVhdG9yTmFtZT5BbmRyZXcgSG9wZTwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+QW5kcmV3PC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPkhvcGU8L2ZhbWlseU5hbWU+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPkNlbSBEZWRlPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5DZW08L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+RGVkZTwvZmFtaWx5TmFtZT4KICAgICAgPG5hbWVJZGVudGlmaWVyIG5hbWVJZGVudGlmaWVyU2NoZW1lPSJPUkNJRCIgc2NoZW1lVVJJPSJodHRwczovL29yY2lkLm9yZyI+MDAwMC0wMDAyLTA1NDMtOTMyNTwvbmFtZUlkZW50aWZpZXI+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPlN1ZGFyYXQgS2lhdC1hbW51YXk8L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPlN1ZGFyYXQ8L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+S2lhdC1hbW51YXk8L2ZhbWlseU5hbWU+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPk11aGFtbWFkIFdhbGppPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5NdWhhbW1hZDwvZ2l2ZW5OYW1lPgogICAgICA8ZmFtaWx5TmFtZT5XYWxqaTwvZmFtaWx5TmFtZT4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+QWJkYWxsYWggTW9oYW1lZDwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+QWJkYWxsYWg8L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+TW9oYW1lZDwvZmFtaWx5TmFtZT4KICAgICAgPG5hbWVJZGVudGlmaWVyIG5hbWVJZGVudGlmaWVyU2NoZW1lPSJPUkNJRCIgc2NoZW1lVVJJPSJodHRwczovL29yY2lkLm9yZyI+MDAwMC0wMDAzLTIwNjQtNzYxMzwvbmFtZUlkZW50aWZpZXI+CiAgICA8L2NyZWF0b3I+CiAgICA8Y3JlYXRvcj4KICAgICAgPGNyZWF0b3JOYW1lPlZsYWQgQy4gU2FuZHVsYWNoZTwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+VmxhZCBDLjwvZ2l2ZW5OYW1lPgogICAgICA8ZmFtaWx5TmFtZT5TYW5kdWxhY2hlPC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDAwLTAwMDItOTIwNS0zODVYPC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+Q2xpZnRvbiAoRGF2ZSkgRnVsbGVyPC9jcmVhdG9yTmFtZT4KICAgICAgPGdpdmVuTmFtZT5DbGlmdG9uIChEYXZlKTwvZ2l2ZW5OYW1lPgogICAgICA8ZmFtaWx5TmFtZT5GdWxsZXI8L2ZhbWlseU5hbWU+CiAgICAgIDxhZmZpbGlhdGlvbiBhZmZpbGlhdGlvbklkZW50aWZpZXI9Imh0dHBzOi8vcm9yLm9yZy8wMWN3cXplODgiIGFmZmlsaWF0aW9uSWRlbnRpZmllclNjaGVtZT0iUk9SIiBzY2hlbWVVUkk9Imh0dHBzOi8vcm9yLm9yZy8iPk5hdGlvbmFsIEluc3RpdHV0ZXMgb2YgSGVhbHRoPC9hZmZpbGlhdGlvbj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+U3RlcGhlbiBMYWk8L2NyZWF0b3JOYW1lPgogICAgICA8Z2l2ZW5OYW1lPlN0ZXBoZW48L2dpdmVuTmFtZT4KICAgICAgPGZhbWlseU5hbWU+TGFpPC9mYW1pbHlOYW1lPgogICAgICA8bmFtZUlkZW50aWZpZXIgbmFtZUlkZW50aWZpZXJTY2hlbWU9Ik9SQ0lEIiBzY2hlbWVVUkk9Imh0dHBzOi8vb3JjaWQub3JnIj4wMDAwLTAwMDEtODMwMS03Mjg2PC9uYW1lSWRlbnRpZmllcj4KICAgIDwvY3JlYXRvcj4KICAgIDxjcmVhdG9yPgogICAgICA8Y3JlYXRvck5hbWU+QW15IEMuIE1vcmVubzwvY3JlYXRvck5hbWU+CiAgICAgIDxnaXZlbk5hbWU+QW15IEMuPC9naXZlbk5hbWU+CiAgICAgIDxmYW1pbHlOYW1lPk1vcmVubzwvZmFtaWx5TmFtZT4KICAgICAgPG5hbWVJZGVudGlmaWVyIG5hbWVJZGVudGlmaWVyU2NoZW1lPSJPUkNJRCIgc2NoZW1lVVJJPSJodHRwczovL29yY2lkLm9yZyI+MDAwMC0wMDAxLTY3NjItNjgwNzwvbmFtZUlkZW50aWZpZXI+CiAgICA8L2NyZWF0b3I+CiAgPC9jcmVhdG9ycz4KICA8dGl0bGVzPgogICAgPHRpdGxlPkF2YWlsYWJsZSBEYXRhIGZvciBFYXJseSBJbWFnaW5nIElkZW50aWZpY2F0aW9uIG9mIE9zdGVvcmFkaW9uZWNyb3NpcyBhbmQgQ2xhc3NpZmljYXRpb24gVXNpbmcgdGhlIE5vdmVsIENsaW5SYWQgU3lzdGVtOiBSZXN1bHRzIGZyb20gQSBSZXRyb3NwZWN0aXZlIE9ic2VydmF0aW9uYWwgQ29ob3J0LjwvdGl0bGU+CiAgPC90aXRsZXM+CiAgPGRlc2NyaXB0aW9ucz4KICAgIDxkZXNjcmlwdGlvbiBkZXNjcmlwdGlvblR5cGU9IkFic3RyYWN0Ij4mbHQ7cCBkaXI9Imx0ciImZ3Q7QW5vbnltaXplZCBkYXRhIGZvciB0aGUgcmVwb3J0ZWQgYW5hbHlzZXMgZnJvbSB0aGUgbWFudXNjcmlwdDogRWFybHkgSW1hZ2luZyBJZGVudGlmaWNhdGlvbiBvZiBPc3Rlb3JhZGlvbmVjcm9zaXMgYW5kIENsYXNzaWZpY2F0aW9uIFVzaW5nIHRoZSBOb3ZlbCBDbGluUmFkIFN5c3RlbTogUmVzdWx0cyBmcm9tIEEgUmV0cm9zcGVjdGl2ZSBPYnNlcnZhdGlvbmFsIENvaG9ydC4mbHQ7L3AmZ3Q7PC9kZXNjcmlwdGlvbj4KICA8L2Rlc2NyaXB0aW9ucz4KICA8c3ViamVjdHM+CiAgICA8c3ViamVjdCBzY2hlbWVVUkk9Imh0dHA6Ly93d3cuYWJzLmdvdi5hdS9hdXNzdGF0cy9hYnNALm5zZi8wLzZCQjQyN0FCOTY5NkMyMjVDQTI1NzQxODAwMDQ0NjNFIiBzdWJqZWN0U2NoZW1lPSJBTlpTUkMgRmllbGRzIG9mIFJlc2VhcmNoIiBjbGFzc2lmaWNhdGlvbkNvZGU9IjUxMDUwMiI+TWVkaWNhbCBwaHlzaWNzPC9zdWJqZWN0PgogICAgPHN1YmplY3Qgc2NoZW1lVVJJPSJodHRwOi8vd3d3LmFicy5nb3YuYXUvYXVzc3RhdHMvYWJzQC5uc2YvMC82QkI0MjdBQjk2OTZDMjI1Q0EyNTc0MTgwMDA0NDYzRSIgc3ViamVjdFNjaGVtZT0iQU5aU1JDIEZpZWxkcyBvZiBSZXNlYXJjaCIgY2xhc3NpZmljYXRpb25Db2RlPSIzMjExMTAiPlJhZGlhdGlvbiB0aGVyYXB5PC9zdWJqZWN0PgogIDwvc3ViamVjdHM+CiAgPHB1Ymxpc2hlcj5maWdzaGFyZTwvcHVibGlzaGVyPgogIDxwdWJsaWNhdGlvblllYXI+MjAyNTwvcHVibGljYXRpb25ZZWFyPgogIDxkYXRlcz4KICAgIDxkYXRlIGRhdGVUeXBlPSJDcmVhdGVkIj4yMDI1LTAxLTI4PC9kYXRlPgogICAgPGRhdGUgZGF0ZVR5cGU9IlVwZGF0ZWQiPjIwMjUtMDEtMjg8L2RhdGU+CiAgPC9kYXRlcz4KICA8cmVzb3VyY2VUeXBlIHJlc291cmNlVHlwZUdlbmVyYWw9IkRhdGFzZXQiPkRhdGFzZXQ8L3Jlc291cmNlVHlwZT4KICA8c2l6ZXM+CiAgICA8c2l6ZT4xOTE5OCBCeXRlczwvc2l6ZT4KICA8L3NpemVzPgogIDxyZWxhdGVkSWRlbnRpZmllcnM+CiAgICA8cmVsYXRlZElkZW50aWZpZXIgcmVsYXRlZElkZW50aWZpZXJUeXBlPSJET0kiIHJlbGF0aW9uVHlwZT0iSXNJZGVudGljYWxUbyI+MTAuNjA4NC9tOS5maWdzaGFyZS4yODI5MjE4NjwvcmVsYXRlZElkZW50aWZpZXI+CiAgPC9yZWxhdGVkSWRlbnRpZmllcnM+CiAgPHJpZ2h0c0xpc3Q+CiAgICA8cmlnaHRzIHJpZ2h0c1VSST0iaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LzQuMC8iPkNDIEJZIDQuMDwvcmlnaHRzPgogIDwvcmlnaHRzTGlzdD4KPC9yZXNvdXJjZT4="
+    },
+    "id": "10.6084/m9.figshare.28292186.v2",
+    "relationships": {
+      "citations": {
+        "data": []
+      },
+      "client": {
+        "data": {
+          "id": "figshare.ars",
+          "type": "clients"
+        }
+      },
+      "media": {
+        "data": {
+          "id": "10.6084/m9.figshare.28292186.v2",
+          "type": "media"
+        }
+      },
+      "partOf": {
+        "data": []
+      },
+      "parts": {
+        "data": []
+      },
+      "provider": {
+        "data": {
+          "id": "otjm",
+          "type": "providers"
+        }
+      },
+      "references": {
+        "data": []
+      },
+      "versionOf": {
+        "data": []
+      },
+      "versions": {
+        "data": []
+      }
+    },
+    "type": "dois"
+  }
+}

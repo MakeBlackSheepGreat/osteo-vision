@@ -1,6 +1,19 @@
 <template>
   <main class="review-shell">
     <AppPageHeader title="候选区域与 ROI 判读" class="page-header" />
+    <ReviewIdentityPanel />
+
+    <section
+      v-if="feedbackMessage"
+      class="review-feedback"
+      :class="`review-feedback--${feedbackTone}`"
+      :role="feedbackTone === 'error' ? 'alert' : 'status'"
+      :aria-live="feedbackTone === 'error' ? 'assertive' : 'polite'"
+      aria-atomic="true"
+    >
+      <strong>{{ feedbackHeading }}</strong>
+      <span>{{ feedbackMessage }}</span>
+    </section>
 
     <section class="review-grid">
       <RoiCanvas
@@ -8,6 +21,7 @@
         :has-output="hasReviewOutput"
         :rois="displayRois"
         :disabled="!store.currentCase"
+        :loading="store.loading"
         :draft-id="activeCandidate?.candidate_id ?? ''"
         :draft-geometry="activeCandidateGeometry"
         :draft-label="activeCandidate?.risk_type ?? ''"
@@ -20,11 +34,18 @@
         <CandidateRegionList
           :candidates="displayCandidates"
           :active-candidate-id="activeCandidateId"
+          :loading="store.loading"
+          :promoted-candidate-ids="promotedCandidateIds"
           @promote-candidate="promoteCandidateToRoi"
           @edit-candidate-geometry="editCandidateGeometry"
+          @select-candidate="selectCandidate"
           @update-candidate-status="updateCandidateStatus"
         />
-        <ReviewStateControls @change="setReviewState" />
+        <ReviewStateControls
+          :candidate="activeCandidate"
+          :disabled="!store.currentCase || store.loading"
+          @change="setReviewState"
+        />
         <QuantificationPanel :metrics="displayMetrics" />
       </div>
     </section>
@@ -37,12 +58,15 @@ import { computed, ref } from "vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
 import CandidateRegionList from "@/components/CandidateRegionList.vue";
 import QuantificationPanel from "@/components/QuantificationPanel.vue";
+import ReviewIdentityPanel from "@/components/ReviewIdentityPanel.vue";
 import ReviewStateControls from "@/components/ReviewStateControls.vue";
 import RoiCanvas from "@/components/RoiCanvas.vue";
 import { useCaseStore } from "@/stores/caseStore";
 import type { CandidateRegion, RegionOfInterest, ReviewState } from "@/types/case";
+import { reviewStateLabel } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
+type FeedbackTone = "pending" | "success" | "error";
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1));
 const latestCandidates = computed(() => latestRun.value?.candidate_regions ?? []);
@@ -50,7 +74,12 @@ const latestMetrics = computed(() => latestRun.value?.quantitative_summary ?? {}
 const displayCandidates = computed<CandidateRegion[]>(() => latestCandidates.value);
 const displayMetrics = computed<Record<string, unknown>>(() => latestMetrics.value);
 const displayRois = computed<RegionOfInterest[]>(() => store.currentCase?.rois ?? []);
+const promotedCandidateIds = computed(() =>
+  displayRois.value.flatMap((roi) => (roi.candidate_id ? [roi.candidate_id] : [])),
+);
 const activeCandidateId = ref("");
+const operationMessage = ref("");
+const operationTone = ref<FeedbackTone>("pending");
 const activeCandidate = computed<CandidateRegion | null>(
   () => displayCandidates.value.find((candidate) => candidate.candidate_id === activeCandidateId.value) ?? null,
 );
@@ -61,15 +90,18 @@ const activeCandidateGeometry = computed<Record<string, unknown> | null>(() => {
 const hasReviewOutput = computed(
   () => latestCandidates.value.length > 0 || Object.keys(latestMetrics.value).length > 0 || displayRois.value.length > 0,
 );
+const feedbackMessage = computed(() => store.error || operationMessage.value);
+const feedbackTone = computed<FeedbackTone>(() => (store.error ? "error" : operationTone.value));
+const feedbackHeading = computed(() => {
+  if (feedbackTone.value === "error") return "复核操作未完成";
+  if (feedbackTone.value === "success") return "复核记录已更新";
+  return "正在处理";
+});
 
 async function setReviewState(state: ReviewState) {
-  const target = latestCandidates.value[0]?.candidate_id ?? "manual_roi";
-  if (!store.currentCase) return;
-  if (latestCandidates.value[0]?.candidate_id) {
-    await updateCandidateStatus(target, state);
-    return;
-  }
-  await store.addReviewEvent("review_state_change", target, state);
+  const candidateId = activeCandidate.value?.candidate_id;
+  if (!store.currentCase || !candidateId || store.loading) return;
+  await updateCandidateStatus(candidateId, state);
 }
 
 async function saveRoiDraft(payload: {
@@ -78,8 +110,9 @@ async function saveRoiDraft(payload: {
   label: string;
   reviewState: ReviewState;
 }) {
-  if (!store.currentCase) return;
+  if (!store.currentCase || store.loading) return;
   if (activeCandidate.value && payload.roiId === activeCandidate.value.candidate_id) {
+    startOperation("正在保存候选框几何和复核状态...");
     await store.updateCandidateRegionState(
       payload.roiId,
       payload.reviewState,
@@ -87,29 +120,60 @@ async function saveRoiDraft(payload: {
       payload.label,
       "candidate bbox geometry edited in ROI canvas",
     );
+    finishOperation(`候选区 ${payload.roiId} 的几何和复核状态已保存。`);
     return;
   }
+  startOperation("正在保存手动 ROI 和复核记录...");
   await store.updateRegion(payload.roiId, payload.reviewState, payload.geometry, payload.label);
-  if (!store.error) {
-    await store.addReviewEvent("manual_roi_saved", payload.roiId, payload.reviewState);
+  if (store.error) {
+    finishOperation("");
+    return;
   }
+  await store.addReviewEvent("manual_roi_saved", payload.roiId, payload.reviewState);
+  finishOperation(`ROI ${payload.roiId} 已保存并写入复核记录。`);
 }
 
 function editCandidateGeometry(candidateId: string) {
   activeCandidateId.value = candidateId;
 }
 
+function selectCandidate(candidateId: string) {
+  activeCandidateId.value = candidateId;
+}
+
 async function promoteCandidateToRoi(candidateId: string) {
-  if (!store.currentCase) return;
+  if (!store.currentCase || store.loading || promotedCandidateIds.value.includes(candidateId)) return;
+  startOperation(`正在将候选区 ${candidateId} 转为 ROI...`);
   await store.addRegionFromCandidate(candidateId);
-  if (!store.error) {
-    await store.addReviewEvent("candidate_promoted_to_roi", candidateId, "review_required");
+  if (store.error) {
+    finishOperation("");
+    return;
   }
+  await store.addReviewEvent("candidate_promoted_to_roi", candidateId, "review_required");
+  finishOperation(`候选区 ${candidateId} 已转为 ROI，并进入待复核队列。`);
 }
 
 async function updateCandidateStatus(candidateId: string, state: ReviewState) {
-  if (!store.currentCase) return;
+  if (!store.currentCase || store.loading) return;
+  startOperation(`正在将候选区 ${candidateId} 更新为${reviewStateLabel(state)}...`);
   await store.updateCandidateRegionState(candidateId, state);
+  finishOperation(`候选区 ${candidateId} 已更新为${reviewStateLabel(state)}。`);
+}
+
+function startOperation(message: string) {
+  operationMessage.value = message;
+  operationTone.value = "pending";
+}
+
+function finishOperation(successMessage: string): boolean {
+  if (store.error) {
+    operationMessage.value = store.error;
+    operationTone.value = "error";
+    return false;
+  }
+  operationMessage.value = successMessage;
+  operationTone.value = "success";
+  return true;
 }
 
 function recordFrom(value: unknown): value is Record<string, unknown> {
@@ -120,43 +184,84 @@ function recordFrom(value: unknown): value is Record<string, unknown> {
 <style scoped>
 .review-shell {
   min-height: 100dvh;
-  padding: 20px;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.16), transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(52, 211, 153, 0.1), transparent 26%),
-    linear-gradient(180deg, #06111f 0%, #081724 44%, #050b13 100%);
-  color: #e6f3ff;
+  padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
+  background: var(--ov-shell-background);
+  color: var(--ov-text);
 }
 
 .page-header,
+.review-feedback,
 .review-grid {
-  max-width: 1300px;
+  max-width: var(--ov-content-standard);
   margin-right: auto;
   margin-left: auto;
 }
 
 .page-header {
-  margin-bottom: 14px;
+  margin-bottom: var(--ov-space-5);
+}
+
+.review-feedback {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--ov-space-3);
+  align-items: baseline;
+  margin-bottom: var(--ov-space-5);
+  border: 1px solid var(--ov-border-strong);
+  border-radius: var(--ov-radius-control);
+  padding: 12px 14px;
+  background: var(--ov-bg-info);
+  color: var(--ov-text-secondary);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.review-feedback strong {
+  color: var(--ov-primary);
+  font-size: 12px;
+}
+
+.review-feedback span {
+  min-width: 0;
+  font-size: 13px;
+}
+
+.review-feedback--success {
+  border-color: var(--ov-success);
+  background: var(--ov-bg-success);
+  color: var(--ov-success);
+}
+
+.review-feedback--success strong {
+  color: var(--ov-success);
+}
+
+.review-feedback--error {
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
+}
+
+.review-feedback--error strong {
+  color: var(--ov-danger);
 }
 
 .review-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.7fr);
+  gap: 24px;
   align-items: start;
 }
 
 .review-stack {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
 
 :deep(.ov-card) {
-  border: 1px solid rgba(91, 176, 214, 0.24);
-  background:
-    linear-gradient(180deg, rgba(15, 33, 51, 0.94), rgba(8, 20, 33, 0.96)),
-    rgba(8, 20, 33, 0.96);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--ov-border);
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 :deep(.section-heading__eyebrow),
@@ -164,89 +269,92 @@ function recordFrom(value: unknown): value is Record<string, unknown> {
 :deep(dt),
 :deep(.roi-status),
 :deep(.ov-empty-text) {
-  color: rgba(176, 207, 229, 0.72);
+  color: var(--ov-text-muted);
 }
 
 :deep(.section-heading h2),
 :deep(.section-heading__title),
 :deep(strong),
 :deep(dd) {
-  color: #eef8ff;
+  color: var(--ov-text);
 }
 
 :deep(p) {
-  color: rgba(216, 232, 244, 0.78);
+  color: var(--ov-text-secondary);
 }
 
 :deep(.roi-label-field input),
 :deep(.roi-label-field select) {
-  border-color: rgba(91, 176, 214, 0.3);
-  background: rgba(3, 10, 20, 0.78);
-  color: #e9f7ff;
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
 }
 
 :deep(.roi-label-field input::placeholder) {
-  color: rgba(176, 207, 229, 0.45);
+  color: var(--ov-text-muted);
 }
 
 :deep(.canvas-frame) {
-  border-color: rgba(91, 176, 214, 0.32);
-  background: #07121d;
-  box-shadow: inset 0 0 32px rgba(34, 211, 238, 0.08);
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-media);
+  box-shadow: inset 0 0 32px var(--ov-overlay-strong);
 }
 
 :deep(.canvas-frame.empty) {
-  background:
-    radial-gradient(circle at 50% 42%, rgba(34, 211, 238, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(7, 18, 29, 0.98), rgba(3, 10, 18, 0.98));
+  background: var(--ov-bg-soft);
+  box-shadow: none;
 }
 
-:deep(.roi-svg rect:first-of-type) {
-  fill: #07121d;
+:deep(.canvas-frame.active .roi-svg rect:first-of-type) {
+  fill: var(--ov-bg-media);
+}
+
+:deep(.canvas-frame.empty .roi-svg rect:first-of-type) {
+  fill: var(--ov-bg-soft);
 }
 
 :deep(.canvas-meta),
 :deep(.empty-canvas-copy) {
-  border: 1px solid rgba(91, 176, 214, 0.26);
-  background: rgba(3, 10, 20, 0.78);
-  color: rgba(229, 246, 255, 0.86);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--ov-border-strong);
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
+  box-shadow: var(--ov-shadow);
 }
 
 :deep(.empty-canvas-copy strong) {
-  color: #67e8f9;
+  color: var(--ov-primary-strong);
 }
 
 :deep(.empty-canvas-copy span) {
-  color: rgba(176, 207, 229, 0.74);
+  color: var(--ov-text-muted);
 }
 
 :deep(.candidate-list li) {
-  border-color: rgba(91, 176, 214, 0.2);
-  background: rgba(3, 12, 23, 0.62);
+  border-color: var(--ov-border-subtle);
+  background: var(--ov-bg-soft);
 }
 
 :deep(.candidate-list li.selected) {
-  border-color: rgba(34, 211, 238, 0.74);
-  background: linear-gradient(180deg, rgba(13, 54, 75, 0.76), rgba(7, 24, 39, 0.92));
-  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.12);
+  border-color: var(--ov-border-accent);
+  background: var(--ov-bg-selected);
+  box-shadow: inset 0 0 0 1px var(--ov-focus-ring);
 }
 
 :deep(.candidate-title span) {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
 }
 
 :deep(.ov-button--secondary),
 :deep(.ov-button--ghost) {
-  border-color: rgba(91, 176, 214, 0.28);
-  background: rgba(8, 22, 36, 0.82);
-  color: #dff5ff;
+  border-color: var(--ov-border-strong);
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
 }
 
 :deep(.ov-button--primary) {
-  background: linear-gradient(135deg, #0891b2, #14b8a6);
-  color: #f8fdff;
+  background: var(--ov-button-primary-bg);
+  color: var(--ov-text-on-primary);
 }
 
 :deep(.ov-button:disabled) {

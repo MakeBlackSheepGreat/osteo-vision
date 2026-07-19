@@ -1,30 +1,19 @@
 <template>
-  <div :class="gridClass" aria-label="四宫格图像展示">
+  <div :class="gridClass" aria-label="术中影像与分析结果">
     <article class="analysis-quad-card analysis-quad-card--camera">
       <header>
         <AppIcon name="camera" />
         <span>{{ streamTitle }}</span>
         <strong :class="{ active: streamActive }">{{ streamBadge }}</strong>
       </header>
-      <div class="stream-control-row" aria-label="浏览器摄像头控制">
-        <AppButton
-          v-if="!cameraActive"
-          variant="secondary"
-          size="sm"
-          icon="camera"
-          :disabled="cameraOpening"
-          @click="emit('startCamera')"
-        >
-          {{ cameraOpening ? "请求摄像头权限中" : "开启摄像头" }}
-        </AppButton>
-        <AppButton v-else variant="ghost" size="sm" icon="close" @click="emit('stopCamera')">
-          关闭摄像头
-        </AppButton>
-        <span v-if="fileVideoActive" class="stream-control-note">当前 MP4 覆盖显示，摄像头仍可独立开关。</span>
-      </div>
       <div
         class="analysis-quad-viewport camera-viewport"
-        :class="{ active: streamActive, 'has-file-video': fileVideoActive }"
+        :class="{
+          active: streamActive,
+          'has-file-video': fileVideoActive,
+          'has-live-overlay': Boolean(liveOverlaySrc),
+          'is-empty': !streamActive,
+        }"
       >
         <video v-show="!fileVideoActive" ref="cameraVideoRef" class="camera-live-player" muted autoplay playsinline></video>
         <video
@@ -35,12 +24,26 @@
           controls
           preload="metadata"
           playsinline
+          crossorigin="anonymous"
           @loadedmetadata="emitPlaybackState"
           @timeupdate="emitPlaybackState"
           @seeked="emitPlaybackState"
+          @play="emit('playbackStarted')"
+          @pause="emit('playbackPaused')"
+          @ended="emit('playbackEnded')"
         ></video>
+        <img
+          v-if="liveOverlaySrc"
+          class="live-segmentation-overlay"
+          :src="liveOverlaySrc"
+          alt="当前实时分割叠加"
+        />
+        <div v-if="liveFrameStatus" class="live-frame-status" aria-live="polite">
+          <strong>{{ liveFrameStatus }}</strong>
+          <span v-if="liveInferenceLatencyMs !== null">推理 {{ Math.round(liveInferenceLatencyMs) }} ms</span>
+        </div>
         <div v-if="!streamActive" class="empty-preview-copy">
-          <strong>视频流预览区</strong>
+          <strong>等待视频流</strong>
           <span>{{ cameraStatusLabel }}</span>
         </div>
       </div>
@@ -52,7 +55,10 @@
         <AppIcon :name="panelIcon(panel.title)" />
         <span>{{ panel.title }}</span>
       </header>
-      <div class="analysis-quad-viewport output-viewport" :class="{ 'has-image': panel.previewSrc }">
+      <div
+        class="analysis-quad-viewport output-viewport"
+        :class="{ 'has-image': panel.previewSrc, 'is-empty': !panel.previewSrc }"
+      >
         <img v-if="panel.previewSrc" :src="panel.previewSrc" :alt="panel.title" />
         <svg
           v-if="panel.previewSrc && panel.overlays?.length"
@@ -75,11 +81,14 @@
           </rect>
         </svg>
         <div v-if="!panel.previewSrc" class="empty-preview-copy">
-          <strong>空白预览区</strong>
-          <span>运行分析后显示真实输出</span>
+          <strong>等待{{ panel.title }}输出</strong>
+          <span>运行分析后显示</span>
         </div>
       </div>
-      <p v-if="panel.path">{{ panel.path }}</p>
+      <details v-if="panel.path" class="preview-path-details">
+        <summary :title="panel.path">文件：{{ fileName(panel.path) }}</summary>
+        <code>{{ panel.path }}</code>
+      </details>
       <p v-else>{{ panel.tag }} / {{ panel.label }} / {{ panel.scale }}</p>
     </article>
   </div>
@@ -89,22 +98,28 @@
 import { computed, nextTick, ref, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
-import AppButton from "@/components/AppButton.vue";
 import type { AnalysisPreviewPanel, VideoPlaybackAnalysis } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
+import {
+  captureVideoFrameAsJpeg,
+  LIVE_FRAME_JPEG_QUALITY,
+  LIVE_FRAME_MAX_LONG_SIDE,
+} from "@/utils/browserFrameCapture";
 
 const props = withDefaults(
   defineProps<{
     panels: AnalysisPreviewPanel[];
     cameraStream: MediaStream | null;
     cameraActive: boolean;
-    cameraOpening?: boolean;
     cameraStatusLabel: string;
     videoPlayback?: VideoPlaybackAnalysis | null;
     currentPlaybackTime?: number;
     playbackDuration?: number;
     playbackSeekTimeSec?: number | null;
     playbackSeekToken?: number;
+    liveOverlaySrc?: string;
+    liveFrameStatus?: string;
+    liveInferenceLatencyMs?: number | null;
     fullscreen?: boolean;
   }>(),
   {
@@ -113,28 +128,38 @@ const props = withDefaults(
     playbackSeekTimeSec: null,
     playbackSeekToken: 0,
     fullscreen: false,
-    cameraOpening: false,
+    liveOverlaySrc: "",
+    liveFrameStatus: "",
+    liveInferenceLatencyMs: null,
   },
 );
 
 const emit = defineEmits<{
   playbackStateChange: [timeSec: number, durationSec: number];
-  startCamera: [];
-  stopCamera: [];
+  playbackStarted: [];
+  playbackPaused: [];
+  playbackEnded: [];
 }>();
 
 const cameraVideoRef = ref<HTMLVideoElement | null>(null);
 const playbackVideoRef = ref<HTMLVideoElement | null>(null);
-const gridClass = computed(() => [
-  "analysis-quad-grid",
-  {
-    "analysis-quad-grid--fullscreen": props.fullscreen,
-  },
-]);
 
 // 摄像头与导入 MP4 共用同一个“视频流输入”视口；当前选中的 MP4 是官方设备视频流示例，优先覆盖显示。
 const fileVideoActive = computed(() => Boolean(props.videoPlayback?.videoSrc));
 const streamActive = computed(() => props.cameraActive || fileVideoActive.value);
+const hasVisualContent = computed(
+  () => streamActive.value || Boolean(props.liveOverlaySrc) || props.panels.some((panel) => Boolean(panel.previewSrc)),
+);
+const hasOutputVisualContent = computed(() => props.panels.some((panel) => Boolean(panel.previewSrc)));
+const gridClass = computed(() => [
+  "analysis-quad-grid",
+  {
+    "analysis-quad-grid--fullscreen": props.fullscreen,
+    "analysis-quad-grid--empty": !props.fullscreen && !hasVisualContent.value,
+    "analysis-quad-grid--stream-empty-with-outputs":
+      !props.fullscreen && !streamActive.value && hasOutputVisualContent.value,
+  },
+]);
 const streamTitle = computed(() => "视频流输入");
 const streamBadge = computed(() => {
   if (fileVideoActive.value) return "MP4";
@@ -179,12 +204,39 @@ function emitPlaybackState(event?: Event) {
   emit("playbackStateChange", timeSec, durationSec);
 }
 
+async function capturePlaybackFrame(): Promise<Blob> {
+  if (!playbackVideoRef.value || !fileVideoActive.value) {
+    throw new Error("MP4 播放器尚未就绪。");
+  }
+  return captureVideoFrameAsJpeg(
+    playbackVideoRef.value,
+    LIVE_FRAME_JPEG_QUALITY,
+    LIVE_FRAME_MAX_LONG_SIDE,
+    "MP4 视频",
+  );
+}
+
+function currentPlaybackTime(): number | undefined {
+  const value = playbackVideoRef.value?.currentTime;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+defineExpose({
+  capturePlaybackFrame,
+  currentPlaybackTime,
+});
+
 function formatPlaybackTime(value: number | undefined): string {
   if (!value || !Number.isFinite(value) || value <= 0) return "0:00";
   const totalSeconds = Math.floor(value);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function fileName(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  return normalized.split("/").filter(Boolean).at(-1) || path;
 }
 
 function panelIcon(title: string): AppIconName {
@@ -205,19 +257,25 @@ function panelIcon(title: string): AppIconName {
 <style scoped>
 .analysis-quad-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: minmax(0, 2.25fr) minmax(270px, 0.75fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   min-width: 0;
+  min-height: clamp(560px, 62vh, 760px);
 }
 
 .analysis-quad-card {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
-  border: 1px solid #d4e2f0;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 8px;
-  background: #fbfdff;
+  padding: 12px;
+  background: var(--ov-bg-elevated);
+}
+
+.analysis-quad-card--camera {
+  grid-row: 1 / -1;
 }
 
 .analysis-quad-card header {
@@ -225,10 +283,10 @@ function panelIcon(title: string): AppIconName {
   flex-wrap: wrap;
   gap: 7px;
   align-items: center;
-  margin-bottom: 6px;
-  color: #102136;
+  margin-bottom: 8px;
+  color: var(--ov-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .analysis-quad-card header span {
@@ -241,17 +299,17 @@ function panelIcon(title: string): AppIconName {
   flex: 0 0 auto;
   width: 15px;
   height: 15px;
-  color: #2c7ec0;
+  color: var(--ov-primary-strong);
 }
 
 .analysis-quad-card header strong {
   max-width: 100%;
   margin-left: auto;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 999px;
   padding: 2px 7px;
-  background: #f2f6fb;
-  color: #6a7a8a;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-muted);
   font-size: 10px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -259,94 +317,86 @@ function panelIcon(title: string): AppIconName {
 }
 
 .analysis-quad-card header strong.active {
-  border-color: #a8dec8;
-  background: #eefaf5;
-  color: #168a63;
-}
-
-.stream-control-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  min-width: 0;
-  margin: 0 0 7px;
-}
-
-.stream-control-row :deep(.app-button) {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.stream-control-row :deep(.app-button__label) {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.stream-control-note {
-  min-width: 0;
-  color: #5a6a7a;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  border-color: var(--ov-success);
+  background: var(--ov-bg-success);
+  color: var(--ov-success);
 }
 
 .analysis-quad-viewport {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: clamp(160px, 14vw, 230px);
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
-  border: 1px solid #cbd8e6;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 4px;
-  background:
-    linear-gradient(90deg, rgba(44, 126, 192, 0.08) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(44, 126, 192, 0.08) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 248, 254, 0.98));
-  background-size: 24px 24px, 24px 24px, auto;
+  background: var(--ov-bg-panel);
   isolation: isolate;
 }
 
 .analysis-quad-viewport::before {
-  position: absolute;
-  inset: 14px;
-  border: 1px dashed rgba(44, 126, 192, 0.2);
-  border-radius: 5px;
-  content: "";
-  pointer-events: none;
+  content: none;
 }
 
 .analysis-quad-viewport::after {
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  content: "";
-  pointer-events: none;
+  content: none;
 }
 
 .camera-viewport {
-  background:
-    linear-gradient(90deg, rgba(17, 108, 166, 0.1) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(17, 108, 166, 0.1) 1px, transparent 1px),
-    linear-gradient(145deg, #dff1fd, #c1e0f5);
-  background-size: 24px 24px, 24px 24px, auto;
+  background: var(--ov-bg-panel);
 }
 
+.camera-viewport.active,
 .camera-viewport.has-file-video {
-  background: #0f1720;
+  background: var(--ov-bg-media);
 }
 
-.camera-live-player,
-.video-stream-player {
-  position: relative;
+.camera-viewport.has-live-overlay,
+.output-viewport.has-image {
+  background: var(--ov-bg-media);
+}
+
+.camera-live-player {
+  position: absolute;
   z-index: 3;
+  inset: 0;
   width: 100%;
   height: 100%;
   min-height: inherit;
+}
+
+.live-segmentation-overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.live-frame-status {
+  position: absolute;
+  z-index: 6;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  gap: 1px;
+  max-width: calc(100% - 16px);
+  border: 1px solid rgba(178, 237, 209, 0.88);
+  border-radius: 4px;
+  padding: 5px 7px;
+  background: rgba(7, 41, 31, 0.82);
+  color: #e6fff4;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.live-frame-status span {
+  color: #b5e6d0;
 }
 
 .camera-live-player {
@@ -364,14 +414,20 @@ function panelIcon(title: string): AppIconName {
   opacity: 0;
 }
 
-.video-stream-player {
-  object-fit: contain;
-  opacity: 1;
-  background: #0f1720;
+.camera-viewport.has-live-overlay .camera-live-player,
+.camera-viewport.has-live-overlay .video-stream-player {
+  visibility: hidden;
 }
 
-.output-viewport.has-image {
-  background: #0f1720;
+.video-stream-player {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: contain;
+  opacity: 1;
+  background: var(--ov-bg-media);
 }
 
 .output-viewport img {
@@ -415,17 +471,17 @@ function panelIcon(title: string): AppIconName {
   justify-items: center;
   max-width: min(78%, 280px);
   min-width: 0;
-  border: 1px solid rgba(44, 126, 192, 0.28);
-  border-radius: 8px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #4d6780;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--ov-text-secondary);
   text-align: center;
-  box-shadow: 0 8px 20px rgba(22, 76, 120, 0.08);
+  box-shadow: none;
 }
 
 .empty-preview-copy strong {
-  color: #155f96;
+  color: var(--ov-primary);
   font-size: 12px;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -433,7 +489,7 @@ function panelIcon(title: string): AppIconName {
 }
 
 .empty-preview-copy span {
-  color: #6c8299;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 800;
   line-height: 1.35;
@@ -443,15 +499,56 @@ function panelIcon(title: string): AppIconName {
 
 .analysis-quad-card p {
   margin: 5px 0 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
+.preview-path-details {
+  min-width: 0;
+  margin-top: 5px;
+  color: var(--ov-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.preview-path-details summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ov-text-secondary);
+  cursor: pointer;
+}
+
+.preview-path-details code {
+  display: block;
+  max-height: 120px;
+  margin-top: 5px;
+  overflow: auto;
+  border-top: 1px solid var(--ov-border-subtle);
+  padding-top: 5px;
+  color: var(--ov-text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.preview-path-details:not([open]) code {
+  display: none;
+}
+
 .analysis-quad-grid--fullscreen {
   height: 100%;
   min-height: 0;
+}
+
+.analysis-quad-grid--empty:not(.analysis-quad-grid--fullscreen) {
+  min-height: clamp(500px, 54vh, 620px);
+}
+
+.analysis-quad-grid--stream-empty-with-outputs:not(.analysis-quad-grid--fullscreen) {
+  min-height: clamp(500px, 54vh, 620px);
 }
 
 .analysis-quad-grid--fullscreen .analysis-quad-card {
@@ -470,9 +567,17 @@ function panelIcon(title: string): AppIconName {
 @media (max-width: 1120px) {
   .analysis-quad-grid:not(.analysis-quad-grid--fullscreen) {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    min-height: 0;
+  }
+
+  .analysis-quad-grid:not(.analysis-quad-grid--fullscreen) .analysis-quad-card--camera {
+    grid-row: auto;
   }
 
   .analysis-quad-grid:not(.analysis-quad-grid--fullscreen) .analysis-quad-viewport {
+    height: auto;
+    aspect-ratio: 16 / 9;
     min-height: 190px;
   }
 }

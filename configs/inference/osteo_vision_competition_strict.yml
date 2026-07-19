@@ -1,0 +1,62 @@
+paths_config: configs/paths.example.yml
+runtime:
+  runtime_profile: competition_strict
+  strict_startup: true
+  model_version: osteo-vision-keyframe-residual-attention-v1
+  framework_version: v2
+  task_package: configs/tasks/osteo_vision.yml
+  default_task_type: segmentation
+  default_threshold: 0.5
+  low_confidence_margin: 0.15
+  device_policy: auto
+  use_fixture_model: false
+  allow_fixture_on_missing_checkpoint: false
+  model_selection_policy: explicit
+  require_explicit_runtime_allowed: true
+  allow_heuristic_keyframe_fallback: false
+  allow_prompt_fallback: false
+  required_tools:
+    - ffmpeg
+    - ffprobe
+  required_model_ids:
+    - keyframe_residual_attention_unet_s20260715_20260715
+  models:
+    - model_id: keyframe_residual_attention_unet_s20260715_20260715
+      family: residual_attention_unet_keyframe_segmenter
+      task_types: [segmentation]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715.pt
+      source_url: local://d046-layered-registry-fluorescence-keyframe-proxy
+      license: internal
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: Strict competition JPEG/MP4 keyframe fluorescence-signal segmentation after model-selection and runtime gates
+      clinical_claim_allowed: false
+      extra:
+        runtime_allowed: true
+        runtime_sidecar_path: artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715_runtime_promotion.json
+        checkpoint_model_id: keyframe_residual_attention_unet_s20260715_20260715
+        threshold: 0.4
+        output_dir: artifacts/visual_evidence/osteo_vision/keyframe_model_masks
+        input_domain: public_or_synthetic_proxy_keyframe_non_target_domain
+        training_data_boundary: admitted_proxy_rows_retain_non_target_domain_provenance
+        target_domain: false
+        tile_size: 512
+        tile_overlap: 64
+        tile_batch_size: 4
+        max_whole_pixels: 1048576
+        live_stream:
+          uncertainty_tta_enabled: false
+          max_whole_pixels: 1048576
+          tile_batch_size: 8
+          fast_output: true
+          overlay_format: jpeg
+          overlay_jpeg_quality: 82
+          use_amp: true
+  tasks:
+    segmentation:
+      pipeline: segmentation
+      model_id: keyframe_residual_attention_unet_s20260715_20260715

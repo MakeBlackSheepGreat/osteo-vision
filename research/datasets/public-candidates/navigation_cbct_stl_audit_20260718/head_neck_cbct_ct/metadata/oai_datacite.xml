@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-stylesheet type="text/xsl" href="/static/oai2.xsl"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+  <responseDate>2026-07-18T14:26:22Z</responseDate>
+  <request verb="GetRecord" identifier="oai:zenodo.org:13231287" metadataPrefix="oai_datacite">https://zenodo.org/oai2d</request>
+  <GetRecord>
+    <record>
+      <header>
+        <identifier>oai:zenodo.org:13231287</identifier>
+        <datestamp>2024-08-06T03:11:59Z</datestamp>
+        <setSpec>openaire_data</setSpec>
+      </header>
+      <metadata>
+        <oai_datacite xmlns="http://schema.datacite.org/oai/oai-1.1/" xsi:schemaLocation="http://schema.datacite.org/oai/oai-1.1/ http://schema.datacite.org/oai/oai-1.1/oai.xsd">
+          <schemaVersion>4.5</schemaVersion>
+          <datacentreSymbol>CERN.ZENODO</datacentreSymbol>
+          <payload>
+            <resource xmlns="http://datacite.org/schema/kernel-4" xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.5/metadata.xsd">
+              <alternateIdentifiers>
+                <alternateIdentifier alternateIdentifierType="oai">oai:zenodo.org:13231287</alternateIdentifier>
+              </alternateIdentifiers>
+              <creators>
+                <creator>
+                  <creatorName nameType="Organizational">Huazhong University of Science and Technology</creatorName>
+                </creator>
+              </creators>
+              <titles>
+                <title>Head Neck CBCT CT datasets</title>
+              </titles>
+              <publisher>Zenodo</publisher>
+              <publicationYear>2024</publicationYear>
+              <dates>
+                <date dateType="Issued">2024-08-06</date>
+                <date dateType="Updated">2024-08-06</date>
+              </dates>
+              <resourceType resourceTypeGeneral="Dataset"></resourceType>
+              <identifier identifierType="DOI">10.5281/zenodo.13231287</identifier>
+              <relatedIdentifiers>
+                <relatedIdentifier relationType="IsVersionOf" relatedIdentifierType="DOI">10.5281/zenodo.13231286</relatedIdentifier>
+              </relatedIdentifiers>
+              <rightsList>
+                <rights rightsURI="https://creativecommons.org/licenses/by/4.0/legalcode" rightsIdentifierScheme="spdx" rightsIdentifier="cc-by-4.0">Creative Commons Attribution 4.0 International</rights>
+                <rights rightsURI="info:eu-repo/semantics/openAccess"/>
+              </rightsList>
+              <descriptions>
+                <description descriptionType="Abstract">Planning CT images were acquired using the Brilliance CT Big Bore Scanner (Phillips Medical Systems, Andover, MA). Each CT image data includes 90-176 slices with a thickness of 3mm, and each slice has 512×512 voxels with a resolution of 1.1719 mm. Multiple CBCT images were acquired using an onboard Imager (OBI, Varian Medical Systems, Palo Alto, CA) in full-fan mode by Varian Edge linear accelerator during treatment, but only the images obtained on the first treatment day were used in this study. Each CBCT data contains 88 slices with a thickness of 3mm. Each slice has 270×270 voxels with a resolution of 1mm. All the scans have ground truth segmentations, each of which contains 5 anatomical structures.
+
+To keep the same spatial resolution between CT images and CBCT images, we resampled the CT image to a resolution of 1 mm×1 mm×3 mm. Both CT and CBCT images contain extraneous information, such as background regions, shoulder regions, and treatment beds. Thus, we cropped all CT and CBCT images to a standardized size and removed any irrelevant information within the field of view (FOV) to ensure that the images shared a consistent receptive field that covered only the head-neck region of interest. The final CT and CBCT images contain 240×240×64 voxels with a resolution of 1 mm×1 mm×3 mm.
+
+ </description>
+              </descriptions>
+            </resource>
+          </payload>
+        </oai_datacite>
+      </metadata>
+    </record>
+  </GetRecord>
+</OAI-PMH>

@@ -60,10 +60,10 @@ function panelIcon(title: string): AppIconName {
 
 .analysis-preview-card {
   min-width: 0;
-  border: 1px solid #d4e2f0;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 9px;
-  background: #fbfdff;
+  background: var(--ov-bg-elevated);
 }
 
 .analysis-preview-card header {
@@ -72,7 +72,7 @@ function panelIcon(title: string): AppIconName {
   align-items: center;
   justify-content: center;
   margin-bottom: 6px;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 13px;
   font-weight: 900;
   text-align: center;
@@ -81,7 +81,7 @@ function panelIcon(title: string): AppIconName {
 .analysis-preview-card header :deep(.app-icon) {
   width: 14px;
   height: 14px;
-  color: #2c7ec0;
+  color: var(--ov-primary-strong);
 }
 
 .analysis-preview-skeleton {
@@ -90,30 +90,23 @@ function panelIcon(title: string): AppIconName {
   place-items: center;
   min-height: clamp(260px, 22vw, 340px);
   overflow: hidden;
-  border: 1px solid #cbd8e6;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 4px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(242, 248, 254, 0.96)),
-    #f8fbfe;
+  background: var(--ov-bg-panel);
   isolation: isolate;
 }
 
 .analysis-preview-skeleton::before {
   position: absolute;
   inset: 14px;
-  border: 1px dashed rgba(44, 126, 192, 0.22);
+  border: 1px dashed var(--ov-border);
   border-radius: 5px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(239, 247, 254, 0.42));
+  background: var(--ov-bg-soft);
   content: "";
 }
 
 .analysis-preview-skeleton::after {
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  content: "";
-  pointer-events: none;
+  content: none;
 }
 
 .empty-preview-copy {
@@ -122,29 +115,29 @@ function panelIcon(title: string): AppIconName {
   display: grid;
   gap: 4px;
   justify-items: center;
-  border: 1px solid rgba(44, 126, 192, 0.28);
+  border: 1px solid var(--ov-border-accent);
   border-radius: 8px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #4d6780;
-  box-shadow: 0 8px 20px rgba(22, 76, 120, 0.08);
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
+  box-shadow: var(--ov-shadow);
 }
 
 .empty-preview-copy strong {
-  color: #155f96;
+  color: var(--ov-primary);
   font-size: 12px;
   line-height: 1.2;
 }
 
 .empty-preview-copy span {
-  color: #6c8299;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 800;
 }
 
 .analysis-preview-card p {
   margin: 6px 0 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -162,7 +155,7 @@ function panelIcon(title: string): AppIconName {
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   border-style: solid;
-  background: #f7fbff;
+  background: var(--ov-bg-elevated);
 }
 
 .analysis-preview-grid--fullscreen .analysis-preview-card p {

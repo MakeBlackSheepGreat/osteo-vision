@@ -8,6 +8,7 @@ const forbiddenTextClippingPatterns = [
   /white-space\s*:\s*nowrap/i,
   /-webkit-line-clamp\s*:/i,
   /line-clamp\s*:/i,
+  /compactPath\s*\(/,
 ];
 
 function listVueAndCssFiles(root: string): string[] {
@@ -21,7 +22,7 @@ function listVueAndCssFiles(root: string): string[] {
 }
 
 describe("frontend text wrapping CSS", () => {
-  it("does not use ellipsis, forced single-line, or line-clamp clipping in visible UI styles", () => {
+  it("does not use ellipsis, forced single-line, line-clamp, or path compaction in visible UI", () => {
     const files = sourceRoots.flatMap((root) => listVueAndCssFiles(join(process.cwd(), root)));
     const violations = files.flatMap((file) => {
       const content = readFileSync(file, "utf8");

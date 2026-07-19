@@ -1,14 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.src.core.disclaimers import PLATFORM_SAFETY_DISCLAIMER
 from backend.src.api.helpers import require_case
+from backend.src.api.review_identity import can_verify_clinical_context, resolve_review_actor
+from backend.src.core.disclaimers import PLATFORM_SAFETY_DISCLAIMER
 from backend.src.domains.cases.repository import CaseRepository
-from backend.src.domains.cases.schemas import CaseCreateRequest, CaseRecord
+from backend.src.domains.cases.schemas import (
+    CaseCreateRequest,
+    CaseRecord,
+    ClinicalContext,
+    ClinicalContextUpdateRequest,
+    ReviewActorIdentity,
+)
 
 
 def router(repo: CaseRepository) -> APIRouter:
@@ -35,5 +43,34 @@ def router(repo: CaseRepository) -> APIRouter:
     @api.get("/cases", response_model=list[CaseRecord])
     def list_cases() -> list[CaseRecord]:
         return repo.list()
+
+    @api.put("/cases/{case_id}/clinical-context", response_model=CaseRecord)
+    def update_clinical_context(
+        case_id: str,
+        request: ClinicalContextUpdateRequest,
+        actor: Annotated[ReviewActorIdentity, Depends(resolve_review_actor)],
+    ) -> CaseRecord:
+        case = require_case(repo, case_id)
+        verification_requested = request.review_status == "verified"
+        if verification_requested and not can_verify_clinical_context(actor):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "clinical_context_verification_forbidden",
+                    "message": (
+                        "Clinical context verification requires an authenticated physician "
+                        "or project reviewer with an approved authentication source"
+                    ),
+                },
+            )
+        clinical_context = ClinicalContext.model_validate(
+            {
+                **request.model_dump(),
+                "verified_by": actor if verification_requested else None,
+                "verified_at": datetime.now(timezone.utc) if verification_requested else None,
+            }
+        )
+        updated = case.model_copy(update={"clinical_context": clinical_context})
+        return repo.save(updated)
 
     return api

@@ -1,0 +1,40 @@
+capability: bone_activity_multitask
+promotion_policy_path: configs/training/three_priority_promotion.yml
+model:
+  model_id: bone_activity_multitask_d074_proxy_v1
+  model_family: dual_channel_bone_activity_multitask
+  base_channels: 8
+data:
+  mode: manifest
+  manifest_path: artifacts/bone_activity_d074_proxy/data/d074_bone_activity_proxy_samples.csv
+  manifest_sha256: a4a264a2572dbaccfbf2cf252a1a08a234afa0433afde0d9bba08f77f9e64c2a
+  domain: human_brain_ppix_fluorescence_proxy
+  target_domain: false
+  image_shape: [192, 256]
+  expected_training_scope: non_target_proxy_pretraining
+  expected_domain_tier: clinical_microscope_fluorescence_non_jaw_proxy
+  expected_channel_semantics: single_ppix_rgb_view_with_red_channel_proxy
+training:
+  seed: 20260719
+  device: cpu
+  batch_size: 1
+  max_train_batches: 48
+  learning_rate: 0.001
+  loss_weights:
+    bone_gate: 1.0
+    activity_score: 1.0
+    class_logits: 1.0
+    uncertainty: 0.5
+safety:
+  bone_gate_threshold: 0.5
+  abstention_threshold: 0.5
+  threshold_selection:
+    enabled: true
+    bone_gate_candidates: [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3]
+    abstention_candidates: [0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 0.99]
+    minimum_coverage_rate: 0.1
+    maximum_selective_error_rate: 0.15
+outputs:
+  checkpoint_path: artifacts/bone_activity_d074_proxy/training/bone_activity_multitask_d074_proxy.pt
+  manifest_path: artifacts/bone_activity_d074_proxy/training/bone_activity_multitask_d074_proxy_manifest.json
+  summary_path: research/reports/modeling/bone_activity_multitask_d074_proxy_20260719.json

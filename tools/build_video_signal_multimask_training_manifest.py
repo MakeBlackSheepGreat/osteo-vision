@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.core.paths import ensure_dir, resolve_path  # noqa: E402
+from src.datasets.group_splits import assign_group_split, group_leakage_report, normalized_source_group  # noqa: E402
 from src.reports.writers import write_csv, write_json  # noqa: E402
 
 BOUNDARY_NOTE = (
@@ -38,6 +39,7 @@ MANIFEST_FIELDS = [
     "sample_weight",
     "label_source",
     "source_video_path",
+    "source_group_id",
     "frame_index",
     "timestamp_sec",
     "source_manifest_path",
@@ -50,6 +52,7 @@ MANIFEST_FIELDS = [
     "height",
     "split",
     "input_domain",
+    "domain_tier",
     "medical_boundary",
 ]
 
@@ -120,6 +123,7 @@ def build_multimask_manifest(args: argparse.Namespace) -> dict[str, Any]:
         "review_state_counts": value_counts(rows, "review_state"),
         "label_source_counts": value_counts(rows, "label_source"),
         "split_counts": value_counts(rows, "split"),
+        "source_group_split": group_leakage_report(rows),
         "allowed_mask_types": sorted(allowed_mask_types),
         "skipped_count": len(skipped),
         "skipped": skipped[:100],
@@ -143,7 +147,11 @@ def rows_from_video_signal_manifest(
         image_path = source.get("keyframe_path") or source.get("overlay_frame_path")
         source_case_id = str(source.get("case_id") or "")
         entries = [
-            ("fluorescence_hotspot", source.get("fluorescence_signal_mask_path"), source.get("label_source") or "fluorescence_intensity_proxy_mask"),
+            (
+                "fluorescence_hotspot",
+                source.get("fluorescence_signal_mask_path"),
+                source.get("label_source") or "fluorescence_intensity_proxy_mask",
+            ),
             ("boundary_risk", source.get("risk_mask_path"), "derived_risk_mask_proxy"),
             ("uncertain", source.get("uncertain_mask_path"), "derived_uncertain_mask_proxy"),
         ]
@@ -167,6 +175,7 @@ def rows_from_video_signal_manifest(
                 source_roi_id="",
                 quality_status=source.get("quality_status"),
                 input_domain=source.get("input_domain"),
+                domain_tier=source.get("domain_tier") or "proxy",
                 val_fraction=val_fraction,
                 seed=seed,
             )
@@ -212,8 +221,13 @@ def rows_from_review_manifest(
             source_record_type=record.get("record_type") or "review_manifest_record",
             source_candidate_id=record.get("candidate_id"),
             source_roi_id=record.get("roi_id"),
-            quality_status="reviewed" if str(record.get("review_state") or "").lower() in {"accepted", "modified"} else "review_required",
+            quality_status=(
+                "reviewed"
+                if str(record.get("review_state") or "").lower() in {"accepted", "modified"}
+                else "review_required"
+            ),
             input_domain=record.get("input_domain") or "prompt_assisted_review_non_target_domain",
+            domain_tier=record.get("domain_tier") or "proxy",
             val_fraction=val_fraction,
             seed=seed,
         )
@@ -242,6 +256,7 @@ def training_row(
     source_roi_id: Any,
     quality_status: Any,
     input_domain: Any,
+    domain_tier: Any,
     val_fraction: float,
     seed: int,
 ) -> tuple[dict[str, Any] | None, str]:
@@ -262,6 +277,7 @@ def training_row(
         "sample_weight": positive_float(sample_weight, default=sample_weight_for_state(review_state)),
         "label_source": str(label_source or ""),
         "source_video_path": str(source_video_path or ""),
+        "source_group_id": normalized_source_group(source_video_path or image),
         "frame_index": empty_if_none(frame_index),
         "timestamp_sec": empty_if_none(timestamp_sec),
         "source_manifest_path": str(source_manifest_path),
@@ -272,8 +288,14 @@ def training_row(
         "quality_status": str(quality_status or ""),
         "width": width,
         "height": height,
-        "split": split_for(sample_id, val_fraction=val_fraction, seed=seed),
+        "split": split_for(
+            str(source_video_path or image),
+            val_fraction=val_fraction,
+            test_fraction=0.1,
+            seed=seed,
+        ),
         "input_domain": str(input_domain or ""),
+        "domain_tier": normalize_domain_tier(domain_tier),
         "medical_boundary": BOUNDARY_NOTE,
     }, ""
 
@@ -314,11 +336,19 @@ def sample_id_for(source_case_id: Any, mask_type: str, image_path: Path, mask_pa
     return f"vsm_{safe_source}_{safe_name(mask_type)}_{digest}"
 
 
-def split_for(sample_id: str, *, val_fraction: float, seed: int) -> str:
-    val_fraction = max(0.0, min(0.9, float(val_fraction)))
-    digest = hashlib.sha256(f"{seed}:{sample_id}".encode("utf-8")).hexdigest()
-    bucket = int(digest[:8], 16) / float(0xFFFFFFFF)
-    return "val" if bucket < val_fraction else "train"
+def split_for(
+    source_group: str,
+    *,
+    val_fraction: float,
+    seed: int,
+    test_fraction: float = 0.0,
+) -> str:
+    return assign_group_split(
+        source_group,
+        seed=seed,
+        val_fraction=val_fraction,
+        test_fraction=test_fraction,
+    )
 
 
 def sample_weight_for_state(state: Any) -> float:
@@ -340,6 +370,12 @@ def positive_float(value: Any, *, default: float) -> float:
 
 def normalize_state(value: Any) -> str:
     return str(value or "review_required").split(".")[-1].lower()
+
+
+def normalize_domain_tier(value: Any) -> str:
+    normalized = str(value or "proxy").strip().lower()
+    allowed = {"target", "target_domain", "near_target", "near_domain", "proxy", "synthetic"}
+    return normalized if normalized in allowed else "proxy"
 
 
 def value_counts(rows: list[dict[str, Any]], key: str) -> dict[str, int]:

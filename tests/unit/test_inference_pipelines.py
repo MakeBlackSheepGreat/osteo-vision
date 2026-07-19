@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import yaml
+
 from src.core.schemas import InputSummary
 from src.engine.inference import MedicalImagingInferenceService
 from src.pipelines.base import PipelineContext
@@ -40,6 +42,41 @@ def test_osteo_vision_2d_segmentation_uses_hotspot_adapter() -> None:
     assert result.model_family == "fluorescence_hotspot_segmenter"
     assert result.segmentation_mask["format"] == "png_binary_mask"
     assert result.quantification["available"] is True
+
+
+def test_explicit_runtime_without_adapter_fails_closed(fixture_dir, tmp_path) -> None:
+    config = tmp_path / "strict_like.yml"
+    config.write_text(
+        yaml.safe_dump(
+            {
+                "paths_config": "configs/paths.example.yml",
+                "runtime": {
+                    "runtime_profile": "strict_test",
+                    "strict_startup": True,
+                    "model_version": "strict-test",
+                    "task_package": "configs/tasks/medical_competition_demo.yml",
+                    "default_task_type": "segmentation",
+                    "use_fixture_model": False,
+                    "model_selection_policy": "explicit",
+                    "models": [],
+                    "tasks": {"segmentation": {"pipeline": "segmentation"}},
+                },
+                "reports": {
+                    "output_dir": str(tmp_path / "reports"),
+                    "visual_dir": str(tmp_path / "visual"),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = MedicalImagingInferenceService.from_config(config)
+
+    result = service.diagnose(fixture_dir / "sample_image.png", task_type="segmentation")
+
+    assert result.status == "segmentation_unavailable"
+    assert result.resource_summary["fixture"] is False
+    assert result.prediction["available"] is False
+    assert any(item["code"] == "strict_runtime_model_unavailable" for item in result.warnings)
 
 
 def test_segmentation_pipeline_prefers_adapter_result() -> None:

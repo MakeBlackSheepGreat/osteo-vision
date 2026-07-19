@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.core.paths import ensure_dir, resolve_path  # noqa: E402
+from src.datasets.group_splits import assign_group_split, group_leakage_report, normalized_source_group  # noqa: E402
+from src.datasets.registry import sha256_file  # noqa: E402
 from src.reports.writers import write_csv, write_json  # noqa: E402
 from tools.build_keyframe_segmentation_proxy_manifest import write_preview_grid  # noqa: E402
 
@@ -32,11 +34,22 @@ MANIFEST_FIELDS = [
     "mask_path",
     "split",
     "source_path",
+    "source_group_id",
     "source_type",
     "frame_index",
     "timestamp_sec",
     "label_source",
     "input_domain",
+    "domain_tier",
+    "target_domain_flag",
+    "license",
+    "usage_policy",
+    "source_url",
+    "source_record_id",
+    "sampling_weight",
+    "checksum",
+    "image_checksum",
+    "label_checksum",
     "fluorescence_attribute",
     "review_manifest_path",
     "review_state",
@@ -45,6 +58,7 @@ MANIFEST_FIELDS = [
     "geometry",
     "positive_area_fraction",
     "sample_weight",
+    "training_eligible",
     "width",
     "height",
     "medical_boundary",
@@ -53,6 +67,8 @@ BOUNDARY_NOTE = (
     "Rows are derived from review manifests and may still be proxy/non-target-domain data. "
     "Only physician-reviewed, de-identified samples should be promoted for higher-weight training."
 )
+MIN_MASK_AREA_FRACTION = 0.0001
+MAX_MASK_AREA_FRACTION = 0.95
 
 
 def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, Any]:
@@ -67,7 +83,9 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
     for manifest_input in args.input:
         manifest_file = resolve_path(manifest_input)
         payload = load_review_payload(manifest_file)
-        candidate_map = {str(item.get("candidate_id")): item for item in payload["candidates"] if item.get("candidate_id")}
+        candidate_map = {
+            str(item.get("candidate_id")): item for item in payload["candidates"] if item.get("candidate_id")
+        }
         for candidate in payload["candidates"]:
             row, reason = candidate_to_training_row(
                 candidate,
@@ -76,6 +94,8 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
                 dataset_id=str(args.dataset_id),
                 input_domain=str(args.input_domain),
                 fluorescence_attribute=str(args.fluorescence_attribute),
+                domain_tier=str(getattr(args, "domain_tier", "proxy")),
+                license_name=str(getattr(args, "license", "internal_review_feedback_nonredistributable")),
                 val_fraction=float(args.val_fraction),
                 seed=int(args.seed),
                 allowed_states=allowed_states,
@@ -84,7 +104,9 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
                 rejected_weight=float(args.rejected_weight),
             )
             if row is None:
-                skipped.append({"record_type": "candidate_region", "candidate_id": candidate.get("candidate_id"), "reason": reason})
+                skipped.append(
+                    {"record_type": "candidate_region", "candidate_id": candidate.get("candidate_id"), "reason": reason}
+                )
             else:
                 rows.append(row)
         for roi in payload["rois"]:
@@ -96,6 +118,8 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
                 dataset_id=str(args.dataset_id),
                 input_domain=str(args.input_domain),
                 fluorescence_attribute=str(args.fluorescence_attribute),
+                domain_tier=str(getattr(args, "domain_tier", "proxy")),
+                license_name=str(getattr(args, "license", "internal_review_feedback_nonredistributable")),
                 val_fraction=float(args.val_fraction),
                 seed=int(args.seed),
                 allowed_states=allowed_states,
@@ -108,6 +132,9 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
             else:
                 rows.append(row)
     rows = deduplicate_rows(rows)
+    leakage = group_leakage_report(rows)
+    if leakage["leakage_detected"]:
+        raise ValueError(f"Review feedback source-group leakage detected: {leakage['overlaps']}")
     write_csv(manifest_path, rows, MANIFEST_FIELDS)
     preview = write_preview_grid(rows, preview_grid_path, max_samples=int(args.preview_sample_count))
     summary = {
@@ -121,7 +148,9 @@ def build_training_manifest_from_review(args: argparse.Namespace) -> dict[str, A
         "split_counts": value_counts(rows, "split"),
         "review_state_counts": value_counts(rows, "review_state"),
         "label_source_counts": value_counts(rows, "label_source"),
-    "positive_area_fraction_stats": numeric_stats(rows, "positive_area_fraction"),
+        "domain_tier_counts": value_counts(rows, "domain_tier"),
+        "source_group_split": leakage,
+        "positive_area_fraction_stats": numeric_stats(rows, "positive_area_fraction"),
         "sample_weight_stats": numeric_stats(rows, "sample_weight"),
         "allowed_review_states": sorted(allowed_states),
         "skipped_count": len(skipped),
@@ -162,6 +191,8 @@ def candidate_to_training_row(
     dataset_id: str,
     input_domain: str,
     fluorescence_attribute: str,
+    domain_tier: str,
+    license_name: str,
     val_fraction: float,
     seed: int,
     allowed_states: set[str],
@@ -183,40 +214,55 @@ def candidate_to_training_row(
         positive_fraction = 0.0
         label_source = "human_rejected_ai_candidate_negative_mask"
     else:
-        candidate_mask_path = _existing_path(candidate.get("mask_path"))
+        requested_mask = candidate.get("modified_mask_path") if state == "modified" else None
+        candidate_mask_path = _existing_path(requested_mask or candidate.get("mask_path"))
         if candidate_mask_path is None:
             return None, "missing_mask_path"
+        mask_validation, reason = validate_training_mask(candidate_mask_path, width=width, height=height)
+        if mask_validation is None:
+            return None, reason
         mask_path = candidate_mask_path
         sample_id = sample_id_for(dataset_id, candidate.get("candidate_id") or image_path.stem, "candidate")
-        positive_fraction = mask_positive_fraction(mask_path)
+        positive_fraction = mask_validation["positive_area_fraction"]
         label_source = "human_reviewed_ai_candidate_mask"
-    return training_row(
-        sample_id=sample_id,
-        image_path=image_path,
-        mask_path=mask_path,
-        source_path=image_path,
-        review_manifest_path=manifest_path,
-        review_state=state,
-        candidate_id=str(candidate.get("candidate_id") or ""),
-        roi_id="",
-        label_source=label_source,
-        input_domain=input_domain,
-        fluorescence_attribute=fluorescence_attribute,
-        frame_index=candidate.get("frame_index"),
-        timestamp_sec=candidate.get("timestamp_sec"),
-        geometry=candidate.get("bbox_normalized") or candidate.get("bbox_xyxy"),
-        width=width,
-        height=height,
-        positive_fraction=positive_fraction,
-        sample_weight=weight_for_state(
-            state,
-            accepted_weight=accepted_weight,
-            modified_weight=modified_weight,
-            rejected_weight=rejected_weight,
+    provenance = inherited_provenance(candidate, default_license=license_name)
+    return (
+        training_row(
+            sample_id=sample_id,
+            image_path=image_path,
+            mask_path=mask_path,
+            source_path=image_path,
+            source_group_id=source_group_for(candidate, image_path),
+            review_manifest_path=manifest_path,
+            review_state=state,
+            candidate_id=str(candidate.get("candidate_id") or ""),
+            roi_id="",
+            label_source=label_source,
+            input_domain=input_domain,
+            fluorescence_attribute=fluorescence_attribute,
+            domain_tier=domain_tier,
+            license_name=provenance["license"],
+            usage_policy=provenance["usage_policy"],
+            source_url=provenance["source_url"],
+            source_record_id=provenance["source_record_id"],
+            sampling_weight=provenance["sampling_weight"],
+            frame_index=candidate.get("frame_index"),
+            timestamp_sec=candidate.get("timestamp_sec"),
+            geometry=candidate.get("bbox_normalized") or candidate.get("bbox_xyxy"),
+            width=width,
+            height=height,
+            positive_fraction=positive_fraction,
+            sample_weight=weight_for_state(
+                state,
+                accepted_weight=accepted_weight,
+                modified_weight=modified_weight,
+                rejected_weight=rejected_weight,
+            ),
+            val_fraction=val_fraction,
+            seed=seed,
         ),
-        val_fraction=val_fraction,
-        seed=seed,
-    ), ""
+        "",
+    )
 
 
 def roi_to_training_row(
@@ -228,6 +274,8 @@ def roi_to_training_row(
     dataset_id: str,
     input_domain: str,
     fluorescence_attribute: str,
+    domain_tier: str,
+    license_name: str,
     val_fraction: float,
     seed: int,
     allowed_states: set[str],
@@ -244,41 +292,66 @@ def roi_to_training_row(
     if image_path is None:
         return None, "missing_linked_candidate_source_path"
     width, height = image_size(image_path)
-    geometry = _json_value(roi.get("geometry")) or _json_value(candidate.get("bbox_normalized"))
-    fallback_bbox = _json_value(candidate.get("bbox_xyxy"))
-    mask = mask_from_geometry(geometry, fallback_bbox=fallback_bbox, width=width, height=height)
-    if mask is None or int(mask.sum()) <= 0:
-        return None, "missing_or_empty_roi_geometry"
     sample_id = sample_id_for(dataset_id, roi.get("roi_id") or candidate_id or image_path.stem, "roi")
-    mask_path = mask_dir / f"{sample_id}_mask.png"
-    Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
-    return training_row(
-        sample_id=sample_id,
-        image_path=image_path,
-        mask_path=mask_path,
-        source_path=image_path,
-        review_manifest_path=manifest_path,
-        review_state=state,
-        candidate_id=candidate_id,
-        roi_id=str(roi.get("roi_id") or ""),
-        label_source="human_reviewed_roi_geometry_mask",
-        input_domain=input_domain,
-        fluorescence_attribute=fluorescence_attribute,
-        frame_index=roi.get("frame_index") or candidate.get("frame_index"),
-        timestamp_sec=roi.get("timestamp_sec") or candidate.get("timestamp_sec"),
-        geometry=geometry,
-        width=width,
-        height=height,
-        positive_fraction=float(mask.mean()),
-        sample_weight=weight_for_state(
-            state,
-            accepted_weight=accepted_weight,
-            modified_weight=modified_weight,
-            rejected_weight=rejected_weight,
+    geometry = _json_value(roi.get("geometry")) or _json_value(candidate.get("bbox_normalized"))
+    requested_mask = roi.get("modified_mask_path") if state == "modified" else None
+    reviewed_mask_path = _existing_path(requested_mask or roi.get("mask_path"))
+    if reviewed_mask_path is not None:
+        mask_validation, reason = validate_training_mask(reviewed_mask_path, width=width, height=height)
+        if mask_validation is None:
+            return None, reason
+        mask_path = reviewed_mask_path
+        positive_fraction = mask_validation["positive_area_fraction"]
+        label_source = "human_reviewed_roi_mask"
+    else:
+        fallback_bbox = _json_value(candidate.get("bbox_xyxy"))
+        mask = mask_from_geometry(geometry, fallback_bbox=fallback_bbox, width=width, height=height)
+        if mask is None or int(mask.sum()) <= 0:
+            return None, "missing_or_empty_roi_geometry"
+        positive_fraction = float(mask.mean())
+        if not reasonable_mask_area(positive_fraction):
+            return None, f"unreasonable_mask_area:{positive_fraction:.8f}"
+        mask_path = mask_dir / f"{sample_id}_mask.png"
+        Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
+        label_source = "human_reviewed_roi_geometry_mask"
+    provenance = inherited_provenance(roi, fallback=candidate, default_license=license_name)
+    return (
+        training_row(
+            sample_id=sample_id,
+            image_path=image_path,
+            mask_path=mask_path,
+            source_path=image_path,
+            source_group_id=source_group_for(roi, image_path, fallback=candidate),
+            review_manifest_path=manifest_path,
+            review_state=state,
+            candidate_id=candidate_id,
+            roi_id=str(roi.get("roi_id") or ""),
+            label_source=label_source,
+            input_domain=input_domain,
+            fluorescence_attribute=fluorescence_attribute,
+            domain_tier=domain_tier,
+            license_name=provenance["license"],
+            usage_policy=provenance["usage_policy"],
+            source_url=provenance["source_url"],
+            source_record_id=provenance["source_record_id"],
+            sampling_weight=provenance["sampling_weight"],
+            frame_index=roi.get("frame_index") or candidate.get("frame_index"),
+            timestamp_sec=roi.get("timestamp_sec") or candidate.get("timestamp_sec"),
+            geometry=geometry,
+            width=width,
+            height=height,
+            positive_fraction=positive_fraction,
+            sample_weight=weight_for_state(
+                state,
+                accepted_weight=accepted_weight,
+                modified_weight=modified_weight,
+                rejected_weight=rejected_weight,
+            ),
+            val_fraction=val_fraction,
+            seed=seed,
         ),
-        val_fraction=val_fraction,
-        seed=seed,
-    ), ""
+        "",
+    )
 
 
 def training_row(
@@ -287,6 +360,7 @@ def training_row(
     image_path: Path,
     mask_path: Path,
     source_path: Path,
+    source_group_id: str,
     review_manifest_path: Path,
     review_state: str,
     candidate_id: str,
@@ -294,6 +368,12 @@ def training_row(
     label_source: str,
     input_domain: str,
     fluorescence_attribute: str,
+    domain_tier: str,
+    license_name: str,
+    usage_policy: str,
+    source_url: str,
+    source_record_id: str,
+    sampling_weight: float,
     frame_index: Any,
     timestamp_sec: Any,
     geometry: Any,
@@ -304,17 +384,29 @@ def training_row(
     val_fraction: float,
     seed: int,
 ) -> dict[str, Any]:
+    image_checksum = sha256_file(image_path)
     return {
         "case_id": sample_id,
         "image_path": str(image_path),
         "mask_path": str(mask_path),
-        "split": assign_split(sample_id, val_fraction=val_fraction, seed=seed),
+        "split": assign_group_split(source_group_id, val_fraction=val_fraction, test_fraction=0.0, seed=seed),
         "source_path": str(source_path),
+        "source_group_id": source_group_id,
         "source_type": "review_manifest_feedback",
         "frame_index": _empty_if_none(frame_index),
         "timestamp_sec": _empty_if_none(timestamp_sec),
         "label_source": label_source,
         "input_domain": input_domain,
+        "domain_tier": normalize_domain_tier(domain_tier),
+        "target_domain_flag": False,
+        "license": license_name,
+        "usage_policy": usage_policy,
+        "source_url": source_url,
+        "source_record_id": source_record_id,
+        "sampling_weight": round(max(0.0, float(sampling_weight)), 6),
+        "checksum": image_checksum,
+        "image_checksum": image_checksum,
+        "label_checksum": sha256_file(mask_path),
         "fluorescence_attribute": fluorescence_attribute,
         "review_manifest_path": str(review_manifest_path),
         "review_state": review_state,
@@ -323,6 +415,7 @@ def training_row(
         "geometry": json.dumps(_json_value(geometry), ensure_ascii=False, separators=(",", ":")),
         "positive_area_fraction": round(float(positive_fraction), 8),
         "sample_weight": round(max(0.0, float(sample_weight)), 6),
+        "training_eligible": True,
         "width": int(width),
         "height": int(height),
         "medical_boundary": BOUNDARY_NOTE,
@@ -395,11 +488,95 @@ def mask_positive_fraction(path: Path) -> float:
     return float(mask.mean()) if mask.size else 0.0
 
 
+def validate_training_mask(path: Path, *, width: int, height: int) -> tuple[dict[str, float] | None, str]:
+    """Validate reviewer supervision before it is admitted to the training manifest."""
+    if not path.is_file():
+        return None, "missing_mask_path"
+    try:
+        with Image.open(path) as image:
+            image.load()
+            if (int(image.width), int(image.height)) != (int(width), int(height)):
+                return None, f"mask_size_mismatch:{image.width}x{image.height}!={width}x{height}"
+            values = np.asarray(image.convert("L"), dtype=np.uint8)
+    except (OSError, ValueError):
+        return None, "unreadable_mask"
+    if values.size == 0:
+        return None, "empty_mask_array"
+    unique_values = np.unique(values)
+    if unique_values.size > 2 or (unique_values.size == 2 and int(unique_values[0]) != 0):
+        return None, f"mask_not_binary:unique_values={unique_values[:8].tolist()}"
+    binary = values > 0
+    if not bool(binary.any()):
+        return None, "empty_mask"
+    positive_fraction = float(binary.mean())
+    if not reasonable_mask_area(positive_fraction):
+        return None, f"unreasonable_mask_area:{positive_fraction:.8f}"
+    return {"positive_area_fraction": positive_fraction}, ""
+
+
+def reasonable_mask_area(value: float) -> bool:
+    return MIN_MASK_AREA_FRACTION <= float(value) <= MAX_MASK_AREA_FRACTION
+
+
+def inherited_provenance(
+    record: dict[str, Any],
+    *,
+    fallback: dict[str, Any] | None = None,
+    default_license: str,
+) -> dict[str, Any]:
+    """Preserve row-level data rights and source identity through review promotion."""
+    fallback = fallback or {}
+    raw_metadata = record.get("metadata")
+    metadata: dict[str, Any] = raw_metadata if isinstance(raw_metadata, dict) else {}
+    raw_fallback_metadata = fallback.get("metadata")
+    fallback_metadata: dict[str, Any] = raw_fallback_metadata if isinstance(raw_fallback_metadata, dict) else {}
+
+    def value(key: str, default: Any = "") -> Any:
+        return record.get(key) or metadata.get(key) or fallback.get(key) or fallback_metadata.get(key) or default
+
+    sampling_weight = _float(value("sampling_weight", value("sample_weight", 1.0)))
+    return {
+        "license": str(value("license", default_license)),
+        "usage_policy": str(value("usage_policy", "review_feedback_training_with_provenance")),
+        "source_url": str(value("source_url", "")),
+        "source_record_id": str(value("source_record_id", value("record_id", ""))),
+        "sampling_weight": float(sampling_weight) if sampling_weight is not None and sampling_weight > 0 else 1.0,
+    }
+
+
 def sample_id_for(dataset_id: str, identifier: Any, suffix: str) -> str:
     raw = f"{dataset_id}:{identifier}:{suffix}"
     digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
     safe = "".join(char if char.isalnum() or char in "._-" else "_" for char in str(identifier))[:60]
     return f"{dataset_id}_{safe}_{digest}_{suffix}"
+
+
+def source_group_for(record: dict[str, Any], image_path: Path, *, fallback: dict[str, Any] | None = None) -> str:
+    fallback = fallback or {}
+    raw_metadata = record.get("metadata")
+    metadata: dict[str, Any] = raw_metadata if isinstance(raw_metadata, dict) else {}
+    raw_fallback_metadata = fallback.get("metadata")
+    fallback_metadata: dict[str, Any] = raw_fallback_metadata if isinstance(raw_fallback_metadata, dict) else {}
+    value = (
+        record.get("source_group_id")
+        or record.get("source_video_path")
+        or metadata.get("source_group_id")
+        or metadata.get("source_video_path")
+        or fallback.get("source_group_id")
+        or fallback.get("source_video_path")
+        or fallback_metadata.get("source_group_id")
+        or fallback_metadata.get("source_video_path")
+        or record.get("case_id")
+        or fallback.get("case_id")
+        or image_path
+    )
+    return normalized_source_group(value)
+
+
+def normalize_domain_tier(value: Any) -> str:
+    normalized = str(value or "proxy").strip().lower()
+    allowed = {"target", "target_domain", "near_target", "near_domain", "proxy", "synthetic"}
+    return normalized if normalized in allowed else "proxy"
 
 
 def weight_for_state(
@@ -487,7 +664,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-domain", default="reviewed_proxy_keyframe_non_target_domain")
     parser.add_argument("--fluorescence-attribute", default="proxy_or_unknown_fluorescence")
     parser.add_argument("--review-states", default="accepted,modified")
-    parser.add_argument("--accepted-weight", type=float, default=3.0)
+    parser.add_argument("--domain-tier", default="proxy")
+    parser.add_argument("--license", default="internal_review_feedback_nonredistributable")
+    parser.add_argument("--accepted-weight", type=float, default=4.0)
     parser.add_argument("--modified-weight", type=float, default=4.0)
     parser.add_argument("--rejected-weight", type=float, default=0.5)
     parser.add_argument("--preview-sample-count", type=int, default=40)

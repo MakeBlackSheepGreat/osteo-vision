@@ -1,0 +1,72 @@
+{
+  "id": "7x7dxvg8cc",
+  "version": 1,
+  "name": "The added diagnostic value of SPECT/CT in detecting periapical and periodontal inflammation in medication-related osteonecrosis of the jaw patients",
+  "description": "Fig. 1,2\n",
+  "doi": "10.17632/7x7dxvg8cc.1",
+  "publish_date": "2026-01-28T13:01:08.903Z",
+  "last_modification_date": "2026-01-28T01:10:56.534Z",
+  "is_confidential": false,
+  "customer": {
+    "id": "7377952c-6404-4428-bbfc-77242cfc301e",
+    "name": "Mendeley Guests"
+  },
+  "owner": {
+    "id": "7d3a9225-36e8-401e-98b9-1d81f3594533",
+    "first_name": "Yuka",
+    "last_name": "Tanabe",
+    "display_name": "Yuka Tanabe",
+    "$ref": "/profiles/7d3a9225-36e8-401e-98b9-1d81f3594533"
+  },
+  "categories": [
+    {
+      "id": "data.elsevier.com/vocabulary/OmniScience/Concept-170589424",
+      "label": "Radiology"
+    }
+  ],
+  "licence": {
+    "id": "01d9c749-3c4d-4431-9df3-620b2dcfe144",
+    "short_name": "CC BY 4.0",
+    "full_name": "Creative Commons Attribution 4.0 International",
+    "description": "You can share, copy and modify this dataset so long as you give appropriate credit, provide a link to the CC BY license, and indicate if changes were made, but you may not do so in a way that suggests the rights holder has endorsed you or your use of the dataset. Note that further permission may be required for any content within the dataset that is identified as belonging to a third party.",
+    "url": "http://creativecommons.org/licenses/by/4.0",
+    "category": "Creative",
+    "customer_id": null
+  },
+  "institutions": [
+    {
+      "id": "f237a14c-3647-5cc5-90e4-12691c63d8c8",
+      "name": "Nihon Shika Daigaku",
+      "url": "www.ndu.ac.jp",
+      "location": {
+        "name": "Chiyoda-ku",
+        "country": "JP",
+        "country_code": "Tokyo",
+        "country_subdivision": "Tokyo"
+      },
+      "edm:identifier": [
+        {
+          "type": "idtype:ROR",
+          "value": "https://ror.org/01s1hm369"
+        }
+      ]
+    }
+  ],
+  "funders": [],
+  "organisational_unit_names": [],
+  "contributors": [
+    {
+      "id": "7d3a9225-36e8-401e-98b9-1d81f3594533",
+      "first_name": "Yuka",
+      "last_name": "Tanabe",
+      "$ref": "/profiles/7d3a9225-36e8-401e-98b9-1d81f3594533"
+    },
+    {
+      "first_name": "Ichiro",
+      "last_name": "Ogura"
+    }
+  ],
+  "related_links": [],
+  "custom_metadata": {},
+  "is_metadata_only": false
+}

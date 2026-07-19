@@ -1,0 +1,718 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+        
+            
+
+
+<meta charset="UTF-8">
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+        
+
+        
+            
+    
+
+
+
+<meta property="og:type" content="website">
+<meta property="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://toothfairy3.grand-challenge.org/dataset/">
+<meta property="og:site_name" content="grand-challenge.org">
+
+
+    
+
+    <meta name="title" content="ToothFairy3: Multi-Class Segmentation in CBCT Volumes - Grand Challenge">
+    <meta property="og:title" content="ToothFairy3: Multi-Class Segmentation in CBCT Volumes - Grand Challenge">
+
+    <meta name="description" content="ToothFairy3, part of the ODIN2025 challenge cluster at MICCAI2025, advances CBCT segmentation with an expanded 77-class dataset and a new emphasis on computational efficiency. It introduces two tasks: a runtime-aware multi-structure segmentation and a novel interactive track for Inferior Alveolar Canal (IAC) segmentation using minimal user input. The challenge supports the development of both automated and prompt-based interactive AI tools to enhance clinical workflows in dentistry and maxillofacial surgery.">
+    <meta property="og:description" content="ToothFairy3, part of the ODIN2025 challenge cluster at MICCAI2025, advances CBCT segmentation with an expanded 77-class dataset and a new emphasis on computational efficiency. It introduces two tasks: a runtime-aware multi-structure segmentation and a novel interactive track for Inferior Alveolar Canal (IAC) segmentation using minimal user input. The challenge supports the development of both automated and prompt-based interactive AI tools to enhance clinical workflows in dentistry and maxillofacial surgery.">
+
+    
+        <meta property="og:image" content="https://public.grand-challenge-user-content.org/social-images/challenge/828/ToothFairy3_logo/1400w.avif">
+    
+
+
+
+
+        
+
+        <title>
+            
+    Dataset - ToothFairy3: Multi-Class Segmentation in CBCT Volumes - Grand Challenge
+
+            
+                
+            
+        </title>
+    
+
+    
+        
+
+
+
+
+<script type="text/javascript" src="https://static.grand-challenge.org/929230a/vendored/jquery/jquery.min.js"></script>
+
+    
+
+    
+        
+    
+
+    
+        
+
+
+<link rel="stylesheet" href="https://static.grand-challenge.org/929230a/CACHE/css/output.e91d0ebc3de2.css" type="text/css" media="screen"><link rel="stylesheet" href="https://static.grand-challenge.org/929230a/CACHE/css/output.b530e6863919.css" type="text/css">
+
+<link rel="shortcut icon" href="https://static.grand-challenge.org/929230a/images/favicon.ico"/>
+
+    
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+
+    
+
+    
+        
+
+
+<nav class="navbar navbar-light navbar-top navbar-expand-md shadow bg-white">
+    <div class="container">
+        <a class="navbar-brand mr-md-2 text-capitalize"
+           href="https://grand-challenge.org/">
+            Grand Challenge
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link "
+                       href="https://grand-challenge.org/challenges/">
+                        Challenges
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link "
+                       href="https://grand-challenge.org/algorithms/">
+                        Algorithms
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link "
+                       href="https://grand-challenge.org/reader-studies/">
+                        Reader Studies
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                        <a class="dropdown-item" href="https://grand-challenge.org/blogs/">Blog</a>
+                        <a class="dropdown-item" href="https://grand-challenge.org/archives/">Archives</a>
+                        <div class="dropdown-divider"></div>
+                        
+                        <a class="dropdown-item" href="https://grand-challenge.org/about/">About</a>
+                        <a class="dropdown-item" href="https://grand-challenge.org/stats/">Statistics</a>
+                        
+                            <a class="dropdown-item" href="https://grand-challenge.org/policies/terms-of-service/">Terms of Service</a>
+                        
+                            <a class="dropdown-item" href="https://grand-challenge.org/policies/privacy/">Privacy Policy</a>
+                        
+                    </div>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                
+
+
+
+<li class="nav-item dropdown my-auto">
+    <a href="#" class="nav-link dropdown-toggle"
+       data-toggle="dropdown" role="button"
+       aria-haspopup="true"
+       aria-expanded="false">
+        Help
+    </a>
+    <div class="dropdown-menu dropdown-menu-right">
+        
+            <h6 class="dropdown-header">ToothFairy3: Multi-Class Segmentation in CBCT Volumes Support</h6>
+            
+                <a class="dropdown-item"
+                   href="https://toothfairy3.grand-challenge.org/forum/topics/"
+                >
+                    <i class="fas fa-comments fa-fw"></i>
+                    &nbsp;ToothFairy3: Multi-Class Segmentation in CBCT Volumes Forum
+                </a>
+            
+            
+                <a class="dropdown-item"
+                    target="_blank"
+                    href="mailto:fe&#100;erico&#46;bole&#108;li@&#117;n&#105;&#109;o&#114;&#101;&#46;i&#116;">
+                    <i class="fas fa-envelope fa-fw"></i>
+                    &nbsp;Email ToothFairy3: Multi-Class Segmentation in CBCT Volumes Organizers
+                </a>
+            
+            <div class="dropdown-divider"></div>
+        
+        <h6 class="dropdown-header">Grand Challenge Support</h6>
+        <a class="dropdown-item"
+           href="https://grand-challenge.org/documentation/">
+            <i class="fas fa-book fa-fw"></i>
+            &nbsp;Grand Challenge Documentation
+        </a>
+    </div>
+</li>
+
+    <li class="pr-2 my-auto"><a
+            class="btn btn-outline-primary"
+            href="https://grand-challenge.org/accounts/login/?next=https://toothfairy3.grand-challenge.org/dataset/#signin">Sign In</a></li>
+    <li class="my-auto"><a
+            class="btn btn-outline-primary"
+            href="https://grand-challenge.org/accounts/signup/?next=https://toothfairy3.grand-challenge.org/dataset/#register">Register</a></li>
+
+
+            </ul>
+        </div>
+    </div>
+</nav>
+
+    
+
+    <div class="container-fluid bg-primary">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="https://grand-challenge.org/challenges/">Challenges</a></li>
+        <li class="breadcrumb-item"><a
+                href="https://toothfairy3.grand-challenge.org/">ToothFairy3: Multi-Class Segmentation in CBCT Volumes</a></li>
+        <li class="breadcrumb-item active"
+            aria-current="page">
+            Dataset
+        </li>
+    </ol>
+
+            </nav>
+        </div>
+    </div>
+
+    <main role="main" class="flex-fill">
+
+        
+            
+
+
+
+
+
+
+
+
+        
+
+        <div class="container pb-3 mt-3">
+
+            
+                
+                    
+
+
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <a style="width: 100%;"
+               href="https://toothfairy3.grand-challenge.org/">
+                <picture>
+  <source type="image/avif"
+          srcset="https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/800w.avif 800w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1600w.avif 1600w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/2400w.avif 2400w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/100w.avif 100w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1400w.avif 1400w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/900w.avif 900w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/200w.avif 200w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1000w.avif 1000w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1800w.avif 1800w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/300w.avif 300w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1100w.avif 1100w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/400w.avif 400w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/1200w.avif 1200w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/2000w.avif 2000w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/500w.avif 500w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/600w.avif 600w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/700w.avif 700w, https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq/2200w.avif 2200w"
+          sizes="(min-width: 0px) and (max-width: 1199px) 100vw, 1200px">
+  <img src="https://public.grand-challenge-user-content.org/b/828/gc-banner_b5Dm7oq.png" alt="Challenge Banner" width="100%" height="100%" class="rounded w-100" loading="lazy">
+</picture>
+
+            </a>
+        </div>
+    </div>
+
+
+                
+                <div id="messages">
+                    
+
+                </div>
+                
+
+            
+
+            
+                
+                    
+
+
+
+
+    <nav class="navbar navbar-expand-sm navbar-light p-0 mb-3 mx-0 border-bottom align-items-start challenge-topbar">
+        <div class="col mr-auto px-0">
+            <ul class="nav navbar-nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link  show active"
+                       href="https://toothfairy3.grand-challenge.org/">
+                        <i class="fas fa-info fa-fw"></i>&nbsp;&nbsp;Info
+                    </a>
+                </li>
+
+                
+                
+
+                
+                    
+                        
+                    
+                    
+                        <li class="nav-item dropdown">
+                            <a href="#" type="button" data-toggle="dropdown" class="nav-link dropdown-toggle ">
+                                <i class="fas fa-trophy fa-fw"></i>&nbsp;&nbsp;Leaderboards
+                            </a>
+                            <div class="dropdown-menu phase-nav-dropdown">
+                                
+
+
+
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/debugging-phase/leaderboard/">
+                Task 1 - Multi-class Segmentation: Debugging Phase
+            </a>
+        
+    
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/iac-interactive-segmentation-debugging-phase/leaderboard/">
+                Task 2  - IAC Interactive Segmentation: Debugging Phase
+            </a>
+        
+    
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/test-phase/leaderboard/">
+                Task 1 -  Multi-class Segmentation: Test Phase
+            </a>
+        
+    
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/iac-interactive-segmentation-test-phase/leaderboard/">
+                Task 2 -  IAC Interactive Segmentation: Test Phase
+            </a>
+        
+    
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/task-2-iac-interactive-segmentation-post-challenge-phase/leaderboard/">
+                Task 2 - IAC Interactive Segmentation: Post Challenge Phase
+            </a>
+        
+    
+
+    
+        
+            <a class="dropdown-item px-4 py-1 "
+               href="https://toothfairy3.grand-challenge.org/evaluation/task-1-multi-class-segmentation-post-challenge-phase/leaderboard/">
+                Task 1 - Multi-class Segmentation: Post Challenge Phase
+            </a>
+        
+    
+
+
+
+                            </div>
+                        </li>
+                    
+                
+                <li class="nav-item">
+                    <a class="nav-link "
+                       href="https://toothfairy3.grand-challenge.org/challenge/statistics/">
+                        <i class="fas fa-chart-bar fa-fw"></i>&nbsp;&nbsp;Statistics
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+
+        
+            <div class="col-auto py-0 px-0">
+                <a class="btn btn-success"
+                   href="https://toothfairy3.grand-challenge.org/participants/registration/create/"
+                   role="button">
+                    Join
+                </a>
+            </div>
+        
+    </nav>
+
+
+
+                
+                <div class="row">
+                    
+    <div class="col-md-3">
+        <ul class="nav nav-pills flex-column mb-3">
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/toothfairy3/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Overview
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/important-dates/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Important Dates
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/how-to-submit/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            How To Submit
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center active"
+                           href="https://toothfairy3.grand-challenge.org/dataset/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Dataset
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/ranking-prizes/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Ranking &amp; Prizes
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/organizers/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Organizers &amp; Sponsors
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/challenge-winners/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            Challenge Winners
+                        </a>
+                    </li>
+                
+            
+                
+                    <li class="nav-item">
+                        <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center "
+                           href="https://toothfairy3.grand-challenge.org/faq/">
+                            
+                                <i class="fa fa-fw mr-1 flex-shrink-0"></i>
+                            
+                            F.A.Q.
+                        </a>
+                    </li>
+                
+            
+            
+                <li class="nav-item">
+                    <a class="nav-link px-2 py-1 mb-1 d-flex align-items-center" target="_blank" href="mailto:&#102;&#101;de&#114;i&#99;o.bol&#101;&#108;&#108;i&#64;u&#110;&#105;mo&#114;&#101;&#46;&#105;&#116;">
+                        <i class="fas fa-envelope fa-fw mr-1"></i>
+                        Email organizers
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+                    <div class="col overflow-auto">
+                        
+    <div class="ml-lg-3">
+        
+
+        
+
+        
+
+        <div id=pageContainer>
+            <h2 id="dataset">Dataset<a class="headerlink text-muted small pl-1" href="#dataset" title="Permanent link">¶</a></h2>
+<p>The <strong>training set</strong>, <strong>ToothFairy3 Dataset</strong>, is publicly available under a CC-BY-NC-SA license <a href="https://ditto.ing.unimore.it/toothfairy3" target="_blank">here.</a> Please note that a sign-up will be required to download it. Any publication using our data must explicitly reference this challenge and cite [1, 2, 3]. </p>
+<p>The <strong>test set</strong> will not be publicly released and will remain private even after the end of the challenge.</p>
+<p><strong>Both training and test data have a voxel spacing of 0.3mm isotropic, store data in Hounsfield Units, and are saved in NIfTI format.</strong> More details about the data can be found in the <a href="https://zenodo.org/records/15081727" target="_blank">Structured Submission Document (Task 2 and Task 3)</a> or surfing <a href="https://ditto.ing.unimore.it/toothfairy3" target="_blank">ditto website</a>.</p>
+<p><em>[1] Bolelli, F., Lumetti, L., van Nistelrooĳ, N. et al. Multi-structure segmentation in CBCT volumes: The ToothFairy2 challenge. Medical Image Analysis, 104095.</em> <a href="https://doi.org/10.1016/j.media.2026.104095" style="" target="_blank"></a><a href="https://doi.org/10.1016/j.media.2026.104095">https://doi.org/10.1016/j.media.2026.104095</a></p>
+<p><em>[2] Bolelli, F., Marchesini, K., van Nistelrooij, N., Lumetti, L., Pipoli, V., Ficarra, E., Vinayahalingam, S., &amp; Grana, C. (2025). Segmenting Maxillofacial Structures in CBCT Volumes. In: 2025 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)</em></p>
+<p><em>[3] Lumetti, L., Pipoli, V., Bolelli, F., Ficarra, E., &amp; Grana, C.
+(2024). Enhancing Patch-Based Learning for the Segmentation of the
+Mandibular Canal. IEEE
+Access.</em>  <a href="https://doi.org/10.1109/ACCESS.2022.3144840" style="" target="_blank"></a><a href="https://doi.org/10.1109/ACCESS.2024.3408629">https://doi.org/10.1109/ACCESS.2024.3408629</a></p>
+        </div>
+
+        
+            
+        
+    </div>
+
+                    </div>
+                </div>
+            
+        </div>
+
+        
+        
+    </main>
+
+
+
+    
+
+
+
+    
+
+
+
+
+
+    
+    <footer class="footer">
+        <div class="container">
+            <hr class="m-0">
+            <div class="row small">
+                <div class="col-sm-6 col-md-3 p-3">
+                    <h6>Grand Challenge</h6>
+                    <ul class="list-unstyled">
+                        
+                            <li class="my-1">
+                                
+                                <a class="text-muted"
+                                        
+                                   href="https://grand-challenge.org/about/">
+                                        
+                                    About
+                                </a>
+                            </li>
+                        
+                            <li class="my-1">
+                                
+                                <a class="text-muted"
+                                        
+                                   href="https://grand-challenge.org/challenge-policy-and-pricing/">
+                                        
+                                    Challenge Policy &amp; Pricing
+                                </a>
+                            </li>
+                        
+                            <li class="my-1">
+                                
+                                <a class="text-muted"
+                                        
+                                   href="https://grand-challenge.org/support/">
+                                        
+                                    Support &amp; Documentation
+                                </a>
+                            </li>
+                        
+                            <li class="my-1">
+                                
+                                <a class="text-muted"
+                                        
+                                   href="https://grand-challenge.org/vulnerability-disclosure/">
+                                        
+                                    Vulnerability Disclosure Policy
+                                </a>
+                            </li>
+                        
+                        <li class="my-1">
+                            <a class="text-muted"
+                               href="https://grand-challenge.org/stats/">
+                                Statistics
+                            </a>
+                        </li>
+                        <li class="my-1">
+                            <a class="text-muted"
+                               href="https://diagnijmegen.github.io/rse-grand-challenge-status/"
+                               target="_blank">
+                                Status
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-sm-6 col-md-3 p-3">
+                    <h6>Policies</h6>
+                    <ul class="list-unstyled">
+                        
+                            <li class="my-1"><a class="text-muted"
+                                                href="https://grand-challenge.org/policies/terms-of-service/">Terms of Service</a>
+                            </li>
+                        
+                            <li class="my-1"><a class="text-muted"
+                                                href="https://grand-challenge.org/policies/privacy/">Privacy Policy</a>
+                            </li>
+                        
+                    </ul>
+                </div>
+                <div class="col-sm-6 col-md-3 p-3">
+                    <h6>Developers</h6>
+                    <ul class="list-unstyled">
+                        <li class="my-1">
+                            <a class="text-muted"
+                               href="https://grand-challenge.org/api/"
+                               title="The interactive documentation for the API.">
+                                API Documentation
+                            </a>
+                        </li>
+                        <li class="my-1">
+                            <a class="text-muted"
+                               href="https://grand-challenge.org/api/schema/"
+                               title="The OpenAPI schema for the API.">
+                                API Schema
+                            </a>
+                        </li>
+                        <li class="my-1">
+                            <a class="text-muted"
+                               href="https://diagnijmegen.github.io/rse-grand-challenge/"
+                               title="Read the developer documentation">
+                                Developer Documentation
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-sm-6 col-md-3 p-3">
+                    <h6>Sponsors</h6>
+                    <ul class="list-unstyled">
+                        <li class="my-1 text-center">
+                            <a href='https://aws.amazon.com/'>
+                                <img class="w-25 py-2"
+                                     loading="lazy"
+                                     src="https://static.grand-challenge.org/929230a/images/Powered-By_logo-stack_RGB.png"
+                                     alt="Logo of Amazon Web Services"
+                                     title="Grand Challenge is sponsored by Amazon Web Services"
+                                >
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col text-center p-3">
+                    <ul class="list-unstyled">
+                        <li>
+                            <a class="p-1 text-muted"
+                               href="https://github.com/DIAGNijmegen/rse-grand-challenge/"
+                               title="Join us on Github">
+                                <i class="fab fa-github fa-lg"></i></a>
+                        </li>
+                    </ul>
+                    <p class="text-muted small">&copy; 2012-2026</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+
+
+
+    
+
+
+
+<script src="https://static.grand-challenge.org/929230a/vendored/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+
+<script src="https://static.grand-challenge.org/929230a/vendored/floating-scroll/dist/jquery.floatingscroll.min.js" defer></script>
+
+
+
+<script src="https://static.grand-challenge.org/929230a/CACHE/js/output.5fc6011173e7.js"></script>
+
+
+<script type="module" src="https://static.grand-challenge.org/929230a/js/datatables.defaults.mjs"></script>
+
+
+<script id="htmx-script" src="https://static.grand-challenge.org/929230a/vendored/htmx/htmx.min.js" defer></script>
+
+
+<script type="module" src="https://static.grand-challenge.org/929230a/js/copy_to_clipboard.mjs"></script>
+
+    
+
+
+
+
+
+<script id="setTimezoneUrl" type="application/json">"https://grand-challenge.org/api/v1/timezone/"</script>
+
+<script id="currentTimezone" type="application/json">"UTC"</script>
+<input type="hidden" name="csrfmiddlewaretoken" value="YcnybHVcihe8IXnClHRIz1DYE8y5sGWx4L1juEQWgboFkVCRcxsQ4OwBPeOtu6Hv">
+<script src="https://static.grand-challenge.org/929230a/timezones/js/detect-timezone.mjs" type="module"></script>
+
+
+</body>
+</html>

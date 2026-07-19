@@ -1,8 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const key = "osteo-vision-theme";
+        let selected = null;
+        try {
+          const stored = window.localStorage.getItem(key);
+          selected = stored === "light" || stored === "dark" ? stored : null;
+        } catch {
+          selected = null;
+        }
+        const theme = selected ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
     <title>Osteo Vision</title>
   </head>
   <body>

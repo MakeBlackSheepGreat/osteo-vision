@@ -8,6 +8,7 @@ from src.core.config import load_yaml
 from src.core.schemas import AdapterRequest
 from src.models.adapters import build_adapter, model_spec_from_mapping
 from src.models.hotspot_segmenter import segment_2d_fluorescence_hotspots
+from src.preprocess.fluorescence import decoded_frame_fluorescence_quantification
 
 
 def analyze_keyframe_segmentations(
@@ -20,12 +21,14 @@ def analyze_keyframe_segmentations(
     threshold: float,
     colormap: str,
     roi_hints: list[dict[str, Any]],
+    allow_heuristic_fallback: bool = True,
 ) -> list[dict[str, Any]]:
     outputs: list[dict[str, Any]] = []
     model_adapter, model_warnings = _keyframe_model_adapter(
         config_path,
         model_id=model_id,
         output_dir=output_dir,
+        allow_heuristic_fallback=allow_heuristic_fallback,
     )
     for frame in keyframes:
         source_path = frame.get("evidence_path") or frame.get("path")
@@ -41,6 +44,17 @@ def analyze_keyframe_segmentations(
         )
         frame_warnings.extend(model_frame_warnings)
         if payload is None:
+            if not allow_heuristic_fallback:
+                frame_warnings.append(_keyframe_fallback_disallowed_warning(model_id))
+                outputs.append(
+                    _unavailable_keyframe_output(
+                        frame,
+                        source_path=str(source_path),
+                        model_id=model_id,
+                        warnings=frame_warnings,
+                    )
+                )
+                continue
             payload = _hotspot_keyframe_fallback(
                 source_path=str(source_path),
                 output_dir=Path(output_dir) / "hotspot_fallback",
@@ -57,6 +71,7 @@ def analyze_keyframe_segmentations(
                 payload=payload,
                 analysis_method=analysis_method,
                 warnings=frame_warnings,
+                roi_hints=roi_hints,
             )
         )
     return outputs
@@ -136,9 +151,30 @@ def _keyframe_segmentation_output(
     payload: dict[str, Any],
     analysis_method: str,
     warnings: list[dict[str, Any]],
+    roi_hints: list[dict[str, Any]],
 ) -> dict[str, Any]:
     lesion_evidence = _dict_field(payload, "lesion_evidence")
     prediction = _dict_field(payload, "prediction")
+    model_quantification = _dict_field(payload, "quantification")
+    decoded_intensity = decoded_frame_fluorescence_quantification(source_path, roi_hints=roi_hints)
+    quantification = {
+        **model_quantification,
+        "model_probability_summary": {
+            key: model_quantification.get(key)
+            for key in ("mean_probability", "max_probability")
+            if model_quantification.get(key) is not None
+        },
+        "decoded_frame_intensity": decoded_intensity,
+    }
+    if decoded_intensity.get("available"):
+        quantification.update(
+            {
+                "p95_intensity": decoded_intensity.get("p95_intensity"),
+                "background_intensity": decoded_intensity.get("background_intensity"),
+                "intensity_source": decoded_intensity.get("source"),
+                "intensity_domain": decoded_intensity.get("intensity_domain"),
+            }
+        )
     return {
         "frame_order": frame.get("order"),
         "frame_index": frame.get("frame_index"),
@@ -150,7 +186,7 @@ def _keyframe_segmentation_output(
         "prediction": payload["prediction"],
         "segmentation_mask": payload["segmentation_mask"],
         "lesion_evidence": payload["lesion_evidence"],
-        "quantification": payload["quantification"],
+        "quantification": quantification,
         "signal_masks": payload.get("signal_masks") or lesion_evidence.get("signal_masks") or {},
         "video_signal_segmentation": payload.get("video_signal_segmentation")
         or lesion_evidence.get("video_signal_segmentation")
@@ -176,8 +212,8 @@ def _empty_keyframe_mask_warning() -> dict[str, Any]:
     return {
         "code": "keyframe_segmenter_empty_mask_fallback",
         "message": (
-            "Trainable keyframe segmenter produced an empty mask for this frame; "
-            "hotspot fallback was used to keep candidate review available."
+            "Trainable keyframe segmenter produced an empty mask for this frame and no usable "
+            "trainable candidate mask is available."
         ),
         "blocking": False,
     }
@@ -191,9 +227,72 @@ def _keyframe_fallback_warning() -> dict[str, Any]:
     }
 
 
+def _keyframe_fallback_disallowed_warning(model_id: str) -> dict[str, Any]:
+    return {
+        "code": "keyframe_heuristic_fallback_disallowed",
+        "message": (
+            f"Trainable keyframe segmenter {model_id} did not produce a usable mask and "
+            "the active runtime prohibits heuristic hotspot fallback."
+        ),
+        "blocking": True,
+        "model_id": model_id,
+        "failure_stage": "keyframe_segmentation",
+    }
+
+
+def _unavailable_keyframe_output(
+    frame: dict[str, Any],
+    *,
+    source_path: str,
+    model_id: str,
+    warnings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    failure_reason = "heuristic_keyframe_fallback_disallowed"
+    return {
+        "frame_order": frame.get("order"),
+        "frame_index": frame.get("frame_index"),
+        "timestamp_sec": frame.get("timestamp_sec"),
+        "source_path": source_path,
+        "model_id": model_id,
+        "model_family": None,
+        "analysis_method": "trainable_keyframe_segmenter_unavailable",
+        "analysis_available": False,
+        "display_allowed": False,
+        "prediction": {
+            "label": "unavailable",
+            "confidence": 0.0,
+            "review_required": True,
+            "failure_reason": failure_reason,
+            "target_domain_flag": False,
+        },
+        "segmentation_mask": {
+            "available": False,
+            "path": None,
+            "positive_area_px": 0,
+        },
+        "lesion_evidence": {
+            "available": False,
+            "source": model_id,
+            "failure_reason": failure_reason,
+            "target_domain_flag": False,
+        },
+        "quantification": {"available": False},
+        "signal_masks": {},
+        "video_signal_segmentation": {},
+        "review_priority": "high",
+        "failure_reason": failure_reason,
+        "target_domain_flag": False,
+        "warnings": warnings,
+        "domain_boundary": (
+            "Trainable keyframe segmentation is unavailable and the active runtime prohibits "
+            "heuristic fallback; no decision-support mask is available."
+        ),
+    }
+
+
 def _segmentation_payload_has_positive_mask(payload: dict[str, Any]) -> bool:
-    quantification = payload.get("quantification") if isinstance(payload.get("quantification"), dict) else {}
-    segmentation_mask = payload.get("segmentation_mask") if isinstance(payload.get("segmentation_mask"), dict) else {}
+    quantification = _dict_field(payload, "quantification")
+    segmentation_mask = _dict_field(payload, "segmentation_mask")
     for key in ("positive_area_px", "component_count"):
         value = quantification.get(key)
         if positive_float(value) > 0:
@@ -202,14 +301,23 @@ def _segmentation_payload_has_positive_mask(payload: dict[str, Any]) -> bool:
 
 
 def _keyframe_model_adapter(
-    config_path: str, *, model_id: str, output_dir: Any
+    config_path: str,
+    *,
+    model_id: str,
+    output_dir: Any,
+    allow_heuristic_fallback: bool,
 ) -> tuple[Any | None, list[dict[str, Any]]]:
+    unavailable_action = (
+        "hotspot fallback will be used"
+        if allow_heuristic_fallback
+        else "heuristic hotspot fallback is prohibited by the active runtime"
+    )
     model_mapping = _keyframe_model_mapping(config_path, model_id=model_id)
     if not model_mapping:
         return None, [
             {
                 "code": "keyframe_segmenter_model_not_configured",
-                "message": f"Keyframe segmentation model {model_id} is not configured; hotspot fallback will be used.",
+                "message": f"Keyframe segmentation model {model_id} is not configured; {unavailable_action}.",
                 "blocking": False,
             }
         ]
@@ -225,7 +333,7 @@ def _keyframe_model_adapter(
                 "code": "keyframe_segmenter_model_unavailable",
                 "message": (
                     f"Keyframe segmentation model {model_id} is unavailable: "
-                    f"{'; '.join(status.reasons) or 'unknown reason'}; hotspot fallback will be used."
+                    f"{'; '.join(status.reasons) or 'unknown reason'}; {unavailable_action}."
                 ),
                 "blocking": False,
             },

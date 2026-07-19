@@ -4,11 +4,11 @@
     <div class="roi-toolbar" aria-label="ROI 标注控制">
       <label class="roi-label-field">
         <span>ROI 标签</span>
-        <input v-model="labelDraft" type="text" placeholder="手动 ROI" />
+        <input v-model="labelDraft" type="text" :disabled="isEditingLocked" placeholder="手动 ROI" />
       </label>
       <label class="roi-label-field">
         <span>复核状态</span>
-        <select v-model="reviewStateDraft">
+        <select v-model="reviewStateDraft" :disabled="isEditingLocked">
           <option value="review_required">待复核</option>
           <option value="accepted">接受</option>
           <option value="modified">已修改</option>
@@ -17,15 +17,16 @@
       </label>
       <AppButton variant="ghost" size="sm" :disabled="!canUndo" @click="undoDraft">撤销</AppButton>
       <AppButton variant="ghost" size="sm" :disabled="!canRedo" @click="redoDraft">重做</AppButton>
-      <AppButton variant="secondary" size="sm" :disabled="!rectDraft" @click="clearDraft">清除</AppButton>
+      <AppButton variant="secondary" size="sm" :disabled="isEditingLocked || !rectDraft" @click="clearDraft">清除</AppButton>
       <AppButton variant="primary" size="sm" icon="check" :disabled="!canSave" @click="saveDraft">{{ saveLabel }}</AppButton>
     </div>
     <div
       class="canvas-frame"
-      :class="{ empty: !hasOutput && !rectDraft }"
+      :class="{ empty: isCanvasEmpty, active: isCanvasActive, locked: isEditingLocked }"
       tabindex="0"
       role="application"
-      aria-label="ROI 矩形编辑画布，方向键微调当前 ROI"
+      :aria-label="isCanvasEmpty ? 'ROI 标注空状态' : 'ROI 矩形编辑画布，方向键微调当前 ROI'"
+      :aria-disabled="isCanvasEmpty || isEditingLocked"
       @keydown="nudgeDraft"
     >
       <svg
@@ -54,72 +55,83 @@
             <stop offset="100%" stop-color="#2eb76f" stop-opacity="0" />
           </radialGradient>
         </defs>
-        <rect x="0" y="0" width="100" height="100" fill="#eef3f8" />
-        <rect x="0" y="0" width="100" height="100" fill="url(#roi-grid)" />
-        <ellipse cx="51" cy="50" rx="34" ry="28" fill="url(#roi-tissue)" />
-        <ellipse cx="56" cy="45" rx="13" ry="11" fill="url(#roi-fluor)" />
-        <ellipse cx="44" cy="57" rx="9" ry="8" fill="url(#roi-fluor)" opacity="0.62" />
-        <line x1="8" y1="50" x2="92" y2="50" stroke="rgba(45,120,173,0.22)" stroke-width="0.28" />
-        <line x1="50" y1="8" x2="50" y2="92" stroke="rgba(45,120,173,0.22)" stroke-width="0.28" />
-        <rect
-          v-for="roi in persistedRects"
-          :key="roi.roi_id"
-          :x="roi.rect.x * 100"
-          :y="roi.rect.y * 100"
-          :width="roi.rect.width * 100"
-          :height="roi.rect.height * 100"
-          class="roi-box persisted"
-          vector-effect="non-scaling-stroke"
-        />
-        <rect
-          v-if="originalRect && hasDraftChanged"
-          :x="originalRect.x * 100"
-          :y="originalRect.y * 100"
-          :width="originalRect.width * 100"
-          :height="originalRect.height * 100"
-          class="roi-box original"
-          vector-effect="non-scaling-stroke"
-        />
-        <rect
-          v-if="rectDraft"
-          :x="rectDraft.x * 100"
-          :y="rectDraft.y * 100"
-          :width="rectDraft.width * 100"
-          :height="rectDraft.height * 100"
-          class="roi-box draft"
-          vector-effect="non-scaling-stroke"
-          @pointerdown.stop="startEdit('move', $event)"
-        />
-        <g v-if="rectDraft" class="roi-handles" aria-label="ROI 编辑控制点">
+        <rect class="roi-media-base" x="0" y="0" width="100" height="100" />
+        <g v-if="isCanvasActive" class="roi-media-scene">
+          <rect x="0" y="0" width="100" height="100" fill="url(#roi-grid)" />
+          <ellipse cx="51" cy="50" rx="34" ry="28" fill="url(#roi-tissue)" />
+          <ellipse cx="56" cy="45" rx="13" ry="11" fill="url(#roi-fluor)" />
+          <ellipse cx="44" cy="57" rx="9" ry="8" fill="url(#roi-fluor)" opacity="0.62" />
+          <line x1="8" y1="50" x2="92" y2="50" stroke="rgba(45,120,173,0.22)" stroke-width="0.28" />
+          <line x1="50" y1="8" x2="50" y2="92" stroke="rgba(45,120,173,0.22)" stroke-width="0.28" />
           <rect
-            v-for="handle in edgeHandles"
-            :key="handle.key"
-            :x="handle.x"
-            :y="handle.y"
-            :width="handle.width"
-            :height="handle.height"
-            :class="['roi-handle', `roi-handle-${handle.key}`]"
+            v-for="roi in persistedRects"
+            :key="roi.roi_id"
+            :x="roi.rect.x * 100"
+            :y="roi.rect.y * 100"
+            :width="roi.rect.width * 100"
+            :height="roi.rect.height * 100"
+            class="roi-box persisted"
             vector-effect="non-scaling-stroke"
-            @pointerdown.stop="startEdit(handle.key, $event)"
           />
-          <circle
-            v-for="handle in cornerHandles"
-            :key="handle.key"
-            :cx="handle.cx"
-            :cy="handle.cy"
-            r="1.6"
-            :class="['roi-handle', `roi-handle-${handle.key}`]"
+          <rect
+            v-if="originalRect && hasDraftChanged"
+            :x="originalRect.x * 100"
+            :y="originalRect.y * 100"
+            :width="originalRect.width * 100"
+            :height="originalRect.height * 100"
+            class="roi-box original"
             vector-effect="non-scaling-stroke"
-            @pointerdown.stop="startEdit(handle.key, $event)"
           />
+          <rect
+            v-if="rectDraft"
+            :x="rectDraft.x * 100"
+            :y="rectDraft.y * 100"
+            :width="rectDraft.width * 100"
+            :height="rectDraft.height * 100"
+            class="roi-box draft"
+            vector-effect="non-scaling-stroke"
+            @pointerdown.stop="startEdit('move', $event)"
+          />
+          <g v-if="rectDraft" class="roi-handles" aria-label="ROI 编辑控制点">
+            <rect
+              v-for="handle in edgeHandles"
+              :key="handle.key"
+              :x="handle.x"
+              :y="handle.y"
+              :width="handle.width"
+              :height="handle.height"
+              :class="['roi-handle', `roi-handle-${handle.key}`]"
+              vector-effect="non-scaling-stroke"
+              @pointerdown.stop="startEdit(handle.key, $event)"
+            />
+            <circle
+              v-for="handle in cornerHandles"
+              :key="handle.key"
+              :cx="handle.cx"
+              :cy="handle.cy"
+              r="1.6"
+              :class="['roi-handle', `roi-handle-${handle.key}`]"
+              vector-effect="non-scaling-stroke"
+              @pointerdown.stop="startEdit(handle.key, $event)"
+            />
+          </g>
         </g>
       </svg>
-      <div class="canvas-meta top-left">白光 + ICG / ROI 归一化</div>
-      <div class="canvas-meta bottom-right">{{ geometrySummary }}</div>
-      <div v-if="originalRect && hasDraftChanged" class="canvas-meta bottom-left">{{ comparisonSummary }}</div>
-      <div v-if="!hasOutput && !rectDraft" class="empty-canvas-copy">
-        <strong>空白 ROI 画布</strong>
+      <div v-if="isCanvasActive" class="canvas-meta top-left">白光 + ICG / ROI 归一化</div>
+      <div v-if="isCanvasActive" class="canvas-meta bottom-right">{{ geometrySummary }}</div>
+      <div v-if="isCanvasActive && originalRect && hasDraftChanged" class="canvas-meta bottom-left">{{ comparisonSummary }}</div>
+      <div v-if="isCanvasEmpty" class="empty-canvas-copy">
+        <strong>{{ disabled ? "等待病例载入" : "尚无可复核候选区或 ROI" }}</strong>
         <span>{{ emptyCanvasText }}</span>
+        <AppButton
+          variant="secondary"
+          size="sm"
+          icon="target"
+          :disabled="isEditingLocked"
+          @click="beginManualEditing"
+        >
+          {{ disabled ? "请先载入病例" : "开始手动标注" }}
+        </AppButton>
       </div>
     </div>
     <p class="roi-status">{{ statusText }}</p>
@@ -150,6 +162,7 @@ const props = withDefaults(
     hasOutput?: boolean;
     rois?: RegionOfInterest[];
     disabled?: boolean;
+    loading?: boolean;
     draftId?: string;
     draftGeometry?: Record<string, unknown> | null;
     draftLabel?: string;
@@ -161,12 +174,13 @@ const props = withDefaults(
     hasOutput: false,
     rois: () => [],
     disabled: false,
+    loading: false,
     draftId: "",
     draftGeometry: null,
     draftLabel: "",
     draftReviewState: "modified",
     saveLabel: "保存 ROI",
-    emptyText: "拖拽画出矩形 ROI，保存后进入医生复核记录。",
+    emptyText: "选择“开始手动标注”后，可拖拽画出矩形 ROI，保存后进入医生复核记录。",
   },
 );
 
@@ -180,6 +194,7 @@ const startPoint = ref<RoiPoint | null>(null);
 const startRect = ref<RoiRect | null>(null);
 const rectDraft = ref<RoiRect | null>(null);
 const originalRect = ref<RoiRect | null>(null);
+const manualEditing = ref(false);
 const undoStack = ref<Array<RoiRect | null>>([]);
 const redoStack = ref<Array<RoiRect | null>>([]);
 const labelDraft = ref("manual_roi");
@@ -190,12 +205,20 @@ const persistedRects = computed(() =>
     .map((roi) => ({ roi_id: roi.roi_id, rect: roiRectFromGeometry(roi.geometry) }))
     .filter((item): item is { roi_id: string; rect: RoiRect } => item.rect !== null),
 );
+const isCanvasActive = computed(
+  () => !props.disabled && (props.hasOutput || persistedRects.value.length > 0 || manualEditing.value || Boolean(rectDraft.value)),
+);
+const isCanvasEmpty = computed(() => !isCanvasActive.value);
+const isEditingLocked = computed(() => props.disabled || props.loading);
 
-const canSave = computed(() => Boolean(rectDraft.value && !props.disabled));
-const canUndo = computed(() => undoStack.value.length > 0 && !props.disabled);
-const canRedo = computed(() => redoStack.value.length > 0 && !props.disabled);
+const canSave = computed(() => Boolean(rectDraft.value && !isEditingLocked.value));
+const canUndo = computed(() => undoStack.value.length > 0 && !isEditingLocked.value);
+const canRedo = computed(() => redoStack.value.length > 0 && !isEditingLocked.value);
 const saveLabel = computed(() => props.saveLabel || "保存 ROI");
-const emptyCanvasText = computed(() => props.emptyText || "拖拽画出矩形 ROI，保存后进入医生复核记录。");
+const emptyCanvasText = computed(() => {
+  if (props.disabled) return "载入病例后，候选区、分析结果和手动 ROI 将显示在此。";
+  return props.emptyText || "开始标注后可拖拽画出矩形 ROI，保存后进入医生复核记录。";
+});
 const geometrySummary = computed(() => {
   if (!rectDraft.value) return persistedRects.value.length ? `${persistedRects.value.length} 个已保存 ROI` : "拖拽创建 ROI";
   return `面积 ${(roiAreaFraction(rectDraft.value) * 100).toFixed(1)}%`;
@@ -210,7 +233,9 @@ const comparisonSummary = computed(() => {
   return `原始 ${originalArea.toFixed(1)}% → 当前 ${currentArea.toFixed(1)}% (${sign}${delta.toFixed(1)}%)`;
 });
 const statusText = computed(() => {
+  if (props.loading) return "正在保存 ROI，当前草稿已锁定。";
   if (props.disabled) return "请先载入病例后再保存 ROI。";
+  if (isCanvasEmpty.value) return "当前尚无候选区、ROI 或分析结果，可进入手动标注模式补充矩形 ROI。";
   if (rectDraft.value) return "当前 ROI 可移动、缩放、方向键微调，并支持撤销/重做；保存后写入复核记录。";
   if (persistedRects.value.length) return "已保存 ROI 可随证据包导出。";
   return "在画布上按住并拖拽即可创建矩形 ROI。";
@@ -272,8 +297,18 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => props.loading,
+  (loading) => {
+    if (!loading) return;
+    editMode.value = null;
+    startPoint.value = null;
+    startRect.value = null;
+  },
+);
+
 function startDraw(event: PointerEvent) {
-  if (props.disabled) return;
+  if (isEditingLocked.value || isCanvasEmpty.value) return;
   const point = eventPoint(event);
   if (!point) return;
   pushHistory();
@@ -284,8 +319,13 @@ function startDraw(event: PointerEvent) {
   svgEl.value?.setPointerCapture(event.pointerId);
 }
 
+function beginManualEditing() {
+  if (isEditingLocked.value) return;
+  manualEditing.value = true;
+}
+
 function startEdit(mode: "move" | RoiResizeHandle, event: PointerEvent) {
-  if (props.disabled || !rectDraft.value) return;
+  if (isEditingLocked.value || !rectDraft.value) return;
   const point = eventPoint(event);
   if (!point) return;
   pushHistory();
@@ -296,7 +336,7 @@ function startEdit(mode: "move" | RoiResizeHandle, event: PointerEvent) {
 }
 
 function updateDraw(event: PointerEvent) {
-  if (!editMode.value || !startPoint.value) return;
+  if (isEditingLocked.value || !editMode.value || !startPoint.value) return;
   const point = eventPoint(event);
   if (!point) return;
   if (editMode.value === "draw") {
@@ -326,12 +366,13 @@ function finishDraw(event: PointerEvent) {
 }
 
 function clearDraft() {
+  if (isEditingLocked.value) return;
   pushHistory();
   rectDraft.value = null;
 }
 
 function saveDraft() {
-  if (!rectDraft.value || props.disabled) return;
+  if (!rectDraft.value || isEditingLocked.value) return;
   emit("save", {
     roiId: props.draftId || `manual_roi_${Date.now()}`,
     geometry: { ...roiGeometryPayload(rectDraft.value) },
@@ -341,7 +382,7 @@ function saveDraft() {
 }
 
 function nudgeDraft(event: KeyboardEvent) {
-  if (!rectDraft.value || props.disabled) return;
+  if (!rectDraft.value || isEditingLocked.value) return;
   const step = event.shiftKey ? 0.02 : 0.005;
   const deltaByKey: Record<string, RoiPoint> = {
     ArrowLeft: { x: -step, y: 0 },
@@ -357,6 +398,7 @@ function nudgeDraft(event: KeyboardEvent) {
 }
 
 function undoDraft() {
+  if (isEditingLocked.value) return;
   const previous = undoStack.value.pop();
   if (previous === undefined) return;
   redoStack.value.push(cloneRect(rectDraft.value));
@@ -364,6 +406,7 @@ function undoDraft() {
 }
 
 function redoDraft() {
+  if (isEditingLocked.value) return;
   const next = redoStack.value.pop();
   if (next === undefined) return;
   undoStack.value.push(cloneRect(rectDraft.value));
@@ -405,15 +448,16 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
 
 <style scoped>
 .roi-panel {
-  padding: 14px;
+  --roi-canvas-height: clamp(440px, 54vh, 620px);
+  padding: 18px;
 }
 
 .roi-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 160px auto auto auto auto;
-  gap: 8px;
+  gap: 10px;
   align-items: end;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .roi-label-field {
@@ -433,7 +477,7 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
   border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 5px 8px;
-  background: #fbfdff;
+  background: var(--ov-bg-elevated);
   color: var(--ov-text);
   font: inherit;
   font-size: 13px;
@@ -441,25 +485,48 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
 
 .canvas-frame {
   position: relative;
-  min-height: 560px;
+  min-height: var(--roi-canvas-height);
   overflow: hidden;
   border: 1px solid var(--ov-border-strong);
   border-radius: var(--ov-radius);
-  background: #eef3f8;
+  background: var(--ov-bg-media);
 }
 
 .canvas-frame.empty {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 249, 255, 0.96)),
-    #f8fbfe;
+  min-height: var(--roi-canvas-height);
+  border-style: dashed;
+  background: var(--ov-bg-soft);
+  box-shadow: none;
 }
 
 .roi-svg {
   display: block;
   width: 100%;
-  min-height: 560px;
+  height: var(--roi-canvas-height);
+  min-height: var(--roi-canvas-height);
   touch-action: none;
   cursor: crosshair;
+}
+
+.canvas-frame.empty .roi-svg {
+  height: var(--roi-canvas-height);
+  min-height: var(--roi-canvas-height);
+  max-height: var(--roi-canvas-height);
+  cursor: default;
+  pointer-events: none;
+}
+
+.canvas-frame.locked .roi-svg {
+  cursor: wait;
+  pointer-events: none;
+}
+
+.roi-media-base {
+  fill: var(--ov-bg-media);
+}
+
+.canvas-frame.empty .roi-media-base {
+  fill: var(--ov-bg-soft);
 }
 
 .roi-box {
@@ -521,14 +588,14 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
   display: grid;
   gap: 6px;
   justify-items: center;
-  max-width: min(360px, calc(100% - 32px));
-  border: 1px solid rgba(44, 126, 192, 0.22);
+  width: min(500px, calc(100% - 32px));
+  border: 0;
   border-radius: 8px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 8px 20px rgba(22, 76, 120, 0.08);
+  background: transparent;
+  box-shadow: none;
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .empty-canvas-copy strong {
@@ -546,8 +613,8 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
   position: absolute;
   border-radius: 6px;
   padding: 5px 7px;
-  background: rgba(255, 255, 255, 0.84);
-  color: #415362;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 800;
   pointer-events: none;

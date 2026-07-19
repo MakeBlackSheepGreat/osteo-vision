@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from typing import Any
 
@@ -19,13 +20,15 @@ def write_image_sequence_video(paths: list[str], output_path: Path, *, fps: floa
 
     existing = [Path(path) for path in paths if path and Path(path).exists()]
     if not existing:
+        output_path.unlink(missing_ok=True)
         return None
     try:
-        import cv2
+        cv2: Any = importlib.import_module("cv2")
     except Exception:
         return None
     first = cv2.imread(str(existing[0]), cv2.IMREAD_COLOR)
     if first is None:
+        output_path.unlink(missing_ok=True)
         return None
     output_path.parent.mkdir(parents=True, exist_ok=True)
     target_width, target_height = _review_video_size(first.shape[1], first.shape[0], max_side=max_side)
@@ -36,6 +39,7 @@ def write_image_sequence_video(paths: list[str], output_path: Path, *, fps: floa
         (target_width, target_height),
     )
     if not writer.isOpened():
+        output_path.unlink(missing_ok=True)
         return None
     try:
         for path in existing:

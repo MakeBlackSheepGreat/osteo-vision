@@ -8,6 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+
+from src.preprocess.fluorescence import fluorescence_time_intensity_curve
+
 
 def attach_video_temporal_context(frame_details: list[dict[str, Any]]) -> list[dict[str, Any]]:
     enriched: list[dict[str, Any]] = []
@@ -27,7 +31,7 @@ def attach_video_temporal_context(frame_details: list[dict[str, Any]]) -> list[d
         previous_bbox_source = _detail_source_bbox(previous_detail)
         smoothed_bbox = _median_bbox([_detail_source_bbox(candidate) for candidate in window])
         shift_px = _bbox_center_shift(bbox_source, previous_bbox_source)
-        spatial_mapping = detail.get("spatial_mapping") if isinstance(detail.get("spatial_mapping"), dict) else {}
+        spatial_mapping = _dict_value(detail.get("spatial_mapping"))
         source_width = positive_float(spatial_mapping.get("source_video_width") or spatial_mapping.get("mask_width"))
         source_height = positive_float(spatial_mapping.get("source_video_height") or spatial_mapping.get("mask_height"))
         source_diagonal = (source_width**2 + source_height**2) ** 0.5 if source_width and source_height else 0.0
@@ -80,10 +84,10 @@ def attach_video_temporal_context(frame_details: list[dict[str, Any]]) -> list[d
 
 
 def video_temporal_summary(frame_details: list[dict[str, Any]]) -> dict[str, Any]:
-    stability_items = [
-        detail.get("temporal_stability")
+    stability_items: list[dict[str, Any]] = [
+        value
         for detail in frame_details
-        if isinstance(detail.get("temporal_stability"), dict)
+        if (value := _dict_value_or_none(detail.get("temporal_stability"))) is not None
     ]
     instability_scores = [float(item.get("instability_score") or 0.0) for item in stability_items]
     previous_deltas = [
@@ -101,13 +105,64 @@ def video_temporal_summary(frame_details: list[dict[str, Any]]) -> dict[str, Any
         "frame_count": len(frame_details),
         "smoothing_method": "three_frame_moving_average_metadata",
         "smoothing_applied_to_mask": False,
-        "instability_frame_count": sum(1 for item in stability_items if item.get("flicker_warning")),
+        "instability_frame_count": len([item for item in stability_items if item.get("flicker_warning")]),
         "max_instability_score": max(instability_scores) if instability_scores else 0.0,
         "mean_positive_area_fraction_delta_previous": (
             sum(previous_deltas) / len(previous_deltas) if previous_deltas else 0.0
         ),
         "max_bbox_center_shift_previous_fraction": max(shift_fractions) if shift_fractions else 0.0,
         "medical_boundary": "Temporal smoothing metadata is for review stability only and is not diagnostic.",
+    }
+
+
+def video_inference_performance_summary(frame_details: list[dict[str, Any]]) -> dict[str, Any]:
+    inference_items: list[dict[str, Any]] = [
+        value for detail in frame_details if (value := _dict_value_or_none(detail.get("inference"))) is not None
+    ]
+    elapsed = [positive_float(item.get("elapsed_ms")) for item in inference_items]
+    elapsed = [value for value in elapsed if value > 0]
+    modes = [str(item.get("mode") or "unknown").strip().lower() for item in inference_items]
+    gpu_memory = [positive_float(item.get("peak_gpu_memory_mb")) for item in inference_items]
+    gpu_memory = [value for value in gpu_memory if value > 0]
+    return {
+        "available": bool(elapsed),
+        "frame_count": len(frame_details),
+        "measured_frame_count": len(elapsed),
+        "latency_ms_p50": round(float(np.percentile(elapsed, 50)), 3) if elapsed else None,
+        "latency_ms_p95": round(float(np.percentile(elapsed, 95)), 3) if elapsed else None,
+        "latency_ms_max": round(max(elapsed), 3) if elapsed else None,
+        "whole_frame_count": len([mode for mode in modes if mode in {"whole", "whole_frame"}]),
+        "tiled_frame_count": len([mode for mode in modes if mode == "tiled"]),
+        "unknown_mode_frame_count": len([mode for mode in modes if mode not in {"whole", "whole_frame", "tiled"}]),
+        "fallback_frame_count": len([detail for detail in frame_details if detail.get("failure_reason")]),
+        "max_peak_gpu_memory_mb": round(max(gpu_memory), 3) if gpu_memory else None,
+        "scope": "keyframe_ai_inference_only",
+    }
+
+
+def video_fluorescence_dynamics_summary(frame_details: list[dict[str, Any]]) -> dict[str, Any]:
+    intensity_details = [
+        detail for detail in frame_details if detail.get("intensity_source") == "decoded_keyframe_intensity"
+    ]
+    return fluorescence_time_intensity_curve(
+        [
+            {
+                "timestamp_sec": detail.get("timestamp_sec"),
+                "p95_intensity": detail.get("p95_intensity"),
+                "background_intensity": detail.get("background_intensity", 0.0),
+                "intensity_source": detail.get("intensity_source"),
+            }
+            for detail in intensity_details
+        ]
+    ) | {
+        "source": "decoded_keyframe_intensity",
+        "input_frame_count": len(frame_details),
+        "decoded_intensity_frame_count": len(intensity_details),
+        "excluded_non_intensity_frame_count": len(frame_details) - len(intensity_details),
+        "source_boundary": (
+            "Curve points come from decoded keyframe luminance or supplied ROI pixels; segmentation probabilities "
+            "are excluded from fluorescence intensity metrics."
+        ),
     }
 
 
@@ -181,9 +236,17 @@ def normalized_bbox(bbox: Any, *, width: float, height: float) -> dict[str, Any]
 def _detail_source_bbox(detail: Any) -> list[int] | None:
     if not isinstance(detail, dict):
         return None
-    spatial_mapping = detail.get("spatial_mapping") if isinstance(detail.get("spatial_mapping"), dict) else {}
+    spatial_mapping = _dict_value(detail.get("spatial_mapping"))
     bbox = spatial_mapping.get("top_component_bbox_source_xyxy") or detail.get("top_component_bbox_xyxy")
     return _int_bbox(bbox)
+
+
+def _dict_value(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _dict_value_or_none(value: Any) -> dict[str, Any] | None:
+    return value if isinstance(value, dict) else None
 
 
 def _median_bbox(bboxes: list[list[int] | None]) -> list[int] | None:

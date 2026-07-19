@@ -1,0 +1,66 @@
+{
+  "encoding": "utf-8-sig",
+  "row_count": 2124,
+  "column_count": 12,
+  "columns": [
+    "Filename",
+    "Sex",
+    "Age",
+    "Main appeal",
+    "Subsequent",
+    "Present medical history",
+    "Past medical history",
+    "Oral Check",
+    "Diagnosis",
+    "Treatment plan",
+    "Handle",
+    "Doctor advices"
+  ],
+  "unique_filename_count": 660,
+  "repeated_visit_record_count": 1464,
+  "patients_with_multiple_visit_records": 390,
+  "age_non_missing_count": 2123,
+  "age_min": 5.0,
+  "age_max": 86.0,
+  "sex_counts": {
+    "female": 1134,
+    "male": 990
+  },
+  "patient_level_sex_counts": {
+    "female": 337,
+    "male": 323
+  },
+  "sex_conflict_patient_count": 0,
+  "age_conflict_patient_count": 2,
+  "patients_with_present_medical_history": 483,
+  "patients_with_past_medical_history": 567,
+  "patients_with_diagnosis": 640,
+  "column_non_missing_counts": {
+    "Filename": 2124,
+    "Sex": 2124,
+    "Age": 2123,
+    "Main appeal": 709,
+    "Subsequent": 1260,
+    "Present medical history": 579,
+    "Past medical history": 1586,
+    "Oral Check": 1908,
+    "Diagnosis": 1505,
+    "Treatment plan": 1260,
+    "Handle": 2064,
+    "Doctor advices": 1894
+  },
+  "column_missing_counts": {
+    "Filename": 0,
+    "Sex": 0,
+    "Age": 1,
+    "Main appeal": 1415,
+    "Subsequent": 864,
+    "Present medical history": 1545,
+    "Past medical history": 538,
+    "Oral Check": 216,
+    "Diagnosis": 619,
+    "Treatment plan": 864,
+    "Handle": 60,
+    "Doctor advices": 230
+  }
+}

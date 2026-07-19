@@ -1,0 +1,333 @@
+{
+  "schema_version": "osteo-vision-mmdental-patient-context-starter-v1",
+  "generated_at_utc": "2026-07-18T19:47:31.757585+00:00",
+  "record_count": 1,
+  "total_size_bytes": 159583344,
+  "dataset_id": "D069",
+  "dataset_name": "MMDental - tooth CBCT images with expert medical records",
+  "source_page_url": "https://springernature.figshare.com/articles/dataset/MMDental_-_A_multimodal_dataset_of_tooth_CBCT_images_with_expert_medical_records/28505276",
+  "doi": "10.6084/m9.figshare.28505276.v1",
+  "article_doi": "10.1038/s41597-025-05398-7",
+  "license": "CC BY 4.0",
+  "license_review_status": "verified_from_figshare_api_and_datacite",
+  "remote_zip": {
+    "file_id": 53187695,
+    "file_name": "MMDental.zip",
+    "direct_download_url": "https://ndownloader.figshare.com/files/53187695",
+    "size_bytes": 68087010723,
+    "computed_md5": "99c0059775735ddb612b635547f41e3f",
+    "download_strategy": "HTTP Range selective extraction; full 68 GB ZIP was not downloaded",
+    "central_directory": {
+      "entry_count": 808,
+      "central_directory_offset": 68086920965,
+      "central_directory_size": 89660,
+      "zip64": true
+    },
+    "member_count": 808
+  },
+  "extracted_member": {
+    "name": "MMDental/medical_records.csv",
+    "compression_method": 8,
+    "flags": 0,
+    "crc32": 1265759591,
+    "compressed_size": 282328,
+    "uncompressed_size": 1585061,
+    "local_header_offset": 68086638579,
+    "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\medical_records.csv",
+    "size_bytes": 1585061,
+    "sha256": "6c2eca1529b4d225f7f32c05fb112b3b1fac4735f5d1bc4da235ee6e84f804a0",
+    "structural_summary": {
+      "encoding": "utf-8-sig",
+      "row_count": 2124,
+      "column_count": 12,
+      "columns": [
+        "Filename",
+        "Sex",
+        "Age",
+        "Main appeal",
+        "Subsequent",
+        "Present medical history",
+        "Past medical history",
+        "Oral Check",
+        "Diagnosis",
+        "Treatment plan",
+        "Handle",
+        "Doctor advices"
+      ],
+      "unique_filename_count": 660,
+      "repeated_visit_record_count": 1464,
+      "patients_with_multiple_visit_records": 390,
+      "age_non_missing_count": 2123,
+      "age_min": 5.0,
+      "age_max": 86.0,
+      "sex_counts": {
+        "female": 1134,
+        "male": 990
+      },
+      "patient_level_sex_counts": {
+        "female": 337,
+        "male": 323
+      },
+      "sex_conflict_patient_count": 0,
+      "age_conflict_patient_count": 2,
+      "patients_with_present_medical_history": 483,
+      "patients_with_past_medical_history": 567,
+      "patients_with_diagnosis": 640,
+      "column_non_missing_counts": {
+        "Filename": 2124,
+        "Sex": 2124,
+        "Age": 2123,
+        "Main appeal": 709,
+        "Subsequent": 1260,
+        "Present medical history": 579,
+        "Past medical history": 1586,
+        "Oral Check": 1908,
+        "Diagnosis": 1505,
+        "Treatment plan": 1260,
+        "Handle": 2064,
+        "Doctor advices": 1894
+      },
+      "column_missing_counts": {
+        "Filename": 0,
+        "Sex": 0,
+        "Age": 1,
+        "Main appeal": 1415,
+        "Subsequent": 864,
+        "Present medical history": 1545,
+        "Past medical history": 538,
+        "Oral Check": 216,
+        "Diagnosis": 619,
+        "Treatment plan": 864,
+        "Handle": 60,
+        "Doctor advices": 230
+      }
+    }
+  },
+  "extracted_cbct_members": [
+    {
+      "name": "MMDental/492/492.nii.gz",
+      "compression_method": 8,
+      "flags": 0,
+      "crc32": 929780093,
+      "compressed_size": 145646740,
+      "uncompressed_size": 145668104,
+      "local_header_offset": 44083223853,
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\cbct\\492\\492.nii.gz",
+      "size_bytes": 145668104,
+      "sha256": "2d4d2bf54ccd1cd2a34c0e790ac8b1e2ff9ce82d01dc39d1debf7e460f946bcf",
+      "nifti_header": {
+        "header_bytes": 348,
+        "endianness": "little",
+        "shape": [
+          640,
+          640,
+          400
+        ],
+        "datatype_code": 4,
+        "bitpix": 16,
+        "voxel_spacing": [
+          0.25,
+          0.25,
+          0.25
+        ],
+        "spatial_unit": "millimeter",
+        "spatial_unit_code": 2,
+        "temporal_unit_code": 0,
+        "vox_offset": 352.0,
+        "magic": "n+1"
+      },
+      "paired_context": {
+        "case_id": "492",
+        "visit_record_count": 1,
+        "age_present": true,
+        "sex_present": true,
+        "diagnosis_present": true,
+        "medical_history_present": true
+      }
+    }
+  ],
+  "paired_context_summary": [
+    {
+      "case_id": "492",
+      "visit_record_count": 1,
+      "age_present": true,
+      "sex_present": true,
+      "diagnosis_present": true,
+      "medical_history_present": true
+    }
+  ],
+  "derived_modeling_artifact": {
+    "source_cbct_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\cbct\\492\\492.nii.gz",
+    "source_cbct_sha256": "2d4d2bf54ccd1cd2a34c0e790ac8b1e2ff9ce82d01dc39d1debf7e460f946bcf",
+    "modeling_manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.three_d_evidence.json",
+    "modeling_manifest_sha256": "94aa0a172d1bc46e1537b55cfde64587b038b41138a6f1499b92c2dbf9a2db5f",
+    "surface_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.stl",
+    "surface_sha256": "37304a2c54d14378bdfe1ddf5bd8eeffb6828d64a168f1cc8c59e8d2d1af6e9c",
+    "vertex_count": 118452,
+    "face_count": 244000,
+    "proxy_method": "balanced_hard_tissue_adaptive_threshold_physical_axes",
+    "decimation_step": 4,
+    "surface_quality": {
+      "method": "balanced_adaptive_hard_tissue_proxy",
+      "threshold_policy": "p95 clipped to a CBCT bone-window floor, with p92/p98 fallback by fill ratio",
+      "threshold_value": 320.0,
+      "percentile_90": 77.0,
+      "percentile_92": 118.0,
+      "percentile_95": 224.0,
+      "percentile_98": 643.0,
+      "percentile_99": 1116.010009765625,
+      "fill_ratio_before_components": 0.0371515625,
+      "fill_ratio_after_components": 0.041412109375,
+      "component_count": 2003,
+      "kept_component_count": 2,
+      "kept_component_voxels": [
+        102751,
+        3264
+      ],
+      "quality_warnings": [
+        "raw_cbct_threshold_proxy_not_jawbone_segmentation",
+        "metal_artifact_and_teeth_may_dominate_surface",
+        "balanced_proxy_can_still_include_maxilla_or_other_hard_tissue",
+        "physician_reviewed_segmentation_required_for_reference_jawbone"
+      ]
+    },
+    "binary_stl_geometry": {
+      "triangle_count": 244000,
+      "vertex_reference_count": 732000,
+      "bounds_min_xyz": [
+        31.5,
+        42.25,
+        -0.5
+      ],
+      "bounds_max_xyz": [
+        155.5,
+        160.25,
+        99.5
+      ],
+      "extent_xyz": [
+        124.0,
+        118.0,
+        100.0
+      ],
+      "finite_geometry": true
+    },
+    "registration_status": "unregistered",
+    "doctor_review_status": "not_reviewed",
+    "navigation_ready": false,
+    "orientation_review_status": "pending_slicer_or_physician_review",
+    "data_boundary": "Raw CBCT balanced hard tissue proxy generated for platform workflow validation. It uses ITK physical geometry but is not a jawbone-specific physician-reviewed segmentation and not navigation-ready."
+  },
+  "local_assets": [
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\figshare_article_28505276.json",
+      "size_bytes": 7096,
+      "sha256": "9273c685e589f14b40772e522bef5b61ec0f23cd34c756e9223d6156bda29846"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\datacite_10.6084_m9.figshare.28505276.json",
+      "size_bytes": 10739,
+      "sha256": "921337dddbea0a48ac4199ad22509485c7824720017307b76c31e25ec281cc2e"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\PMC12241571_fullTextXML.xml",
+      "size_bytes": 98333,
+      "sha256": "04a50d3b9f52a3e45179509c2734233bcbd8d3441069ddae36cb03108e2fabb0"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\medical_records.csv",
+      "size_bytes": 1585061,
+      "sha256": "6c2eca1529b4d225f7f32c05fb112b3b1fac4735f5d1bc4da235ee6e84f804a0"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\medical_records_structural_summary.json",
+      "size_bytes": 1550,
+      "sha256": "6924d1f4c38e380e3881216e606d7212119ed59443759eded52b70380ac63e2b"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\cbct\\492\\492.nii.gz",
+      "size_bytes": 145668104,
+      "sha256": "2d4d2bf54ccd1cd2a34c0e790ac8b1e2ff9ce82d01dc39d1debf7e460f946bcf"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.three_d_evidence.json",
+      "size_bytes": 12377,
+      "sha256": "94aa0a172d1bc46e1537b55cfde64587b038b41138a6f1499b92c2dbf9a2db5f"
+    },
+    {
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.stl",
+      "size_bytes": 12200084,
+      "sha256": "37304a2c54d14378bdfe1ddf5bd8eeffb6828d64a168f1cc8c59e8d2d1af6e9c"
+    }
+  ],
+  "modalities": "dental CBCT NIfTI plus expert medical records",
+  "clinical_variables": "sex, age, chief complaint, follow-up, present and past medical history, oral examination, diagnosis, treatment plan, management and physician advice",
+  "recommended_use": "Jaw-domain clinical-context schema, missing-value handling, patient-level grouping and image-plus-context engineering with one checksum-bound paired CBCT case.",
+  "target_domain_flag": false,
+  "training_eligible": false,
+  "review_state": "review_required",
+  "data_boundary": "Public de-identified dental proxy without osteomyelitis lesion masks, bone-activity labels, white-light/ICG pairs or intraoperative outcomes. It cannot validate patient-conditioned spatial effects or clinical segmentation performance.",
+  "records": [
+    {
+      "dataset_id": "D069",
+      "dataset_name": "MMDental - tooth CBCT images with expert medical records",
+      "source_page_url": "https://springernature.figshare.com/articles/dataset/MMDental_-_A_multimodal_dataset_of_tooth_CBCT_images_with_expert_medical_records/28505276",
+      "direct_download_url": "https://ndownloader.figshare.com/files/53187695",
+      "license": "CC BY 4.0",
+      "license_review_status": "verified_from_figshare_api_and_datacite",
+      "domain_tier": "human_dental_cbct_clinical_context_proxy",
+      "modality": "dental CBCT NIfTI plus expert medical records",
+      "labels": "expert medical records; no pixel segmentation labels",
+      "patient_count": 660,
+      "clinical_variables": "sex, age, chief complaint, follow-up, present and past medical history, oral examination, diagnosis, treatment plan, management and physician advice",
+      "recommended_use": "Jaw-domain clinical-context schema, missing-value handling, patient-level grouping and image-plus-context engineering with one checksum-bound paired CBCT case.",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "download_status": "verified_selective_range_extraction",
+      "downloaded_at_utc": "2026-07-18T19:47:31.757585+00:00",
+      "data_boundary": "Public de-identified dental proxy without osteomyelitis lesion masks, bone-activity labels, white-light/ICG pairs or intraoperative outcomes. It cannot validate patient-conditioned spatial effects or clinical segmentation performance.",
+      "local_files": [
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\figshare_article_28505276.json",
+          "size_bytes": 7096,
+          "sha256": "9273c685e589f14b40772e522bef5b61ec0f23cd34c756e9223d6156bda29846"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\datacite_10.6084_m9.figshare.28505276.json",
+          "size_bytes": 10739,
+          "sha256": "921337dddbea0a48ac4199ad22509485c7824720017307b76c31e25ec281cc2e"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\metadata\\PMC12241571_fullTextXML.xml",
+          "size_bytes": 98333,
+          "sha256": "04a50d3b9f52a3e45179509c2734233bcbd8d3441069ddae36cb03108e2fabb0"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\medical_records.csv",
+          "size_bytes": 1585061,
+          "sha256": "6c2eca1529b4d225f7f32c05fb112b3b1fac4735f5d1bc4da235ee6e84f804a0"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\medical_records_structural_summary.json",
+          "size_bytes": 1550,
+          "sha256": "6924d1f4c38e380e3881216e606d7212119ed59443759eded52b70380ac63e2b"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\d069\\raw\\cbct\\492\\492.nii.gz",
+          "size_bytes": 145668104,
+          "sha256": "2d4d2bf54ccd1cd2a34c0e790ac8b1e2ff9ce82d01dc39d1debf7e460f946bcf"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.three_d_evidence.json",
+          "size_bytes": 12377,
+          "sha256": "94aa0a172d1bc46e1537b55cfde64587b038b41138a6f1499b92c2dbf9a2db5f"
+        },
+        {
+          "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\platform\\three_d_models\\492_nii\\d069_mmdental_492_cbct_balanced_hard_tissue_proxy.stl",
+          "size_bytes": 12200084,
+          "sha256": "37304a2c54d14378bdfe1ddf5bd8eeffb6828d64a168f1cc8c59e8d2d1af6e9c"
+        }
+      ]
+    }
+  ]
+}

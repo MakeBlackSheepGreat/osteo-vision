@@ -2,7 +2,7 @@
 
 This script intentionally uses the real FastAPI routes through TestClient. It
 creates proxy official-device 4K JPEG/MP4 inputs, runs fusion and keyframe
-analysis, records a physician-review event, exports the evidence bundle, and
+analysis, records an engineering-review event, exports the evidence bundle, and
 writes a compact auditable summary. It is an internal engineering check aligned
 to the official technical document, not an official competition acceptance.
 """
@@ -10,6 +10,7 @@ to the official technical document, not an official competition acceptance.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -33,11 +34,13 @@ T = TypeVar("T")
 
 
 def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
-    output_dir = Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"competition_demo_check_{timestamp()}"
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir
+        else ROOT / "artifacts" / "platform_smoke" / f"competition_demo_check_{timestamp()}"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
-    os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")
-    os.environ["OSTEO_JOB_STORE_PATH"] = str(output_dir / "jobs" / "jobs.json")
+    config_path = bind_runtime_environment(args.config, output_dir)
 
     timings: list[dict[str, Any]] = []
     input_dir = output_dir / "input"
@@ -47,11 +50,19 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
     from src.engine.inference import MedicalImagingInferenceService
 
     client = TestClient(create_app())
-    model_inventory = MedicalImagingInferenceService.from_config(args.config).model_inventory()
+    ready_payload = checked_json(client.get("/ready"))
+    service = MedicalImagingInferenceService.from_config(config_path)
+    model_inventory = service.model_inventory()
+    runtime = service.runtime
+    runtime_readiness = dict(ready_payload.get("runtime_readiness") or {})
+    active_config_path = str(ready_payload.get("inference_config") or "")
+    runtime_config_bound = paths_match(active_config_path, config_path)
 
     white_path = timed(
         "generate_white_light_jpeg",
-        lambda: create_proxy_jpeg(input_dir / "competition_white_4k.jpg", channel="white", width=args.width, height=args.height),
+        lambda: create_proxy_jpeg(
+            input_dir / "competition_white_4k.jpg", channel="white", width=args.width, height=args.height
+        ),
         timings,
     )
     fluor_path = timed(
@@ -110,7 +121,11 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
         timings,
     )
     upload_job = (
-        timed("read_upload_keyframe_job", lambda: checked_json(client.get(f"/uploads/jobs/{video_upload['keyframe_job_id']}")), timings)
+        timed(
+            "read_upload_keyframe_job",
+            lambda: checked_json(client.get(f"/uploads/jobs/{video_upload['keyframe_job_id']}")),
+            timings,
+        )
         if video_upload.get("keyframe_job_id")
         else {}
     )
@@ -165,6 +180,7 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
                         "keyframe_count": args.keyframes,
                         "keyframe_timestamps_sec": requested_timestamps(args.keyframes, args.fps, args.frames),
                         "hotspot_threshold": args.threshold,
+                        "segmentation_model_id": configured_segmentation_model_id(runtime),
                     },
                     "roi_hints": [],
                 },
@@ -180,19 +196,22 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
     analyzed_case = timed("load_analyzed_case", lambda: checked_json(client.get(f"/cases/{case_id}")), timings)
 
     review_result = timed(
-        "record_physician_review",
+        "record_engineering_review",
         lambda: review_first_candidate(client, analyzed_case),
         timings,
     )
     reviewed_case = timed("load_reviewed_case", lambda: checked_json(client.get(f"/cases/{case_id}")), timings)
     export_payload = timed(
         "export_evidence_bundle",
-        lambda: checked_json(client.post(f"/cases/{case_id}/exports", json={"export_format": "bundle", "selected_artifacts": []})),
+        lambda: checked_json(
+            client.post(f"/cases/{case_id}/exports", json={"export_format": "bundle", "selected_artifacts": []})
+        ),
         timings,
     )
 
     fusion_run = latest_run(fusion_case, mode="image_fusion")
     video_run = latest_run(reviewed_case, mode="video_file_keyframes")
+    video_model_execution = video_segmentation_execution(video_run)
     required_formats = {
         "report_json",
         "report_md",
@@ -211,37 +230,79 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
     }
     formats = set((export_payload.get("summary") or {}).get("formats") or [])
     available_models = available_model_ids(model_inventory)
+    required_models = required_runtime_model_ids(runtime)
+    missing_required_models = required_models - available_models
+    configured_segmentation_model = configured_segmentation_model_id(runtime)
+    video_model_ids = set(video_model_execution["model_ids"])
+    video_analysis_methods = set(video_model_execution["analysis_methods"])
+    keyframe_mainline_exercised = bool(
+        configured_segmentation_model
+        and configured_segmentation_model in video_model_ids
+        and video_analysis_methods == {"trainable_keyframe_segmenter"}
+    )
+    strict_runtime_active = bool(
+        runtime_readiness.get("runtime_profile") == "competition_strict"
+        and runtime_readiness.get("strict_startup") is True
+    )
     demo_check = {
+        "runtime_config_bound": runtime_config_bound,
+        "runtime_readiness_passed": runtime_readiness.get("passed") is True,
+        "strict_runtime_active": strict_runtime_active,
         "jpeg_fusion_completed": (fusion_run or {}).get("status") == "completed",
         "mp4_analysis_completed": (video_run or {}).get("status") == "completed",
-        "physician_review_recorded": bool(review_result.get("review_event_count", 0) >= 1 and review_result.get("roi_count", 0) >= 1),
+        "review_workflow_recorded": bool(
+            review_result.get("review_event_count", 0) >= 1
+            and review_result.get("roi_count", 0) >= 1
+            and any(
+                event.get("role") == "engineering_reviewer"
+                for event in review_result.get("review_events") or []
+                if isinstance(event, dict)
+            )
+        ),
         "bundle_exists": Path(str(export_payload.get("bundle_path", ""))).exists(),
         "required_formats_present": sorted(required_formats & formats),
         "missing_required_formats": sorted(required_formats - formats),
-        "mainline_models_available": all(
-            model_id in available_models
-            for model_id in ["convnext3d_d025_proxy_segmenter", "convnext2d_keyframe_proxy_segmenter"]
-        ),
+        "mainline_models_available": bool(required_models) and not missing_required_models,
+        "keyframe_mainline_model_exercised": keyframe_mainline_exercised,
+        "keyframe_fallback_used": "heuristic_hotspot_fallback" in video_analysis_methods,
+        "video_frame_evidence_valid": video_model_execution.get("frame_evidence_valid") is True,
         "clinical_claim_allowed": False,
         "non_target_domain_disclosed": True,
         "not_official_competition_acceptance": True,
     }
     demo_check["pass"] = (
-        demo_check["jpeg_fusion_completed"]
+        demo_check["runtime_config_bound"]
+        and demo_check["runtime_readiness_passed"]
+        and demo_check["strict_runtime_active"]
+        and demo_check["jpeg_fusion_completed"]
         and demo_check["mp4_analysis_completed"]
-        and demo_check["physician_review_recorded"]
+        and demo_check["review_workflow_recorded"]
         and demo_check["bundle_exists"]
         and not demo_check["missing_required_formats"]
         and demo_check["mainline_models_available"]
+        and demo_check["keyframe_mainline_model_exercised"]
+        and not demo_check["keyframe_fallback_used"]
+        and demo_check["video_frame_evidence_valid"]
         and demo_check["non_target_domain_disclosed"]
     )
 
     summary = {
-        "schema_version": "osteo-vision-competition-flow-demo-check-v1",
+        "schema_version": "osteo-vision-competition-flow-demo-check-v2",
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "case_id": case_id,
         "output_dir": str(output_dir),
-        "config_path": str((ROOT / args.config).resolve()) if not Path(args.config).is_absolute() else str(args.config),
+        "config_path": str(config_path),
+        "runtime": {
+            "requested_config_path": str(config_path),
+            "active_config_path": active_config_path,
+            "config_bound": runtime_config_bound,
+            "runtime_profile": runtime_readiness.get("runtime_profile"),
+            "strict_startup": runtime_readiness.get("strict_startup"),
+            "readiness_passed": runtime_readiness.get("passed"),
+            "config_sha256": runtime_readiness.get("config_sha256"),
+            "errors": runtime_readiness.get("errors") or [],
+            "warnings": runtime_readiness.get("warnings") or [],
+        },
         "official_input_boundary": {
             "source": "official technical document",
             "image_resolution": [OFFICIAL_WIDTH, OFFICIAL_HEIGHT],
@@ -261,10 +322,10 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
         },
         "models": {
             "available_model_ids": sorted(available_models),
-            "mainline_npz_roi_model": "convnext3d_d025_proxy_segmenter",
-            "mainline_2d_keyframe_model": "convnext2d_keyframe_proxy_segmenter",
-            "fallback_2d_keyframe_model": "fluorescence_hotspot_2d_segmenter",
-            "segresnetds_status": "trained comparison baseline only; not wired into mainline runtime config",
+            "required_runtime_model_ids": sorted(required_models),
+            "missing_required_model_ids": sorted(missing_required_models),
+            "configured_segmentation_model_id": configured_segmentation_model,
+            "video_execution": video_model_execution,
             "inventory": model_inventory,
         },
         "uploads": {
@@ -308,7 +369,7 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="configs/inference/osteo_vision.yml")
+    parser.add_argument("--config", default="configs/inference/osteo_vision_competition_strict.yml")
     parser.add_argument("--output-dir", default="")
     parser.add_argument("--frames", type=int, default=6)
     parser.add_argument("--fps", type=float, default=6.0)
@@ -323,11 +384,24 @@ def create_proxy_jpeg(path: Path, *, channel: str, width: int, height: int) -> P
     path.parent.mkdir(parents=True, exist_ok=True)
     y = np.linspace(0.0, 1.0, height, dtype=np.float32)[:, None]
     x = np.linspace(0.0, 1.0, width, dtype=np.float32)[None, :]
-    base = 52 + 96 * (0.55 * x + 0.45 * y)
+    rng = np.random.default_rng(20260717)
+    low_resolution_texture = rng.normal(
+        0.0,
+        1.0,
+        size=(max(8, height // 16), max(8, width // 16)),
+    ).astype(np.float32)
+    shared_texture = cv2.resize(
+        low_resolution_texture,
+        (width, height),
+        interpolation=cv2.INTER_CUBIC,
+    )
+    shared_texture = np.clip(shared_texture, -2.5, 2.5) * 12.0
+    base = 52 + 96 * (0.55 * x + 0.45 * y) + shared_texture
     radial = np.exp(-(((x - 0.62) ** 2) / 0.010 + ((y - 0.47) ** 2) / 0.024))
     secondary = np.exp(-(((x - 0.34) ** 2) / 0.018 + ((y - 0.62) ** 2) / 0.018))
+    rgb: np.ndarray
     if channel == "fluorescence":
-        signal = np.clip(base * 0.18 + radial * 240 + secondary * 148, 0, 255)
+        signal = np.clip(base * 0.55 + radial * 200 + secondary * 115, 0, 255)
         rgb = np.zeros((height, width, 3), dtype=np.uint8)
         rgb[..., 1] = signal.astype(np.uint8)
         rgb[..., 0] = np.clip(signal * 0.22, 0, 255).astype(np.uint8)
@@ -347,7 +421,12 @@ def create_proxy_jpeg(path: Path, *, channel: str, width: int, height: int) -> P
 
 def create_proxy_video(path: Path, *, width: int, height: int, frames: int, fps: float) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+    writer = cv2.VideoWriter(
+        str(path),
+        cv2.VideoWriter_fourcc(*"mp4v"),  # type: ignore[attr-defined]
+        fps,
+        (width, height),
+    )
     if not writer.isOpened():
         raise RuntimeError(f"Could not open VideoWriter for {path}")
     y = np.linspace(0.0, 1.0, height, dtype=np.float32)[:, None]
@@ -359,7 +438,7 @@ def create_proxy_video(path: Path, *, width: int, height: int, frames: int, fps:
         lesion = np.exp(-(((x - cx) ** 2) / 0.008 + ((y - cy) ** 2) / 0.018))
         vessel = np.exp(-(((x - 0.70) ** 2) / 0.004 + ((y - 0.35 - 0.16 * phase) ** 2) / 0.030))
         background = 36 + 80 * (0.45 * x + 0.55 * y)
-        rgb = np.zeros((height, width, 3), dtype=np.uint8)
+        rgb: np.ndarray = np.zeros((height, width, 3), dtype=np.uint8)
         rgb[..., 0] = np.clip(background * 0.55 + lesion * 36, 0, 255).astype(np.uint8)
         rgb[..., 1] = np.clip(background * 0.58 + lesion * 238 + vessel * 190, 0, 255).astype(np.uint8)
         rgb[..., 2] = np.clip(background * 0.50 + vessel * 30, 0, 255).astype(np.uint8)
@@ -407,7 +486,7 @@ def review_first_candidate(client: TestClient, case: dict[str, Any]) -> dict[str
             json={
                 "review_state": "accepted",
                 "geometry": geometry,
-                "label": "physician_confirmed_proxy_hotspot",
+                "label": "engineering_reviewed_proxy_hotspot",
                 "reviewer_notes": "Competition demo check: candidate accepted for demo workflow evidence.",
             },
         )
@@ -422,7 +501,7 @@ def review_first_candidate(client: TestClient, case: dict[str, Any]) -> dict[str
                 "target_id": roi_id,
                 "before_state": "review_required",
                 "after_state": "accepted",
-                "notes": "Competition demo check physician-review event.",
+                "notes": "Competition demo check engineering-review event.",
             },
         )
     )
@@ -433,6 +512,7 @@ def review_first_candidate(client: TestClient, case: dict[str, Any]) -> dict[str
         "candidate_status_after_review": candidate_status(reviewed, candidate_id),
         "roi_count": len(roi_case.get("rois") or event_case.get("rois") or []),
         "review_event_count": len(event_case.get("review_events") or []),
+        "review_events": event_case.get("review_events") or [],
         "review_summary": event_case.get("review_summary", {}),
     }
 
@@ -468,6 +548,13 @@ def run_record(run: dict[str, Any] | None) -> dict[str, Any]:
         return {"available": False}
     summary = run.get("quantitative_summary") or {}
     outputs = run.get("fused_outputs") or {}
+    fusion = outputs.get("fusion") if isinstance(outputs.get("fusion"), dict) else {}
+    registration = fusion.get("registration_details") if isinstance(fusion, dict) else {}
+    patient_conditioning = (
+        outputs.get("patient_conditioning_evidence")
+        if isinstance(outputs.get("patient_conditioning_evidence"), dict)
+        else {}
+    )
     return {
         "available": True,
         "run_id": run.get("run_id"),
@@ -483,6 +570,14 @@ def run_record(run: dict[str, Any] | None) -> dict[str, Any]:
         "video_segmentation_manifest_path": outputs.get("video_segmentation_manifest_path"),
         "segmentation_review_video_path": outputs.get("segmentation_review_video_path"),
         "mask_review_video_path": outputs.get("mask_review_video_path"),
+        "registration_evidence": registration or {},
+        "patient_conditioning": {
+            "available": patient_conditioning.get("available") is True,
+            "model_id": patient_conditioning.get("model_id"),
+            "spatial_effect_applied": patient_conditioning.get("spatial_effect_applied") is True,
+            "safe_fallback_applied": patient_conditioning.get("safe_fallback_applied") is True,
+            "failure_reasons": patient_conditioning.get("failure_reasons") or [],
+        },
         "warnings": run.get("warnings") or [],
     }
 
@@ -495,6 +590,107 @@ def available_model_ids(inventory: list[dict[str, Any]]) -> set[str]:
         if status.get("available"):
             model_ids.add(str(spec.get("model_id")))
     return model_ids
+
+
+def bind_runtime_environment(config_value: str | Path, output_dir: Path) -> Path:
+    config_path = Path(config_value)
+    if not config_path.is_absolute():
+        config_path = ROOT / config_path
+    config_path = config_path.resolve()
+    if not config_path.is_file():
+        raise FileNotFoundError(f"Inference config does not exist: {config_path}")
+    os.environ["OSTEO_INFERENCE_CONFIG"] = str(config_path)
+    os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
+    os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")
+    os.environ["OSTEO_JOB_STORE_PATH"] = str(output_dir / "jobs" / "jobs.json")
+    os.environ["OSTEO_JOB_EXECUTION_MODE"] = "background"
+    return config_path
+
+
+def paths_match(active_path: str, requested_path: str | Path) -> bool:
+    if not active_path:
+        return False
+    try:
+        return Path(active_path).resolve() == Path(requested_path).resolve()
+    except OSError:
+        return False
+
+
+def required_runtime_model_ids(runtime: dict[str, Any]) -> set[str]:
+    return {str(model_id).strip() for model_id in runtime.get("required_model_ids") or [] if str(model_id).strip()}
+
+
+def configured_segmentation_model_id(runtime: dict[str, Any]) -> str | None:
+    tasks = runtime.get("tasks") or {}
+    segmentation = tasks.get("segmentation") if isinstance(tasks, dict) else None
+    if not isinstance(segmentation, dict):
+        return None
+    model_id = str(segmentation.get("model_id") or "").strip()
+    return model_id or None
+
+
+def video_segmentation_execution(run: dict[str, Any] | None) -> dict[str, Any]:
+    if not run:
+        return {"available": False, "model_ids": [], "analysis_methods": [], "error": "video_run_missing"}
+    outputs = run.get("fused_outputs") or {}
+    manifest_value = outputs.get("video_segmentation_manifest_path")
+    if not manifest_value:
+        return {"available": False, "model_ids": [], "analysis_methods": [], "error": "manifest_path_missing"}
+    manifest_path = Path(str(manifest_value))
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return {
+            "available": False,
+            "manifest_path": str(manifest_path),
+            "model_ids": [],
+            "analysis_methods": [],
+            "error": f"manifest_unreadable: {exc}",
+        }
+    summary = payload.get("summary") if isinstance(payload, dict) else None
+    summary = summary if isinstance(summary, dict) else {}
+    frames = payload.get("frames") if isinstance(payload, dict) else None
+    frames = [item for item in frames or [] if isinstance(item, dict)]
+    summary_model_ids = {str(value) for value in summary.get("model_ids") or [] if value}
+    summary_analysis_methods = {str(value) for value in summary.get("analysis_methods") or [] if value}
+    frame_model_ids: set[str] = set()
+    frame_analysis_methods: set[str] = set()
+    missing_probability_paths: list[str] = []
+    for index, frame in enumerate(frames):
+        segmentation = frame.get("segmentation_result")
+        segmentation = segmentation if isinstance(segmentation, dict) else {}
+        model_id = str(segmentation.get("model_id") or "").strip()
+        method = str(segmentation.get("analysis_method") or "").strip()
+        if model_id:
+            frame_model_ids.add(model_id)
+        if method:
+            frame_analysis_methods.add(method)
+        probability_path = str(segmentation.get("probability_path") or "").strip()
+        if not probability_path or not Path(probability_path).is_file():
+            missing_probability_paths.append(f"frame_{index + 1}")
+    frame_evidence_valid = (
+        bool(frames)
+        and not missing_probability_paths
+        and frame_model_ids == summary_model_ids
+        and frame_analysis_methods == summary_analysis_methods
+        and all(
+            str(frame.get("segmentation_result", {}).get("model_id") or "").strip()
+            and str(frame.get("segmentation_result", {}).get("analysis_method") or "").strip()
+            for frame in frames
+            if isinstance(frame.get("segmentation_result"), dict)
+        )
+    )
+    return {
+        "available": True,
+        "manifest_path": str(manifest_path),
+        "model_ids": sorted(summary_model_ids),
+        "analysis_methods": sorted(summary_analysis_methods),
+        "frame_count": len(frames),
+        "frame_model_ids": sorted(frame_model_ids),
+        "frame_analysis_methods": sorted(frame_analysis_methods),
+        "missing_probability_paths": missing_probability_paths,
+        "frame_evidence_valid": frame_evidence_valid,
+    }
 
 
 def requested_timestamps(keyframes: int, fps: float, frames: int) -> list[float]:
@@ -514,7 +710,13 @@ def checked_json(response: Any) -> dict[str, Any]:
 
 
 def file_record(path: Path) -> dict[str, Any]:
-    return {"path": str(path), "exists": path.exists(), "size_bytes": path.stat().st_size if path.exists() else None}
+    exists = path.is_file()
+    return {
+        "path": str(path),
+        "exists": exists,
+        "size_bytes": path.stat().st_size if exists else None,
+        "sha256": _sha256_file(path) if exists else None,
+    }
 
 
 def upload_record(payload: dict[str, Any]) -> dict[str, Any]:
@@ -523,11 +725,19 @@ def upload_record(payload: dict[str, Any]) -> dict[str, Any]:
         "path": payload.get("path"),
         "input_type": payload.get("input_type"),
         "size_bytes": payload.get("size_bytes"),
-        "official_profile": metadata.get("official_profile", {}),
+        "official_profile": metadata.get("official_input_profile") or metadata.get("official_profile") or {},
         "keyframe_job_id": payload.get("keyframe_job_id"),
         "keyframe_job_status": payload.get("keyframe_job_status"),
         "warnings": payload.get("warnings") or [],
     }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def trim_job(payload: dict[str, Any]) -> dict[str, Any]:
@@ -570,14 +780,21 @@ def render_report(summary: dict[str, Any]) -> str:
         "",
         "## Models",
         "",
-        f"- Mainline CBCT proxy model: `{summary['models']['mainline_npz_roi_model']}`",
-        f"- Mainline 2D/keyframe model: `{summary['models']['mainline_2d_keyframe_model']}`",
-        f"- SegResNetDS: {summary['models']['segresnetds_status']}",
+        f"- Required runtime models: `{', '.join(summary['models']['required_runtime_model_ids'])}`",
+        f"- Configured keyframe segmentation model: `{summary['models']['configured_segmentation_model_id']}`",
+        f"- Exercised video models: `{', '.join(summary['models']['video_execution']['model_ids'])}`",
+        f"- Video analysis methods: `{', '.join(summary['models']['video_execution']['analysis_methods'])}`",
         "",
         "## Demo Checks",
         "",
+        f"- Runtime config bound: `{demo_check['runtime_config_bound']}`",
+        f"- Runtime profile: `{summary['runtime']['runtime_profile']}`",
+        f"- Strict startup active: `{demo_check['strict_runtime_active']}`",
         f"- Missing required formats: `{', '.join(demo_check['missing_required_formats']) or 'none'}`",
         f"- Mainline models available: `{demo_check['mainline_models_available']}`",
+        f"- Keyframe mainline model exercised: `{demo_check['keyframe_mainline_model_exercised']}`",
+        f"- Keyframe fallback used: `{demo_check['keyframe_fallback_used']}`",
+        f"- Per-frame model and probability evidence valid: `{demo_check['video_frame_evidence_valid']}`",
         f"- Non-target-domain disclosure included: `{demo_check['non_target_domain_disclosed']}`",
         f"- Official competition acceptance: `{not demo_check['not_official_competition_acceptance']}`",
         "",

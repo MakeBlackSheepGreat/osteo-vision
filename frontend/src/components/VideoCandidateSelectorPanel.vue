@@ -168,11 +168,11 @@ watch(filteredVideoCandidates, (candidates) => {
 .video-library-panel select {
   width: 100%;
   min-height: 30px;
-  border: 1px solid #ccd8e5;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 5px 8px;
-  background: #fbfdff;
-  color: #162020;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text);
   font: inherit;
   font-size: 12px;
 }
@@ -197,7 +197,7 @@ watch(filteredVideoCandidates, (candidates) => {
 }
 
 .video-library-filters span {
-  color: #6a7a8a;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 900;
 }
@@ -205,11 +205,11 @@ watch(filteredVideoCandidates, (candidates) => {
 .video-library-filters select {
   width: 100%;
   min-height: 28px;
-  border: 1px solid #ccd8e5;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 4px 7px;
-  background: #fbfdff;
-  color: #162020;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text);
   font: inherit;
   font-size: 12px;
 }
@@ -218,10 +218,10 @@ watch(filteredVideoCandidates, (candidates) => {
   display: grid;
   gap: 7px;
   margin: 0 0 8px;
-  border: 1px solid #d2e2ef;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 8px;
-  background: #f8fcff;
+  background: var(--ov-bg-soft);
 }
 
 .candidate-card-header {
@@ -238,7 +238,7 @@ watch(filteredVideoCandidates, (candidates) => {
 }
 
 .candidate-card-header strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -246,17 +246,17 @@ watch(filteredVideoCandidates, (candidates) => {
 
 .candidate-card-header div > span {
   margin-top: 2px;
-  color: #6a7a8a;
+  color: var(--ov-text-muted);
   font-size: 11px;
   overflow-wrap: anywhere;
 }
 
 .candidate-badge {
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 999px;
   padding: 3px 7px;
-  background: #ffffff;
-  color: #506070;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -264,9 +264,9 @@ watch(filteredVideoCandidates, (candidates) => {
 }
 
 .candidate-badge.fluorescent {
-  border-color: #9bd7c2;
-  background: #effcf8;
-  color: #11724e;
+  border-color: var(--ov-success);
+  background: var(--ov-bg-success);
+  color: var(--ov-success);
 }
 
 .candidate-detail-grid {
@@ -281,9 +281,9 @@ watch(filteredVideoCandidates, (candidates) => {
   gap: 4px;
   margin: 0;
   overflow: hidden;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
-  background: #eef5fa;
+  background: var(--ov-bg-panel);
 }
 
 .candidate-preview img {
@@ -297,7 +297,7 @@ watch(filteredVideoCandidates, (candidates) => {
   display: grid;
   min-height: 58px;
   place-items: center;
-  color: #5f7080;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 800;
 }
@@ -310,19 +310,19 @@ watch(filteredVideoCandidates, (candidates) => {
 }
 
 .candidate-detail-grid dt {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-weight: 900;
 }
 
 .candidate-detail-grid dd {
   margin: 0;
-  color: #314151;
+  color: var(--ov-text-secondary);
   overflow-wrap: anywhere;
 }
 
 .candidate-source-link {
   justify-self: start;
-  color: #1e6fa6;
+  color: var(--ov-primary-strong);
   font-size: 11px;
   font-weight: 900;
   text-decoration: none;

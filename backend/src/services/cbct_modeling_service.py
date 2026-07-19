@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from skimage import measure, morphology
@@ -542,7 +542,7 @@ def _cbct_label_surface_evidence(
     output_path = output_dir / f"{source_info.case_id}_{source_info.output_suffix}.stl"
     write_binary_stl(output_path, vertices=vertices, faces=faces, normals=normals)
     sha256 = sha256_for_file(output_path)
-    quality = {
+    quality: dict[str, Any] = {
         "method": "label_volume_marching_cubes",
         "source_type": source_info.source_type,
         "label_value": source_info.label_value,
@@ -569,7 +569,11 @@ def _cbct_label_surface_evidence(
         output_path=output_path,
         vertex_count=len(vertices),
         face_count=len(faces),
-        spacing=tuple(float(value) * decimation_step for value in geometry.spacing_xyz),
+        spacing=(
+            float(geometry.spacing_xyz[0]) * decimation_step,
+            float(geometry.spacing_xyz[1]) * decimation_step,
+            float(geometry.spacing_xyz[2]) * decimation_step,
+        ),
         sha256=sha256,
         quality=quality,
         geometry=geometry,
@@ -1036,7 +1040,11 @@ def _cbct_proxy_surface_evidence(
         output_path=output_path,
         vertex_count=len(vertices),
         face_count=len(faces),
-        spacing=tuple(float(value) * effective_step for value in geometry.spacing_xyz),
+        spacing=(
+            float(geometry.spacing_xyz[0]) * effective_step,
+            float(geometry.spacing_xyz[1]) * effective_step,
+            float(geometry.spacing_xyz[2]) * effective_step,
+        ),
         sha256=sha256,
         quality=quality,
         geometry=geometry,
@@ -1237,19 +1245,17 @@ def _pad_for_marching_cubes(mask: np.ndarray) -> tuple[np.ndarray, tuple[float, 
         pad_width.append((1, 1) if size < 2 else (0, 0))
     padded = np.pad(padded, pad_width, mode="constant", constant_values=False)
     final_pad = [(before + 1, after + 1) for before, after in pad_width]
-    return np.pad(mask, final_pad, mode="constant", constant_values=False), tuple(
-        float(before) for before, _ in final_pad
-    )
+    offsets = cast(tuple[float, float, float], tuple(float(before) for before, _ in final_pad))
+    return np.pad(mask, final_pad, mode="constant", constant_values=False), offsets
 
 
 def _coerce_cbct_geometry(geometry: CbctVolumeGeometry | tuple[float, float, float]) -> CbctVolumeGeometry:
     if isinstance(geometry, CbctVolumeGeometry):
         return geometry
-    spacing = tuple(max(float(value), 1e-3) for value in geometry[:3])
-    if len(spacing) != 3:
-        spacing = (1.0, 1.0, 1.0)
+    spacing_values = tuple(max(float(value), 1e-3) for value in geometry[:3])
+    spacing = (spacing_values[0], spacing_values[1], spacing_values[2]) if len(spacing_values) == 3 else (1.0, 1.0, 1.0)
     return CbctVolumeGeometry(
-        spacing_xyz=spacing,  # type: ignore[arg-type]
+        spacing_xyz=spacing,
         origin_xyz=(0.0, 0.0, 0.0),
         direction=(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
     )

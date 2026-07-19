@@ -1,0 +1,120 @@
+{
+  "schema_version": "osteo-vision-d091-icg-hepatic-dynamic-proxy-v1",
+  "generated_at_utc": "2026-07-18T22:32:40.984656+00:00",
+  "record_count": 1,
+  "dataset_count": 1,
+  "video_count": 2,
+  "artifact_count": 5,
+  "total_size_bytes": 27873402,
+  "records": [
+    {
+      "candidate_id": "D091",
+      "dataset_name": "Supplementary Materials: intraoperative ICG assessment of hepatic congestion after major hepatic vein resection",
+      "record_id": "14942607",
+      "doi": "10.5281/zenodo.14942607",
+      "source_page_url": "https://zenodo.org/records/14942607",
+      "metadata_url": "https://zenodo.org/api/records/14942607",
+      "direct_download_urls": [
+        "https://zenodo.org/api/records/14942607/files/Sup%20Video%20S1.mp4/content",
+        "https://zenodo.org/api/records/14942607/files/Sup%20Video%20S2.mp4/content"
+      ],
+      "publication_date": "2025-02-28",
+      "creators": [
+        "Fujimoto, Hiroyuki"
+      ],
+      "license": "CC BY 4.0",
+      "license_identifier": "cc-by-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "license_review_status": "verified_from_zenodo_metadata",
+      "domain_tier": "clinical_human_icg_non_jaw_non_bone_non_target_domain_three_panel_video_proxy",
+      "medical_scene": "human hepatic resection with ICG assessment of congestion after major hepatic vein resection",
+      "anatomy_scope": "liver and hepatic venous perfusion; no jaw, exposed bone, osteomyelitis, or osteonecrosis target",
+      "modality": "two human intraoperative ICG MP4 supplementary videos with composite white-light, green pseudocolor overlay, and grayscale fluorescence panels",
+      "fluorescence_agent": "indocyanine_green_icg",
+      "channel_availability": "Visual review confirms three co-composed panels in each MP4: white-light, green pseudocolor overlay, and grayscale fluorescence. These are embedded display panels and cannot be treated as raw independently synchronized channels.",
+      "labels": "Narrative video captions and visually marked hepatic-congestion regions only; no pixel segmentation masks, raw channel files, bone-surface labels, or necrotic-transition-viable bone labels",
+      "sample_count": 2,
+      "video_count": 2,
+      "patient_count": 2,
+      "clinical_variables_unavailable_reason": "No patient-level age, sex, comorbidity, medication, laboratory, or blood-index table is published with the two videos.",
+      "recommended_use": "Three-panel video decoding, channel-layout detection, white-light/fluorescence/overlay display quality checks, ICG temporal-signal robustness, and ignore/abstention engineering validation after frame-level review.",
+      "prohibited_use": "No jaw-osteomyelitis, bone-viability, patient-conditioned segmentation, raw-channel registration, diagnostic, resection-boundary, navigation, or clinical-performance claim.",
+      "target_domain_flag": false,
+      "non_target_domain": true,
+      "non_jaw": true,
+      "non_bone": true,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "download_status": "verified",
+      "downloaded_at_utc": "2026-07-18T22:32:40.984656+00:00",
+      "visual_review_status": "two_midpoint_frames_reviewed",
+      "video_container_validation": {
+        "tool": "ffprobe 8.1.2 from osteo-vision Conda environment",
+        "s1": {
+          "codec": "h264",
+          "width": 960,
+          "height": 540,
+          "fps": "30000/1001",
+          "video_frame_count": 717,
+          "duration_sec": 23.9239
+        },
+        "s2": {
+          "codec": "h264",
+          "width": 960,
+          "height": 540,
+          "fps": "30000/1001",
+          "video_frame_count": 2115,
+          "duration_sec": 70.5705
+        }
+      },
+      "local_artifacts": [
+        {
+          "artifact_role": "zenodo_metadata_snapshot",
+          "direct_download_url": "https://zenodo.org/api/records/14942607",
+          "local_path": "zenodo_record_14942607.json",
+          "original_file_name": "zenodo_record_14942607.json",
+          "size_bytes": 4320,
+          "sha256": "aacb92979ce300c2453b9b2ae64ad2a05e109d8287116005d47c9e5b9262e8d0"
+        },
+        {
+          "artifact_role": "source_supplementary_video",
+          "direct_download_url": "https://zenodo.org/api/records/14942607/files/Sup%20Video%20S1.mp4/content",
+          "local_path": "raw\\Sup Video S1.mp4",
+          "original_file_name": "Sup Video S1.mp4",
+          "size_bytes": 7390076,
+          "zenodo_checksum": "md5:e18d0ac7672313eb7174f487010a4421",
+          "local_md5": "e18d0ac7672313eb7174f487010a4421",
+          "sha256": "4853eb38217c59e1bb814c853cd7b9dba4c3ed07f32730a51faaffffe644f086"
+        },
+        {
+          "artifact_role": "source_supplementary_video",
+          "direct_download_url": "https://zenodo.org/api/records/14942607/files/Sup%20Video%20S2.mp4/content",
+          "local_path": "raw\\Sup Video S2.mp4",
+          "original_file_name": "Sup Video S2.mp4",
+          "size_bytes": 20414987,
+          "zenodo_checksum": "md5:70d06a5b2c9d8e9ad511d4e6634af84e",
+          "local_md5": "70d06a5b2c9d8e9ad511d4e6634af84e",
+          "sha256": "abc780bcfa7f3a3156d3a869c7c019c59abf414448d24eb47ef45a5101e73491"
+        },
+        {
+          "artifact_role": "visual_review_frame",
+          "source_video": "raw\\Sup Video S1.mp4",
+          "source_timestamp_sec": 12.0,
+          "local_path": "derived\\visual_review\\s1_t12.jpg",
+          "size_bytes": 32234,
+          "sha256": "3a7a648a39b05663ab080ebb1b98377df4c5b3d7c7e7c6decabae2d24c689012"
+        },
+        {
+          "artifact_role": "visual_review_frame",
+          "source_video": "raw\\Sup Video S2.mp4",
+          "source_timestamp_sec": 35.0,
+          "local_path": "derived\\visual_review\\s2_t35.jpg",
+          "size_bytes": 31785,
+          "sha256": "faf68e2249b4c773e9de9bc440434e68e7f1107a34c39a38df829838223941f4"
+        }
+      ],
+      "data_boundary": "Public CC BY 4.0 human hepatic-surgery ICG supplementary videos. The embedded three-panel display is useful for software engineering checks while remaining non-jaw, non-bone, and non-target-domain. The videos provide no jaw-osteomyelitis ground truth, trusted bone surface, bone-activity classes, patient clinical table, or raw independently synchronized channels. Training admission remains false."
+    }
+  ],
+  "medical_boundary": "D091 is restricted to public non-target-domain ICG three-panel video engineering validation. It remains excluded from target-domain training, raw-channel registration claims, bone-activity claims, and clinical performance claims."
+}

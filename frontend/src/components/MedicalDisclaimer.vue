@@ -8,14 +8,15 @@
 <style scoped>
 .disclaimer {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  border: 1px solid #d0d8e0;
-  border-left: 4px solid #c1812a;
+  border: 1px solid var(--ov-border);
+  border-left: 4px solid var(--ov-warning);
   border-radius: 8px;
-  padding: 12px 14px;
-  background: #fffaf0;
-  color: #4d3a18;
+  padding: 14px 16px;
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
   font-size: 14px;
+  line-height: 1.55;
 }
 </style>

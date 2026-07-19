@@ -3,13 +3,36 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
 import torch
+from PIL import Image
 
 from src.core.schemas import AdapterRequest
 from src.models.adapters import build_adapters, inventory_from_adapters, select_adapter
 from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D
 from src.models.lesion_segmenter import TinyLesionSegmenter3D
+
+
+def test_build_adapters_omits_fixture_when_runtime_disables_it() -> None:
+    adapters = build_adapters(
+        {
+            "use_fixture_model": False,
+            "models": [
+                {"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"]},
+                {
+                    "model_id": "signal_model",
+                    "family": "fluorescence_hotspot_segmenter",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                },
+            ],
+        }
+    )
+
+    assert [adapter.describe().model_id for adapter in adapters] == ["signal_model"]
+
+
+def test_build_adapters_does_not_invent_fixture_for_strict_empty_inventory() -> None:
+    assert build_adapters({"use_fixture_model": False, "models": []}) == []
 
 
 def test_adapter_inventory_reports_fixture_and_unavailable_models() -> None:
@@ -236,6 +259,7 @@ def test_convnext2d_keyframe_segmenter_predicts_2d_image(tmp_path: Path) -> None
                         "force_tiled": True,
                         "tile_size": 16,
                         "tile_overlap": 4,
+                        "tile_batch_size": 2,
                     },
                 }
             ]
@@ -256,6 +280,7 @@ def test_convnext2d_keyframe_segmenter_predicts_2d_image(tmp_path: Path) -> None
     assert result.prediction["inference_mode"] == "tiled"
     assert result.segmentation_mask["format"] == "png_binary_mask"
     assert result.segmentation_mask["inference"]["tile_count"] > 1
+    assert result.segmentation_mask["inference"]["tile_batch_size"] == 2
     assert Path(result.segmentation_mask["path"]).exists()
     assert Path(result.lesion_evidence["probability_path"]).exists()
     assert Path(result.lesion_evidence["pseudo_color_path"]).exists()
@@ -264,6 +289,199 @@ def test_convnext2d_keyframe_segmenter_predicts_2d_image(tmp_path: Path) -> None
     assert result.quantification["positive_area_px"] > 0
     assert result.lesion_evidence["candidates"]
     assert any(warning["code"] == "convnext2d_keyframe_proxy_non_target_domain" for warning in result.warnings)
+
+
+def test_dual_channel_segmenter_adapter_predicts_pair(tmp_path: Path) -> None:
+    from src.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
+
+    checkpoint_path = tmp_path / "dual.pt"
+    model = TinyDualChannelSegmenter2D(base_channels=2)
+    torch.save(
+        {"model_config": {"base_channels": 2}, "state_dict": model.state_dict(), "threshold": 0.0}, checkpoint_path
+    )
+    white_path = tmp_path / "white.png"
+    fluorescence_path = tmp_path / "fluorescence.png"
+    Image.fromarray(np.full((24, 32, 3), 90, dtype=np.uint8)).save(white_path)
+    fluorescence = np.zeros((24, 32), dtype=np.uint8)
+    fluorescence[6:18, 8:24] = 230
+    Image.fromarray(fluorescence).save(fluorescence_path)
+    adapter = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "dual_test",
+                    "family": "dual_channel_segmenter",
+                    "task_types": ["segmentation"],
+                    "input_types": ["dual_channel_image"],
+                    "checkpoint_path": str(checkpoint_path),
+                    "dependency_group": "torch",
+                    "device_policy": "cpu",
+                    "extra": {"threshold": 0.0, "output_dir": str(tmp_path / "out")},
+                }
+            ]
+        }
+    )[0]
+    result = adapter.predict(
+        AdapterRequest(
+            case_id="case",
+            input_path=str(white_path),
+            input_type="dual_channel_image",
+            task_type="segmentation",
+            modality="white_light_fluorescence",
+            metadata={"fluorescence_path": str(fluorescence_path)},
+        )
+    )
+
+    assert result.prediction["available"] is True
+    assert Path(result.segmentation_mask["path"]).exists()
+    assert result.quantification["positive_area_px"] > 0
+
+
+def test_runtime_allowed_false_blocks_dual_channel_execution(tmp_path: Path) -> None:
+    from src.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
+
+    checkpoint_path = tmp_path / "dual.pt"
+    model = TinyDualChannelSegmenter2D(base_channels=2)
+    torch.save({"model_config": {"base_channels": 2}, "state_dict": model.state_dict()}, checkpoint_path)
+    adapter = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "dual_disabled",
+                    "family": "dual_channel_segmenter",
+                    "task_types": ["segmentation"],
+                    "input_types": ["dual_channel_image"],
+                    "checkpoint_path": str(checkpoint_path),
+                    "dependency_group": "torch",
+                    "device_policy": "cpu",
+                    "extra": {"runtime_allowed": False},
+                }
+            ]
+        }
+    )[0]
+
+    status = adapter.warmup()
+    result = adapter.predict(
+        AdapterRequest(
+            case_id="case",
+            input_path="unused-white.png",
+            input_type="dual_channel_image",
+            task_type="segmentation",
+            modality="white_light_fluorescence",
+            metadata={"fluorescence_path": "unused-fluorescence.png"},
+        )
+    )
+
+    assert status.available is False
+    assert "runtime execution disabled by configuration" in status.reasons
+    assert result.prediction["available"] is False
+    assert "runtime execution disabled by configuration" in result.prediction["reason"]
+
+
+def test_candidate_only_adapter_requires_explicit_selection() -> None:
+    adapters = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "candidate",
+                    "family": "fixture",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                    "extra": {"candidate_only": True},
+                },
+                {
+                    "model_id": "mainline",
+                    "family": "fixture",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                },
+            ]
+        }
+    )
+
+    automatic, _ = select_adapter(
+        adapters,
+        task_type="segmentation",
+        input_type="2d_image",
+        modality="generic",
+    )
+    explicit, _ = select_adapter(
+        adapters,
+        task_type="segmentation",
+        input_type="2d_image",
+        modality="generic",
+        policy="explicit",
+        explicit_model_id="candidate",
+    )
+
+    assert automatic is not None and automatic.describe().model_id == "mainline"
+    assert explicit is not None and explicit.describe().model_id == "candidate"
+
+
+def test_video_signal_multimask_adapter_outputs_review_required_bone_gate(tmp_path: Path) -> None:
+    from src.models.video_signal_multimask import VideoSignalMultiMask2D
+
+    checkpoint_path = tmp_path / "multimask.pt"
+    model = VideoSignalMultiMask2D(base_channels=2)
+    torch.save(
+        {
+            "model_config": {"in_channels": 3, "heads": ["fluorescence_signal", "bone_gate"], "base_channels": 2},
+            "state_dict": model.state_dict(),
+        },
+        checkpoint_path,
+    )
+    image_path = tmp_path / "frame.png"
+    Image.fromarray(np.full((32, 48, 3), 120, dtype=np.uint8)).save(image_path)
+    adapter = build_adapters(
+        {
+            "models": [
+                {
+                    "model_id": "multimask_test",
+                    "family": "video_signal_multimask",
+                    "task_types": ["segmentation"],
+                    "input_types": ["2d_image"],
+                    "checkpoint_path": str(checkpoint_path),
+                    "dependency_group": "torch",
+                    "device_policy": "cpu",
+                    "extra": {
+                        "runtime_allowed": True,
+                        "thresholds": {"fluorescence_signal": 0.01, "bone_gate": 0.01},
+                        "input_shape": [32, 48],
+                        "output_dir": str(tmp_path / "out"),
+                    },
+                }
+            ]
+        }
+    )[0]
+
+    result = adapter.predict(
+        AdapterRequest(
+            case_id="case",
+            input_path=str(image_path),
+            input_type="2d_image",
+            task_type="segmentation",
+            modality="fluorescence",
+        )
+    )
+
+    assert result.prediction["available"] is True
+    assert Path(result.prediction["fluorescence_signal_mask"]["path"]).exists()
+    bone_gate = result.prediction["bone_gate_mask"]
+    assert Path(bone_gate["path"]).exists()
+    assert bone_gate["review_status"] == "review_required"
+    assert bone_gate["physician_reviewed"] is False
+    assert result.prediction["review_contract"]["states"] == [
+        "accepted",
+        "modified",
+        "rejected",
+        "review_required",
+    ]
+    assert result.prediction["review_contract"]["sample_weights"] == {
+        "accepted": 4.0,
+        "modified": 4.0,
+        "rejected": 0.5,
+        "review_required": 1.0,
+    }
 
 
 def test_medsam_like_prompt_fallback_predicts_bbox_mask(tmp_path: Path) -> None:

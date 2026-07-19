@@ -54,4 +54,51 @@ describe("AnalysisJobPanel", () => {
     expect(wrapper.text()).toContain("decode failed");
     expect(wrapper.findAllComponents({ name: "AppButton" })[2].attributes("disabled")).toBe("false");
   });
+
+  it("locks every job action while a cancellation request is pending", () => {
+    const wrapper = mount(AnalysisJobPanel, {
+      props: {
+        jobId: "job-003",
+        status: "running",
+        error: "",
+        progress: {},
+        timedOut: false,
+        loading: false,
+        canceling: true,
+      },
+      global: {
+        stubs: {
+          AppButton: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("正在提交取消请求。");
+    for (const button of wrapper.findAllComponents({ name: "AppButton" })) {
+      expect(button.attributes("disabled")).toBe("true");
+    }
+  });
+
+  it("keeps cancellation available while the job poll is loading", () => {
+    const wrapper = mount(AnalysisJobPanel, {
+      props: {
+        jobId: "job-004",
+        status: "running",
+        error: "",
+        progress: {},
+        timedOut: false,
+        loading: true,
+      },
+      global: {
+        stubs: {
+          AppButton: true,
+        },
+      },
+    });
+
+    const buttons = wrapper.findAllComponents({ name: "AppButton" });
+    expect(buttons[0].attributes("disabled")).toBe("true");
+    expect(buttons[1].attributes("disabled")).toBe("false");
+    expect(buttons[2].attributes("disabled")).toBe("true");
+  });
 });

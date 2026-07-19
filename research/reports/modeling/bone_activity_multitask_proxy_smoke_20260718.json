@@ -1,0 +1,225 @@
+{
+  "schema_version": "osteo-vision-bone-activity-multitask-checkpoint-v1",
+  "capability": "bone_activity_multitask",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\bone_activity_multitask_proxy_smoke.pt",
+  "checkpoint_sha256": "e4fe9f162d9b92dc59f1753fce29e676fdcb2aed880f6dbc2eb68c2c310b12c2",
+  "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\training\\bone_activity_multitask_proxy_smoke.yml",
+  "config_hash": "ba82dbc00e6c",
+  "model_id": "bone_activity_multitask_proxy_v1",
+  "model_family": "dual_channel_bone_activity_multitask",
+  "model_config": {
+    "base_channels": 4
+  },
+  "training_domain": {
+    "target_domain": false,
+    "domain": "synthetic_bone_activity_proxy"
+  },
+  "training": {
+    "completed": true,
+    "sample_count": 15,
+    "completed_train_batches": 4,
+    "mean_train_loss": 1.8876295387744904,
+    "patient_group_split": {
+      "leakage_detected": false,
+      "strategy": "deterministic_proxy_patient_group_split",
+      "groups": {
+        "train": [
+          0,
+          1,
+          2
+        ],
+        "val": [
+          3
+        ],
+        "test": [
+          4
+        ]
+      },
+      "sample_counts": {
+        "train": 9,
+        "val": 3,
+        "test": 3
+      }
+    }
+  },
+  "outputs": [
+    "bone_gate",
+    "activity_score",
+    "class_logits",
+    "class_probabilities",
+    "uncertainty",
+    "abstention"
+  ],
+  "safety": {
+    "bone_gate_fail_closed_passed": true,
+    "abstention_passed": true
+  },
+  "labels": {
+    "class_set": [
+      "low_activity",
+      "transition",
+      "high_activity"
+    ],
+    "physician_reviewed_bone_gate": false
+  },
+  "validation": {
+    "independent_test_set": false,
+    "calibrated": false,
+    "metrics": {
+      "bone_gate_dice": 0.9594368540678557,
+      "activity_mae": 0.11176399141550064,
+      "class_accuracy": 0.5627336502075195,
+      "mean_uncertainty": 0.4402758876482646,
+      "sample_count": 3.0
+    },
+    "proxy_validation_metrics": {
+      "bone_gate_dice": 0.9474831197064869,
+      "activity_mae": 0.10663510859012604,
+      "class_accuracy": 0.545999546845754,
+      "mean_uncertainty": 0.43984846274058026,
+      "sample_count": 3.0
+    }
+  },
+  "review": {
+    "physician_reviewed": false
+  },
+  "runtime_allowed": false,
+  "clinical_claim_allowed": false,
+  "medical_boundary": "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the competition mainline, cannot establish jaw-osteomyelitis clinical performance, and requires physician-reviewed bone gates.",
+  "generated_at_utc": "2026-07-18T13:45:10.521408+00:00",
+  "engineering_ready": true,
+  "target_domain_promotion_ready": false,
+  "runtime_replacement_allowed": false,
+  "promotion": {
+    "schema_version": "osteo-vision-three-priority-model-promotion-v2",
+    "capability": "bone_activity_multitask",
+    "engineering_ready": true,
+    "target_domain_promotion_ready": false,
+    "runtime_replacement_allowed": false,
+    "clinical_claim_allowed": false,
+    "policy_status": null,
+    "policy_sha256": null,
+    "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\bone_activity_multitask_proxy_smoke.pt",
+    "checkpoint_sha256": "e4fe9f162d9b92dc59f1753fce29e676fdcb2aed880f6dbc2eb68c2c310b12c2",
+    "errors": [],
+    "promotion_blockers": [
+      {
+        "actual": null,
+        "code": "promotion_policy_not_approved"
+      },
+      {
+        "code": "promotion_policy_clinical_claim_boundary_invalid"
+      },
+      {
+        "actual": [],
+        "code": "promotion_metric_policy_incomplete",
+        "required": [
+          "abstention_error_rate",
+          "activity_score_mae",
+          "bone_gate_containment_rate",
+          "bone_gate_dice",
+          "ece",
+          "high_activity_dice",
+          "low_activity_dice",
+          "macro_dice",
+          "transition_dice",
+          "transition_recall"
+        ]
+      },
+      {
+        "code": "target_domain_training_missing"
+      },
+      {
+        "code": "independent_target_domain_test_missing"
+      },
+      {
+        "code": "probability_calibration_missing"
+      },
+      {
+        "code": "patient_leakage_recomputation_missing"
+      },
+      {
+        "code": "institution_independent_validation_missing"
+      },
+      {
+        "code": "time_independent_validation_missing"
+      },
+      {
+        "code": "physician_review_missing"
+      },
+      {
+        "code": "bone_activity_class_set_incomplete"
+      },
+      {
+        "code": "physician_reviewed_bone_gate_missing"
+      },
+      {
+        "code": "bone_activity_multi_physician_arbitration_missing"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "split_manifest"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "prediction_manifest"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "calibration_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "subgroup_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "safety_report"
+      },
+      {
+        "code": "promotion_evidence_missing",
+        "evidence": "physician_review"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "abstention_error_rate"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "activity_score_mae"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "bone_gate_containment_rate"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "ece"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "high_activity_dice"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "low_activity_dice"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "macro_dice"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "transition_dice"
+      },
+      {
+        "code": "promotion_metric_missing_or_non_finite",
+        "metric": "transition_recall"
+      },
+      {
+        "code": "bone_activity_prediction_outside_reviewed_gate"
+      }
+    ],
+    "medical_boundary": "Target-domain promotion requires paired jaw-osteomyelitis evidence, recomputed patient/institution/time separation, calibration, capability-specific safety metrics, and trusted physician review."
+  }
+}

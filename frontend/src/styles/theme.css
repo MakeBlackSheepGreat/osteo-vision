@@ -1,39 +1,128 @@
 :root {
   color-scheme: light;
-  --ov-bg: #edf4fb;
+  --ov-bg: #f0f2f3;
   --ov-bg-elevated: #ffffff;
-  --ov-bg-soft: #f4f9ff;
-  --ov-bg-panel: #eef5fd;
-  --ov-bg-info: #dfeefd;
-  --ov-bg-warning: #fff7e9;
-  --ov-bg-danger: #fff4f1;
-  --ov-bg-success: #eef8f3;
-  --ov-border: #bfd0e3;
-  --ov-border-subtle: #d8e5f2;
-  --ov-border-strong: #9ebddb;
-  --ov-border-accent: #2c7ec0;
-  --ov-text: #17324a;
-  --ov-text-secondary: #4d6780;
-  --ov-text-muted: #6c8299;
-  --ov-primary: #155f96;
-  --ov-primary-strong: #2c7ec0;
-  --ov-success: #2f7b63;
-  --ov-warning: #aa7128;
-  --ov-danger: #a34933;
-  --ov-radius: 8px;
-  --ov-shadow: 0 14px 32px rgba(22, 76, 120, 0.08);
-  --ov-shell-background:
-    radial-gradient(circle at 12% 0%, rgba(44, 126, 192, 0.12), transparent 30%),
-    linear-gradient(180deg, #f7fbff 0, #edf4fb 260px, #e8f0f8 100%);
-  --ov-top-nav-background: rgba(247, 251, 255, 0.88);
-  --ov-nav-bg: linear-gradient(180deg, #ffffff, #f2f7fc);
-  --ov-nav-bg-active: linear-gradient(180deg, #eef7ff, #dfeefd);
-  --ov-nav-border: rgba(44, 126, 192, 0.28);
-  --ov-nav-border-active: #2c7ec0;
-  --ov-nav-text: #17324a;
-  --ov-nav-text-active: #155f96;
-  --ov-nav-icon: #2c7ec0;
-  --ov-nav-shadow: 0 8px 22px rgba(22, 76, 120, 0.1);
+  --ov-bg-soft: #f7f8f8;
+  --ov-bg-panel: #edf1f2;
+  --ov-bg-control: #ffffff;
+  --ov-bg-hover: #e8eff1;
+  --ov-bg-selected: #dcebed;
+  --ov-bg-info: #e3f1f6;
+  --ov-bg-warning: #fff6e7;
+  --ov-bg-danger: #fff1ef;
+  --ov-bg-success: #eaf7f1;
+  --ov-bg-media: #080d10;
+  --ov-border: #c7d0d4;
+  --ov-border-subtle: #dde3e5;
+  --ov-border-strong: #a3b1b7;
+  --ov-border-accent: #19769a;
+  --ov-text: #172b35;
+  --ov-text-secondary: #4c626d;
+  --ov-text-muted: #71838c;
+  --ov-text-on-primary: #ffffff;
+  --ov-primary: #145f7c;
+  --ov-primary-strong: #197fa4;
+  --ov-success: #2d765d;
+  --ov-warning: #9a671f;
+  --ov-danger: #a1463e;
+  --ov-danger-border: #d9a39e;
+  --ov-focus-ring: rgba(25, 127, 164, 0.42);
+  --ov-overlay-soft: rgba(23, 43, 53, 0.06);
+  --ov-overlay-strong: rgba(23, 43, 53, 0.16);
+  --ov-grid-line: rgba(25, 118, 154, 0.08);
+  --ov-radius: 7px;
+  --ov-shadow: 0 8px 24px rgba(29, 54, 66, 0.06);
+  --ov-shadow-strong: 0 16px 36px rgba(29, 54, 66, 0.14);
+  --ov-shell-background: #f0f2f3;
+  --ov-top-nav-background: rgba(251, 252, 252, 0.95);
+  --ov-nav-bg: #ffffff;
+  --ov-nav-bg-hover: #edf4f7;
+  --ov-nav-bg-active: #dcecf3;
+  --ov-nav-border: #bfd0da;
+  --ov-nav-border-active: #19769a;
+  --ov-nav-text: #243b46;
+  --ov-nav-text-active: #145f7c;
+  --ov-nav-icon: #197fa4;
+  --ov-nav-shadow: 0 4px 12px rgba(29, 54, 66, 0.05);
+  --ov-button-primary-bg: #176f91;
+  --ov-button-primary-hover: #105d79;
+  --ov-scrollbar-thumb: #aebdc5;
+  --ov-space-1: 4px;
+  --ov-space-2: 8px;
+  --ov-space-3: 12px;
+  --ov-space-4: 16px;
+  --ov-space-5: 24px;
+  --ov-space-6: 32px;
+  --ov-page-inline: 28px;
+  --ov-page-top: 24px;
+  --ov-page-bottom: 40px;
+  --ov-content-compact: 1180px;
+  --ov-content-standard: 1540px;
+  --ov-content-large: 1660px;
+  --ov-content-wide: 1880px;
+  --ov-control-height: 40px;
+  --ov-control-height-sm: 36px;
+  --ov-font-page-title: 30px;
+  --ov-font-workspace-title: 28px;
+  --ov-font-section-title: 18px;
+  --ov-font-body: 14px;
+  --ov-font-meta: 12px;
+  --ov-radius-control: 6px;
+  --ov-radius-surface: 8px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ov-bg: #0f1214;
+  --ov-bg-elevated: #181c1f;
+  --ov-bg-soft: #1e2326;
+  --ov-bg-panel: #14191c;
+  --ov-bg-control: #111518;
+  --ov-bg-hover: #242c30;
+  --ov-bg-selected: #18343d;
+  --ov-bg-info: #142b32;
+  --ov-bg-warning: #2b2316;
+  --ov-bg-danger: #311b1b;
+  --ov-bg-success: #152820;
+  --ov-bg-media: #06090b;
+  --ov-border: #374147;
+  --ov-border-subtle: #2a3237;
+  --ov-border-strong: #4b5960;
+  --ov-border-accent: #62bdcb;
+  --ov-text: #e7ecef;
+  --ov-text-secondary: #b7c1c6;
+  --ov-text-muted: #8d999f;
+  --ov-text-on-primary: #071114;
+  --ov-primary: #75cad5;
+  --ov-primary-strong: #9adce4;
+  --ov-success: #79c6a5;
+  --ov-warning: #e3b96c;
+  --ov-danger: #e4a09f;
+  --ov-danger-border: #8f5452;
+  --ov-focus-ring: rgba(117, 202, 213, 0.52);
+  --ov-overlay-soft: rgba(255, 255, 255, 0.045);
+  --ov-overlay-strong: rgba(255, 255, 255, 0.11);
+  --ov-grid-line: rgba(117, 202, 213, 0.07);
+  --ov-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  --ov-shadow-strong: 0 18px 42px rgba(0, 0, 0, 0.34);
+  --ov-shell-background: #0f1214;
+  --ov-top-nav-background: rgba(15, 18, 20, 0.95);
+  --ov-nav-bg: #181d20;
+  --ov-nav-bg-hover: #242c30;
+  --ov-nav-bg-active: #18343d;
+  --ov-nav-border: #3a464c;
+  --ov-nav-border-active: #62bdcb;
+  --ov-nav-text: #b9c3c8;
+  --ov-nav-text-active: #f0f5f6;
+  --ov-nav-icon: #75cad5;
+  --ov-nav-shadow: none;
+  --ov-button-primary-bg: #64bdc9;
+  --ov-button-primary-hover: #83d0da;
+  --ov-scrollbar-thumb: #46545b;
 }
 
 * {
@@ -81,11 +170,7 @@
 body {
   margin: 0;
   min-width: 320px;
-  background:
-    radial-gradient(circle at 10% 10%, rgba(44, 126, 192, 0.12), transparent 28%),
-    radial-gradient(circle at 84% 6%, rgba(21, 95, 150, 0.08), transparent 22%),
-    linear-gradient(180deg, #e4eef8 0, var(--ov-bg) 240px),
-    var(--ov-bg);
+  background: var(--ov-shell-background);
   color: var(--ov-text);
   font-family:
     "Microsoft YaHei",
@@ -95,67 +180,42 @@ body {
     sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --ov-bg: #06101b;
-    --ov-bg-elevated: #0b1826;
-    --ov-bg-soft: #0f2233;
-    --ov-bg-panel: #081624;
-    --ov-bg-info: #0e263b;
-    --ov-bg-warning: #2f230f;
-    --ov-bg-danger: #3c171b;
-    --ov-bg-success: #102b24;
-    --ov-border: rgba(123, 215, 255, 0.26);
-    --ov-border-subtle: rgba(121, 209, 255, 0.18);
-    --ov-border-strong: rgba(123, 215, 255, 0.34);
-    --ov-border-accent: #74d7ff;
-    --ov-text: #d9edf7;
-    --ov-text-secondary: #9dbccc;
-    --ov-text-muted: #7fa0b3;
-    --ov-primary: #74d7ff;
-    --ov-primary-strong: #9be6ff;
-    --ov-success: #79dcb9;
-    --ov-warning: #ffd58f;
-    --ov-danger: #ffd3d6;
-    --ov-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
-    --ov-shell-background:
-      radial-gradient(circle at 80% 0%, rgba(65, 197, 255, 0.16), transparent 30%),
-      linear-gradient(180deg, #07131f, #06101b);
-    --ov-top-nav-background: rgba(7, 19, 31, 0.86);
-    --ov-nav-bg:
-      linear-gradient(180deg, rgba(16, 45, 68, 0.9), rgba(7, 24, 40, 0.9)),
-      #081624;
-    --ov-nav-bg-active:
-      linear-gradient(180deg, rgba(38, 128, 190, 0.58), rgba(13, 54, 82, 0.96)),
-      #0b2840;
-    --ov-nav-border: rgba(123, 215, 255, 0.34);
-    --ov-nav-border-active: #74d7ff;
-    --ov-nav-text: #dff6ff;
-    --ov-nav-text-active: #ffffff;
-    --ov-nav-icon: #aeeeff;
-    --ov-nav-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.08) inset,
-      0 9px 22px rgba(0, 0, 0, 0.24),
-      0 0 18px rgba(69, 197, 255, 0.08);
-  }
+html,
+body,
+#app {
+  min-height: 100%;
+  background: var(--ov-shell-background);
+  color: var(--ov-text);
+}
 
-  body {
-    background: var(--ov-shell-background), var(--ov-bg);
-  }
+body,
+button,
+input,
+select,
+textarea {
+  color-scheme: inherit;
+}
+
+* {
+  scrollbar-color: var(--ov-scrollbar-thumb) transparent;
+}
+
+::selection {
+  background: var(--ov-bg-selected);
+  color: var(--ov-text);
 }
 
 .ov-card {
   border: 1px solid var(--ov-border);
-  border-radius: var(--ov-radius);
-  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  border-radius: var(--ov-radius-surface);
+  background: var(--ov-bg-elevated);
   box-shadow: var(--ov-shadow);
 }
 
 .ov-page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
+  gap: var(--ov-space-5);
   align-items: end;
 }
 
@@ -165,13 +225,13 @@ body {
 }
 
 .ov-section-heading {
-  margin-bottom: 12px;
+  margin-bottom: var(--ov-space-4);
 }
 
 .ov-page-header__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ov-space-3);
   justify-content: flex-end;
 }
 
@@ -192,12 +252,12 @@ body {
 }
 
 .ov-page-title {
-  font-size: clamp(26px, 3vw, 34px);
-  line-height: 1.15;
+  font-size: var(--ov-font-page-title);
+  line-height: 1.2;
 }
 
 .ov-section-heading__title {
-  font-size: 18px;
+  font-size: var(--ov-font-section-title);
   line-height: 1.3;
 }
 
@@ -212,7 +272,7 @@ body {
 .ov-link-button,
 .ov-button {
   border: 1px solid var(--ov-border-strong);
-  border-radius: var(--ov-radius);
+  border-radius: var(--ov-radius-control);
   background: var(--ov-bg-elevated);
   color: var(--ov-text);
   font: inherit;
@@ -231,14 +291,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 9px 12px;
+  min-height: var(--ov-control-height);
+  padding: 9px 14px;
   font-size: 14px;
 }
 
 .ov-nav-pill.router-link-active {
   border-color: var(--ov-border-accent);
-  background: linear-gradient(180deg, #eef7ff, #dfeefd);
+  background: var(--ov-nav-bg-active);
   color: var(--ov-primary-strong);
 }
 
@@ -246,13 +306,13 @@ body {
 .ov-link-button:hover,
 .ov-button:hover:not(:disabled) {
   border-color: var(--ov-border-accent);
-  background: linear-gradient(180deg, #f4f9ff, #e5f0fb);
+  background: var(--ov-bg-hover);
   color: var(--ov-primary-strong);
 }
 
 .ov-button {
-  min-height: 40px;
-  padding: 9px 12px;
+  min-height: var(--ov-control-height);
+  padding: 9px 14px;
   cursor: pointer;
 }
 
@@ -269,13 +329,13 @@ body {
 
 .ov-button--primary {
   border-color: var(--ov-primary);
-  background: linear-gradient(180deg, #2475b3, var(--ov-primary));
-  color: #ffffff;
+  background: var(--ov-button-primary-bg);
+  color: var(--ov-text-on-primary);
 }
 
 .ov-button--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #2f86c8, var(--ov-primary-strong));
-  color: #ffffff;
+  background: var(--ov-button-primary-hover);
+  color: var(--ov-text-on-primary);
 }
 
 .ov-button--secondary {
@@ -283,7 +343,7 @@ body {
 }
 
 .ov-button--danger {
-  border-color: #e7b7ab;
+  border-color: var(--ov-danger-border);
   color: var(--ov-danger);
   background: var(--ov-bg-danger);
 }
@@ -294,10 +354,10 @@ body {
 
 .ov-input {
   width: 100%;
-  min-height: 40px;
+  min-height: var(--ov-control-height);
   border: 1px solid var(--ov-border-strong);
-  border-radius: var(--ov-radius);
-  background: linear-gradient(180deg, #fbfdff, var(--ov-bg-soft));
+  border-radius: var(--ov-radius-control);
+  background: var(--ov-bg-control);
   color: var(--ov-text);
   font: inherit;
   padding: 8px 10px;

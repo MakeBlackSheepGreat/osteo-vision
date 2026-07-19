@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +38,7 @@ class SavedUpload:
     original_filename: str
     suffix: str
     size_bytes: int
+    sha256: str
 
 
 @dataclass(frozen=True)
@@ -70,7 +72,7 @@ async def save_upload_stream(
     filename = f"upload_{uuid4().hex[:12]}{suffix}"
     path = upload_dir / filename
     try:
-        size = await _write_request_stream(path, request, max_bytes=max_bytes)
+        size, sha256 = await _write_request_stream(path, request, max_bytes=max_bytes)
     except Exception:
         path.unlink(missing_ok=True)
         raise
@@ -83,12 +85,14 @@ async def save_upload_stream(
         original_filename=_safe_name(original_filename),
         suffix=suffix,
         size_bytes=size,
+        sha256=sha256,
     )
 
 
-async def _write_request_stream(path: Path, request: Request, *, max_bytes: int) -> int:
+async def _write_request_stream(path: Path, request: Request, *, max_bytes: int) -> tuple[int, str]:
     # 流式写入避免 4K MP4 一次性进入内存，同时能在写入过程中及时拦截超限文件。
     size = 0
+    digest = hashlib.sha256()
     with path.open("wb") as f:
         async for chunk in request.stream():
             if not chunk:
@@ -97,7 +101,8 @@ async def _write_request_stream(path: Path, request: Request, *, max_bytes: int)
             if size > max_bytes:
                 raise HTTPException(status_code=413, detail="Uploaded file is too large")
             f.write(chunk)
-    return size
+            digest.update(chunk)
+    return size, digest.hexdigest()
 
 
 def validate_saved_upload(uploaded: SavedUpload, content_type: str | None) -> UploadValidation:
@@ -198,6 +203,7 @@ def upload_response(
         "original_filename": uploaded.original_filename,
         "content_type": content_type,
         "size_bytes": uploaded.size_bytes,
+        "sha256": uploaded.sha256,
         "input_type": summary.input_type,
         "metadata": {**summary.metadata, "upload_content_probe": validation.content_probe},
         "keyframes": report.get("keyframes", []),

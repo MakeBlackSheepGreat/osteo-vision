@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.src.domains.cases.enums import RegionSource, ReviewState
+from backend.src.domains.cases.enums import RegionSource, ReviewerRole, ReviewState
 from backend.src.domains.cases.schemas import (
     AnalysisRun,
     CandidateRegion,
@@ -78,7 +78,11 @@ def test_review_manifest_keeps_training_feedback_fields() -> None:
             ReviewEvent(
                 event_id="event_001",
                 case_id="case_review_manifest",
-                actor="doctor",
+                actor="doctor-001",
+                actor_id="doctor-001",
+                role=ReviewerRole.PHYSICIAN,
+                institution="Example Stomatology Hospital",
+                auth_source="verified_identity_token",
                 action="accept_candidate_and_create_roi",
                 target_id="cand_001",
                 before_state="review_required",
@@ -105,3 +109,7 @@ def test_review_manifest_keeps_training_feedback_fields() -> None:
     assert rows[1]["bone_gate_overlay_path"] == "bone_overlay.png"
     assert rows[1]["geometry"] == '{"type":"rect","x":0.1,"y":0.1,"width":0.3,"height":0.4}'
     assert rows[2]["sample_weight"] == 4.0
+    assert rows[2]["actor_id"] == "doctor-001"
+    assert rows[2]["role"] == "physician"
+    assert rows[2]["institution"] == "Example Stomatology Hospital"
+    assert rows[2]["auth_source"] == "verified_identity_token"

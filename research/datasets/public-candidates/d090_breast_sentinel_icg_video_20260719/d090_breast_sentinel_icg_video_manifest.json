@@ -1,0 +1,106 @@
+{
+  "schema_version": "osteo-vision-d090-breast-sentinel-icg-video-v1",
+  "generated_at_utc": "2026-07-18T22:26:18.254249+00:00",
+  "record_count": 1,
+  "dataset_count": 1,
+  "video_count": 3,
+  "artifact_count": 5,
+  "total_size_bytes": 1146394006,
+  "records": [
+    {
+      "candidate_id": "D090",
+      "dataset_name": "Evaluating the Use and Feasibility of Indocyanine Green (ICG) in Sentinel Node Biopsy for Breast Cancer: A Beacon of Precision from an Oncoplastic Practice in India - Supplementary Information",
+      "record_id": "17745489",
+      "doi": "10.5281/zenodo.17745489",
+      "source_page_url": "https://zenodo.org/records/17745489",
+      "metadata_url": "https://zenodo.org/api/records/17745489",
+      "direct_download_url": "https://zenodo.org/api/records/17745489/files/SupplementaryVideos_Koppikeretal%20SLNB%202025.zip/content",
+      "publication_date": "2025-11-28",
+      "creators": [
+        "Koppiker, Chaitanyanand"
+      ],
+      "license": "CC BY 4.0",
+      "license_identifier": "cc-by-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "license_review_status": "verified_from_zenodo_metadata",
+      "domain_tier": "clinical_human_icg_non_jaw_non_bone_non_target_domain_video_proxy",
+      "medical_scene": "human_breast_cancer_sentinel_lymph_node_biopsy",
+      "anatomy_scope": "breast_and_axillary_sentinel_lymph_node; no jaw or bone target",
+      "modality": "human intraoperative ICG fluorescence supplementary videos",
+      "fluorescence_agent": "indocyanine_green_icg",
+      "channel_availability": "requires per-video visual review; source metadata does not define channel layout",
+      "labels": "Supplementary video identities S1-S3 only; no pixel segmentation masks, bone labels, necrotic-transition-viable labels, or frame-level quality labels",
+      "sample_count": 3,
+      "video_count": 3,
+      "patient_count_unavailable_reason": "The Zenodo record does not publish a patient-to-video mapping or an independent patient count.",
+      "clinical_variables_unavailable_reason": "No patient-level age, sex, comorbidity, medication, laboratory, or blood-index table is published.",
+      "recommended_use": "MP4/video decoding, ICG temporal signal quality anomalies, playback, ignore/abstention, and non-target-domain robustness engineering validation after manual content review.",
+      "prohibited_use": "No jaw-osteomyelitis, bone-viability, patient-conditioned segmentation, diagnostic, resection-boundary, navigation, or clinical-performance claim.",
+      "target_domain_flag": false,
+      "non_target_domain": true,
+      "non_jaw": true,
+      "non_bone": true,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "download_status": "verified",
+      "downloaded_at_utc": "2026-07-18T22:26:18.254249+00:00",
+      "zenodo_archive_size_bytes": 569008591,
+      "zenodo_archive_checksum": "md5:269700b72b53dd4b0b97bea34714f69e",
+      "archive_integrity_verified": true,
+      "extracted_video_crc_verified": true,
+      "local_artifacts": [
+        {
+          "artifact_role": "zenodo_metadata_snapshot",
+          "direct_download_url": "https://zenodo.org/api/records/17745489",
+          "local_path": "metadata\\zenodo_record_17745489.json",
+          "original_file_name": "zenodo_record_17745489.json",
+          "size_bytes": 4739,
+          "sha256": "5c3126b5ca2f249b19cfd4e8d38ff86cb1831b7ccdf40da7b300037ecca4eb5f"
+        },
+        {
+          "artifact_role": "zenodo_source_archive",
+          "direct_download_url": "https://zenodo.org/api/records/17745489/files/SupplementaryVideos_Koppikeretal%20SLNB%202025.zip/content",
+          "local_path": "raw\\archive\\SupplementaryVideos_Koppikeretal SLNB 2025.zip",
+          "original_file_name": "SupplementaryVideos_Koppikeretal SLNB 2025.zip",
+          "size_bytes": 569008591,
+          "zenodo_checksum": "md5:269700b72b53dd4b0b97bea34714f69e",
+          "zenodo_declared_md5": "269700b72b53dd4b0b97bea34714f69e",
+          "local_md5": "269700b72b53dd4b0b97bea34714f69e",
+          "sha256": "6610ba31ffb6e676ef92ff356e21e5f61a6f667898f032a88da91c258b61e651"
+        },
+        {
+          "artifact_role": "extracted_supplementary_video",
+          "source_archive_member": "SupplementaryVideos_Koppikeretal SLNB 2025/Video S1 Case 1 Koppiker et. al. SLNB.mp4",
+          "local_path": "raw\\videos\\Video S1 Case 1 Koppiker et. al. SLNB.mp4",
+          "original_file_name": "Video S1 Case 1 Koppiker et. al. SLNB.mp4",
+          "size_bytes": 182980873,
+          "sha256": "91a85479a2ac0c9bf5d45bea5f5f533e7e59c883a43f7fe13a79638f520d4d60",
+          "zip_crc32": "6ea1a97b",
+          "zip_crc_verified": true
+        },
+        {
+          "artifact_role": "extracted_supplementary_video",
+          "source_archive_member": "SupplementaryVideos_Koppikeretal SLNB 2025/Video S2 Case 2 Koppiker et. al. SLNB.mp4",
+          "local_path": "raw\\videos\\Video S2 Case 2 Koppiker et. al. SLNB.mp4",
+          "original_file_name": "Video S2 Case 2 Koppiker et. al. SLNB.mp4",
+          "size_bytes": 200363882,
+          "sha256": "1bb58cdc1f3f411d98f9c1a8fc60ea6a63c45b645bd8215da68bc6de82b22be0",
+          "zip_crc32": "3310004c",
+          "zip_crc_verified": true
+        },
+        {
+          "artifact_role": "extracted_supplementary_video",
+          "source_archive_member": "SupplementaryVideos_Koppikeretal SLNB 2025/Video S3 Case 3 Koppiker et. al. SLNB.mp4",
+          "local_path": "raw\\videos\\Video S3 Case 3 Koppiker et. al. SLNB.mp4",
+          "original_file_name": "Video S3 Case 3 Koppiker et. al. SLNB.mp4",
+          "size_bytes": 194035921,
+          "sha256": "1da0af3ccd748b3b9651bbeae76c0294e4f533ddfb9840a7ae538bae616fe690",
+          "zip_crc32": "74433893",
+          "zip_crc_verified": true
+        }
+      ],
+      "data_boundary": "Public CC BY 4.0 human breast-cancer sentinel-lymph-node ICG supplementary videos. They are non-jaw, non-bone, and non-target-domain proxy data. They provide no jaw-osteomyelitis ground truth, bone-surface mask, bone-activity class, patient clinical variables, or physician segmentation. Training admission remains false."
+    }
+  ],
+  "medical_boundary": "D090 is restricted to public non-target-domain ICG video engineering validation. It remains excluded from target-domain training and all clinical performance claims."
+}

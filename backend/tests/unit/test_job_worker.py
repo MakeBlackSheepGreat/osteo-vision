@@ -127,6 +127,61 @@ def test_local_job_worker_processes_queued_cbct_surface_modeling(tmp_path: Path)
     assert completed["result"]["three_d_evidence"]["navigation_ready"] is False
 
 
+def test_local_job_worker_processes_queued_l1_static_registration(tmp_path: Path) -> None:
+    settings = Settings(
+        artifact_root=tmp_path / "artifacts",
+        case_store_path=tmp_path / "cases.sqlite",
+        job_store_path=tmp_path / "jobs.json",
+        video_manifest_path=tmp_path / "videos.csv",
+    )
+    repo = build_case_repository(settings.case_store_path, settings.case_store_backend)
+    case = repo.create(CaseRecord(case_id="case_worker_l1", title="worker L1"))
+    model = settings.artifact_root / "models" / "mandible.stl"
+    model.parent.mkdir(parents=True)
+    model.write_text("solid mandible\nendsolid mandible\n", encoding="utf-8")
+    source = [[0, 0, 0], [20, 0, 0], [0, 20, 0], [0, 0, 20]]
+    target = [[5, -3, 2], [25, -3, 2], [5, 17, 2], [5, -3, 22]]
+    job = JobRegistry(settings.job_store_path).create(
+        kind="l1_static_registration",
+        payload={
+            "case_id": case.case_id,
+            "input_mode": "manual_metadata",
+            "model_path": str(model),
+            "source_points": source,
+            "target_points": target,
+            "validation_source_points": [[10, 10, 10]],
+            "validation_target_points": [[15, 7, 12]],
+            "source_space": "cbct_lps_mm",
+            "target_space": "phantom_reference_mm",
+            "unit": "mm",
+            "fre_threshold_mm": 1.0,
+            "tre_threshold_mm": 1.0,
+            "threshold_source": "phantom_protocol_v1",
+            "doctor_review_status": "review_required",
+            "microscope_pose_evidence": {
+                "calibration_status": "valid",
+                "magnification": 4,
+                "calibration_magnification_min": 2,
+                "calibration_magnification_max": 8,
+                "working_distance_mm": 250,
+                "calibration_working_distance_min_mm": 200,
+                "calibration_working_distance_max_mm": 300,
+                "depth_status": "valid",
+            },
+        },
+    )
+
+    result = LocalJobWorker(settings).run_once(limit=1, kinds=["l1_static_registration"])
+
+    completed = JobRegistry(settings.job_store_path).get(job["job_id"])
+    updated = repo.get(case.case_id)
+    assert result["processed_count"] == 1
+    assert completed is not None and completed["status"] == "completed"
+    assert updated is not None
+    assert updated.three_d_evidence["registration_status"] == "registered"
+    assert updated.three_d_evidence["navigation_level"] == "L0"
+
+
 def _write_video(path: Path) -> None:
     writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 10.0, (80, 60))
     for index in range(6):

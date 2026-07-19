@@ -1,0 +1,1662 @@
+{
+  "schema_version": "osteo-vision-three-priority-manifest-verification-v2",
+  "provenance_contract_version": "osteo-vision-dataset-provenance-v1",
+  "provenance_contract_fields": [
+    "source_page",
+    "download_access",
+    "license",
+    "license_review_status",
+    "domain_tier",
+    "modality",
+    "labels",
+    "sample_or_patient_count",
+    "clinical_variables",
+    "recommended_use",
+    "local_path",
+    "size_bytes",
+    "sha256",
+    "download_audit",
+    "target_domain_flag",
+    "training_eligible",
+    "review_state",
+    "data_boundary"
+  ],
+  "status": "passed",
+  "manifest_count": 15,
+  "record_count": 47,
+  "verified_record_count": 47,
+  "file_count": 138,
+  "verified_file_count": 138,
+  "total_size_bytes": 5514559510,
+  "provenance_coverage": {
+    "source_page": 47,
+    "download_access": 47,
+    "license": 47,
+    "license_review_status": 47,
+    "domain_tier": 47,
+    "modality": 47,
+    "labels": 47,
+    "sample_or_patient_count": 47,
+    "clinical_variables": 47,
+    "recommended_use": 47,
+    "local_path": 47,
+    "size_bytes": 47,
+    "sha256": 47,
+    "download_audit": 47,
+    "target_domain_flag": 47,
+    "training_eligible": 47,
+    "review_state": 47,
+    "data_boundary": 47
+  },
+  "manifests": [
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\patient_conditioning_starter_20260717\\patient_conditioning_starter_manifest.json",
+      "schema_version": "osteo-vision-patient-conditioning-starter-v1",
+      "status": "passed",
+      "record_count": 15,
+      "verified_record_count": 15,
+      "file_count": 15,
+      "verified_file_count": 15,
+      "total_size_bytes": 752515177,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 15,
+        "download_access": 15,
+        "license": 15,
+        "license_review_status": 15,
+        "domain_tier": 15,
+        "modality": 15,
+        "labels": 15,
+        "sample_or_patient_count": 15,
+        "clinical_variables": 15,
+        "recommended_use": 15,
+        "local_path": 15,
+        "size_bytes": 15,
+        "sha256": 15,
+        "download_audit": 15,
+        "target_domain_flag": 15,
+        "training_eligible": 15,
+        "review_state": 15,
+        "data_boundary": 15
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "dataset_clinical_context.labels": 15
+        },
+        "data_boundary": {
+          "data_boundary": 15
+        },
+        "domain_tier": {
+          "target_domain_flag+data_boundary": 15
+        },
+        "download_access": {
+          "url": 15
+        },
+        "download_audit": {
+          "downloaded_at_utc": 15
+        },
+        "labels": {
+          "labels": 15
+        },
+        "license": {
+          "license": 15
+        },
+        "license_review_status": {
+          "review_state": 15
+        },
+        "local_path": {
+          "file_entries": 15
+        },
+        "modality": {
+          "modalities": 15
+        },
+        "recommended_use": {
+          "recommended_use": 15
+        },
+        "review_state": {
+          "review_state": 15
+        },
+        "sample_or_patient_count": {
+          "local_file_count": 15
+        },
+        "sha256": {
+          "file_entries": 15
+        },
+        "size_bytes": {
+          "file_entries": 15
+        },
+        "source_page": {
+          "source_page_url": 15
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 15
+        },
+        "training_eligible": {
+          "training_eligible": 15
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\three_priority_zenodo_20260717\\three_priority_zenodo_manifest.json",
+      "schema_version": "osteo-vision-three-priority-public-datasets-v1",
+      "status": "passed",
+      "record_count": 8,
+      "verified_record_count": 8,
+      "file_count": 8,
+      "verified_file_count": 8,
+      "total_size_bytes": 672217319,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 8,
+        "download_access": 8,
+        "license": 8,
+        "license_review_status": 8,
+        "domain_tier": 8,
+        "modality": 8,
+        "labels": 8,
+        "sample_or_patient_count": 8,
+        "clinical_variables": 8,
+        "recommended_use": 8,
+        "local_path": 8,
+        "size_bytes": 8,
+        "sha256": 8,
+        "download_audit": 8,
+        "target_domain_flag": 8,
+        "training_eligible": 8,
+        "review_state": 8,
+        "data_boundary": 8
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "data_boundary": 8
+        },
+        "data_boundary": {
+          "data_boundary": 8
+        },
+        "domain_tier": {
+          "domain_tier": 8
+        },
+        "download_access": {
+          "direct_download_url": 8
+        },
+        "download_audit": {
+          "downloaded_at_utc": 8
+        },
+        "labels": {
+          "fluorescence": 8
+        },
+        "license": {
+          "license": 8
+        },
+        "license_review_status": {
+          "license_review_status": 8
+        },
+        "local_path": {
+          "file_entries": 8
+        },
+        "modality": {
+          "medical_scene": 8
+        },
+        "recommended_use": {
+          "recommended_use": 8
+        },
+        "review_state": {
+          "review_state": 8
+        },
+        "sample_or_patient_count": {
+          "local_file_count": 8
+        },
+        "sha256": {
+          "file_entries": 8
+        },
+        "size_bytes": {
+          "file_entries": 8
+        },
+        "source_page": {
+          "source_page_url": 8
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 8
+        },
+        "training_eligible": {
+          "training_eligible": 8
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\navigation_starter_20260717\\navigation_starter_manifest.json",
+      "schema_version": "osteo-vision-navigation-starter-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 1,
+      "verified_file_count": 1,
+      "total_size_bytes": 36823665,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "data_boundary": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "priority_target": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "priority_target": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_expected": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "medical_scene": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "local_file_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\patient_conditioning_gap_audit_20260718\\patient_conditioning_gap_audit_manifest.json",
+      "schema_version": "osteo-vision-patient-conditioning-gap-audit-v1",
+      "status": "passed",
+      "record_count": 3,
+      "verified_record_count": 3,
+      "file_count": 10,
+      "verified_file_count": 10,
+      "total_size_bytes": 1492886,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 3,
+        "download_access": 3,
+        "license": 3,
+        "license_review_status": 3,
+        "domain_tier": 3,
+        "modality": 3,
+        "labels": 3,
+        "sample_or_patient_count": 3,
+        "clinical_variables": 3,
+        "recommended_use": 3,
+        "local_path": 3,
+        "size_bytes": 3,
+        "sha256": 3,
+        "download_audit": 3,
+        "target_domain_flag": 3,
+        "training_eligible": 3,
+        "review_state": 3,
+        "data_boundary": 3
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables": 3
+        },
+        "data_boundary": {
+          "data_boundary": 3
+        },
+        "domain_tier": {
+          "target_domain_flag+data_boundary": 3
+        },
+        "download_access": {
+          "file_entry.direct_download_url": 3
+        },
+        "download_audit": {
+          "manifest.downloaded_at_utc": 3
+        },
+        "labels": {
+          "segmentation_labels": 3
+        },
+        "license": {
+          "license": 3
+        },
+        "license_review_status": {
+          "governance_state": 3
+        },
+        "local_path": {
+          "file_entries": 3
+        },
+        "modality": {
+          "modalities": 3
+        },
+        "recommended_use": {
+          "recommended_use": 3
+        },
+        "review_state": {
+          "review_state": 3
+        },
+        "sample_or_patient_count": {
+          "patient_count": 3
+        },
+        "sha256": {
+          "file_entries": 3
+        },
+        "size_bytes": {
+          "file_entries": 3
+        },
+        "source_page": {
+          "source_page_url": 3
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 3
+        },
+        "training_eligible": {
+          "training_eligible": 3
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\bone_activity_gap_20260718\\bone_activity_gap_manifest.json",
+      "schema_version": "osteo-vision-bone-activity-gap-v1",
+      "status": "passed",
+      "record_count": 6,
+      "verified_record_count": 6,
+      "file_count": 19,
+      "verified_file_count": 19,
+      "total_size_bytes": 12572822,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 6,
+        "download_access": 6,
+        "license": 6,
+        "license_review_status": 6,
+        "domain_tier": 6,
+        "modality": 6,
+        "labels": 6,
+        "sample_or_patient_count": 6,
+        "clinical_variables": 6,
+        "recommended_use": 6,
+        "local_path": 6,
+        "size_bytes": 6,
+        "sha256": 6,
+        "download_audit": 6,
+        "target_domain_flag": 6,
+        "training_eligible": 6,
+        "review_state": 6,
+        "data_boundary": 6
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables": 6
+        },
+        "data_boundary": {
+          "data_boundary": 6
+        },
+        "domain_tier": {
+          "domain_tier": 6
+        },
+        "download_access": {
+          "direct_download_url": 5,
+          "file_entry.direct_download_url": 1
+        },
+        "download_audit": {
+          "manifest.generated_at_utc": 6
+        },
+        "labels": {
+          "labels": 6
+        },
+        "license": {
+          "license": 6
+        },
+        "license_review_status": {
+          "license_review_status": 6
+        },
+        "local_path": {
+          "file_entries": 6
+        },
+        "modality": {
+          "modality": 6
+        },
+        "recommended_use": {
+          "recommended_use": 6
+        },
+        "review_state": {
+          "review_state": 6
+        },
+        "sample_or_patient_count": {
+          "sample_count": 6
+        },
+        "sha256": {
+          "file_entries": 6
+        },
+        "size_bytes": {
+          "file_entries": 6
+        },
+        "source_page": {
+          "source_page_url": 6
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 6
+        },
+        "training_eligible": {
+          "training_eligible": 6
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\navigation_cbct_stl_audit_20260718\\navigation_cbct_stl_manifest.json",
+      "schema_version": "osteo-vision-navigation-cbct-stl-audit-v1",
+      "status": "passed",
+      "record_count": 5,
+      "verified_record_count": 5,
+      "file_count": 17,
+      "verified_file_count": 17,
+      "total_size_bytes": 1384901,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 5,
+        "download_access": 5,
+        "license": 5,
+        "license_review_status": 5,
+        "domain_tier": 5,
+        "modality": 5,
+        "labels": 5,
+        "sample_or_patient_count": 5,
+        "clinical_variables": 5,
+        "recommended_use": 5,
+        "local_path": 5,
+        "size_bytes": 5,
+        "sha256": 5,
+        "download_audit": 5,
+        "target_domain_flag": 5,
+        "training_eligible": 5,
+        "review_state": 5,
+        "data_boundary": 5
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "data_boundary": 5
+        },
+        "data_boundary": {
+          "data_boundary": 5
+        },
+        "domain_tier": {
+          "priority_target": 5
+        },
+        "download_access": {
+          "direct_download_url": 2,
+          "direct_download_urls": 1,
+          "download_status": 2
+        },
+        "download_audit": {
+          "manifest.generated_at_utc": 5
+        },
+        "labels": {
+          "labels_or_coordinates": 5
+        },
+        "license": {
+          "license": 5
+        },
+        "license_review_status": {
+          "review_state": 5
+        },
+        "local_path": {
+          "file_entries": 5
+        },
+        "modality": {
+          "modality": 5
+        },
+        "recommended_use": {
+          "recommended_use": 5
+        },
+        "review_state": {
+          "review_state": 5
+        },
+        "sample_or_patient_count": {
+          "sample_count": 2,
+          "sample_count_status": 3
+        },
+        "sha256": {
+          "file_entries": 5
+        },
+        "size_bytes": {
+          "file_entries": 5
+        },
+        "source_page": {
+          "source_page_url": 5
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 5
+        },
+        "training_eligible": {
+          "training_eligible": 5
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d051_mronj_imaging_mass_cytometry_starter_20260718\\manifest.json",
+      "schema_version": "osteo-vision-d051-balanced-starter-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 17,
+      "verified_file_count": 17,
+      "total_size_bytes": 1111860023,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables_status": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "file_entry.direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modalities": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\c3vd_l2_proxy_20260719\\c3vd_l2_proxy_manifest.json",
+      "schema_version": "osteo-vision-c3vd-l2-proxy-download-v3",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 1,
+      "verified_file_count": 1,
+      "total_size_bytes": 1515094074,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "data_boundary": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "priority_target": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "priority_target": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modalities": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "local_file_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\mmdental_patient_context_starter_20260719\\mmdental_patient_context_starter_manifest.json",
+      "schema_version": "osteo-vision-mmdental-patient-context-starter-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 8,
+      "verified_file_count": 8,
+      "total_size_bytes": 159583344,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d090_breast_sentinel_icg_video_20260719\\d090_breast_sentinel_icg_video_manifest.json",
+      "schema_version": "osteo-vision-d090-breast-sentinel-icg-video-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 5,
+      "verified_file_count": 5,
+      "total_size_bytes": 1146394006,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables_unavailable_reason": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "sample_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d091_icg_hepatic_dynamic_proxy_20260719\\d091_icg_hepatic_dynamic_proxy_manifest.json",
+      "schema_version": "osteo-vision-d091-icg-hepatic-dynamic-proxy-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 5,
+      "verified_file_count": 5,
+      "total_size_bytes": 27873402,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables_unavailable_reason": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_urls": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\pmcanalseg_navigation_starter_20260719\\pmcanalseg_navigation_starter_manifest.json",
+      "schema_version": "osteo-vision-pmcanalseg-navigation-starter-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 22,
+      "verified_file_count": 22,
+      "total_size_bytes": 75757662,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables_unavailable_reason": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_urls": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d093_mronj_spect_ct_figures_20260719\\d093_mronj_spect_ct_figures_manifest.json",
+      "schema_version": "osteo-vision-d093-mronj-spect-ct-figures-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 4,
+      "verified_file_count": 4,
+      "total_size_bytes": 524188,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables_unavailable_reason": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_urls": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "sample_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d094_clinrad_orn_context_20260719\\d094_clinrad_orn_context_manifest.json",
+      "schema_version": "osteo-vision-d094-clinrad-orn-context-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 3,
+      "verified_file_count": 3,
+      "total_size_bytes": 45768,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    },
+    {
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d095_mdacc_orn_time_to_event_20260719\\d095_mdacc_orn_time_to_event_manifest.json",
+      "schema_version": "osteo-vision-d095-mdacc-orn-time-to-event-v1",
+      "status": "passed",
+      "record_count": 1,
+      "verified_record_count": 1,
+      "file_count": 3,
+      "verified_file_count": 3,
+      "total_size_bytes": 420273,
+      "provenance_contract_fields": [
+        "source_page",
+        "download_access",
+        "license",
+        "license_review_status",
+        "domain_tier",
+        "modality",
+        "labels",
+        "sample_or_patient_count",
+        "clinical_variables",
+        "recommended_use",
+        "local_path",
+        "size_bytes",
+        "sha256",
+        "download_audit",
+        "target_domain_flag",
+        "training_eligible",
+        "review_state",
+        "data_boundary"
+      ],
+      "provenance_coverage": {
+        "source_page": 1,
+        "download_access": 1,
+        "license": 1,
+        "license_review_status": 1,
+        "domain_tier": 1,
+        "modality": 1,
+        "labels": 1,
+        "sample_or_patient_count": 1,
+        "clinical_variables": 1,
+        "recommended_use": 1,
+        "local_path": 1,
+        "size_bytes": 1,
+        "sha256": 1,
+        "download_audit": 1,
+        "target_domain_flag": 1,
+        "training_eligible": 1,
+        "review_state": 1,
+        "data_boundary": 1
+      },
+      "provenance_source_aliases": {
+        "clinical_variables": {
+          "clinical_variables": 1
+        },
+        "data_boundary": {
+          "data_boundary": 1
+        },
+        "domain_tier": {
+          "domain_tier": 1
+        },
+        "download_access": {
+          "direct_download_url": 1
+        },
+        "download_audit": {
+          "downloaded_at_utc": 1
+        },
+        "labels": {
+          "labels": 1
+        },
+        "license": {
+          "license": 1
+        },
+        "license_review_status": {
+          "license_review_status": 1
+        },
+        "local_path": {
+          "file_entries": 1
+        },
+        "modality": {
+          "modality": 1
+        },
+        "recommended_use": {
+          "recommended_use": 1
+        },
+        "review_state": {
+          "review_state": 1
+        },
+        "sample_or_patient_count": {
+          "patient_count": 1
+        },
+        "sha256": {
+          "file_entries": 1
+        },
+        "size_bytes": {
+          "file_entries": 1
+        },
+        "source_page": {
+          "source_page_url": 1
+        },
+        "target_domain_flag": {
+          "target_domain_flag": 1
+        },
+        "training_eligible": {
+          "training_eligible": 1
+        }
+      },
+      "errors": []
+    }
+  ]
+}

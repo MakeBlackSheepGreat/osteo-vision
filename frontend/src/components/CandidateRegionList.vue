@@ -32,17 +32,36 @@
           variant="secondary"
           size="sm"
           icon="target"
+          :disabled="loading || isPromotedCandidate(candidate.candidate_id)"
+          :title="
+            loading
+              ? '复核写入进行中，请等待完成。'
+              : isPromotedCandidate(candidate.candidate_id)
+                ? '该候选区域已转为 ROI。'
+                : '将候选区域转换为可复核 ROI。'
+          "
           @click="emit('promoteCandidate', candidate.candidate_id)"
         >
-          转为 ROI
+          {{ isPromotedCandidate(candidate.candidate_id) ? "已转为 ROI" : "转为 ROI" }}
         </AppButton>
         <div class="candidate-review-actions" aria-label="候选区复核操作">
+          <AppButton
+            v-if="candidate.candidate_id !== activeCandidateId"
+            variant="ghost"
+            size="sm"
+            icon="target"
+            :disabled="loading"
+            @click="emit('selectCandidate', candidate.candidate_id)"
+          >
+            设为当前
+          </AppButton>
+          <span v-else class="current-candidate-marker">当前复核对象</span>
           <AppButton
             v-if="canPromoteCandidate(candidate)"
             variant="secondary"
             size="sm"
             icon="target"
-            :disabled="candidate.candidate_id === activeCandidateId"
+            :disabled="loading || candidate.candidate_id === activeCandidateId"
             @click="emit('editCandidateGeometry', candidate.candidate_id)"
           >
             编辑框
@@ -51,7 +70,7 @@
             variant="secondary"
             size="sm"
             icon="check"
-            :disabled="candidate.status === 'accepted'"
+            :disabled="loading || candidate.status === 'accepted'"
             @click="emit('updateCandidateStatus', candidate.candidate_id, 'accepted')"
           >
             接受
@@ -60,7 +79,7 @@
             variant="secondary"
             size="sm"
             icon="target"
-            :disabled="candidate.status === 'modified'"
+            :disabled="loading || candidate.status === 'modified'"
             @click="emit('updateCandidateStatus', candidate.candidate_id, 'modified')"
           >
             修改
@@ -69,7 +88,7 @@
             variant="secondary"
             size="sm"
             icon="stop"
-            :disabled="candidate.status === 'rejected'"
+            :disabled="loading || candidate.status === 'rejected'"
             @click="emit('updateCandidateStatus', candidate.candidate_id, 'rejected')"
           >
             拒绝
@@ -77,7 +96,7 @@
         </div>
       </li>
     </ul>
-    <p v-else class="ov-empty-text">暂无候选区域。运行双通道分析后会进入医生复核队列。</p>
+    <p v-else class="ov-empty-text">暂无候选区域。运行 JPEG 图像融合或 MP4 视频分析后会进入医生复核队列。</p>
   </section>
 </template>
 
@@ -87,12 +106,23 @@ import SectionHeading from "@/components/SectionHeading.vue";
 import type { CandidateRegion, ReviewState } from "@/types/case";
 import { numberLabel, reviewStateLabel, riskLabel } from "@/utils/caseDisplay";
 
-withDefaults(defineProps<{ candidates: CandidateRegion[]; activeCandidateId?: string }>(), {
-  activeCandidateId: "",
-});
+const props = withDefaults(
+  defineProps<{
+    candidates: CandidateRegion[];
+    activeCandidateId?: string;
+    loading?: boolean;
+    promotedCandidateIds?: string[];
+  }>(),
+  {
+    activeCandidateId: "",
+    loading: false,
+    promotedCandidateIds: () => [],
+  },
+);
 const emit = defineEmits<{
   promoteCandidate: [candidateId: string];
   editCandidateGeometry: [candidateId: string];
+  selectCandidate: [candidateId: string];
   updateCandidateStatus: [candidateId: string, state: ReviewState];
 }>();
 
@@ -106,6 +136,10 @@ function explanationLabel(explanation?: string | null): string {
 
 function canPromoteCandidate(candidate: CandidateRegion): boolean {
   return Boolean(candidate.metadata?.bbox_normalized);
+}
+
+function isPromotedCandidate(candidateId: string): boolean {
+  return props.promotedCandidateIds.includes(candidateId);
 }
 
 function candidateFrameLabel(candidate: CandidateRegion): string {
@@ -145,7 +179,7 @@ function candidateBboxLabel(candidate: CandidateRegion): string {
 
 .candidate-list li.selected {
   border-color: var(--ov-border-accent);
-  background: linear-gradient(180deg, #eef7ff, #f6fbff);
+  background: var(--ov-bg-selected);
 }
 
 .candidate-title {
@@ -197,5 +231,18 @@ p {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 9px;
+}
+
+.current-candidate-marker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--ov-border-accent);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: var(--ov-bg-selected);
+  color: var(--ov-primary);
+  font-size: 12px;
+  font-weight: 700;
 }
 </style>

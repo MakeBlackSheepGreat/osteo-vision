@@ -43,3 +43,25 @@ def test_camera_input_is_registered_without_file_validation() -> None:
     assert updated.inputs[0].metadata["input_type"] == "browser_camera"
     assert updated.inputs[0].quality_flags == []
     assert updated.quality_flags == []
+
+
+def test_replacing_an_official_input_channel_keeps_only_the_latest_asset(tmp_path: Path) -> None:
+    first_white = tmp_path / "first_white.jpg"
+    replacement_white = tmp_path / "replacement_white.jpg"
+    Image.fromarray(np.full((20, 20, 3), 80, dtype=np.uint8)).save(first_white)
+    Image.fromarray(np.full((20, 20, 3), 160, dtype=np.uint8)).save(replacement_white)
+    case = CaseRecord(case_id="case_replacement", title="replacement")
+    service = InputService()
+
+    initial = service.add_inputs(
+        case,
+        [InputCreateRequest(channel=InputChannel.WHITE_LIGHT, path=str(first_white))],
+    )
+    replaced = service.add_inputs(
+        initial,
+        [InputCreateRequest(channel=InputChannel.WHITE_LIGHT, path=str(replacement_white))],
+    )
+
+    assert len(replaced.inputs) == 1
+    assert replaced.inputs[0].channel == InputChannel.WHITE_LIGHT
+    assert replaced.inputs[0].path == str(replacement_white)

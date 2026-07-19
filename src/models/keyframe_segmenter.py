@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image
 import torch
-from torch import nn
 import torch.nn.functional as F
+from PIL import Image
+from torch import nn
 
 from src.core.paths import ensure_dir
-from src.preprocess.fluorescence import blend_pseudocolor_on_reference
+from src.metrics.calibration import predictive_entropy
 from src.models.video_signal_masks import save_video_signal_maps, video_signal_mask_contract
+from src.preprocess.fluorescence import blend_pseudocolor_on_reference
 
 
 class ConvNeXtBlock2D(nn.Module):
@@ -80,8 +82,13 @@ class TinyKeyframeSegmenter2D(nn.Module):
         return self.head(self.dec0(torch.cat([y0, x0], dim=1)))
 
 
-def build_keyframe_segmenter(config: dict[str, Any] | None = None) -> TinyKeyframeSegmenter2D:
+def build_keyframe_segmenter(config: dict[str, Any] | None = None) -> nn.Module:
     model_config = dict(config or {})
+    architecture = str(model_config.get("architecture") or "convnext_unet")
+    if architecture != "convnext_unet":
+        from src.models.keyframe_candidates import build_candidate_keyframe_segmenter
+
+        return build_candidate_keyframe_segmenter(model_config)
     return TinyKeyframeSegmenter2D(
         in_channels=int(model_config.get("in_channels", 3)),
         out_channels=int(model_config.get("out_channels", 2)),
@@ -99,7 +106,7 @@ def load_keyframe_segmenter_checkpoint(
     checkpoint_path: str | Path,
     *,
     device: torch.device,
-) -> tuple[TinyKeyframeSegmenter2D, dict[str, Any]]:
+) -> tuple[nn.Module, dict[str, Any]]:
     checkpoint = _torch_load(checkpoint_path, device)
     if not isinstance(checkpoint, dict):
         raise ValueError(f"Unsupported keyframe segmenter checkpoint payload: {checkpoint_path}")
@@ -130,32 +137,61 @@ def predict_keyframe_image(
     model_id: str = "convnext2d_keyframe_proxy_segmenter",
     tile_size: int | None = None,
     tile_overlap: int = 64,
+    tile_batch_size: int = 1,
     force_tiled: bool = False,
     max_whole_pixels: int = 1024 * 1024,
     target_domain: bool = False,
     input_domain: str = "2D JPEG/MP4 keyframe fluorescence proxy",
     data_boundary: str = "synthetic_or_pseudo_labeled_non_target_domain",
+    temperature: float = 1.0,
+    tta_enabled: bool = False,
+    fast_output: bool = False,
+    overlay_format: str = "png",
+    overlay_jpeg_quality: int = 85,
+    use_amp: bool = False,
+    rgb: np.ndarray | None = None,
 ) -> dict[str, Any]:
-    rgb = load_rgb_image(input_path)
+    rgb = load_rgb_image(input_path) if rgb is None else _validate_rgb_array(rgb)
     model.eval()
-    probability, inference_meta = predict_keyframe_probability(
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    started = time.perf_counter()
+    probability, technical_variance, inference_meta = predict_keyframe_probability_with_uncertainty(
         model,
         rgb,
         device=device,
         tile_size=tile_size,
         tile_overlap=tile_overlap,
+        tile_batch_size=tile_batch_size,
         force_tiled=force_tiled,
         max_whole_pixels=max_whole_pixels,
+        temperature=temperature,
+        tta_enabled=tta_enabled,
+        use_amp=use_amp,
+    )
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    inference_meta["elapsed_ms"] = round(elapsed_ms, 3)
+    inference_meta["temperature"] = float(temperature)
+    inference_meta["tta_enabled"] = bool(tta_enabled)
+    inference_meta["use_amp"] = bool(use_amp and device.type == "cuda")
+    inference_meta["output_profile"] = "live_fast" if fast_output else "full_evidence"
+    inference_meta["peak_gpu_memory_mb"] = (
+        round(float(torch.cuda.max_memory_allocated(device) / (1024**2)), 3) if device.type == "cuda" else None
     )
     mask = (probability >= float(threshold)).astype(np.uint8)
     out_dir = ensure_dir(output_dir)
     safe_case = _safe_name(case_id)
     mask_path = out_dir / f"{safe_case}_{model_id}_mask.png"
-    probability_path = out_dir / f"{safe_case}_{model_id}_probability.png"
-    uncertainty_path = out_dir / f"{safe_case}_{model_id}_uncertainty.png"
-    overlay_path = out_dir / f"{safe_case}_{model_id}_overlay.png"
-    pseudo_path = out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
-    uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
+    probability_path = None if fast_output else out_dir / f"{safe_case}_{model_id}_probability.png"
+    uncertainty_path = None if fast_output else out_dir / f"{safe_case}_{model_id}_uncertainty.png"
+    normalized_overlay_format = "jpeg" if overlay_format.lower() in {"jpg", "jpeg"} else "png"
+    overlay_suffix = ".jpg" if normalized_overlay_format == "jpeg" else ".png"
+    overlay_path = out_dir / f"{safe_case}_{model_id}_overlay{overlay_suffix}"
+    pseudo_path = None if fast_output else out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
+    entropy = predictive_entropy(probability)
+    threshold_uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
+    variance_uncertainty = np.clip(np.sqrt(np.maximum(technical_variance, 0.0)) * 4.0, 0.0, 1.0)
+    uncertainty = np.maximum.reduce([entropy, threshold_uncertainty * 0.5, variance_uncertainty]).astype(np.float32)
     signal_paths = save_video_signal_maps(
         probability=probability,
         mask=mask,
@@ -168,14 +204,26 @@ def predict_keyframe_image(
     pseudo = _green_pseudocolor(probability)
     overlay = blend_pseudocolor_on_reference(rgb, pseudo, alpha=0.45)
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
-    Image.fromarray(np.clip(probability * 255.0, 0, 255).astype(np.uint8)).save(probability_path)
-    Image.fromarray(np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8)).save(uncertainty_path)
-    Image.fromarray(pseudo).save(pseudo_path)
-    Image.fromarray(overlay).save(overlay_path)
+    if probability_path is not None:
+        Image.fromarray(np.clip(probability * 255.0, 0, 255).astype(np.uint8)).save(probability_path)
+    if uncertainty_path is not None:
+        Image.fromarray(np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8)).save(uncertainty_path)
+    if pseudo_path is not None:
+        Image.fromarray(pseudo).save(pseudo_path)
+    overlay_image = Image.fromarray(overlay)
+    if normalized_overlay_format == "jpeg":
+        overlay_image.save(overlay_path, quality=max(30, min(95, int(overlay_jpeg_quality))), optimize=False)
+    else:
+        overlay_image.save(overlay_path)
     candidates = connected_probability_candidates(mask, probability, min_component_area=16, model_id=model_id)
     positive_area = int(mask.sum())
     total_area = int(mask.size)
-    uncertainty_summary = uncertainty_stats(uncertainty, mask)
+    uncertainty_summary = uncertainty_stats(
+        uncertainty,
+        mask,
+        method="predictive_entropy_plus_tta_variance" if tta_enabled else "predictive_entropy_calibrated",
+        technical_variance=technical_variance,
+    )
     review_priority = keyframe_review_priority(
         positive_area_fraction=float(positive_area / total_area) if total_area else 0.0,
         component_count=len(candidates),
@@ -206,7 +254,7 @@ def predict_keyframe_image(
         "height": int(mask.shape[0]),
         "positive_area_px": positive_area,
         "threshold": float(threshold),
-        "uncertainty_path": str(uncertainty_path),
+        "uncertainty_path": str(uncertainty_path) if uncertainty_path is not None else None,
         "risk_mask_path": signal_paths["risk_mask_path"],
         "uncertain_mask_path": signal_paths["uncertain_mask_path"],
         "review_priority": review_priority,
@@ -222,10 +270,11 @@ def predict_keyframe_image(
         positive_area_px=positive_area,
         threshold=float(threshold),
         source=model_id,
-        probability_path=str(probability_path),
-        uncertainty_path=str(uncertainty_path),
+        probability_path=str(probability_path) if probability_path is not None else None,
+        uncertainty_path=str(uncertainty_path) if uncertainty_path is not None else None,
         overlay_path=str(overlay_path),
         risk_summary=signal_paths.get("risk_summary", {}),
+        activity_score_path=signal_paths.get("activity_score_path"),
     )
     return {
         "prediction": {
@@ -247,11 +296,11 @@ def predict_keyframe_image(
             "type": "trainable_2d_keyframe_mask",
             "source": model_id,
             "mask_path": str(mask_path),
-            "probability_path": str(probability_path),
-            "uncertainty_path": str(uncertainty_path),
+            "probability_path": str(probability_path) if probability_path is not None else None,
+            "uncertainty_path": str(uncertainty_path) if uncertainty_path is not None else None,
             "risk_mask_path": signal_paths["risk_mask_path"],
             "uncertain_mask_path": signal_paths["uncertain_mask_path"],
-            "pseudo_color_path": str(pseudo_path),
+            "pseudo_color_path": str(pseudo_path) if pseudo_path is not None else None,
             "overlay_path": str(overlay_path),
             "candidates": candidates,
             "signal_masks": signal_masks,
@@ -278,53 +327,311 @@ def predict_keyframe_probability(
     tile_overlap: int,
     force_tiled: bool,
     max_whole_pixels: int,
+    tile_batch_size: int = 1,
+    temperature: float = 1.0,
+    tta_enabled: bool = False,
+    use_amp: bool = False,
 ) -> tuple[np.ndarray, dict[str, Any]]:
+    probability, _variance, metadata = predict_keyframe_probability_with_uncertainty(
+        model,
+        rgb,
+        device=device,
+        tile_size=tile_size,
+        tile_overlap=tile_overlap,
+        tile_batch_size=tile_batch_size,
+        force_tiled=force_tiled,
+        max_whole_pixels=max_whole_pixels,
+        temperature=temperature,
+        tta_enabled=tta_enabled,
+        use_amp=use_amp,
+    )
+    return probability, metadata
+
+
+def predict_keyframe_probability_with_uncertainty(
+    model: nn.Module,
+    rgb: np.ndarray,
+    *,
+    device: torch.device,
+    tile_size: int | None,
+    tile_overlap: int,
+    force_tiled: bool,
+    max_whole_pixels: int,
+    tile_batch_size: int = 1,
+    temperature: float = 1.0,
+    tta_enabled: bool = False,
+    use_amp: bool = False,
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     height, width = rgb.shape[:2]
     total_pixels = int(height * width)
     use_tiled = bool(force_tiled or (tile_size and total_pixels > max_whole_pixels))
     if not use_tiled:
-        probability = _predict_probability_tile(model, rgb, device=device)
-        return probability, {
-            "mode": "whole_frame",
-            "tile_size": None,
-            "tile_overlap": None,
-            "tile_count": 1,
-            "max_whole_pixels": int(max_whole_pixels),
-            "input_width": int(width),
-            "input_height": int(height),
-        }
+        probability, variance = _predict_probability_tile(
+            model,
+            rgb,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+        return (
+            probability,
+            variance,
+            {
+                "mode": "whole_frame",
+                "tile_size": None,
+                "tile_overlap": None,
+                "tile_count": 1,
+                "tile_batch_size": 1,
+                "max_whole_pixels": int(max_whole_pixels),
+                "input_width": int(width),
+                "input_height": int(height),
+            },
+        )
     effective_tile = int(tile_size or 512)
     effective_tile = max(32, effective_tile)
     effective_overlap = max(0, min(int(tile_overlap), effective_tile - 1))
+    effective_batch_size = max(1, int(tile_batch_size))
     y_starts = _tile_starts(height, effective_tile, effective_overlap)
     x_starts = _tile_starts(width, effective_tile, effective_overlap)
     accumulator = np.zeros((height, width), dtype=np.float32)
+    variance_accumulator = np.zeros((height, width), dtype=np.float32)
     weights = np.zeros((height, width), dtype=np.float32)
-    for y0 in y_starts:
-        y1 = min(height, y0 + effective_tile)
-        for x0 in x_starts:
-            x1 = min(width, x0 + effective_tile)
-            tile_probability = _predict_probability_tile(model, rgb[y0:y1, x0:x1], device=device)
+    tile_regions = [
+        (y0, min(height, y0 + effective_tile), x0, min(width, x0 + effective_tile))
+        for y0 in y_starts
+        for x0 in x_starts
+    ]
+    device_result = _predict_tiled_probability_on_device(
+        model,
+        rgb,
+        tile_regions=tile_regions,
+        tile_batch_size=effective_batch_size,
+        device=device,
+        temperature=temperature,
+        tta_enabled=tta_enabled,
+        use_amp=use_amp,
+    )
+    if device_result is not None:
+        probability, variance = device_result
+        return (
+            probability,
+            variance,
+            {
+                "mode": "tiled",
+                "tile_size": effective_tile,
+                "tile_overlap": effective_overlap,
+                "tile_count": int(len(y_starts) * len(x_starts)),
+                "tile_batch_size": effective_batch_size,
+                "max_whole_pixels": int(max_whole_pixels),
+                "input_width": int(width),
+                "input_height": int(height),
+            },
+        )
+    for start in range(0, len(tile_regions), effective_batch_size):
+        batch_regions = tile_regions[start : start + effective_batch_size]
+        batch_rgb = [rgb[y0:y1, x0:x1] for y0, y1, x0, x1 in batch_regions]
+        batch_probabilities, batch_variances = _predict_probability_batch(
+            model,
+            batch_rgb,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+        for (y0, y1, x0, x1), tile_probability, tile_variance in zip(
+            batch_regions,
+            batch_probabilities,
+            batch_variances,
+            strict=True,
+        ):
             accumulator[y0:y1, x0:x1] += tile_probability
+            variance_accumulator[y0:y1, x0:x1] += tile_variance
             weights[y0:y1, x0:x1] += 1.0
     probability = accumulator / np.maximum(weights, 1.0)
-    return probability.astype(np.float32), {
-        "mode": "tiled",
-        "tile_size": effective_tile,
-        "tile_overlap": effective_overlap,
-        "tile_count": int(len(y_starts) * len(x_starts)),
-        "max_whole_pixels": int(max_whole_pixels),
-        "input_width": int(width),
-        "input_height": int(height),
-    }
+    variance = variance_accumulator / np.maximum(weights, 1.0)
+    return (
+        probability.astype(np.float32),
+        variance.astype(np.float32),
+        {
+            "mode": "tiled",
+            "tile_size": effective_tile,
+            "tile_overlap": effective_overlap,
+            "tile_count": int(len(y_starts) * len(x_starts)),
+            "tile_batch_size": effective_batch_size,
+            "max_whole_pixels": int(max_whole_pixels),
+            "input_width": int(width),
+            "input_height": int(height),
+        },
+    )
 
 
-def _predict_probability_tile(model: nn.Module, rgb: np.ndarray, *, device: torch.device) -> np.ndarray:
-    tensor = torch.from_numpy(rgb.astype(np.float32).transpose(2, 0, 1)[None] / 255.0).to(device=device)
-    with torch.no_grad():
+def _predict_probability_tile(
+    model: nn.Module,
+    rgb: np.ndarray,
+    *,
+    device: torch.device,
+    temperature: float,
+    tta_enabled: bool,
+    use_amp: bool,
+) -> tuple[np.ndarray, np.ndarray]:
+    probabilities, variances = _predict_probability_batch(
+        model,
+        [rgb],
+        device=device,
+        temperature=temperature,
+        tta_enabled=tta_enabled,
+        use_amp=use_amp,
+    )
+    return probabilities[0], variances[0]
+
+
+def _predict_probability_batch(
+    model: nn.Module,
+    rgb_batch: list[np.ndarray],
+    *,
+    device: torch.device,
+    temperature: float,
+    tta_enabled: bool,
+    use_amp: bool,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    if not rgb_batch:
+        return [], []
+    shapes = {image.shape for image in rgb_batch}
+    if len(shapes) != 1:
+        return _predict_probability_tiles_individually(
+            model,
+            rgb_batch,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+    try:
+        mean, variance = _predict_probability_batch_tensor(
+            model,
+            rgb_batch,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+        mean_cpu = mean.detach().cpu().numpy().astype(np.float32)
+        variance_cpu = variance.detach().cpu().numpy().astype(np.float32)
+    except torch.OutOfMemoryError:
+        if len(rgb_batch) == 1:
+            raise
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        return _predict_probability_tiles_individually(
+            model,
+            rgb_batch,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+    return [mean_cpu[index] for index in range(mean_cpu.shape[0])], [
+        variance_cpu[index] for index in range(variance_cpu.shape[0])
+    ]
+
+
+def _predict_probability_batch_tensor(
+    model: nn.Module,
+    rgb_batch: list[np.ndarray],
+    *,
+    device: torch.device,
+    temperature: float,
+    tta_enabled: bool,
+    use_amp: bool,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    tensor = torch.from_numpy(np.stack(rgb_batch).astype(np.float32).transpose(0, 3, 1, 2) / 255.0).to(device=device)
+    with (
+        torch.inference_mode(),
+        torch.autocast(
+            device_type="cuda",
+            dtype=torch.float16,
+            enabled=bool(use_amp and device.type == "cuda"),
+        ),
+    ):
         logits = model(tensor)
-        probability = torch.softmax(logits, dim=1)[0, 1].detach().cpu().numpy().astype(np.float32)
-    return probability
+        probability = torch.softmax(logits / max(1e-3, float(temperature)), dim=1)[:, 1]
+        predictions = [probability]
+        if tta_enabled:
+            flipped = torch.flip(tensor, dims=[3])
+            flipped_logits = model(flipped)
+            flipped_probability = torch.softmax(flipped_logits / max(1e-3, float(temperature)), dim=1)[:, 1]
+            predictions.append(torch.flip(flipped_probability, dims=[2]))
+        stacked = torch.stack(predictions)
+        return stacked.mean(dim=0), stacked.var(dim=0, unbiased=False)
+
+
+def _predict_tiled_probability_on_device(
+    model: nn.Module,
+    rgb: np.ndarray,
+    *,
+    tile_regions: list[tuple[int, int, int, int]],
+    tile_batch_size: int,
+    device: torch.device,
+    temperature: float,
+    tta_enabled: bool,
+    use_amp: bool,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    if device.type != "cuda" or tile_batch_size <= 1:
+        return None
+    tile_shapes = {(y1 - y0, x1 - x0) for y0, y1, x0, x1 in tile_regions}
+    if len(tile_shapes) != 1:
+        return None
+    height, width = rgb.shape[:2]
+    try:
+        accumulator = torch.zeros((height, width), dtype=torch.float32, device=device)
+        variance_accumulator = torch.zeros_like(accumulator)
+        weights = torch.zeros_like(accumulator)
+        for start in range(0, len(tile_regions), tile_batch_size):
+            batch_regions = tile_regions[start : start + tile_batch_size]
+            batch_rgb = [rgb[y0:y1, x0:x1] for y0, y1, x0, x1 in batch_regions]
+            batch_probability, batch_variance = _predict_probability_batch_tensor(
+                model,
+                batch_rgb,
+                device=device,
+                temperature=temperature,
+                tta_enabled=tta_enabled,
+                use_amp=use_amp,
+            )
+            for index, (y0, y1, x0, x1) in enumerate(batch_regions):
+                accumulator[y0:y1, x0:x1] += batch_probability[index]
+                variance_accumulator[y0:y1, x0:x1] += batch_variance[index]
+                weights[y0:y1, x0:x1] += 1.0
+        denominator = weights.clamp_min(1.0)
+        probability = (accumulator / denominator).detach().cpu().numpy().astype(np.float32)
+        variance = (variance_accumulator / denominator).detach().cpu().numpy().astype(np.float32)
+        return probability, variance
+    except torch.OutOfMemoryError:
+        torch.cuda.empty_cache()
+        return None
+
+
+def _predict_probability_tiles_individually(
+    model: nn.Module,
+    rgb_batch: list[np.ndarray],
+    *,
+    device: torch.device,
+    temperature: float,
+    tta_enabled: bool,
+    use_amp: bool,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    results = [
+        _predict_probability_tile(
+            model,
+            image,
+            device=device,
+            temperature=temperature,
+            tta_enabled=tta_enabled,
+            use_amp=use_amp,
+        )
+        for image in rgb_batch
+    ]
+    return [probability for probability, _variance in results], [variance for _probability, variance in results]
 
 
 def uncertainty_from_probability(probability: np.ndarray, *, threshold: float) -> np.ndarray:
@@ -332,14 +639,20 @@ def uncertainty_from_probability(probability: np.ndarray, *, threshold: float) -
 
     effective_threshold = float(np.clip(threshold, 1e-6, 1.0 - 1e-6))
     scale = max(effective_threshold, 1.0 - effective_threshold)
-    uncertainty = 1.0 - (np.abs(probability.astype(np.float32) - effective_threshold) / scale)
+    uncertainty = 1.0 - (np.abs(np.asarray(probability, dtype=np.float32) - effective_threshold) / scale)
     return np.clip(uncertainty, 0.0, 1.0).astype(np.float32)
 
 
-def uncertainty_stats(uncertainty: np.ndarray, mask: np.ndarray) -> dict[str, Any]:
+def uncertainty_stats(
+    uncertainty: np.ndarray,
+    mask: np.ndarray,
+    *,
+    method: str = "threshold_proximity",
+    technical_variance: np.ndarray | None = None,
+) -> dict[str, Any]:
     if uncertainty.size == 0:
         return {
-            "method": "threshold_proximity",
+            "method": method,
             "mean_uncertainty": 0.0,
             "max_uncertainty": 0.0,
             "mean_uncertainty_in_mask": 0.0,
@@ -347,11 +660,13 @@ def uncertainty_stats(uncertainty: np.ndarray, mask: np.ndarray) -> dict[str, An
         }
     foreground = uncertainty[mask > 0]
     return {
-        "method": "threshold_proximity",
+        "method": method,
         "mean_uncertainty": float(uncertainty.mean()),
         "max_uncertainty": float(uncertainty.max()),
         "mean_uncertainty_in_mask": float(foreground.mean()) if foreground.size else 0.0,
         "high_uncertainty_fraction": float((uncertainty >= 0.75).mean()),
+        "mean_tta_variance": float(np.mean(technical_variance)) if technical_variance is not None else 0.0,
+        "max_tta_variance": float(np.max(technical_variance)) if technical_variance is not None else 0.0,
     }
 
 
@@ -399,19 +714,25 @@ def connected_probability_candidates(
         )
     except Exception:
         return _single_candidate(mask, probability, min_component_area=min_component_area, model_id=model_id)
+    flat_labels = np.asarray(labels, dtype=np.intp).ravel()
+    flat_probability = probability.astype(np.float32, copy=False).ravel()
+    component_count = int(component_count)
+    component_sums = np.bincount(flat_labels, weights=flat_probability, minlength=component_count)
+    component_sizes = np.bincount(flat_labels, minlength=component_count)
+    component_max = np.full(component_count, -np.inf, dtype=np.float32)
+    np.maximum.at(component_max, flat_labels, flat_probability)
     candidates: list[dict[str, Any]] = []
     for label in range(1, component_count):
         x, y, width, height, area = [int(value) for value in stats[label]]
         if area < min_component_area:
             continue
-        values = probability[labels == label]
         candidates.append(
             {
                 "candidate_id": f"{model_id}_component_{label}",
                 "bbox_xyxy": [x, y, x + width, y + height],
                 "area_px": area,
-                "score": float(values.mean()) if values.size else 0.0,
-                "confidence": float(values.max()) if values.size else 0.0,
+                "score": float(component_sums[label] / component_sizes[label]) if component_sizes[label] else 0.0,
+                "confidence": float(component_max[label]) if component_sizes[label] else 0.0,
                 "source": model_id,
             }
         )
@@ -457,6 +778,12 @@ def _green_pseudocolor(probability: np.ndarray) -> np.ndarray:
     output[..., 1] = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
     output[..., 0] = np.clip(normalized * 40.0, 0, 40).astype(np.uint8)
     return output
+
+
+def _validate_rgb_array(rgb: np.ndarray) -> np.ndarray:
+    if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
+        raise ValueError("Predecoded keyframe image must be an RGB uint8 array.")
+    return np.ascontiguousarray(rgb)
 
 
 def _safe_name(value: str) -> str:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,7 +49,11 @@ class JsonCaseRepository:
 
     def _dump_all(self, rows: list[dict]) -> None:
         ensure_dir(self.store_path.parent)
-        self.store_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary = self.store_path.with_name(f".{self.store_path.name}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        with temporary.open("r+b") as handle:
+            os.fsync(handle.fileno())
+        os.replace(temporary, self.store_path)
 
     def create(self, record: CaseRecord) -> CaseRecord:
         rows = self._load_all()
@@ -81,7 +86,9 @@ class JsonCaseRepository:
                 )
             updated_rows.append(_case_payload(updated))
         if not matched:
-            raise CaseVersionConflictError(record.case_id, expected_version=_record_version(record), actual_version=None)
+            raise CaseVersionConflictError(
+                record.case_id, expected_version=_record_version(record), actual_version=None
+            )
         self._dump_all(updated_rows)
         return updated
 
@@ -173,8 +180,7 @@ class SQLiteCaseRepository:
     def _initialize(self) -> None:
         with self._connect() as connection:
             connection.execute("PRAGMA journal_mode=WAL")
-            connection.execute(
-                """
+            connection.execute("""
                 CREATE TABLE IF NOT EXISTS cases (
                     case_id TEXT PRIMARY KEY,
                     payload TEXT NOT NULL,
@@ -182,8 +188,7 @@ class SQLiteCaseRepository:
                     updated_at TEXT NOT NULL,
                     version INTEGER NOT NULL DEFAULT 1
                 )
-                """
-            )
+                """)
             columns = {
                 str(row["name"])
                 for row in connection.execute("PRAGMA table_info(cases)").fetchall()

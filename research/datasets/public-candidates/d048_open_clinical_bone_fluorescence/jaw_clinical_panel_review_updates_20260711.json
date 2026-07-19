@@ -1,0 +1,22 @@
+{
+  "schema_version": "osteo-vision-open-clinical-panel-review-updates-v1",
+  "review_authority": "engineering_visual_selection_only",
+  "physician_reviewed": false,
+  "records": [
+    {
+      "source_record_id": "PMC9201330_figure_1",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.66, "y": 0.0, "width": 0.34, "height": 0.5},
+      "notes": "Pre-resection jaw fluorescence panel engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC11355438_figure_2",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.5, "y": 0.0, "width": 0.25, "height": 0.5},
+      "notes": "Qray red-fluorescence maxillary MRONJ panel engineering crop seed; physician mask review pending."
+    }
+  ],
+  "medical_boundary": "Engineering panel selection only. Crops remain review_required and cannot enter training without a non-empty reviewed mask and accepted or modified status."
+}

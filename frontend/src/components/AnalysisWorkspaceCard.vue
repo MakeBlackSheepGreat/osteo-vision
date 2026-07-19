@@ -46,6 +46,7 @@
       :progress="activeAnalysisJobProgress"
       :timed-out="lastAnalysisJobTimedOut"
       :loading="loading"
+      :canceling="activeAnalysisJobCanceling"
       @refresh="emit('refreshJob')"
       @cancel="emit('cancelJob')"
       @retry="emit('retryJob')"
@@ -59,6 +60,7 @@
     />
 
     <AnalysisQuadGrid
+      ref="analysisQuadGridRef"
       :panels="previewPanels"
       :camera-stream="cameraStream"
       :camera-active="cameraActive"
@@ -68,19 +70,28 @@
       :playback-duration="playbackDuration"
       :playback-seek-time-sec="playbackSeekTimeSec"
       :playback-seek-token="playbackSeekToken"
-      :camera-opening="cameraOpening"
-      @playback-state-change="syncPlaybackState"
-      @start-camera="emit('startCamera')"
-      @stop-camera="emit('stopCamera')"
+      :live-overlay-src="liveOverlaySrc"
+      :live-frame-status="liveFrameStatus"
+      :live-inference-latency-ms="liveInferenceLatencyMs"
+      @playback-state-change="handleInlinePlaybackState"
+      @playback-started="handleInlinePlaybackStarted"
+      @playback-paused="handleInlinePlaybackPaused"
+      @playback-ended="handleInlinePlaybackEnded"
     />
 
     <VideoStreamSyncPanel
       v-if="videoPlayback"
       :video-playback="videoPlayback"
       :nearest-frame-detail="nearestPlaybackFrameDetail"
+      :loading="loading"
+      :editor-open="maskEditorOpen"
+      :generate-available="boneGateGenerateAvailable(nearestPlaybackFrameDetail)"
+      :edit-available="boneGateEditAvailable(nearestPlaybackFrameDetail)"
+      :generate-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'generate')"
+      :edit-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'edit')"
       @jump-to-frame="jumpPlaybackToDetail"
-      @generate-bone-gate="emit('generateBoneGateForFrame')"
-      @edit-bone-gate="maskEditorOpen = true"
+      @generate-bone-gate="generateBoneGateForNearestFrame"
+      @edit-bone-gate="openBoneGateEditorForNearestFrame"
     />
 
     <AnalysisFusionEvidencePanel v-if="fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
@@ -232,7 +243,8 @@
               variant="secondary"
               size="sm"
               icon="target"
-              :disabled="loading"
+              :disabled="loading || !boneGateGenerateAvailable(selectedHotspotFrameDetail)"
+              :title="boneGateActionReason(selectedHotspotFrameDetail, 'generate')"
               @click="emit('generateBoneGateForFrame')"
             >
               生成骨面门控
@@ -241,13 +253,17 @@
               variant="secondary"
               size="sm"
               icon="review"
-              :disabled="loading"
+              :disabled="loading || !boneGateEditAvailable(selectedHotspotFrameDetail)"
+              :title="boneGateActionReason(selectedHotspotFrameDetail, 'edit')"
               @click="maskEditorOpen = true"
             >
               编辑骨面掩膜
             </AppButton>
           </div>
         </header>
+        <p v-if="selectedBoneGateActionHint" class="bone-gate-action-hint" role="status">
+          {{ selectedBoneGateActionHint }}
+        </p>
         <dl>
           <div>
             <dt>候选数量</dt>
@@ -347,12 +363,13 @@
             :key="detail.key"
             type="button"
             class="hotspot-frame-row"
-            :class="{ selected: selectedHotspotTimelineKey === detail.key }"
+            :class="{ selected: selectedHotspotTimelineKey === detail.key, stale: detail.stale }"
             @click="emit('selectHotspotFrame', detail.key)"
           >
             <span class="frame-row-main">
               <strong>{{ detail.frameLabel }}</strong>
               <small>{{ detail.timestampLabel }}</small>
+              <small>{{ detail.frameAgeLabel }}</small>
             </span>
             <span>
               <small>候选</small>
@@ -370,8 +387,8 @@
               <small>最大候选框</small>
               <strong>{{ detail.topBBoxLabel }}</strong>
             </span>
-            <span class="frame-row-status" :class="{ review: detail.reviewRequired }">
-              {{ detail.reviewRequired ? "需复核" : "低风险" }}
+            <span class="frame-row-status" :class="{ review: detail.reviewRequired, stale: detail.stale }">
+              {{ detail.stale ? "结果过期" : detail.reviewRequired ? "需复核" : "低风险" }}
             </span>
           </button>
         </div>
@@ -399,12 +416,13 @@
             icon-only
             title="关闭全屏分析视图"
             aria-label="关闭全屏分析视图"
-            @click="emit('closeFullscreen')"
+            @click="closeFullscreen"
           />
         </div>
       </header>
 
       <AnalysisQuadGrid
+        ref="fullscreenAnalysisQuadGridRef"
         :panels="previewPanels"
         :camera-stream="cameraStream"
         :camera-active="cameraActive"
@@ -414,10 +432,13 @@
         :playback-duration="playbackDuration"
         :playback-seek-time-sec="playbackSeekTimeSec"
         :playback-seek-token="playbackSeekToken"
-        :camera-opening="cameraOpening"
-        @playback-state-change="syncPlaybackState"
-        @start-camera="emit('startCamera')"
-        @stop-camera="emit('stopCamera')"
+        :live-overlay-src="liveOverlaySrc"
+        :live-frame-status="liveFrameStatus"
+        :live-inference-latency-ms="liveInferenceLatencyMs"
+        @playback-state-change="handleFullscreenPlaybackState"
+        @playback-started="handleFullscreenPlaybackStarted"
+        @playback-paused="handleFullscreenPlaybackPaused"
+        @playback-ended="handleFullscreenPlaybackEnded"
         fullscreen
       />
     </div>
@@ -446,7 +467,7 @@ import {
 import type { AppIconName } from "@/components/appIcons";
 import { useVideoPlaybackSync } from "@/composables/useVideoPlaybackSync";
 import type { ReviewState } from "@/types/case";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 
 // 分析视图组件只接收已经整理好的展示数据，避免把 store 和业务副作用带进展示层。
 export interface AnalysisKpiItem {
@@ -455,38 +476,51 @@ export interface AnalysisKpiItem {
   icon: AppIconName;
 }
 
-const props = defineProps<{
-  loading: boolean;
-  error: string;
-  hasCase: boolean;
-  exportPath: string;
-  exportLinks: Array<{ label: string; path: string; href: string }>;
-  exportSummary: Record<string, unknown>;
-  exportArtifactEntries: Array<{ kind: string; path: string; size_bytes?: number | null }>;
-  activeAnalysisJobId: string;
-  activeAnalysisJobStatus: string;
-  activeAnalysisJobError: string;
-  activeAnalysisJobProgress: Record<string, unknown>;
-  lastAnalysisJobTimedOut: boolean;
-  latestRunStatusLabel: string;
-  analysisStatusClass: string;
-  kpiItems: AnalysisKpiItem[];
-  previewPanels: AnalysisPreviewPanel[];
-  hotspotTimelineItems: HotspotTimelineItem[];
-  hotspotTimelineTotalCount: number;
-  hotspotTimelineFilter: HotspotTimelineFilter;
-  selectedHotspotTimelineKey: string;
-  selectedHotspotFrameDetail: HotspotFrameDetail | null;
-  hotspotFrameDetails: HotspotFrameDetail[];
-  timelineManifestSummary: TimelineManifestSummary | null;
-  fusionEvidenceSummary: FusionEvidenceSummary | null;
-  videoPlayback: VideoPlaybackAnalysis | null;
-  cameraStream: MediaStream | null;
-  cameraActive: boolean;
-  cameraOpening: boolean;
-  cameraStatusLabel: string;
-  analysisExpanded: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    loading: boolean;
+    error: string;
+    hasCase: boolean;
+    exportPath: string;
+    exportLinks: Array<{ label: string; path: string; href: string }>;
+    exportSummary: Record<string, unknown>;
+    exportArtifactEntries: Array<{ kind: string; path: string; size_bytes?: number | null }>;
+    activeAnalysisJobId: string;
+    activeAnalysisJobStatus: string;
+    activeAnalysisJobError: string;
+    activeAnalysisJobProgress: Record<string, unknown>;
+    lastAnalysisJobTimedOut: boolean;
+    activeAnalysisJobCanceling?: boolean;
+    latestRunStatusLabel: string;
+    analysisStatusClass: string;
+    kpiItems: AnalysisKpiItem[];
+    previewPanels: AnalysisPreviewPanel[];
+    hotspotTimelineItems: HotspotTimelineItem[];
+    hotspotTimelineTotalCount: number;
+    hotspotTimelineFilter: HotspotTimelineFilter;
+    selectedHotspotTimelineKey: string;
+    selectedHotspotFrameDetail: HotspotFrameDetail | null;
+    boneGateCandidateFrameIndexes?: number[];
+    hotspotFrameDetails: HotspotFrameDetail[];
+    timelineManifestSummary: TimelineManifestSummary | null;
+    fusionEvidenceSummary: FusionEvidenceSummary | null;
+    videoPlayback: VideoPlaybackAnalysis | null;
+    cameraStream: MediaStream | null;
+    cameraActive: boolean;
+    cameraStatusLabel: string;
+    analysisExpanded: boolean;
+    liveOverlaySrc?: string;
+    liveFrameStatus?: string;
+    liveInferenceLatencyMs?: number | null;
+  }>(),
+  {
+    activeAnalysisJobCanceling: false,
+    boneGateCandidateFrameIndexes: () => [],
+    liveOverlaySrc: "",
+    liveFrameStatus: "",
+    liveInferenceLatencyMs: null,
+  },
+);
 
 const emit = defineEmits<{
   export: [];
@@ -498,8 +532,10 @@ const emit = defineEmits<{
   saveBoneGateMaskEdit: [payload: { maskPngBase64: string; reviewState: ReviewState; reviewerNotes: string }];
   selectHotspotFrame: [key: string];
   updateHotspotTimelineFilter: [filter: HotspotTimelineFilter];
-  startCamera: [];
-  stopCamera: [];
+  playbackStateChange: [timeSec: number, durationSec: number];
+  playbackStarted: [];
+  playbackPaused: [];
+  playbackEnded: [];
   openFullscreen: [];
   closeFullscreen: [];
 }>();
@@ -512,6 +548,7 @@ const {
   nearestFrameDetail: nearestPlaybackFrameDetail,
   syncPlaybackState,
   jumpPlaybackToDetail,
+  seekPlaybackToTime,
 } = useVideoPlaybackSync({
   videoPlayback: () => props.videoPlayback,
   selectedFrameKey: () => props.selectedHotspotTimelineKey,
@@ -519,6 +556,17 @@ const {
 });
 
 const maskEditorOpen = ref(false);
+const selectedBoneGateActionHint = computed(() => {
+  const detail = props.selectedHotspotFrameDetail;
+  if (!detail) return "";
+  if (!hasBoneGateCandidate(detail)) return boneGateActionReason(detail, "generate");
+  if (!detail.boneGateMaskHref) return "当前帧尚无骨面掩膜；生成完成后可进入像素级编辑。";
+  return "";
+});
+const analysisQuadGridRef = ref<InstanceType<typeof AnalysisQuadGrid> | null>(null);
+const fullscreenAnalysisQuadGridRef = ref<InstanceType<typeof AnalysisQuadGrid> | null>(null);
+const activePlaybackSurface = ref<"inline" | "fullscreen">("inline");
+const suppressFullscreenPlaybackEvents = ref(false);
 
 watch(
   () => props.selectedHotspotFrameDetail?.key,
@@ -527,17 +575,154 @@ watch(
   },
 );
 
+watch(
+  () => props.analysisExpanded,
+  (expanded) => {
+    if (expanded) {
+      suppressFullscreenPlaybackEvents.value = false;
+      return;
+    }
+    activePlaybackSurface.value = "inline";
+  },
+);
+
+function selectNearestPlaybackFrame(detail: HotspotFrameDetail) {
+  emit("selectHotspotFrame", detail.key);
+}
+
+function hasBoneGateCandidate(detail: HotspotFrameDetail | null): boolean {
+  return Boolean(
+    detail &&
+      detail.frameIndex !== null &&
+      Number.isFinite(detail.frameIndex) &&
+      props.boneGateCandidateFrameIndexes.includes(detail.frameIndex),
+  );
+}
+
+function boneGateGenerateAvailable(detail: HotspotFrameDetail | null): boolean {
+  return hasBoneGateCandidate(detail) && !detail?.boneGateMaskHref;
+}
+
+function boneGateEditAvailable(detail: HotspotFrameDetail | null): boolean {
+  return hasBoneGateCandidate(detail) && Boolean(detail?.boneGateMaskHref);
+}
+
+function boneGateActionReason(detail: HotspotFrameDetail | null, action: "generate" | "edit"): string {
+  if (props.loading) return "骨面门控操作处理中，请等待当前任务完成。";
+  if (!detail) return "当前没有可操作的关键帧。";
+  if (detail.frameIndex === null || !Number.isFinite(detail.frameIndex)) {
+    return "当前关键帧缺少有效帧号，无法匹配候选区。";
+  }
+  if (!hasBoneGateCandidate(detail)) {
+    return `帧 ${detail.frameIndex} 没有匹配的候选区，骨面门控操作已停用。`;
+  }
+  if (action === "generate" && detail.boneGateMaskHref) {
+    return "当前帧已有骨面掩膜，请进入编辑。";
+  }
+  if (action === "edit" && !detail.boneGateMaskHref) {
+    return "请先生成当前帧的骨面门控，再编辑掩膜。";
+  }
+  return action === "generate" ? "为当前帧候选区生成骨面门控。" : "载入当前帧已有掩膜并进行像素级复核。";
+}
+
+function generateBoneGateForNearestFrame(detail: HotspotFrameDetail) {
+  selectNearestPlaybackFrame(detail);
+  emit("generateBoneGateForFrame");
+}
+
+function openBoneGateEditorForNearestFrame(detail: HotspotFrameDetail) {
+  selectNearestPlaybackFrame(detail);
+  maskEditorOpen.value = true;
+}
+
+function handleInlinePlaybackState(timeSec: number, durationSec: number) {
+  activePlaybackSurface.value = "inline";
+  handlePlaybackState(timeSec, durationSec);
+}
+
+function handleFullscreenPlaybackState(timeSec: number, durationSec: number) {
+  if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded) return;
+  activePlaybackSurface.value = "fullscreen";
+  handlePlaybackState(timeSec, durationSec);
+}
+
+function handlePlaybackState(timeSec: number, durationSec: number) {
+  syncPlaybackState(timeSec, durationSec);
+  emit("playbackStateChange", timeSec, durationSec);
+}
+
+function handleInlinePlaybackStarted() {
+  activePlaybackSurface.value = "inline";
+  emit("playbackStarted");
+}
+
+function handleInlinePlaybackPaused() {
+  emit("playbackPaused");
+}
+
+function handleInlinePlaybackEnded() {
+  emit("playbackEnded");
+}
+
+function handleFullscreenPlaybackStarted() {
+  if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded) return;
+  activePlaybackSurface.value = "fullscreen";
+  emit("playbackStarted");
+}
+
+function handleFullscreenPlaybackPaused() {
+  if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded || activePlaybackSurface.value !== "fullscreen") return;
+  emit("playbackPaused");
+}
+
+function handleFullscreenPlaybackEnded() {
+  if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded || activePlaybackSurface.value !== "fullscreen") return;
+  emit("playbackEnded");
+}
+
+function closeFullscreen() {
+  if (activePlaybackSurface.value === "fullscreen") {
+    suppressFullscreenPlaybackEvents.value = true;
+    activePlaybackSurface.value = "inline";
+    seekPlaybackToTime(currentPlaybackTime.value);
+    emit("playbackPaused");
+  }
+  emit("closeFullscreen");
+}
+
+async function capturePlaybackFrame(): Promise<Blob> {
+  const grid = activePlaybackSurface.value === "fullscreen"
+    ? fullscreenAnalysisQuadGridRef.value
+    : analysisQuadGridRef.value;
+  if (!grid) {
+    throw new Error("MP4 播放视口尚未就绪。");
+  }
+  return grid.capturePlaybackFrame();
+}
+
+function currentPlaybackTimeSec(): number | undefined {
+  const grid = activePlaybackSurface.value === "fullscreen"
+    ? fullscreenAnalysisQuadGridRef.value
+    : analysisQuadGridRef.value;
+  return grid?.currentPlaybackTime() ?? currentPlaybackTime.value;
+}
+
+defineExpose({
+  capturePlaybackFrame,
+  currentPlaybackTimeSec,
+});
+
 </script>
 
 <style scoped>
 .analysis-card {
   position: relative;
   min-width: 0;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 14px 16px 16px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(39, 74, 106, 0.06);
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 .analysis-header,
@@ -566,12 +751,12 @@ watch(
 .analysis-header h2,
 .fullscreen-header h2 {
   margin: 0;
-  color: #102136;
+  color: var(--ov-text);
   line-height: 1.25;
 }
 
 .analysis-header h2 {
-  font-size: 21px;
+  font-size: 18px;
 }
 
 .fullscreen-header h2 {
@@ -602,19 +787,19 @@ watch(
   align-items: center;
   max-width: 100%;
   min-height: 26px;
-  border: 1px solid #d3e2f1;
-  border-radius: 999px;
-  padding: 3px 8px;
-  background: linear-gradient(180deg, #ffffff, #f4f9ff);
-  color: #4d6780;
+  border: 1px solid var(--ov-border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .summary-chip :deep(.app-icon) {
   width: 14px;
   height: 14px;
-  color: #2c7ec0;
+  color: var(--ov-primary-strong);
 }
 
 .summary-chip span {
@@ -625,7 +810,7 @@ watch(
 
 .summary-chip strong {
   min-width: 0;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -637,48 +822,48 @@ watch(
 
 .run-pill {
   flex: 0 0 auto;
-  border-radius: 999px;
+  border-radius: 6px;
   padding: 5px 10px;
-  background: #eef4ff;
-  color: #1262d8;
+  background: var(--ov-bg-info);
+  color: var(--ov-primary);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .run-pill.failed {
-  background: #fff4f1;
-  color: #a23b25;
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
 }
 
 .run-pill.running {
-  background: #fffaf0;
-  color: #bd650c;
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
 }
 
 .run-pill.idle {
-  background: #f2f6fb;
-  color: #5a6a7a;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-muted);
 }
 
 .state-message {
   margin-bottom: 9px;
-  border: 1px solid #d6e0eb;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 7px 10px;
-  background: #f8fbfe;
-  color: #405060;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .state-message.error {
-  border-color: #e7b7ab;
-  background: #fff4f1;
-  color: #a23b25;
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
 }
 
 .state-message.muted {
-  color: #6a7a8a;
+  color: var(--ov-text-muted);
 }
 
 .analysis-fullscreen {
@@ -690,7 +875,7 @@ watch(
   height: 100dvh;
   overflow: hidden;
   padding: 0;
-  background: #eef6fd;
+  background: var(--ov-bg);
 }
 
 .analysis-fullscreen-panel {
@@ -705,7 +890,7 @@ watch(
   border: 0;
   border-radius: 0;
   padding: 14px 16px 16px;
-  background: linear-gradient(180deg, #ffffff, #f4f9ff);
+  background: var(--ov-bg-elevated);
   box-shadow: none;
 }
 
@@ -713,29 +898,29 @@ watch(
   display: grid;
   gap: 8px;
   margin-top: 10px;
-  border: 1px solid #d6e4f2;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 9px 10px;
-  background: #f8fbfe;
+  background: var(--ov-bg-soft);
 }
 
 .hotspot-timeline header {
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 13px;
 }
 
 .hotspot-timeline header :deep(.app-icon) {
   width: 15px;
   height: 15px;
-  color: #2c7ec0;
+  color: var(--ov-primary-strong);
 }
 
 .hotspot-timeline header span {
   margin-left: auto;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -749,11 +934,11 @@ watch(
 
 .hotspot-filter-group button {
   min-height: 28px;
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 999px;
   padding: 4px 10px;
-  background: #ffffff;
-  color: #426078;
+  background: var(--ov-bg-control);
+  color: var(--ov-text-secondary);
   font: inherit;
   font-size: 12px;
   font-weight: 850;
@@ -761,23 +946,23 @@ watch(
 }
 
 .hotspot-filter-group button.selected {
-  border-color: #1c75b7;
-  background: #eaf5ff;
-  color: #145d91;
+  border-color: var(--ov-border-accent);
+  background: var(--ov-bg-selected);
+  color: var(--ov-primary);
 }
 
 .hotspot-filter-group button:focus-visible {
-  outline: 2px solid rgba(44, 126, 192, 0.52);
+  outline: 2px solid var(--ov-focus-ring);
   outline-offset: 2px;
 }
 
 .timeline-manifest-panel {
   display: grid;
   gap: 8px;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
   padding: 8px 9px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .timeline-manifest-panel summary,
@@ -800,11 +985,11 @@ watch(
 
 .timeline-manifest-panel summary a {
   flex: 0 0 auto;
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 999px;
   padding: 3px 8px;
-  background: #f8fbfe;
-  color: #145d91;
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
   font-size: 11px;
   font-weight: 900;
   text-decoration: none;
@@ -819,10 +1004,10 @@ watch(
 
 .timeline-summary-grid div {
   min-width: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 5px 7px;
-  background: #f8fbfe;
+  background: var(--ov-bg-soft);
 }
 
 .timeline-summary-grid dt,
@@ -834,13 +1019,13 @@ watch(
 }
 
 .timeline-summary-grid dt {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 900;
 }
 
 .timeline-summary-grid dd {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -852,12 +1037,12 @@ watch(
 }
 
 .timeline-trace-list > strong {
-  color: #2f638a;
+  color: var(--ov-primary);
   font-size: 12px;
 }
 
 .timeline-trace-list.duplicate > strong {
-  color: #8a5b1f;
+  color: var(--ov-warning);
 }
 
 .timeline-trace-list ul {
@@ -873,10 +1058,10 @@ watch(
   display: grid;
   gap: 2px;
   min-width: 0;
-  border: 1px solid #e0e8f1;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 5px 7px;
-  background: #fbfdff;
+  background: var(--ov-bg-soft);
 }
 
 .timeline-trace-list span,
@@ -887,13 +1072,13 @@ watch(
 }
 
 .timeline-trace-list span {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 11px;
   font-weight: 900;
 }
 
 .timeline-trace-list small {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 10px;
   font-weight: 800;
 }
@@ -910,10 +1095,10 @@ watch(
   grid-template-columns: 78px minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
   padding: 7px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -926,20 +1111,18 @@ watch(
 
 .hotspot-timeline-item:hover {
   transform: translateY(-1px);
-  border-color: #2c7ec0;
-  box-shadow: 0 8px 18px rgba(20, 86, 138, 0.12);
+  border-color: var(--ov-border-accent);
+  box-shadow: var(--ov-shadow);
 }
 
 .hotspot-timeline-item.selected {
-  border-color: #1c75b7;
-  background: #f0f8ff;
-  box-shadow:
-    0 0 0 1px rgba(28, 117, 183, 0.18) inset,
-    0 8px 20px rgba(20, 86, 138, 0.12);
+  border-color: var(--ov-border-accent);
+  background: var(--ov-bg-selected);
+  box-shadow: 0 0 0 1px var(--ov-focus-ring) inset, var(--ov-shadow);
 }
 
 .hotspot-timeline-item:focus-visible {
-  outline: 2px solid rgba(44, 126, 192, 0.52);
+  outline: 2px solid var(--ov-focus-ring);
   outline-offset: 2px;
 }
 
@@ -948,7 +1131,7 @@ watch(
   height: 62px;
   border-radius: 4px;
   object-fit: cover;
-  background: #0f1720;
+  background: var(--ov-bg-media);
 }
 
 .hotspot-timeline-copy {
@@ -965,12 +1148,12 @@ watch(
 }
 
 .hotspot-timeline-copy strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
 }
 
 .hotspot-timeline-copy span {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 800;
 }
@@ -990,13 +1173,13 @@ watch(
 }
 
 .hotspot-timeline-copy dt {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 900;
 }
 
 .hotspot-timeline-copy dd {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 11px;
   font-weight: 900;
 }
@@ -1009,23 +1192,23 @@ watch(
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: #dbe8f4;
+  background: var(--ov-border-subtle);
 }
 
 .hotspot-score-bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2c7ec0, #35a26b);
+  background: var(--ov-primary-strong);
 }
 
 .hotspot-frame-detail {
   display: grid;
   gap: 8px;
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
   padding: 8px 9px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .hotspot-frame-detail header,
@@ -1047,7 +1230,7 @@ watch(
 }
 
 .hotspot-frame-actions span {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 850;
 }
@@ -1067,13 +1250,13 @@ watch(
 }
 
 .hotspot-frame-detail dt {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 900;
 }
 
 .hotspot-frame-detail dd {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1087,11 +1270,11 @@ watch(
 }
 
 .hotspot-frame-links a {
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 999px;
   padding: 3px 8px;
-  background: #f8fbfe;
-  color: #145d91;
+  background: var(--ov-bg-control);
+  color: var(--ov-primary);
   font-size: 11px;
   font-weight: 900;
   text-decoration: none;
@@ -1099,7 +1282,7 @@ watch(
 
 .hotspot-frame-links span {
   min-width: 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -1108,15 +1291,22 @@ watch(
 
 .hotspot-frame-detail p {
   margin: 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   line-height: 1.45;
 }
 
+.hotspot-frame-detail .bone-gate-action-hint {
+  border-left: 2px solid var(--ov-border-accent);
+  padding-left: 8px;
+  color: var(--ov-text-muted);
+  overflow-wrap: anywhere;
+}
+
 .hotspot-frame-drawer {
-  border: 1px solid #dbe8f4;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--ov-bg-elevated);
 }
 
 .hotspot-frame-drawer summary {
@@ -1127,7 +1317,7 @@ watch(
   justify-content: space-between;
   gap: 10px;
   padding: 8px 9px;
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -1137,7 +1327,7 @@ watch(
 }
 
 .hotspot-frame-drawer summary strong {
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
 }
 
@@ -1146,7 +1336,7 @@ watch(
   gap: 6px;
   max-height: 310px;
   overflow: auto;
-  border-top: 1px solid #e4edf6;
+  border-top: 1px solid var(--ov-border-subtle);
   padding: 8px;
 }
 
@@ -1157,22 +1347,27 @@ watch(
   gap: 8px;
   width: 100%;
   min-width: 0;
-  border: 1px solid #edf3f8;
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 6px;
   padding: 7px 8px;
-  background: #f9fcff;
+  background: var(--ov-bg-soft);
   color: inherit;
   text-align: left;
 }
 
 .hotspot-frame-row:hover,
 .hotspot-frame-row.selected {
-  border-color: #8bb9da;
-  background: #eef7ff;
+  border-color: var(--ov-border-accent);
+  background: var(--ov-bg-selected);
+}
+
+.hotspot-frame-row.stale {
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
 }
 
 .hotspot-frame-row:focus-visible {
-  outline: 2px solid #2c7ec0;
+  outline: 2px solid var(--ov-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1189,13 +1384,13 @@ watch(
 }
 
 .hotspot-frame-row small {
-  color: #748494;
+  color: var(--ov-text-muted);
   font-size: 10px;
   font-weight: 850;
 }
 
 .hotspot-frame-row strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 11px;
   font-weight: 900;
 }
@@ -1206,11 +1401,11 @@ watch(
 
 .frame-row-status {
   justify-self: end;
-  border: 1px solid #c9dae8;
+  border: 1px solid var(--ov-border-strong);
   border-radius: 999px;
   padding: 4px 8px;
-  background: #ffffff;
-  color: #5a6a7a;
+  background: var(--ov-bg-control);
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 900;
   text-align: center;
@@ -1219,18 +1414,24 @@ watch(
 }
 
 .frame-row-status.review {
-  border-color: #f0c27a;
-  background: #fff8ea;
-  color: #8a560b;
+  border-color: var(--ov-warning);
+  background: var(--ov-bg-warning);
+  color: var(--ov-warning);
+}
+
+.frame-row-status.stale {
+  border-color: var(--ov-danger-border);
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
 }
 
 .hotspot-empty-state {
   margin: 0;
-  border: 1px dashed #cbd9e7;
+  border: 1px dashed var(--ov-border-strong);
   border-radius: 6px;
   padding: 9px 10px;
-  background: #ffffff;
-  color: #5a6a7a;
+  background: var(--ov-bg-elevated);
+  color: var(--ov-text-secondary);
   font-size: 12px;
 }
 

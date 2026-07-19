@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import csv
-import json
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.generate_model_checkpoint_manifest import build_model_checkpoint_manifest  # noqa: E402
+from src.models.runtime_preflight import check_runtime_readiness  # noqa: E402
+
+STRICT_CONFIG = "configs/inference/osteo_vision_competition_strict.yml"
 
 
 def status(ok: bool) -> str:
@@ -87,49 +94,39 @@ def check_command(command: list[str], label: str) -> None:
     print(f"{prefix:8} {label}: {detail}")
 
 
-def check_code_snapshots() -> None:
-    required_egnet = [
-        "research/model-snapshots/code/egnet/model/CRA.py",
-        "research/model-snapshots/code/egnet/model/Fusion.py",
-        "research/model-snapshots/code/egnet/model/Transformer.py",
-        "research/model-snapshots/code/egnet/model/bgnet.py",
-        "research/model-snapshots/code/egnet/model/lib",
-        "research/model-snapshots/code/egnet/tester.py",
-    ]
-    required_frs = [
-        "research/model-snapshots/code/frs_loss/models.py",
-        "research/model-snapshots/code/frs_loss/loss_function.py",
-        "research/model-snapshots/code/frs_loss/FRS.py",
-    ]
-    print("EGNet snapshot:")
-    for item in required_egnet:
-        check_file(item) if not item.endswith("/lib") else check_dir(item)
-    print("FRS Loss snapshot:")
-    for item in required_frs:
-        check_file(item)
-
-
-def check_model_evidence() -> None:
-    manifest_path = ROOT / "research/reports/modeling/model_checkpoint_manifest_20260704.json"
-    if not manifest_path.exists():
-        print("MISSING  research/reports/modeling/model_checkpoint_manifest_20260704.json")
-        return
+def check_model_evidence() -> bool:
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        print(f"WARN     model checkpoint manifest is not valid JSON: {exc}")
-        return
-    summary = payload.get("summary") if isinstance(payload, dict) else {}
-    missing = summary.get("models_with_missing_checkpoint") if isinstance(summary, dict) else []
+        payload = build_model_checkpoint_manifest(STRICT_CONFIG)
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"MISSING  current strict model inventory: {exc}")
+        return False
+    summary = payload.get("summary") or {}
+    missing = summary.get("models_with_missing_checkpoint") or []
     print(
-        "OK       research/reports/modeling/model_checkpoint_manifest_20260704.json "
+        "OK       current strict model inventory "
         f"models={payload.get('model_count')} available={payload.get('available_model_count')} "
-        f"missing_checkpoints={len(missing or [])}"
+        f"missing_checkpoints={len(missing)} config_sha256={payload.get('config_sha256')}"
     )
-    check_file("research/reports/modeling/model_checkpoint_manifest_20260704_zh.md")
-    check_file("research/reports/modeling/model_checkpoint_manifest_20260704_en.md")
     if missing:
         print(f"INFO     model checkpoints still missing for {', '.join(str(item) for item in missing)}")
+    return payload.get("available_model_count", 0) > 0 and not missing
+
+
+def check_runtime_profiles() -> bool:
+    development = check_runtime_readiness("configs/inference/osteo_vision.yml")
+    strict = check_runtime_readiness(STRICT_CONFIG, require_strict=True)
+    print(
+        f"{'OK' if development['passed'] else 'MISSING':8} development runtime "
+        f"errors={development['error_count']} warnings={development['warning_count']}"
+    )
+    print(
+        f"{'OK' if strict['passed'] else 'MISSING':8} competition strict runtime "
+        f"errors={strict['error_count']} warnings={strict['warning_count']} "
+        f"config_sha256={strict['config_sha256']}"
+    )
+    if strict["errors"]:
+        print(f"INFO     strict runtime errors={strict['errors']}")
+    return bool(development["passed"] and strict["passed"])
 
 
 def check_gitignore_rules() -> None:
@@ -159,16 +156,21 @@ def check_gitignore_rules() -> None:
     print("OK       .gitignore excludes raw imaging, checkpoints, frontend builds, and transient artifacts")
 
 
-def main() -> None:
+def main() -> int:
     print(f"Project root: {ROOT}")
 
     print_section("Core Files")
+    core_ok = True
     for path in [
         "README.md",
         "AGENTS.md",
         "README_CN.md",
         "configs/tasks/osteo_vision.yml",
         "configs/inference/osteo_vision.yml",
+        STRICT_CONFIG,
+        "start_platform.cmd",
+        "scripts/start_platform.ps1",
+        "tools/check_runtime_readiness.py",
         "research/planning/DOWNLOAD_STATUS.md",
         "research/planning/engineering_preparation.md",
         "research/literature/inventory/competition_feasibility_report.md",
@@ -178,7 +180,7 @@ def main() -> None:
         "research/planning/requirements-platform-validation.txt",
         "tools/run_platform_smoke.py",
     ]:
-        check_file(path)
+        core_ok = check_file(path) and core_ok
 
     print_section("CSV Encoding")
     check_utf8_csv("research/literature/inventory/paper_inventory.csv")
@@ -199,14 +201,11 @@ def main() -> None:
     ]:
         check_dir(path)
 
-    print_section("Code Snapshots")
-    check_dir("research/model-snapshots/code/nnunet")
-    check_dir("research/model-snapshots/code/egnet")
-    check_dir("research/model-snapshots/code/frs_loss")
-    check_code_snapshots()
+    print_section("Runtime Profiles")
+    runtime_ok = check_runtime_profiles()
 
     print_section("Model Evidence")
-    check_model_evidence()
+    model_ok = check_model_evidence()
 
     print_section("Platform Workspace")
     for path in [
@@ -221,7 +220,8 @@ def main() -> None:
     check_command(["python", "--version"], "python")
     check_command(["dotnet", "--version"], "dotnet")
     check_command(["git", "--version"], "git")
+    return 0 if core_ok and runtime_ok and model_ok else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

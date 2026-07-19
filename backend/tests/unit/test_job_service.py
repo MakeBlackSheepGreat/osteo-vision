@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from backend.src.services.job_service import JobCapacityError, JobConflictError, JobRegistry
+from backend.src.services.job_service import (
+    JobCapacityError,
+    JobConflictError,
+    JobRegistry,
+)
 
 
 def test_job_registry_persists_completed_jobs(tmp_path: Path) -> None:
@@ -23,7 +27,29 @@ def test_job_registry_persists_completed_jobs(tmp_path: Path) -> None:
     assert loaded["result"]["run_id"] == "run_1"
 
 
-def test_job_registry_marks_unfinished_jobs_failed_after_restart(tmp_path: Path) -> None:
+def test_job_registry_retries_transient_windows_replace_lock(tmp_path: Path, monkeypatch) -> None:
+    original_replace = Path.replace
+    calls = {"count": 0}
+
+    def flaky_replace(path: Path, target: Path) -> Path:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise PermissionError(5, "transient file lock")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", flaky_replace)
+    monkeypatch.setattr("backend.src.services.job_service.time.sleep", lambda _seconds: None)
+
+    registry = JobRegistry(tmp_path / "jobs.json")
+    job = registry.create(kind="case_analysis", payload={"case_id": "case_retry"})
+
+    assert calls["count"] >= 2
+    assert registry.get(job["job_id"])["status"] == "queued"  # type: ignore[index]
+
+
+def test_job_registry_marks_unfinished_jobs_failed_after_restart(
+    tmp_path: Path,
+) -> None:
     store = tmp_path / "jobs.json"
     registry = JobRegistry(store)
     job = registry.create(kind="upload_keyframe_extraction", payload={"source_path": "sample.mp4"})
@@ -94,12 +120,63 @@ def test_job_registry_enforces_active_capacity(tmp_path: Path) -> None:
 
 def test_job_registry_enforces_singleton_payload_keys(tmp_path: Path) -> None:
     registry = JobRegistry(tmp_path / "jobs.json")
-    first = registry.create(kind="case_analysis", payload={"case_id": "case_lock"}, singleton_keys=["case_id"])
+    first = registry.create(
+        kind="case_analysis",
+        payload={"case_id": "case_lock"},
+        singleton_keys=["case_id"],
+    )
 
     with pytest.raises(JobConflictError) as exc_info:
-        registry.create(kind="case_analysis", payload={"case_id": "case_lock"}, singleton_keys=["case_id"])
+        registry.create(
+            kind="case_analysis",
+            payload={"case_id": "case_lock"},
+            singleton_keys=["case_id"],
+        )
 
     assert exc_info.value.active_job["job_id"] == first["job_id"]
     registry.mark_completed(first["job_id"], {"run_id": "run_done"})
-    second = registry.create(kind="case_analysis", payload={"case_id": "case_lock"}, singleton_keys=["case_id"])
+    second = registry.create(
+        kind="case_analysis",
+        payload={"case_id": "case_lock"},
+        singleton_keys=["case_id"],
+    )
     assert second["job_id"] != first["job_id"]
+
+
+@pytest.mark.parametrize(
+    ("first_kind", "second_kind"),
+    [
+        ("l1_static_registration", "l2_offline_pose_replay"),
+        ("l2_offline_pose_replay", "l1_static_registration"),
+    ],
+)
+def test_job_registry_serializes_navigation_pipeline_jobs_across_kinds(
+    tmp_path: Path,
+    first_kind: str,
+    second_kind: str,
+) -> None:
+    registry = JobRegistry(tmp_path / "jobs.json")
+    first = registry.create(
+        kind=first_kind,
+        payload={"case_id": "case_navigation_lock"},
+        singleton_keys=["case_id"],
+    )
+
+    with pytest.raises(JobConflictError) as exc_info:
+        registry.create(
+            kind=second_kind,
+            payload={"case_id": "case_navigation_lock"},
+            singleton_keys=["case_id"],
+        )
+
+    assert first["family"] == "navigation_pipeline"
+    assert exc_info.value.active_job["job_id"] == first["job_id"]
+    assert exc_info.value.active_job["kind"] == first_kind
+
+    registry.mark_completed(first["job_id"], {"navigation_level": "L0"})
+    second = registry.create(
+        kind=second_kind,
+        payload={"case_id": "case_navigation_lock"},
+        singleton_keys=["case_id"],
+    )
+    assert second["family"] == "navigation_pipeline"

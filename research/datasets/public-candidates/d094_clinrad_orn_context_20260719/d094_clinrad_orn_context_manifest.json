@@ -1,0 +1,115 @@
+{
+  "schema_version": "osteo-vision-d094-clinrad-orn-context-v1",
+  "generated_at_utc": "2026-07-19T02:51:18.626233+00:00",
+  "record_count": 1,
+  "file_count": 3,
+  "total_size_bytes": 45768,
+  "records": [
+    {
+      "candidate_id": "D094",
+      "dataset_name": "Available Data for Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort.",
+      "doi": "10.6084/m9.figshare.28292186.v2",
+      "source_page_url": "https://figshare.com/articles/dataset/Available_Data_for_Early_Imaging_Identification_of_Osteoradionecrosis_and_Classification_Using_the_Novel_ClinRad_System_Results_from_A_Retrospective_Observational_Cohort_/28292186/2",
+      "metadata_urls": [
+        "https://api.figshare.com/v2/articles/28292186",
+        "https://api.datacite.org/dois/10.6084/m9.figshare.28292186.v2"
+      ],
+      "direct_download_url": "https://ndownloader.figshare.com/files/51987479",
+      "license": "CC BY 4.0",
+      "license_identifier": "cc-by-4.0",
+      "license_review_status": "verified_from_figshare_api_and_datacite",
+      "domain_tier": "human_ornj_target_condition_near_clinical_and_imaging_derived_labels",
+      "modality": "patient-level clinical table with CT, CBCT, panoramic and examination interpretation text",
+      "labels": "Watson S/G severity class plus patient-level free-text radiographic and exposed-bone findings; no source images, ROI coordinates or pixel masks",
+      "patient_count": 53,
+      "patient_count_unit": "anonymized_human_ornj_records",
+      "clinical_variables": [
+        "age at initial ORNJ",
+        "sex",
+        "problem-list code status",
+        "HPV/p16 status",
+        "primary tumor location",
+        "radiotherapy dose and fractions",
+        "chemotherapy or immunotherapy",
+        "radiotherapy-to-ORN interval",
+        "Watson stage and grade",
+        "initial CT, CBCT, panoramic and examination findings"
+      ],
+      "recommended_use": "Target-condition-near clinical feature dictionary, patient-level grouped protocol, weak severity-label engineering and audit of patient-conditioning safety boundaries.",
+      "content_audit": {
+        "patient_count": 53,
+        "unique_anonymized_patient_ids": 53,
+        "column_count": 12,
+        "columns": [
+          "Anonymization_ORN_X",
+          "Sex",
+          "Age at ORNinitial",
+          "Age at Death",
+          "M27.2 or M87.9 In Problem List? (Y/N)",
+          "HPV/p16 Status",
+          "Primary Tumor Location",
+          "Total Dose to Primary; Fx",
+          "Chemotherapy/Immunotherapy",
+          "RTend to initial ORN (months)",
+          "Watson S/G",
+          "Findings at initial ORN diagnosis"
+        ],
+        "age_min_years": 43.0,
+        "age_max_years": 81.0,
+        "sex_counts": {
+          "F": 3,
+          "M": 50
+        },
+        "watson_stage_grade_counts": {
+          "S0/G1": 14,
+          "S1/G2": 28,
+          "S2/G3": 9,
+          "S3/G4": 2
+        },
+        "records_mentioning_ct": 52,
+        "records_mentioning_cbct": 2,
+        "records_mentioning_panoramic_or_panorex": 1,
+        "records_mentioning_exposed_bone": 44
+      },
+      "cross_verification": {
+        "figshare_api": "public, non-confidential, download enabled, one pinned XLSX, CC BY 4.0",
+        "datacite": "matching DOI, title, 19198-byte size and SPDX cc-by-4.0 rights",
+        "local_workbook": "53 unique anonymized records with fixed columns and checked label distributions"
+      },
+      "local_files": [
+        {
+          "path": "raw/clinrad_orn_anonymized_cohort_v2.xlsx",
+          "file_role": "anonymized_patient_level_clinical_and_radiographic_interpretation_table",
+          "source_filename": "FINAL_Anon_Pts Included_for_Analysis.xlsx",
+          "figshare_file_id": 51987479,
+          "direct_download_url": "https://ndownloader.figshare.com/files/51987479",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "size_bytes": 19198,
+          "official_md5": "5768c25d72c4480d0b2d0af19d485e35",
+          "local_md5": "5768c25d72c4480d0b2d0af19d485e35",
+          "sha256": "022075cfc73b13f7b7e6bcfbeacd6f30bb1eb506525333f83214742bc12c268e"
+        },
+        {
+          "path": "metadata/figshare_article_28292186_v2.json",
+          "file_role": "official_figshare_api_metadata",
+          "direct_download_url": "https://api.figshare.com/v2/articles/28292186",
+          "size_bytes": 7934,
+          "sha256": "6a1dc2edd1299d8a363fd929cb58aff2c9847ab93a598ba97e7025792f6168a5"
+        },
+        {
+          "path": "metadata/datacite_10.6084_m9.figshare.28292186.v2.json",
+          "file_role": "official_datacite_metadata",
+          "direct_download_url": "https://api.datacite.org/dois/10.6084/m9.figshare.28292186.v2",
+          "size_bytes": 18636,
+          "sha256": "55bee1b91891c94adeda083c49f8b31819cca826b330cf95c6e1568e27eb4456"
+        }
+      ],
+      "download_status": "verified_complete_public_release",
+      "downloaded_at_utc": "2026-07-19T02:51:18.626233+00:00",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "Real anonymized human osteoradionecrosis-of-the-jaw patient context and image-derived interpretation labels. The release contains no raw CT or CBCT, operative white-light or fluorescence frames, pixel annotations, pathology mapping, patient-specific surface model or navigation coordinates. It cannot validate spatial patient-conditioned segmentation, bone-activity classes, fluorescence performance or navigation accuracy."
+    }
+  ]
+}

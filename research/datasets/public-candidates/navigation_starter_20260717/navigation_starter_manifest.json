@@ -1,0 +1,31 @@
+{
+  "schema_version": "osteo-vision-navigation-starter-v1",
+  "generated_at_utc": "2026-07-17T16:27:40.952167+00:00",
+  "record_count": 1,
+  "total_size_bytes": 36823665,
+  "records": [
+    {
+      "candidate_id": "D076",
+      "dataset_name": "SERV-CT simplified validation dataset",
+      "source_page_url": "https://rdr.ucl.ac.uk/articles/dataset/SERV-CT_A_disparity_dataset_from_cone-beam_CT_for_validation_of_endoscopic_3D_reconstruction/26352199",
+      "metadata_url": "https://api.figshare.com/v2/articles/26352199",
+      "direct_download_url": "https://ndownloader.figshare.com/files/47857471",
+      "file_name": "SERV-CT.zip",
+      "local_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\navigation_starter_20260717\\d076\\raw\\SERV-CT.zip",
+      "size_bytes": 36823665,
+      "figshare_md5": "911048d7f15833db6fc0603051a67c9c",
+      "sha256": "7a8a35c9f190735f25510942e039b7ddffceb50f9001236adfe3a719db4a924a",
+      "license": "CC BY 4.0",
+      "license_expected": "CC BY 4.0",
+      "medical_scene": "ex_vivo_porcine_stereo_endoscopy_with_cone_beam_ct",
+      "recommended_use": "L1 static camera calibration, CT-surface correspondence, depth, reprojection and transform-chain validation",
+      "priority_target": "l1_static_registration",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "download_status": "verified",
+      "downloaded_at_utc": "2026-07-17T16:27:40.952167+00:00",
+      "data_boundary": "Ex vivo non-jaw surgical-vision proxy. It validates geometry and software behavior only; it cannot support jaw-navigation accuracy or clinical readiness claims."
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": "osteo-vision-navigation-cbct-stl-audit-v1",
+  "generated_at_utc": "2026-07-18T14:30:00Z",
+  "search_method": {
+    "tavily": "attempted_first; unavailable because the plan usage limit was exceeded",
+    "fallback": "DuckDuckGo HTML search plus official OSF, DataCite, Zenodo OAI-PMH, GitHub, Grand Challenge, Mendeley and project pages"
+  },
+  "safety_defaults": {
+    "target_domain_flag": false,
+    "training_eligible": false,
+    "review_state": "review_required",
+    "navigation_claim_allowed": false
+  },
+  "records": [
+    {
+      "candidate_id": "D085",
+      "dataset_name": "Head Neck CBCT CT datasets",
+      "source_page_url": "https://zenodo.org/records/13231287",
+      "direct_download_url": null,
+      "metadata_urls": [
+        "https://api.datacite.org/dois/10.5281/zenodo.13231287",
+        "https://zenodo.org/oai2d?verb=GetRecord&metadataPrefix=oai_datacite&identifier=oai:zenodo.org:13231287"
+      ],
+      "license": "CC BY 4.0",
+      "sample_count": null,
+      "sample_count_status": "not stated in verified metadata",
+      "modality": "paired planning CT and first-treatment-day head-neck CBCT",
+      "labels_or_coordinates": "five anatomical segmentation structures; final arrays 240x240x64 at 1x1x3 mm; no landmarks, transforms or correspondence table stated",
+      "download_status": "metadata_only",
+      "local_files": [
+        {"path": "head_neck_cbct_ct/metadata/datacite.json", "size_bytes": 7277, "sha256": "abff458e0d5059fb151a19892093b06ded68819c651ecb3c451494553b9af888"},
+        {"path": "head_neck_cbct_ct/metadata/oai_datacite.xml", "size_bytes": 4246, "sha256": "ba29ff33558e158ebac483914501c94fdee40737772bddccfb815e25ccd015c7"}
+      ],
+      "recommended_use": "paired CT-CBCT registration and segmentation stress-test candidate after file-level governance review",
+      "priority_target": "l1_static_registration",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "Radiotherapy head-neck data with no jaw-osteomyelitis, microscope, fiducial or navigation ground truth. Metadata verification does not establish file-level usability."
+    },
+    {
+      "candidate_id": "D086",
+      "dataset_name": "Teeth3DS+ / 3DTeethLand landmark annotations",
+      "source_page_url": "https://osf.io/xctdy/",
+      "direct_download_urls": [
+        "https://osf.io/download/k5hbj/",
+        "https://osf.io/download/sqw5e/"
+      ],
+      "license": "CC BY-NC-ND 4.0",
+      "sample_count": 340,
+      "sample_count_detail": "240 training IOS scans and 100 hidden/test IOS scans stated by the official benchmark page",
+      "modality": "upper/lower intraoral surface meshes referenced as OBJ plus JSON dental landmark coordinates",
+      "labels_or_coordinates": "3D coordinates with Mesial, Distal, Cusp, InnerPoint, OuterPoint and FacialPoint classes; coordinate unit and axis convention are not explicitly stated in the downloaded metadata",
+      "download_status": "verified_small_annotation_sample",
+      "local_files": [
+        {"path": "teeth3ds_landmarks/raw/3DTeethLand_landmarks_train.zip", "size_bytes": 898811, "sha256": "5a42d936b11c6e84de92807438a8f6d3058812404f43a5e7eba60f6b6cb46a19"},
+        {"path": "teeth3ds_landmarks/raw/3DTeethLand_landmarks_test.zip", "size_bytes": 381331, "sha256": "5ef415057c4c96510610c4d53d09ea5eafefc461d7a0c08bade7dbe9224d4447"},
+        {"path": "teeth3ds_landmarks/raw/license.txt", "size_bytes": 19127, "sha256": "38762e3777f4ec00a6f769062a7c3f704fb78ce08303ecff88558da4c49cf9ea"},
+        {"path": "teeth3ds_landmarks/raw/training_lower.txt", "size_bytes": 1799, "sha256": "3cb5f9f7181d5ec2505c846c60b82a9602580b95711593474ee0f92f478ffa4c"},
+        {"path": "teeth3ds_landmarks/raw/training_upper.txt", "size_bytes": 1799, "sha256": "607ec40c393f006f8e83ffd07f10933c9042f2d405ecede37061a690d01d4e37"},
+        {"path": "teeth3ds_landmarks/raw/testing_lower.txt", "size_bytes": 750, "sha256": "9422e70cfd46d85797f84d76d6640fbf39b72ac42896f765392959d0b93e8109"},
+        {"path": "teeth3ds_landmarks/raw/testing_upper.txt", "size_bytes": 749, "sha256": "e926ca6f4253703704bff7191232e48db953711f2c440bf80fa905e6522e597d"},
+        {"path": "teeth3ds_landmarks/raw/osf_project_metadata.json", "size_bytes": 5521, "sha256": "a269354964d4f02f0591e5d5c0ec09f4a3e4141507b68b999824621b67c6246e"},
+        {"path": "teeth3ds_landmarks/raw/osf_landmark_files_metadata.json", "size_bytes": 4449, "sha256": "8a0feb2a049f6f7dab2859a7a14864af9d0cb620ef18fbbc1d6b9d979debcf2c"}
+      ],
+      "recommended_use": "landmark JSON contract, point-pair parsing, rigid-registration noise simulation and dental surface correspondence research after acquiring the matching OBJ meshes",
+      "priority_target": "l1_static_registration",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "IOS dental surfaces do not contain CBCT, jaw bone, osteomyelitis, camera calibration or navigation tracking. The NoDerivatives clause prevents sharing adapted data; internal non-commercial analysis must retain attribution and the original license."
+    },
+    {
+      "candidate_id": "D087",
+      "dataset_name": "C3VD colonoscopy 3D video dataset",
+      "source_page_url": "https://durrlab.github.io/C3VD/",
+      "direct_download_url": "https://drive.google.com/file/d/1Ddeq5Dm4tx7cMRTZBu3CN3otsGu2_kY1/view?usp=sharing",
+      "remote_sample_size_bytes": 1515094074,
+      "license": "CC BY-NC-SA 4.0",
+      "sample_count": null,
+      "sample_count_status": "full sequence count not asserted by the downloaded README",
+      "modality": "endoscopic RGB, high-fidelity phantom OBJ/MTL, robot pose log, camera intrinsics and rendered depth/normal/optical-flow products",
+      "labels_or_coordinates": "timestamped homogeneous robot poses, hand-eye calibration matrices, temporal offset, model transform and per-frame camera poses",
+      "download_status": "metadata_only_large_sample_skipped",
+      "local_files": [
+        {"path": "c3vd/metadata/README.md", "size_bytes": 6500, "sha256": "cddc23dfbefb4ede069041399f2f3c433646c10ecfc30aad27f40390537ac663"},
+        {"path": "c3vd/metadata/github_repository.json", "size_bytes": 4942, "sha256": "1e01341cadc622127531cc8a4d4a983bbbff77a1c24e78fd14f09714fbc0d8b6"}
+      ],
+      "recommended_use": "L2 offline pose-log synchronization, transform-chain, reprojection, drift and frame-drop failure-injection validation",
+      "priority_target": "l2_offline_dynamic_ar",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "Colon phantom proxy with no jaw, CBCT or fluorescence-microscope geometry. The 1.515 GB sample was deliberately not downloaded."
+    },
+    {
+      "candidate_id": "D088",
+      "dataset_name": "EndoSLAM Dataset",
+      "source_page_url": "https://data.mendeley.com/datasets/cd2rtzm23r/1",
+      "direct_download_url": null,
+      "metadata_urls": [
+        "https://api.datacite.org/dois/10.17632/cd2rtzm23r.1",
+        "https://raw.githubusercontent.com/CapsuleEndoscope/EndoSLAM/master/README.md",
+        "https://raw.githubusercontent.com/CapsuleEndoscope/EndoSLAM/master/LICENSE"
+      ],
+      "license": "CC BY 4.0 for dataset metadata; GitHub code carries MIT",
+      "sample_count": 35,
+      "sample_count_detail": "35 sub-datasets; README reports 42,700 ex-vivo and 21,887 synthetic frames",
+      "modality": "ex-vivo and synthetic endoscopy video, timed 6DoF pose and high-precision 3D map ground truth",
+      "labels_or_coordinates": "timed camera trajectories and 3D maps; exact coordinate convention requires dataset-level inspection",
+      "download_status": "metadata_only",
+      "local_files": [
+        {"path": "endoslam/metadata/datacite.json", "size_bytes": 11553, "sha256": "d9903f579e44ca47ec0d6c21d686ee7b76e3be446c3354fa7c481c1f203a3469"},
+        {"path": "endoslam/metadata/README.md", "size_bytes": 6578, "sha256": "dc0d97181a7cf3c1831097e0f5db65369221baa5be6ab776d04dc8de2acb419d"},
+        {"path": "endoslam/metadata/CODE_LICENSE.txt", "size_bytes": 1068, "sha256": "e390b479ddb4ab5e0cc14600cfa3942b8c531e13407a084d52a0b5f6b567787a"}
+      ],
+      "recommended_use": "secondary L2 pose synchronization, trajectory continuity and tracking-loss validation",
+      "priority_target": "l2_offline_dynamic_ar",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "Gastrointestinal endoscopy proxy without jaw, CBCT, microscope metadata or surgical navigation accuracy ground truth."
+    },
+    {
+      "candidate_id": "D089",
+      "dataset_name": "ToothFairy3 training dataset",
+      "source_page_url": "https://toothfairy3.grand-challenge.org/dataset/",
+      "direct_download_url": "https://zenodo.org/records/15081727",
+      "license": "CC BY-NC-SA",
+      "sample_count": null,
+      "sample_count_status": "not stated on the verified dataset page",
+      "modality": "maxillofacial CBCT in NIfTI, 0.3 mm isotropic, Hounsfield Units",
+      "labels_or_coordinates": "multi-class maxillofacial segmentation; test set remains private; no navigation landmarks or pose logs stated",
+      "download_status": "metadata_only_signup_required",
+      "local_files": [
+        {"path": "toothfairy3/metadata/dataset_page.html", "size_bytes": 28401, "sha256": "f309372ccaa81511c05454053560c5fecd6354e4b1f381d41aaf9a0874973af5"}
+      ],
+      "recommended_use": "future external maxillofacial anatomy segmentation and surface-export robustness candidate",
+      "priority_target": "cbct_surface_modeling",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "data_boundary": "Anatomical CBCT challenge data without jaw-osteomyelitis, microscope imaging, fiducials, tracking or navigation ground truth."
+    }
+  ]
+}

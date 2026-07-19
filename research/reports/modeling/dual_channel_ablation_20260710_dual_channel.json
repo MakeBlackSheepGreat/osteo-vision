@@ -1,0 +1,166 @@
+{
+  "model_id": "dual_channel_intermediate_fusion_proxy_segmenter",
+  "model_family": "dual_channel_segmenter",
+  "model_config": {
+    "base_channels": 12
+  },
+  "threshold": 0.5,
+  "training": {
+    "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260710_grouped\\keyframe_segmentation_proxy_manifest.csv",
+    "train_samples": 112,
+    "val_samples": 56,
+    "test_samples": 24,
+    "completed_train_batches": 360,
+    "source_group_split": {
+      "row_count": 192,
+      "group_count": 48,
+      "split_group_counts": {
+        "test": 6,
+        "train": 28,
+        "val": 14
+      },
+      "leakage_detected": false,
+      "leaking_group_count": 0,
+      "leaking_groups": {},
+      "missing_group_row_count": 0,
+      "missing_group_rows_first20": [],
+      "group_keys": [
+        "source_video_path",
+        "source_path",
+        "video_path",
+        "patient_id",
+        "case_id"
+      ],
+      "split_key": "split"
+    },
+    "channel_construction": "white-light proxy from luminance; fluorescence proxy from source intensity"
+  },
+  "ablation_validation": {
+    "available": true,
+    "sample_count": 56,
+    "modes": {
+      "white_only": {
+        "dice": 0.8529927367466159,
+        "iou": 0.744175995488969,
+        "prediction_positive_fraction": 0.10939164595170456,
+        "empty_mask_rate": 0.0
+      },
+      "fluorescence_only": {
+        "dice": 0.852095266037753,
+        "iou": 0.7426985990085111,
+        "prediction_positive_fraction": 0.10945347377232142,
+        "empty_mask_rate": 0.0
+      },
+      "early_fusion": {
+        "dice": 0.8573369391225697,
+        "iou": 0.7506715266896553,
+        "prediction_positive_fraction": 0.10957554408482142,
+        "empty_mask_rate": 0.0
+      },
+      "intermediate_fusion": {
+        "dice": 0.8509224331264109,
+        "iou": 0.7407980710177243,
+        "prediction_positive_fraction": 0.11578052074878245,
+        "empty_mask_rate": 0.0
+      }
+    }
+  },
+  "ablation_test": {
+    "available": true,
+    "sample_count": 24,
+    "modes": {
+      "white_only": {
+        "dice": 0.862002089276281,
+        "iou": 0.7579811704254803,
+        "prediction_positive_fraction": 0.11024613813920454,
+        "empty_mask_rate": 0.0
+      },
+      "fluorescence_only": {
+        "dice": 0.8594351370503369,
+        "iou": 0.7539513740975154,
+        "prediction_positive_fraction": 0.11023689038825757,
+        "empty_mask_rate": 0.0
+      },
+      "early_fusion": {
+        "dice": 0.8653834491294304,
+        "iou": 0.7631777754767964,
+        "prediction_positive_fraction": 0.11115056818181818,
+        "empty_mask_rate": 0.0
+      },
+      "intermediate_fusion": {
+        "dice": 0.8609519129668106,
+        "iou": 0.7563000445568665,
+        "prediction_positive_fraction": 0.11662708629261365,
+        "empty_mask_rate": 0.0
+      }
+    }
+  },
+  "clinical_claim_allowed": false,
+  "medical_boundary": "Public proxy data only; no target-domain clinical performance claim.",
+  "generated_at_utc": "2026-07-10T10:36:58.295826+00:00",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\dual_channel_proxy_20260710.pt",
+  "checkpoint_sha256": "0dd4d47f09b0a760f464619f20fdc402493d8bb62b2cfac02acb14ebff8fa397",
+  "runtime_allowed": false,
+  "metrics": {
+    "validation": {
+      "available": true,
+      "sample_count": 56,
+      "modes": {
+        "white_only": {
+          "dice": 0.8529927367466159,
+          "iou": 0.744175995488969,
+          "prediction_positive_fraction": 0.10939164595170456,
+          "empty_mask_rate": 0.0
+        },
+        "fluorescence_only": {
+          "dice": 0.852095266037753,
+          "iou": 0.7426985990085111,
+          "prediction_positive_fraction": 0.10945347377232142,
+          "empty_mask_rate": 0.0
+        },
+        "early_fusion": {
+          "dice": 0.8573369391225697,
+          "iou": 0.7506715266896553,
+          "prediction_positive_fraction": 0.10957554408482142,
+          "empty_mask_rate": 0.0
+        },
+        "intermediate_fusion": {
+          "dice": 0.8509224331264109,
+          "iou": 0.7407980710177243,
+          "prediction_positive_fraction": 0.11578052074878245,
+          "empty_mask_rate": 0.0
+        }
+      }
+    },
+    "test": {
+      "available": true,
+      "sample_count": 24,
+      "modes": {
+        "white_only": {
+          "dice": 0.862002089276281,
+          "iou": 0.7579811704254803,
+          "prediction_positive_fraction": 0.11024613813920454,
+          "empty_mask_rate": 0.0
+        },
+        "fluorescence_only": {
+          "dice": 0.8594351370503369,
+          "iou": 0.7539513740975154,
+          "prediction_positive_fraction": 0.11023689038825757,
+          "empty_mask_rate": 0.0
+        },
+        "early_fusion": {
+          "dice": 0.8653834491294304,
+          "iou": 0.7631777754767964,
+          "prediction_positive_fraction": 0.11115056818181818,
+          "empty_mask_rate": 0.0
+        },
+        "intermediate_fusion": {
+          "dice": 0.8609519129668106,
+          "iou": 0.7563000445568665,
+          "prediction_positive_fraction": 0.11662708629261365,
+          "empty_mask_rate": 0.0
+        }
+      }
+    }
+  }
+}

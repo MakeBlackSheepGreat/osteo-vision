@@ -6,7 +6,7 @@ import json
 import struct
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import nibabel as nib
 import numpy as np
@@ -70,7 +70,7 @@ def export_mandible_surface(
     if not input_path.exists():
         raise FileNotFoundError(f"Input label volume does not exist: {input_path}")
 
-    image = nib.load(str(input_path))
+    image = cast(nib.spatialimages.SpatialImage, nib.load(str(input_path)))
     data = np.asarray(image.dataobj)
     mask = data == label_value
     if decimation_step > 1:
@@ -117,10 +117,16 @@ def voxel_spacing_from_image(
     image: nib.spatialimages.SpatialImage, *, decimation_step: int
 ) -> tuple[float, float, float]:
     zooms = image.header.get_zooms()[:3]
-    spacing = tuple(float(value) * decimation_step for value in zooms)
-    if len(spacing) != 3 or any(value <= 0 for value in spacing):
+    if len(zooms) != 3:
         return (1.0 * decimation_step, 1.0 * decimation_step, 1.0 * decimation_step)
-    return spacing  # type: ignore[return-value]
+    spacing = (
+        float(zooms[0]) * decimation_step,
+        float(zooms[1]) * decimation_step,
+        float(zooms[2]) * decimation_step,
+    )
+    if any(value <= 0 for value in spacing):
+        return (1.0 * decimation_step, 1.0 * decimation_step, 1.0 * decimation_step)
+    return spacing
 
 
 def voxel_vertices_to_world_mm(vertices: np.ndarray, image: nib.spatialimages.SpatialImage) -> np.ndarray:
@@ -386,11 +392,12 @@ def build_scene_manifest_v2(
     scene_manifest: dict[str, Any],
 ) -> dict[str, Any]:
     """Build a Slicer-like scene graph for platform evidence bundles."""
-    model_bounds = (
-        scene_manifest.get("model_bounds_mm") if isinstance(scene_manifest.get("model_bounds_mm"), dict) else {}
-    )
-    curve = scene_manifest.get("mandibular_curve") if isinstance(scene_manifest.get("mandibular_curve"), dict) else {}
-    planes = scene_manifest.get("review_planes") if isinstance(scene_manifest.get("review_planes"), list) else []
+    model_bounds_value = scene_manifest.get("model_bounds_mm")
+    model_bounds = dict(model_bounds_value) if isinstance(model_bounds_value, dict) else {}
+    curve_value = scene_manifest.get("mandibular_curve")
+    curve = dict(curve_value) if isinstance(curve_value, dict) else {}
+    planes_value = scene_manifest.get("review_planes")
+    planes = list(planes_value) if isinstance(planes_value, list) else []
     markups: list[dict[str, Any]] = [
         {
             "id": curve.get("id") or "mandibular_reference_curve",

@@ -38,14 +38,14 @@ withDefaults(
 <style scoped>
 .ov-section-heading {
   display: flex;
-  gap: 9px;
+  gap: 10px;
   align-items: center;
   min-width: 0;
 }
 
 .ov-section-heading__icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 .ov-section-heading__copy {

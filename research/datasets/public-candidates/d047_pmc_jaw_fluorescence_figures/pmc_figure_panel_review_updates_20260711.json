@@ -1,0 +1,57 @@
+{
+  "schema_version": "osteo-vision-pmc-figure-panel-review-updates-v1",
+  "review_authority": "engineering_visual_selection_only",
+  "physician_reviewed": false,
+  "records": [
+    {
+      "source_record_id": "PMC12113262_figure_2",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.5, "y": 0.0, "width": 0.5, "height": 1.0},
+      "notes": "Fluorescence panel engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC12113262_figure_3",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.66, "y": 0.0, "width": 0.34, "height": 1.0},
+      "notes": "Right fluorescence panel engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC12113262_figure_4",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.33, "y": 0.0, "width": 0.34, "height": 1.0},
+      "notes": "Middle autofluorescence panel engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC12113262_figure_5",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.66, "y": 0.0, "width": 0.34, "height": 1.0},
+      "notes": "Right hyperfluorescent bone panel engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC12113262_figure_6",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.0, "y": 0.5, "width": 1.0, "height": 0.5},
+      "notes": "Lower-row autofluorescence panels engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC4628814_figure_2",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.5, "y": 0.0, "width": 0.5, "height": 1.0},
+      "notes": "Right-side VELscope panels engineering crop seed; physician mask review pending."
+    },
+    {
+      "source_record_id": "PMC4628814_figure_3",
+      "review_state": "review_required",
+      "panel_role": "fluorescence_signal",
+      "crop_bbox": {"coordinate_space": "normalized", "x": 0.5, "y": 0.0, "width": 0.5, "height": 0.45},
+      "notes": "Upper-right VELscope panel engineering crop seed; physician mask review pending."
+    }
+  ],
+  "medical_boundary": "Engineering panel selection only. Crops remain review_required and cannot enter training without a non-empty reviewed mask and accepted or modified status."
+}

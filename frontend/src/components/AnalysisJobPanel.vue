@@ -16,20 +16,27 @@
         {{ jobProgressMessage(progress) }} · {{ jobProgressPercent(progress) }}%
       </small>
       <small v-if="error">{{ error }}</small>
+      <small v-else-if="canceling">正在提交取消请求。</small>
       <small v-else-if="timedOut">任务可能仍在后台运行，可继续查询状态。</small>
     </div>
     <div class="job-panel-actions">
-      <AppButton variant="ghost" size="sm" icon="load" :disabled="loading" @click="emit('refresh')">
+      <AppButton variant="ghost" size="sm" icon="load" :disabled="loading || canceling" @click="emit('refresh')">
         继续查询
       </AppButton>
-      <AppButton variant="ghost" size="sm" icon="stop" :disabled="!canCancelJob(status)" @click="emit('cancel')">
+      <AppButton
+        variant="ghost"
+        size="sm"
+        icon="stop"
+        :disabled="canceling || !canCancelJob(status)"
+        @click="emit('cancel')"
+      >
         取消
       </AppButton>
       <AppButton
         variant="ghost"
         size="sm"
         icon="play"
-        :disabled="loading || !canRetryJob(status, timedOut)"
+        :disabled="loading || canceling || !canRetryJob(status, timedOut)"
         @click="emit('retry')"
       >
         重试
@@ -41,14 +48,20 @@
 <script setup lang="ts">
 import AppButton from "@/components/AppButton.vue";
 
-defineProps<{
-  jobId: string;
-  status: string;
-  error: string;
-  progress: Record<string, unknown>;
-  timedOut: boolean;
-  loading: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    jobId: string;
+    status: string;
+    error: string;
+    progress: Record<string, unknown>;
+    timedOut: boolean;
+    loading: boolean;
+    canceling?: boolean;
+  }>(),
+  {
+    canceling: false,
+  },
+);
 
 const emit = defineEmits<{
   refresh: [];
@@ -94,15 +107,15 @@ function jobProgressMessage(progress: Record<string, unknown>): string {
   gap: 10px;
   align-items: center;
   margin: 0 0 10px;
-  border: 1px solid #d6e4f2;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #f7fbff;
+  background: var(--ov-bg-soft);
 }
 
 .job-panel.timeout {
-  border-color: #e7cf9f;
-  background: #fffaf0;
+  border-color: var(--ov-warning);
+  background: var(--ov-bg-warning);
 }
 
 .job-panel-copy {
@@ -112,14 +125,14 @@ function jobProgressMessage(progress: Record<string, unknown>): string {
 }
 
 .job-panel-copy strong {
-  color: #102136;
+  color: var(--ov-text);
   font-size: 12px;
 }
 
 .job-panel-copy span,
 .job-panel-copy small {
   min-width: 0;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 11px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -131,14 +144,14 @@ function jobProgressMessage(progress: Record<string, unknown>): string {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #dbe8f4;
+  background: var(--ov-border-subtle);
 }
 
 .job-progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2c7ec0, #35a26b);
+  background: var(--ov-primary-strong);
 }
 
 .job-panel-actions {

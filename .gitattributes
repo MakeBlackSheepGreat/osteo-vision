@@ -4,3 +4,7 @@
 *.dcm binary
 *.nii binary
 *.nii.gz binary
+
+# Preserve downloaded provenance snapshots byte-for-byte without treating their
+# upstream formatting as repository whitespace defects.
+research/datasets/**/metadata/** -whitespace

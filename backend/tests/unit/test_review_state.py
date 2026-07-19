@@ -1,9 +1,22 @@
 from __future__ import annotations
 
-from backend.src.domains.cases.enums import ReviewState
+from pathlib import Path
+
+import pytest
+import yaml
+
+from backend.src.domains.cases.enums import ReviewerRole, ReviewState
 from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord, RegionUpdateRequest
-from backend.src.services.review_service import ReviewService
+from backend.src.domains.cases.schemas import (
+    AnalysisRun,
+    BoneGateMaskCreateRequest,
+    CandidateRegion,
+    CaseRecord,
+    RegionUpdateRequest,
+    ReviewActorIdentity,
+    ReviewEvent,
+)
+from backend.src.services.review_service import PromptFallbackSafetyError, ReviewService
 
 
 def test_review_state_transition_is_saved(tmp_path) -> None:
@@ -13,7 +26,103 @@ def test_review_state_transition_is_saved(tmp_path) -> None:
         case,
         "roi_1",
         RegionUpdateRequest(review_state=ReviewState.MODIFIED, geometry={"type": "polygon"}),
+        ReviewActorIdentity(
+            actor_id="engineering-test",
+            role=ReviewerRole.ENGINEERING_REVIEWER,
+            institution="Osteo Vision Engineering",
+            auth_source="test_identity",
+        ),
     )
 
     assert updated.rois[0].review_state == ReviewState.MODIFIED
     assert repo.get("case_review").rois[0].review_state == ReviewState.MODIFIED
+    assert updated.review_events[-1].role == ReviewerRole.ENGINEERING_REVIEWER
+
+
+def test_legacy_review_event_is_loaded_as_unverified() -> None:
+    event = ReviewEvent.model_validate(
+        {
+            "event_id": "event_legacy",
+            "case_id": "case_review",
+            "actor": "doctor",
+            "action": "accept",
+            "target_id": "roi_1",
+        }
+    )
+
+    assert event.actor_id == "doctor"
+    assert event.role == ReviewerRole.LEGACY_UNVERIFIED
+    assert event.institution == "unrecorded"
+    assert event.auth_source == "legacy_event"
+
+
+def test_strict_runtime_disables_prompt_fallback_before_adapter_execution(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "strict.yml"
+    config.write_text(
+        yaml.safe_dump(
+            {
+                "runtime": {
+                    "runtime_profile": "competition_strict",
+                    "strict_startup": True,
+                    "allow_prompt_fallback": False,
+                    "models": [
+                        {
+                            "model_id": "medsam2_osteo_promptable",
+                            "family": "fixture",
+                            "enabled": True,
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = tmp_path / "source.png"
+    source.write_bytes(b"adapter must not read this file")
+    candidate = CandidateRegion(
+        candidate_id="candidate_1",
+        run_id="run_1",
+        metadata={
+            "source_path": str(source),
+            "bbox_normalized": {
+                "type": "rect",
+                "coordinate_space": "normalized",
+                "x": 0.1,
+                "y": 0.1,
+                "width": 0.5,
+                "height": 0.5,
+            },
+        },
+    )
+    case = CaseRecord(
+        case_id="case_prompt_gate",
+        title="prompt gate",
+        analysis_runs=[
+            AnalysisRun(
+                run_id="run_1",
+                case_id="case_prompt_gate",
+                candidate_regions=[candidate],
+            )
+        ],
+    )
+    repo = JsonCaseRepository(tmp_path / "cases.json")
+    repo.create(case)
+    actor = ReviewActorIdentity(
+        actor_id="engineering-test",
+        role=ReviewerRole.ENGINEERING_REVIEWER,
+        institution="Osteo Vision Engineering",
+        auth_source="test_identity",
+    )
+
+    with pytest.raises(PromptFallbackSafetyError) as exc_info:
+        ReviewService(repo, inference_config_path=config).generate_candidate_bone_gate_mask(
+            case,
+            candidate.candidate_id,
+            BoneGateMaskCreateRequest(geometry=candidate.metadata["bbox_normalized"]),
+            actor,
+        )
+
+    assert exc_info.value.code == "prompt_fallback_disabled_by_runtime_policy"
+    assert exc_info.value.runtime_profile == "competition_strict"

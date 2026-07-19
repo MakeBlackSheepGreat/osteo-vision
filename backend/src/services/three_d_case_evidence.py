@@ -70,6 +70,144 @@ def persist_three_d_modeling_result(
     raise RuntimeError(f"Unable to persist 3D modeling evidence for case {case_id} after concurrent updates")
 
 
+def persist_l1_registration_result(
+    repo: CaseRepository,
+    *,
+    case_id: str,
+    job_id: str,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    case = repo.get(case_id)
+    if case is None:
+        return {**result, "case_persistence": {"status": "case_not_found", "case_id": case_id}}
+    evidence = result.get("three_d_evidence")
+    evidence = dict(evidence) if isinstance(evidence, dict) else {}
+    for _attempt in range(3):
+        artifacts = list(case.artifacts)
+        artifacts = _append_artifact(
+            artifacts,
+            case_id=case_id,
+            kind=ArtifactKind.THREE_D_REGISTRATION_TRANSFORM,
+            path=result.get("transform_path"),
+        )
+        artifacts = _append_artifact(
+            artifacts,
+            case_id=case_id,
+            kind=ArtifactKind.THREE_D_REGISTRATION_MANIFEST,
+            path=result.get("registration_manifest_path"),
+        )
+        registration_summary = {
+            "schema_version": "osteo-vision-case-l1-registration-v1",
+            "job_id": job_id,
+            "status": result.get("registration_status"),
+            "transform_path": result.get("transform_path"),
+            "transform_sha256": result.get("transform_sha256"),
+            "manifest_path": result.get("registration_manifest_path"),
+            "manifest_sha256": result.get("registration_manifest_sha256"),
+            "error_code": result.get("error_code"),
+        }
+        updated = case.model_copy(
+            update={
+                "three_d_evidence": evidence,
+                "three_d_modeling": {**case.three_d_modeling, "l1_registration": registration_summary},
+                "artifacts": artifacts,
+                "review_summary": {
+                    **case.review_summary,
+                    "three_d_registration_status": result.get("registration_status"),
+                    "three_d_navigation_ready": bool(evidence.get("navigation_ready")),
+                    "three_d_navigation_level": evidence.get("navigation_level") or "L0",
+                },
+            }
+        )
+        try:
+            saved = repo.save(updated)
+        except CaseVersionConflictError:
+            refreshed = repo.get(case_id)
+            if refreshed is None:
+                break
+            case = refreshed
+            continue
+        return {
+            **result,
+            "case_persistence": {"status": "persisted", "case_id": case_id, "case_version": saved.version},
+        }
+    raise RuntimeError(f"Unable to persist L1 registration evidence for case {case_id} after concurrent updates")
+
+
+def persist_l2_pose_replay_result(
+    repo: CaseRepository,
+    *,
+    case_id: str,
+    job_id: str,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    case = repo.get(case_id)
+    if case is None:
+        return {**result, "case_persistence": {"status": "case_not_found", "case_id": case_id}}
+    evidence = result.get("three_d_evidence")
+    evidence = dict(evidence) if isinstance(evidence, dict) else {}
+    for _attempt in range(3):
+        artifacts = list(case.artifacts)
+        artifacts = _append_artifact(
+            artifacts,
+            case_id=case_id,
+            kind=ArtifactKind.THREE_D_POSE_REPLAY_MANIFEST,
+            path=result.get("pose_replay_manifest_path"),
+        )
+        artifacts = _append_artifact(
+            artifacts,
+            case_id=case_id,
+            kind=ArtifactKind.THREE_D_POSE_REPLAY_FRAMES,
+            path=result.get("pose_replay_frames_csv_path"),
+        )
+        artifacts = _append_artifact(
+            artifacts,
+            case_id=case_id,
+            kind=ArtifactKind.THREE_D_AR_OVERLAY,
+            path=result.get("overlay_video_path"),
+        )
+        replay_summary = {
+            "schema_version": "osteo-vision-case-l2-pose-replay-v1",
+            "job_id": job_id,
+            "status": result.get("replay_status"),
+            "navigation_ready": bool(evidence.get("navigation_ready")),
+            "navigation_level": evidence.get("navigation_level") or "L0",
+            "manifest_path": result.get("pose_replay_manifest_path"),
+            "manifest_sha256": result.get("pose_replay_manifest_sha256"),
+            "frames_csv_path": result.get("pose_replay_frames_csv_path"),
+            "frames_csv_sha256": result.get("pose_replay_frames_csv_sha256"),
+            "overlay_video_path": result.get("overlay_video_path"),
+            "overlay_video_sha256": result.get("overlay_video_sha256"),
+            "error_code": result.get("error_code"),
+        }
+        updated = case.model_copy(
+            update={
+                "three_d_evidence": evidence,
+                "three_d_modeling": {**case.three_d_modeling, "l2_pose_replay": replay_summary},
+                "artifacts": artifacts,
+                "review_summary": {
+                    **case.review_summary,
+                    "three_d_pose_replay_status": result.get("replay_status"),
+                    "three_d_navigation_ready": bool(evidence.get("navigation_ready")),
+                    "three_d_navigation_level": evidence.get("navigation_level") or "L0",
+                },
+            }
+        )
+        try:
+            saved = repo.save(updated)
+        except CaseVersionConflictError:
+            refreshed = repo.get(case_id)
+            if refreshed is None:
+                break
+            case = refreshed
+            continue
+        return {
+            **result,
+            "case_persistence": {"status": "persisted", "case_id": case_id, "case_version": saved.version},
+        }
+    raise RuntimeError(f"Unable to persist L2 pose replay evidence for case {case_id} after concurrent updates")
+
+
 def _case_with_three_d_result(
     case: CaseRecord,
     *,

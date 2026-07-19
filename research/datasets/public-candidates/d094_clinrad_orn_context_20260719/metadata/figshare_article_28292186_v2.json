@@ -1,0 +1,258 @@
+{
+  "authors": [
+    {
+      "first_name": "Zaphanlene",
+      "full_name": "Zaphanlene Kaffey",
+      "id": 16621290,
+      "is_active": true,
+      "last_name": "Kaffey",
+      "orcid_id": "0009-0008-7999-5245",
+      "url_name": "Zaphanlene_Kaffey"
+    },
+    {
+      "first_name": "Zayne",
+      "full_name": "Zayne Belal",
+      "id": 20547277,
+      "is_active": false,
+      "last_name": "Belal",
+      "orcid_id": "0009-0006-2668-9717",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Jillian",
+      "full_name": "Jillian Rigert",
+      "id": 13001220,
+      "is_active": true,
+      "last_name": "Rigert",
+      "orcid_id": "0000-0001-5419-980X",
+      "url_name": "Jillian_Rigert"
+    },
+    {
+      "first_name": "Lavanya",
+      "full_name": "Lavanya Tripuraneni",
+      "id": 19166224,
+      "is_active": false,
+      "last_name": "Tripuraneni",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Laia",
+      "full_name": "Laia Humbert-Vidan",
+      "id": 18311215,
+      "is_active": false,
+      "last_name": "Humbert-Vidan",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Ariana J.",
+      "full_name": "Ariana J. Sahli",
+      "id": 19665823,
+      "is_active": false,
+      "last_name": "Sahli",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Serageldin",
+      "full_name": "Serageldin Kamel",
+      "id": 17616534,
+      "is_active": true,
+      "last_name": "Kamel",
+      "orcid_id": "0000-0002-0046-4337",
+      "url_name": "Serageldin_Kamel"
+    },
+    {
+      "first_name": "Katherine",
+      "full_name": "Katherine Hutcheson",
+      "id": 18270003,
+      "is_active": false,
+      "last_name": "Hutcheson",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Erin",
+      "full_name": "Erin Watson",
+      "id": 2088451,
+      "is_active": false,
+      "last_name": "Watson",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Andrew",
+      "full_name": "Andrew Hope",
+      "id": 759995,
+      "is_active": false,
+      "last_name": "Hope",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Cem",
+      "full_name": "Cem Dede",
+      "id": 10183271,
+      "is_active": true,
+      "last_name": "Dede",
+      "orcid_id": "0000-0002-0543-9325",
+      "url_name": "Cem_Dede"
+    },
+    {
+      "first_name": "Sudarat",
+      "full_name": "Sudarat Kiat-amnuay",
+      "id": 18319240,
+      "is_active": false,
+      "last_name": "Kiat-amnuay",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Muhammad",
+      "full_name": "Muhammad Walji",
+      "id": 15259216,
+      "is_active": false,
+      "last_name": "Walji",
+      "orcid_id": "",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Abdallah",
+      "full_name": "Abdallah Mohamed",
+      "id": 551961,
+      "is_active": true,
+      "last_name": "Mohamed",
+      "orcid_id": "0000-0003-2064-7613",
+      "url_name": "Abdallah_Mohamed"
+    },
+    {
+      "first_name": "Vlad C.",
+      "full_name": "Vlad C. Sandulache",
+      "id": 14963436,
+      "is_active": false,
+      "last_name": "Sandulache",
+      "orcid_id": "0000-0002-9205-385X",
+      "url_name": "_"
+    },
+    {
+      "first_name": "Clifton (Dave)",
+      "full_name": "Clifton (Dave) Fuller",
+      "id": 8754255,
+      "is_active": true,
+      "last_name": "Fuller",
+      "orcid_id": "",
+      "url_name": "Clifton_Dave_Fuller"
+    },
+    {
+      "first_name": "Stephen",
+      "full_name": "Stephen Lai",
+      "id": 18252019,
+      "is_active": true,
+      "last_name": "Lai",
+      "orcid_id": "0000-0001-8301-7286",
+      "url_name": "Stephen_Lai"
+    },
+    {
+      "first_name": "Amy C.",
+      "full_name": "Amy C. Moreno",
+      "id": 19682067,
+      "is_active": false,
+      "last_name": "Moreno",
+      "orcid_id": "0000-0001-6762-6807",
+      "url_name": "_"
+    }
+  ],
+  "categories": [
+    {
+      "id": 30190,
+      "parent_id": 30184,
+      "path": "/30082/30184/30190",
+      "source_id": "510502",
+      "taxonomy_id": 100,
+      "title": "Medical physics"
+    },
+    {
+      "id": 24805,
+      "parent_id": 24775,
+      "path": "/24457/24775/24805",
+      "source_id": "321110",
+      "taxonomy_id": 100,
+      "title": "Radiation therapy"
+    }
+  ],
+  "citation": "Kaffey, Zaphanlene; Belal, Zayne; Rigert, Jillian; Tripuraneni, Lavanya; Humbert-Vidan, Laia; Sahli, Ariana J.; et al. (2025). Available Data for Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort.. figshare. Dataset. https://doi.org/10.6084/m9.figshare.28292186.v2",
+  "confidential_reason": "",
+  "created_date": "2025-01-28T20:51:13Z",
+  "custom_fields": [],
+  "defined_type": 3,
+  "defined_type_name": "dataset",
+  "description": "<p dir=\"ltr\">Anonymized data for the reported analyses from the manuscript: Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort.</p>",
+  "doi": "10.6084/m9.figshare.28292186.v2",
+  "download_disabled": false,
+  "embargo_date": null,
+  "embargo_options": [],
+  "embargo_reason": "",
+  "embargo_title": "",
+  "embargo_type": null,
+  "figshare_url": "https://figshare.com/articles/dataset/Available_Data_for_Early_Imaging_Identification_of_Osteoradionecrosis_and_Classification_Using_the_Novel_ClinRad_System_Results_from_A_Retrospective_Observational_Cohort_/28292186",
+  "files": [
+    {
+      "computed_md5": "5768c25d72c4480d0b2d0af19d485e35",
+      "download_url": "https://ndownloader.figshare.com/files/51987479",
+      "id": 51987479,
+      "is_link_only": false,
+      "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "name": "FINAL_Anon_Pts Included_for_Analysis.xlsx",
+      "size": 19198,
+      "supplied_md5": "5768c25d72c4480d0b2d0af19d485e35"
+    }
+  ],
+  "folder_structure": {},
+  "funding": null,
+  "funding_list": [],
+  "group_id": null,
+  "handle": "",
+  "has_linked_file": false,
+  "id": 28292186,
+  "is_confidential": false,
+  "is_embargoed": false,
+  "is_metadata_record": false,
+  "is_public": true,
+  "keywords": [
+    "Osteoradionecrosis",
+    "Osteoradionecrosis of the jaw",
+    "osteoradionecrosis of the jaw"
+  ],
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "value": 1
+  },
+  "metadata_reason": "",
+  "modified_date": "2025-01-28T20:51:13Z",
+  "published_date": "2025-01-28T20:51:13Z",
+  "references": [],
+  "related_materials": [],
+  "resource_doi": null,
+  "resource_title": null,
+  "size": 19198,
+  "status": "public",
+  "tags": [
+    "Osteoradionecrosis",
+    "Osteoradionecrosis of the jaw",
+    "osteoradionecrosis of the jaw"
+  ],
+  "thumb": "",
+  "timeline": {
+    "firstOnline": "2025-01-28",
+    "posted": "2025-01-28T20:51:13"
+  },
+  "title": "Available Data for Early Imaging Identification of Osteoradionecrosis and Classification Using the Novel ClinRad System: Results from A Retrospective Observational Cohort.",
+  "url": "https://api.figshare.com/v2/articles/28292186",
+  "url_private_api": "https://api.figshare.com/v2/account/articles/28292186",
+  "url_private_html": "https://figshare.com/account/articles/28292186",
+  "url_public_api": "https://api.figshare.com/v2/articles/28292186",
+  "url_public_html": "https://figshare.com/articles/dataset/Available_Data_for_Early_Imaging_Identification_of_Osteoradionecrosis_and_Classification_Using_the_Novel_ClinRad_System_Results_from_A_Retrospective_Observational_Cohort_/28292186",
+  "version": 2
+}

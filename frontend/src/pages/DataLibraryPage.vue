@@ -14,12 +14,19 @@
     </header>
 
     <section class="library-toolbar" aria-label="视频库筛选">
-      <AppButton variant="primary" size="sm" icon="load" :disabled="loading" @click="loadCandidates">
+      <AppButton
+        variant="primary"
+        size="sm"
+        icon="load"
+        :disabled="interactionBusy"
+        :title="interactionBusy ? '请等待当前视频库操作完成' : '重新读取本地公开视频清单'"
+        @click="loadCandidates"
+      >
         刷新视频库
       </AppButton>
       <label>
         <span>通道</span>
-        <select v-model="fluorescenceFilter">
+        <select v-model="fluorescenceFilter" :disabled="interactionBusy">
           <option v-for="option in videoCandidateFluorescenceFilterOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
@@ -27,7 +34,7 @@
       </label>
       <label>
         <span>用途</span>
-        <select v-model="trainingFilter">
+        <select v-model="trainingFilter" :disabled="interactionBusy">
           <option v-for="option in videoCandidateTrainingFilterOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
@@ -40,9 +47,12 @@
     </section>
 
     <section v-if="error" class="library-alert" role="alert">{{ error }}</section>
+    <section v-if="operationMessage" class="library-status" role="status" aria-live="polite">
+      {{ operationMessage }}
+    </section>
 
     <section class="candidate-grid" aria-label="公开视频候选列表">
-      <article v-for="candidate in filteredCandidates" :key="candidate.record_id" class="candidate-card">
+      <article v-for="candidate in paginatedCandidates" :key="candidate.record_id" class="candidate-card">
         <header class="candidate-card__header">
           <div>
             <h2>{{ candidate.title || candidate.record_id }}</h2>
@@ -70,19 +80,32 @@
             variant="secondary"
             size="sm"
             icon="video"
-            :disabled="previewingRecordId === candidate.record_id || !candidate.system_readable"
+            :disabled="interactionBusy || !candidate.system_readable"
+            :title="
+              !candidate.system_readable
+                ? '本地视频当前不可读取'
+                : interactionBusy
+                  ? '请等待当前视频库操作完成'
+                  : '生成或刷新该视频的关键帧预览'
+            "
             @click="createPreview(candidate.record_id)"
           >
-            预览
+            {{ previewingRecordId === candidate.record_id ? "生成中" : "预览" }}
           </AppButton>
           <AppButton
             variant="secondary"
             size="sm"
             icon="upload"
-            :disabled="!store.currentCase || !candidate.system_readable || importingRecordId === candidate.record_id"
+            :disabled="
+              interactionBusy ||
+              !store.currentCase ||
+              !candidate.system_readable ||
+              importedRecordIds.has(candidate.record_id)
+            "
+            :title="importButtonTitle(candidate)"
             @click="importCandidate(candidate.record_id)"
           >
-            导入病例
+            {{ importButtonLabel(candidate.record_id) }}
           </AppButton>
           <a v-if="videoCandidateSourceUrl(candidate)" :href="videoCandidateSourceUrl(candidate)" target="_blank" rel="noreferrer">
             原始来源
@@ -91,12 +114,34 @@
       </article>
     </section>
 
+    <nav v-if="pageCount > 1" class="library-pagination" aria-label="视频库分页">
+      <AppButton
+        variant="secondary"
+        size="sm"
+        :disabled="interactionBusy || currentPage <= 1"
+        :title="interactionBusy ? '请等待当前视频库操作完成' : currentPage <= 1 ? '当前已是第一页' : '查看上一页'"
+        @click="currentPage -= 1"
+      >
+        上一页
+      </AppButton>
+      <span aria-live="polite">第 {{ currentPage }} / {{ pageCount }} 页 · 每页 {{ pageSize }} 条</span>
+      <AppButton
+        variant="secondary"
+        size="sm"
+        :disabled="interactionBusy || currentPage >= pageCount"
+        :title="interactionBusy ? '请等待当前视频库操作完成' : currentPage >= pageCount ? '当前已是最后一页' : '查看下一页'"
+        @click="currentPage += 1"
+      >
+        下一页
+      </AppButton>
+    </nav>
+
     <p v-if="!loading && !filteredCandidates.length" class="empty-state">当前筛选下没有可显示的视频候选。</p>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
 import { apiClient } from "@/services/apiClient";
@@ -125,6 +170,10 @@ const fluorescenceFilter = ref<VideoCandidateFluorescenceFilter>("all");
 const trainingFilter = ref<VideoCandidateTrainingFilter>("all");
 const previewingRecordId = ref("");
 const importingRecordId = ref("");
+const importedRecordIds = ref(new Set<string>());
+const operationMessage = ref("");
+const pageSize = 12;
+const currentPage = ref(1);
 
 const filteredCandidates = computed(() =>
   filterVideoCandidates(candidates.value, {
@@ -132,6 +181,18 @@ const filteredCandidates = computed(() =>
     training: trainingFilter.value,
   }),
 );
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredCandidates.value.length / pageSize)));
+const paginatedCandidates = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredCandidates.value.slice(start, start + pageSize);
+});
+
+watch([fluorescenceFilter, trainingFilter], () => {
+  currentPage.value = 1;
+});
+watch(pageCount, (count) => {
+  if (currentPage.value > count) currentPage.value = count;
+});
 
 const statusMessage = computed(() =>
   loading.value
@@ -140,6 +201,9 @@ const statusMessage = computed(() =>
 );
 
 const currentCaseLabel = computed(() => store.currentCase?.title || store.currentCase?.case_id || "未载入");
+const interactionBusy = computed(
+  () => loading.value || Boolean(previewingRecordId.value) || Boolean(importingRecordId.value),
+);
 
 const summaryItems = computed(() => {
   const fluorescenceCount = candidates.value.filter((candidate) => candidate.fluorescence === true).length;
@@ -162,8 +226,10 @@ const summaryItems = computed(() => {
 });
 
 async function loadCandidates() {
+  if (interactionBusy.value) return;
   loading.value = true;
   error.value = "";
+  operationMessage.value = "";
   try {
     const payload = await apiClient.listVideoCandidates(true);
     candidates.value = payload.items;
@@ -175,13 +241,16 @@ async function loadCandidates() {
 }
 
 async function createPreview(recordId: string) {
+  if (interactionBusy.value) return;
   previewingRecordId.value = recordId;
   error.value = "";
+  operationMessage.value = "";
   try {
     const updated = await apiClient.createVideoCandidatePreview(recordId);
     candidates.value = candidates.value.map((candidate) =>
       candidate.record_id === recordId ? { ...candidate, ...updated } : candidate,
     );
+    operationMessage.value = `关键帧预览已更新：${recordId}`;
   } catch (previewError) {
     error.value = errorMessage(previewError);
   } finally {
@@ -190,16 +259,33 @@ async function createPreview(recordId: string) {
 }
 
 async function importCandidate(recordId: string) {
-  if (!store.currentCase) return;
+  if (!store.currentCase || interactionBusy.value || importedRecordIds.value.has(recordId)) return;
+  const targetCaseId = store.currentCase.case_id;
   importingRecordId.value = recordId;
   error.value = "";
+  operationMessage.value = "";
   try {
-    store.currentCase = await apiClient.importVideoCandidate(store.currentCase.case_id, recordId);
+    store.currentCase = await apiClient.importVideoCandidate(targetCaseId, recordId);
+    importedRecordIds.value = new Set([...importedRecordIds.value, recordId]);
+    operationMessage.value = `视频已导入病例 ${targetCaseId}：${recordId}`;
   } catch (importError) {
     error.value = errorMessage(importError);
   } finally {
     importingRecordId.value = "";
   }
+}
+
+function importButtonLabel(recordId: string): string {
+  if (importingRecordId.value === recordId) return "导入中";
+  return importedRecordIds.value.has(recordId) ? "已导入" : "导入病例";
+}
+
+function importButtonTitle(candidate: VideoCandidate): string {
+  if (!store.currentCase) return "请先载入病例";
+  if (!candidate.system_readable) return "本地视频当前不可读取";
+  if (importedRecordIds.value.has(candidate.record_id)) return "该视频已导入当前病例";
+  if (interactionBusy.value) return "请等待当前视频库操作完成";
+  return `导入到当前病例：${store.currentCase.case_id}`;
 }
 
 onMounted(() => {
@@ -210,23 +296,19 @@ onMounted(() => {
 <style scoped>
 .data-library-page {
   min-height: 100dvh;
-  padding: 86px 28px 28px;
-  background:
-    radial-gradient(circle at 12% 4%, rgba(44, 126, 192, 0.28), transparent 28%),
-    radial-gradient(circle at 86% 0%, rgba(58, 211, 255, 0.16), transparent 30%),
-    linear-gradient(rgba(103, 222, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 222, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, #07131f, #091724 360px, #06101b);
-  background-size: auto, auto, 28px 28px, 28px 28px, auto;
-  color: #d8edf7;
+  padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
+  background: var(--ov-shell-background);
+  color: var(--ov-text);
 }
 
 .library-header,
 .library-toolbar,
 .library-alert,
+.library-status,
 .candidate-grid,
+.library-pagination,
 .empty-state {
-  width: min(100%, 1540px);
+  width: min(100%, var(--ov-content-standard));
   margin-right: auto;
   margin-left: auto;
 }
@@ -234,23 +316,22 @@ onMounted(() => {
 .library-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, 0.88fr);
-  gap: 18px;
+  gap: 24px;
   align-items: end;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
 }
 
 .library-header h1 {
   margin: 0;
-  color: #f2fbff;
-  font-size: 30px;
+  color: var(--ov-text);
+  font-size: var(--ov-font-page-title);
   line-height: 1.15;
   letter-spacing: 0;
-  text-shadow: 0 0 22px rgba(103, 222, 255, 0.22);
 }
 
 .library-header p {
   margin: 8px 0 0;
-  color: #9dbccc;
+  color: var(--ov-text-secondary);
   font-size: 14px;
   font-weight: 800;
 }
@@ -258,20 +339,16 @@ onMounted(() => {
 .library-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
 }
 
 .metric-tile {
   min-width: 0;
-  border: 1px solid rgba(123, 215, 255, 0.26);
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 8px 10px;
-  background:
-    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
-    #081624;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
-    0 14px 34px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px;
+  background: var(--ov-bg-elevated);
+  box-shadow: none;
 }
 
 .metric-tile span,
@@ -280,14 +357,14 @@ onMounted(() => {
 }
 
 .metric-tile span {
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 900;
 }
 
 .metric-tile strong {
   margin-top: 4px;
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 18px;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -296,18 +373,14 @@ onMounted(() => {
 .library-toolbar {
   display: grid;
   grid-template-columns: 148px repeat(2, minmax(140px, 190px)) minmax(180px, 1fr);
-  gap: 10px;
+  gap: 14px;
   align-items: end;
-  margin-bottom: 12px;
-  border: 1px solid rgba(123, 215, 255, 0.26);
+  margin-bottom: 20px;
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 10px;
-  background:
-    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
-    #081624;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
-    0 14px 34px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
 }
 
 .library-toolbar label,
@@ -319,7 +392,7 @@ onMounted(() => {
 
 .library-toolbar span,
 .current-case-state span {
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 900;
 }
@@ -327,22 +400,27 @@ onMounted(() => {
 .library-toolbar select {
   width: 100%;
   min-height: 34px;
-  border: 1px solid rgba(123, 215, 255, 0.28);
+  border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
   padding: 6px 8px;
-  background: rgba(3, 14, 25, 0.78);
-  color: #eefaff;
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
   font: inherit;
   font-size: 13px;
 }
 
+.library-toolbar select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .current-case-state strong {
   min-height: 34px;
-  border: 1px solid rgba(123, 215, 255, 0.22);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 7px 9px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #bdefff;
+  background: var(--ov-bg-soft);
+  color: var(--ov-primary);
   font-size: 13px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -350,46 +428,53 @@ onMounted(() => {
 
 .library-alert,
 .empty-state {
-  border: 1px solid rgba(255, 116, 122, 0.42);
+  border: 1px solid var(--ov-danger-border);
   border-radius: 6px;
   padding: 10px 12px;
-  background: rgba(68, 19, 25, 0.68);
-  color: #ffd3d6;
+  background: var(--ov-bg-danger);
+  color: var(--ov-danger);
   font-size: 13px;
   font-weight: 800;
+}
+
+.library-status {
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--ov-success) 45%, var(--ov-border));
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--ov-bg-success);
+  color: var(--ov-success);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .candidate-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 16px;
 }
 
 .candidate-card {
   display: grid;
-  gap: 9px;
+  gap: 12px;
   min-width: 0;
-  border: 1px solid rgba(123, 215, 255, 0.26);
+  border: 1px solid var(--ov-border);
   border-radius: 6px;
-  padding: 11px;
-  background:
-    linear-gradient(180deg, rgba(13, 34, 52, 0.94), rgba(7, 20, 34, 0.94)),
-    #081624;
-  box-shadow:
-    0 0 0 1px rgba(71, 208, 255, 0.07) inset,
-    0 14px 34px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+  box-shadow: none;
 }
 
 .candidate-card__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 12px;
   align-items: start;
 }
 
 .candidate-card h2 {
   margin: 0;
-  color: #f2fbff;
+  color: var(--ov-text);
   font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -398,18 +483,18 @@ onMounted(() => {
 .candidate-card__header div > span {
   display: block;
   margin-top: 3px;
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 11px;
   font-weight: 800;
   overflow-wrap: anywhere;
 }
 
 .candidate-badge {
-  border: 1px solid rgba(123, 215, 255, 0.24);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 999px;
   padding: 3px 7px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #d8edf7;
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -417,18 +502,18 @@ onMounted(() => {
 }
 
 .candidate-badge.fluorescent {
-  border-color: rgba(87, 223, 174, 0.5);
-  background: rgba(43, 203, 145, 0.14);
-  color: #c5ffed;
+  border-color: var(--ov-success);
+  background: var(--ov-bg-success);
+  color: var(--ov-success);
 }
 
 .candidate-preview {
   display: grid;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(123, 215, 255, 0.22);
+  border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
-  background: #07131f;
+  background: var(--ov-bg-media);
 }
 
 .candidate-preview img {
@@ -442,7 +527,7 @@ onMounted(() => {
   display: grid;
   min-height: 94px;
   place-items: center;
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -450,7 +535,7 @@ onMounted(() => {
 .candidate-details {
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
-  gap: 4px 8px;
+  gap: 6px 10px;
   margin: 0;
 }
 
@@ -462,30 +547,49 @@ onMounted(() => {
 }
 
 .candidate-details dt {
-  color: #9dbccc;
+  color: var(--ov-text-muted);
   font-weight: 900;
 }
 
 .candidate-details dd {
   margin: 0;
-  color: #d8edf7;
+  color: var(--ov-text-secondary);
   overflow-wrap: anywhere;
 }
 
 .candidate-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
 .candidate-actions a {
-  color: #9be9ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--ov-primary-strong);
   font-size: 12px;
   font-weight: 900;
   text-decoration: none;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+.library-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--ov-border-subtle);
+  color: var(--ov-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .candidate-actions a:hover {
@@ -494,9 +598,9 @@ onMounted(() => {
 
 .empty-state {
   margin-top: 12px;
-  border-color: rgba(123, 215, 255, 0.22);
-  background: rgba(255, 255, 255, 0.045);
-  color: #bdefff;
+  border-color: var(--ov-border-subtle);
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-secondary);
 }
 
 @media (max-width: 1180px) {

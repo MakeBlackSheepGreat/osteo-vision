@@ -173,6 +173,95 @@ description: "Task list for Osteo Vision software platform target"
 
 ---
 
+## Phase 7: 2026-07-17 Three Priority Capabilities
+
+**Purpose**: Deliver the safety-gated software closure for patient-conditioned evidence,
+bone-activity spectrum review, and magnification-aware 3D registration before model retraining.
+
+### Shared safety and contracts
+
+- [X] T081 Freeze the three-capability target and order in `research/reports/planning/three_priority_capabilities_target_20260717_zh.md`
+- [X] T082 Record long-term safety and delivery rules in `AGENTS.md`
+- [X] T083 Require trusted identity for verified clinical context in `backend/src/api/cases.py`
+- [X] T084 Add verified clinical-context contract coverage in `backend/tests/contract/test_clinical_context_api.py`
+- [X] T085 Propagate strict runtime configuration into review and prompt-fallback paths in `backend/src/services/review_service.py`
+- [X] T086 Decouple inference configuration resolution from artifact output root in `backend/src/core/settings.py`
+- [X] T087 Add strict-runtime regression coverage for temporary artifact roots in `backend/tests/unit/test_settings_runtime_paths.py`
+
+### Patient-conditioned evidence and bone activity
+
+- [X] T088 Implement clinical-context quality assessment and safe no-spatial-effect fallback in `backend/src/services/clinical_context_assessment.py`
+- [X] T089 Implement clinical-context frontend comparison and provenance UI in `frontend/src/components/ClinicalContextPanel.vue`
+- [X] T090 Implement rule-derived bone-activity spectrum with trusted bone-gate degradation in `frontend/src/components/ViabilitySpectrumPanel.vue`
+- [X] T091 Freeze the versioned clinical-context contract, missingness policy, and acceptance protocol in `research/reports/planning/three_priority_capabilities_acceptance_v1_zh.md`
+- [X] T092 Freeze the bone-activity label dictionary and physician arbitration SOP in `research/reports/planning/three_priority_capabilities_acceptance_v1_zh.md`
+
+### L1/L2 3D validation
+
+- [X] T093 Validate transform existence, checksum, matrix, units, direction, and coordinate-chain continuity in `backend/src/services/three_d_evidence.py`
+- [X] T094 Validate registration error, threshold source, calibration range, and physician review in `backend/src/services/three_d_evidence.py`
+- [X] T095 Extend fail-closed navigation unit tests in `backend/tests/unit/test_three_d_evidence_service.py`
+- [X] T096 Update navigation reason-code presentation in `frontend/src/components/NavigationSafetyStatusPanel.vue`
+- [X] T097 Implement the L1 static registration adapter, backend job/API, frontend guide, and SERV-CT/phantom validation in `src/`, `backend/`, and `frontend/`
+- [X] T098 Implement pose-only offline pose-log composition and failure injection as a permanent L0 engineering diagnostic in `src/`
+
+### Data and final model phase
+
+- [X] T099 Download the first traceable public/proxy datasets and manifests under `research/datasets/public-candidates/`
+- [X] T100 Complete the approved starter dataset downloads and integrity/license review under `research/datasets/public-candidates/`; registered or oversized optional candidates remain tracked separately
+- [ ] T101 Train and independently validate target-domain patient-conditioned segmentation after T083-T100 pass
+- [ ] T102 Train and independently validate the target-domain bone-activity multitask model after T083-T100 pass
+- [X] T103 Run the final engineering regression and update the target report: 250 backend tests, 535 core unit/smoke tests, 179 frontend tests with 1 skipped, Vue type-check, Vite build, full Ruff, and canonical `src backend` mypy passed; the navigation route chunk is 61.97 kB and the heavyweight 3D viewport loads as a separate 709.67 kB async chunk
+- [X] T104 Implement and smoke-test the patient-conditioned segmentation architecture on grouped non-target-domain proxy data without runtime promotion
+- [X] T105 Implement and smoke-test the bone-activity multitask architecture on grouped non-target-domain proxy data without runtime promotion
+- [X] T106 Implement fail-closed target-domain promotion verification with policy status, evidence hashes, split recomputation, trusted physician review, calibration, subgroup audit, and capability-specific safety metrics
+- [ ] T107 Approve the target-domain metric policy and run T101/T102 on admitted physician-reviewed jaw-osteomyelitis data before any runtime replacement
+- [X] T108 Audit and download bounded patient-conditioning, bone-activity, and navigation gap resources as D077-D089; record governance, license, source, size, SHA256, and non-target-domain boundaries
+- [X] T109 Run and register the D086 24-case dental-landmark L1 proxy benchmark with noise and failure injection while blocking physical-accuracy claims
+- [X] T110 Materialize D083 public bone-graft ICG video evidence with archive integrity, MP4 derivation, whole-duration keyframes, strict-model signal segmentation, temporal quantification, dark-baseline QC, and closed target-domain claims
+- [X] T111 Materialize and train the five-patient KiTS23 CT/mask/clinical-context public proxy with canonical orientation, patient-level splits, 288-batch bounded conditioning, a failed no-harm gate, and runtime promotion closed
+- [X] T112 Unify nine dataset manifests and extend machine validation to the full required provenance field set
+- [X] T113 Implement calibrated microscope-camera PnP, independent reprojection gating, composed CBCT-to-camera transforms, frontend evidence entry, and fail-closed L1 phantom validation
+- [X] T114 Implement and run focused regression for the strict L2 software gate: checksum-bound admitted MP4 and pose manifest, independent measurement and threshold-policy artifacts, FFprobe PTS-derived FPS, read-time integrity checks, persisted validated L1 camera evidence, per-frame 3D-to-2D projection, trusted physician review, overlay SHA256, failed-rerun revocation, and fail-closed L0 degradation
+- [ ] T115 Validate L1/L2 physical accuracy on a real mandible phantom with independently measured dynamic ground truth, approve protocol thresholds, complete physician review, and record a durable navigation artifact before any physical-navigation claim
+- [X] T116 Implement the v2 multi-entry calibration-table contract, manifest `calibration_table_id` binding, bounded `nearest_validated_entry_v1` selection, per-frame selection evidence, VFR rejection, and focused backend regression
+- [ ] T117 Acquire real-device 4K calibration across the full magnification and working-distance range, independently validate entry coverage and selection error, and approve any future interpolation method before physical use
+- [X] T118 Reduce the `NavigationWorkspacePage` Vite chunk warning with route-level or component-level code splitting while preserving navigation tests, type-check, and production build behavior
+- [X] T119 Restrict patient-conditioned spatial effects to promoted target-domain runs with verified clinical context, physician-reviewed bone, image uncertainty, and exact image-only fallback
+- [X] T120 Suppress bone-activity scores and class probabilities across abstention/ignore regions and fail closed on non-finite model output
+- [X] T121 Bind L1 validation to a versioned SHA256 registration manifest, parseable model and independent point artifact; keep manual entry L0-only and revoke stale L2 active evidence after failed L1 reruns
+- [X] T122 Selectively extract and verify the D069 MMDental clinical table and one paired dental CBCT from its 68 GB ZIP64 archive; validate NIfTI import and fail-closed hard-tissue proxy modeling with hash-bound evidence, aggregate-only inspection, and closed target-domain training/navigation admission
+- [X] T123 Materialize the five-sample D074 human PpIX microscope fluorescence proxy with source/archive/derived-file integrity, patient-group separation, rule-derived bone-activity targets, and explicit non-jaw/non-ICG/non-target-domain boundaries
+- [X] T124 Train the D074 bone-activity proxy and freeze bone-gate and abstention thresholds on validation data only; record full scans, reuse thresholds once on test, require selective-error and coverage gates, and keep runtime replacement closed after frozen-test failure
+- [X] T125 Strengthen patient-conditioned manifest training with per-image SHA256, byte-size, dimension, binary-mask, promotion-policy provenance, and a fresh KiTS23 run that remains blocked by the no-harm gate
+- [X] T126 Bind L1/L2 coordinate frames to handedness, axis direction, unit, source, and matrix convention; reject missing or conflicting frame provenance and degrade all affected overlays to L0
+- [X] T127 Harden three-priority promotion against negative safety metrics, all-abstention metric inflation, untrusted approved-policy declarations, ineligible proxy metrics, threshold-scan tampering, zero-support class Dice, and case/source/derived-asset split leakage while keeping the approved-policy trust store closed until T107
+- [X] T128 Generate checkpoint-bound patient-conditioned split, prediction, calibration, subgroup, safety, and physician-review evidence artifacts; bind source/canonical affine and spacing, compute physical boundary Hausdorff distance, and preserve no-harm, 2 mm boundary, target-domain, institution/time, and trusted-review blockers
+- [X] T129 Selectively materialize the SHA256-bound D087 C3VD official archive with safe member-path checks, per-file size/SHA256/CRC evidence, explicit colon-phantom/non-jaw/non-fluorescence boundaries, and closed training/navigation admission
+- [X] T130 Deterministically deduplicate the two D087 pose timestamps with source-row hashes and a keep-last audit, then bind all 766 RGB/depth frames to unique poses under an explicit 10 ms tolerance with unmatched and ambiguous counts
+- [X] T131 Implement C3VD Scaramuzza OCamCalib polynomial-v1 projection, validate it against independent fixed numeric vectors, and run fail-closed offline proxy replay with tracking-loss, time-offset, and drift failure injections
+- [X] T132 Remove visible input-path compaction from the case archive and enforce complete wrapping through frontend regression coverage
+- [X] T133 Replace the deprecated Three.js soft-shadow mode and verify the lazy-loaded desktop 3D workbench with a real STL, zero browser warnings, nonblank canvas pixels, and measurable auto-rotation frame changes
+- [X] T134 Recompute all T107 promotion metrics from checkpoint-bound, SHA256-bound per-case prediction and physician-reviewed ground-truth assets; reject tampering, missing assets, split mismatch, all-abstention inflation, zero class support, no-harm failure, and physical-boundary violations
+- [X] T135 Implement authenticated append-only Ed25519 promotion approvals with physician/project-reviewer dual signatures, nonce replay prevention, revocation, trusted-key lifecycle checks, offline key/signing tooling, exact evidence-target binding, API bundle export, and independent final-gate replay; keep the production trust store empty until T107 external evidence and policy approval are complete
+- [X] T136 Upgrade strict L2 to pose-manifest v3 and threshold-policy v2; bind FFprobe-PTS magnification/working-distance rates, intrinsics-switch rate, calibration ambiguity, and A/B/A oscillation to nine approved safety parameters, fail closed to L0, persist frame/summary evidence, and expose the result in the frontend
+- [X] T137 Download, inspect, and register D090 three-video human breast sentinel-node ICG and D091 two-video human hepatic ICG proxies; extend unified provenance verification to 11 manifests, 43 records, 106 files, and 5,437,811,619 verified bytes while preserving non-jaw, non-target-domain, and training-ineligible boundaries
+- [X] T138 Synchronize trusted physician-reviewed `ignore` annotations into candidate, frame, video-manifest, artifact, and `bone_activity_spectrum-v2` evidence; reject untrusted states and fail closed on source, dimension, mask-integrity, or checksum mismatch
+- [X] T139 Implement the SHA256-bound `PatientConditionedSegmenterAdapter`, evidence outputs, and image-only safety fallback; register the KiTS23 proxy as a development-only explicit candidate, verify the registered checkpoint end to end with generated evidence, exact conditioned/image-only equality, zero delta, and runtime replacement closed, and keep it absent from the strict competition configuration
+- [X] T140 Integrate patient-conditioned comparison into `AnalysisService`, API routes, and the local job worker; select exactly one trusted accepted/modified `exposed_bone` annotation bound to the active white-light JPEG, persist artifacts and reason codes, and fail closed on ambiguous or invalid gates
+- [X] T141 Expose patient-conditioned image-only, conditioned, difference, uncertainty, provenance, and fallback evidence in the case workspace plus structured JSON, Markdown, quantification CSV, and export bundle regression coverage
+- [X] T142 Make the official 4K proxy pair deterministically registration-verifiable, bind input SHA256, official profile and registration evidence into the strict competition summary, execute the development patient-conditioned checkpoint on the registered pair, verify four 4K evidence images with exact image-only fallback, localize all safety reasons, and complete day/night desktop browser QA
+- [X] T143 Reconfirm the three capabilities as fixed continuing goals, assign public/proxy dataset acquisition to the project side, register D092 PMCanalSeg and D093 MRONJ SPECT/CT figure assets, and extend unified provenance verification to 13 manifests
+- [X] T144 Implement `clinical-feature-vector-v1` with explicit list completeness, present/missing/OOD masks, runtime rebuild and checksum validation, checkpoint-consumed versus spatially-applied evidence, frontend visibility, and JSON/Markdown/CSV export coverage without retraining
+- [X] T145 Run the D036 public-label digital mandible through the real FastAPI L1/L2 path with checksum-bound evidence, dual-calibration selection, same-L1-chain verification, tamper rejection, physician-review fallback to L0, and closed physical/navigation claims
+- [X] T146 Expand `clinical-feature-vector-v1` to the 13-feature platform union, bind encoder schema/version and per-feature source evidence across training manifests, checkpoints and runtime, preserve safe checkpoint-subset projection, and reject incompatible or tampered contracts without enabling spatial conditioning
+- [X] T147 Upgrade physician annotation export and downstream admission to `osteo-vision-manual-annotation-training-manifest-v2`, require admitted checksum-verified institutional inputs plus explicit training authorization, deidentification, mapping custody and independent physician review, and decouple case-level reviewed ignore application from training rights
+- [X] T148 Download, checksum, license-audit and register D094 ClinRad ORNJ and D095 MDACC ORNJ patient-context datasets, extend unified verification to 15 manifests / 47 records / 138 files, and keep both sources outside target-domain training admission
+- [X] T149 Implement the checksum-bound D074 bone-activity checkpoint runtime and adapter, require explicit selection and target-domain/promotion/registration/physician gates, emit engineering evidence only, and keep spatial class maps, continuous scores and runtime replacement closed
+- [X] T150 Integrate the explicit D074 checkpoint candidate into `AnalysisService`, persist checksum-bound JSON/NPZ artifacts, expose separate JSON/Markdown/CSV/ZIP and frontend engineering evidence, reject unsafe proxy spatial outputs at the platform layer, and keep target-domain/runtime promotion closed
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

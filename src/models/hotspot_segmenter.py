@@ -104,6 +104,7 @@ def segment_2d_fluorescence_hotspots(
         probability_path=str(enhanced_path),
         overlay_path=str(overlay_path),
         risk_summary=signal_paths.get("risk_summary", {}),
+        activity_score_path=signal_paths.get("activity_score_path"),
     )
     return {
         "prediction": {

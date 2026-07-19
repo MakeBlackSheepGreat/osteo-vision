@@ -1,0 +1,45 @@
+schema_version: osteo-vision-keyframe-model-selection-v1
+protocol:
+  task: video_signal_segmentation
+  registry: research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/layered_registry_20260711/layered_dataset_registry.csv
+  quality_report: research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/layered_registry_20260711/layered_dataset_quality_report.json
+  evaluation_manifest: research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/mp4_keyframe_segmentation_proxy_20260710_grouped/keyframe_segmentation_proxy_manifest.csv
+  domain_adaptation_config: configs/training/keyframe_domain_adaptation.yml
+  image_shape: [160, 256]
+  mask_resampling: nearest
+  source_group_split_required: true
+  train_batches: 320
+  batch_size: 8
+  learning_rate: 0.0007
+  threshold_scan: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+  over_segmentation_fraction: 0.60
+  max_empty_mask_rate: 0.05
+  max_over_segmentation_rate: 0.05
+  seed: 20260714
+  device: cuda
+baseline:
+  model_id: keyframe_candidate_20260714
+  architecture: convnext_unet
+  checkpoint: artifacts/checkpoints/osteo_vision/keyframe_candidate_20260714.pt
+  runtime_allowed: false
+candidates:
+  - model_id: keyframe_residual_attention_unet_20260715
+    architecture: residual_attention_unet
+    base_channels: 12
+    checkpoint: artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_20260715.pt
+    runtime_allowed: false
+  - model_id: keyframe_multiscale_depthwise_unet_20260715
+    architecture: multiscale_depthwise_unet
+    base_channels: 12
+    checkpoint: artifacts/checkpoints/osteo_vision/keyframe_multiscale_depthwise_unet_20260715.pt
+    runtime_allowed: false
+promotion:
+  require_test_dice_above_baseline: true
+  require_test_iou_above_baseline: true
+  require_empty_mask_rate_lte: 0.05
+  require_over_segmentation_rate_lte: 0.05
+  require_runtime_preflight: true
+  automatic_runtime_replacement: false
+medical_boundary: >-
+  All labels are public non-target-domain fluorescence proxy masks. Target-domain intraoperative ICG jaw
+  osteomyelitis performance requires physician-reviewed clinical data and remains unmeasured.

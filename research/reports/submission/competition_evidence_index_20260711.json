@@ -1,0 +1,667 @@
+{
+  "generated_at_utc": "2026-07-11T02:28:52.497269+00:00",
+  "project_root": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision",
+  "official_requirements": {
+    "competition_id": "HT-202604",
+    "core_items": [
+      "新型荧光造影剂设计",
+      "白光/荧光多模态融合与处理",
+      "AI 辅助显微成像判读"
+    ],
+    "scoring": {
+      "innovation": 20,
+      "scientific_rationale": 20,
+      "feasibility": 30,
+      "application_value": 20,
+      "completeness": 10
+    },
+    "device_input_boundary": {
+      "resolution": "3840x2160",
+      "storage": "USB3.0",
+      "image_format": "JPEG",
+      "video_format": "MP4"
+    }
+  },
+  "official_sources": [
+    {
+      "path": "HT-202604成都科奥达光电技术有限公司-面向颌骨骨髓炎的智能化荧光诊疗比赛方案.pdf",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 237484,
+      "sha256": "b134be0c4bddd4ef7745e46b982fcbfb9df00c9e89f1385bb44ecefb30a55ddc",
+      "git_tracked": false,
+      "distribution": "local_only"
+    },
+    {
+      "path": "research/literature/inventory/official/competition_official_technical_document_20260527.pdf",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 121814,
+      "sha256": "b8cfa6937f2f37b01e7fcf426031a779dc4f8c1a8c4573d5aaef1032f852bf12",
+      "git_tracked": false,
+      "distribution": "local_only"
+    }
+  ],
+  "git": {
+    "branch": "main",
+    "commit": "3e780e306c959ff4795773a64de9985d1a80a510",
+    "status_entry_count": 127,
+    "clean": false,
+    "status": [
+      "M .gitignore",
+      " M AGENTS.md",
+      " M backend/src/api/routes.py",
+      " M backend/src/services/analysis_outputs.py",
+      " M backend/src/services/analysis_service.py",
+      " M backend/src/services/keyframe_segmentation.py",
+      " M backend/src/services/video_analysis_details.py",
+      " M backend/src/services/video_hotspot_outputs.py",
+      " M backend/src/services/video_keyframe_metrics.py",
+      " M backend/src/services/video_review_writer.py",
+      " M backend/src/services/video_segmentation_manifest.py",
+      " M backend/tests/unit/test_analysis_service.py",
+      " M backend/tests/unit/test_video_signal_segmentation_contract.py",
+      " M configs/inference/osteo_vision.yml",
+      " M frontend/src/App.vue",
+      " M frontend/src/components/AnalysisWorkspaceCard.vue",
+      " M frontend/src/components/analysisPreview.ts",
+      " M frontend/src/components/appIcons.ts",
+      " M frontend/src/composables/useVideoPlaybackSync.ts",
+      " M frontend/src/router/index.ts",
+      " M frontend/src/services/apiClient.ts",
+      " M frontend/tests/AnalysisPreviewPanels.test.ts",
+      " M scripts/evaluate_keyframe_segmentation_proxy.py",
+      " M scripts/train_keyframe_segmentation_proxy.py",
+      " M scripts/train_video_signal_multimask_v2.py",
+      " M src/metrics/calibration.py",
+      " M src/models/adapters.py",
+      " M src/models/keyframe_segmenter.py",
+      " M src/preprocess/fluorescence.py",
+      " M tests/unit/test_fluorescence_preprocess.py",
+      " M tests/unit/test_keyframe_proxy_manifest_builder.py",
+      " M tests/unit/test_keyframe_review_manifest_training_builder.py",
+      " M tests/unit/test_keyframe_segmenter_tiling.py",
+      " M tests/unit/test_keyframe_threshold_eval.py",
+      " M tests/unit/test_keyframe_training_script.py",
+      " M tests/unit/test_model_adapters.py",
+      " M tools/build_keyframe_segmentation_proxy_manifest.py",
+      " M tools/build_keyframe_training_manifest_from_review.py",
+      " M tools/build_video_signal_multimask_training_manifest.py",
+      " M tools/run_keyframe_tiling_smoke.py",
+      "?? artifacts/active_review_queue_multi_source_smoke_20260711/",
+      "?? artifacts/active_review_queue_smoke_20260711/",
+      "?? artifacts/d047_d048_crop_required_contact_sheet.jpg",
+      "?? artifacts/data_review/",
+      "?? artifacts/registry_admission_validation_403_20260711/",
+      "?? artifacts/registry_admission_validation_504_crop_suggestions_20260711/",
+      "?? backend/src/api/dataset_review.py",
+      "?? backend/src/services/active_review_queue.py",
+      "?? backend/src/services/static_dataset_review.py",
+      "?? backend/tests/contract/test_dataset_review_api.py",
+      "?? backend/tests/unit/test_active_review_queue.py",
+      "?? backend/tests/unit/test_video_dynamic_quantification.py",
+      "?? configs/training/",
+      "?? frontend/src/components/StaticCropEditor.vue",
+      "?? frontend/src/components/StaticMaskEditor.vue",
+      "?? frontend/src/pages/DatasetReviewPage.vue",
+      "?? frontend/src/types/datasetReview.ts",
+      "?? frontend/tests/DatasetReviewPage.test.ts",
+      "?? frontend/tests/StaticCropEditor.test.ts",
+      "?? frontend/tests/StaticMaskEditor.test.ts",
+      "?? research/datasets/",
+      "?? research/reports/modeling/d047_pmc_jaw_fluorescence_dataset_20260711_en.md",
+      "?? research/reports/modeling/d047_pmc_jaw_fluorescence_dataset_20260711_zh.md",
+      "?? research/reports/modeling/d048_open_clinical_bone_fluorescence_dataset_20260711_en.md",
+      "?? research/reports/modeling/d048_open_clinical_bone_fluorescence_dataset_20260711_zh.md",
+      "?? research/reports/modeling/dual_channel_ablation_20260710_dual_channel.json",
+      "?? research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260710_grouped_en.md",
+      "?? research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260710_grouped_zh.md",
+      "?? research/reports/modeling/keyframe_threshold_eval_20260710_grouped_test/",
+      "?? research/reports/modeling/keyframe_threshold_eval_20260710_grouped_val/",
+      "?? research/reports/modeling/layered_dataset_registry_quality_20260711_en.md",
+      "?? research/reports/modeling/layered_dataset_registry_quality_20260711_zh.md",
+      "?? research/reports/modeling/live_stream_and_static_review_20260711_en.md",
+      "?? research/reports/modeling/live_stream_and_static_review_20260711_zh.md",
+      "?? research/reports/modeling/public_video_4k_validation_20260711_en.md",
+      "?? research/reports/modeling/public_video_4k_validation_20260711_zh.md",
+      "?? research/reports/modeling/public_video_dynamic_quantification_20260711_en.md",
+      "?? research/reports/modeling/public_video_dynamic_quantification_20260711_zh.md",
+      "?? research/reports/modeling/r01_r08_remediation_20260710_en.md",
+      "?? research/reports/modeling/r01_r08_remediation_20260710_zh.md",
+      "?? research/reports/modeling/static_panel_crop_suggestions_20260711_en.md",
+      "?? research/reports/modeling/static_panel_crop_suggestions_20260711_zh.md",
+      "?? research/reports/modeling/video_active_review_queue_20260711_en.md",
+      "?? research/reports/modeling/video_active_review_queue_20260711_zh.md",
+      "?? research/reports/modeling/video_signal_multimask_v2_grouped_20260710_multimask_v2_grouped.csv",
+      "?? research/reports/modeling/video_signal_multimask_v2_training_20260710_multimask_v2_grouped.json",
+      "?? research/reports/planning/build_competition_gap_solutions_archive_docx.js",
+      "?? research/reports/planning/osteo_vision_competition_gap_solutions_archive_20260710_zh.docx",
+      "?? research/reports/submission/",
+      "?? scripts/train_dual_channel_segmenter.py",
+      "?? src/datasets/domain_adaptation.py",
+      "?? src/datasets/group_splits.py",
+      "?? src/datasets/registry.py",
+      "?? src/datasets/static_panel_detection.py",
+      "?? src/datasets/training_admission.py",
+      "?? src/io/live_stream.py",
+      "?? src/models/dual_channel_segmenter.py",
+      "?? src/models/video_signal_multimask.py",
+      "?? tests/smoke/test_domain_aware_keyframe_training.py",
+      "?? tests/smoke/test_live_stream_analysis.py",
+      "?? tests/smoke/test_pmc_figure_review_promotion.py",
+      "?? tests/smoke/test_registry_admitted_keyframe_training.py",
+      "?? tests/smoke/test_runtime_model_candidates.py",
+      "?? tests/smoke/test_video_active_review_queue_cli.py",
+      "?? tests/unit/test_build_pmc_figure_review_seed.py",
+      "?? tests/unit/test_calibration_metrics.py",
+      "?? tests/unit/test_dataset_registry.py",
+      "?? tests/unit/test_domain_adaptation.py",
+      "?? tests/unit/test_download_open_clinical_bone_fluorescence_assets.py",
+      "?? tests/unit/test_download_pmc_jaw_fluorescence_figures.py",
+      "?? tests/unit/test_dual_channel_segmenter.py",
+      "?? tests/unit/test_group_splits.py",
+      "?? tests/unit/test_live_stream_capture.py",
+      "?? tests/unit/test_public_video_4k_validation.py",
+      "?? tests/unit/test_static_panel_detection.py",
+      "?? tests/unit/test_static_review_seed_batch.py",
+      "?? tests/unit/test_training_admission.py",
+      "?? tests/unit/test_video_signal_multimask_training.py",
+      "?? tools/build_competition_evidence_index.py",
+      "?? tools/build_layered_dataset_registry.py",
+      "?? tools/build_pmc_figure_review_seed.py",
+      "?? tools/build_static_panel_crop_suggestions.py",
+      "?? tools/build_video_active_review_queue.py",
+      "?? tools/download_open_clinical_bone_fluorescence_assets.py",
+      "?? tools/download_pmc_jaw_fluorescence_figures.py",
+      "?? tools/generate_static_review_seeds.py",
+      "?? tools/run_public_video_4k_validation.py"
+    ]
+  },
+  "config": {
+    "path": "configs/inference/osteo_vision.yml",
+    "exists": true,
+    "type": "file",
+    "size_bytes": 10383,
+    "sha256": "aa3c12b8d8974cc5585fc20c7d1628af5fd5de6c1d4bdb5653a7b1714fa26a2c"
+  },
+  "models": [
+    {
+      "model_id": "convnext3d_d025_proxy_segmenter",
+      "family": "convnext3d_segmenter",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt",
+        "exists": true,
+        "type": "file",
+        "size_bytes": 821797,
+        "sha256": "3b6cd68118626d6204f091295c563b7175773959a583269af3cdfb2c94a08a34"
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "ConvNeXt-style 3D CBCT lesion ROI proxy segmentation for engineering validation",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": 0.2
+    },
+    {
+      "model_id": "fluorescence_hotspot_2d_segmenter",
+      "family": "fluorescence_hotspot_segmenter",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": null,
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "heuristic 2D fluorescence hotspot mask for JPEG/keyframe platform validation evidence",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": 0.6
+    },
+    {
+      "model_id": "convnext2d_keyframe_proxy_segmenter",
+      "family": "convnext2d_keyframe_segmenter",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/keyframe_convnext2d_proxy_grouped_20260710.pt",
+        "exists": true,
+        "type": "file",
+        "size_bytes": 343093,
+        "sha256": "34cc08f1330c6eed1ee051c6f1318702afb6015a1ef7ce92ad92d9e90b35206b"
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "trainable 2D JPEG/MP4 keyframe segmentation proxy for engineering validation",
+      "clinical_claim_allowed": false,
+      "input_domain": "public_or_local_proxy_keyframe_non_target_domain",
+      "target_domain": false,
+      "review_boundary": null,
+      "threshold": 0.45
+    },
+    {
+      "model_id": "convnext2d_video_signal_multimask_v2_grouped",
+      "family": "video_signal_multimask",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/keyframe_video_signal_multimask_v2_grouped.pt",
+        "exists": true,
+        "type": "file",
+        "size_bytes": 345205,
+        "sha256": "3a4cd7e9bd6eb22275be4ebdf2ae667eed2f06cda8850445d0337d7c4eb0e90a"
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "optional fluorescence-signal and bone-gate multi-mask candidate for engineering validation",
+      "clinical_claim_allowed": false,
+      "input_domain": "public_fluorescence_proxy_and_prompt_assisted_bone_gate_seeds",
+      "target_domain": false,
+      "review_boundary": null,
+      "threshold": null
+    },
+    {
+      "model_id": "dual_channel_proxy_ablation_segmenter",
+      "family": "dual_channel_segmenter",
+      "enabled": true,
+      "runtime_allowed": false,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/dual_channel_proxy_20260710.pt",
+        "exists": true,
+        "type": "file",
+        "size_bytes": 104253,
+        "sha256": "0dd4d47f09b0a760f464619f20fdc402493d8bb62b2cfac02acb14ebff8fa397"
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": false,
+      "intended_use": "white-light and fluorescence proxy fusion segmentation for engineering validation",
+      "clinical_claim_allowed": false,
+      "input_domain": "public_non_target_domain_with_synthetic_white_light_proxy",
+      "target_domain": false,
+      "review_boundary": null,
+      "threshold": 0.5
+    },
+    {
+      "model_id": "d025_lesion_smoke_segmenter",
+      "family": "d025_lesion_segmenter",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/d025_lesion_smoke.pt",
+        "exists": true,
+        "type": "file",
+        "size_bytes": 821797,
+        "sha256": "3b6cd68118626d6204f091295c563b7175773959a583269af3cdfb2c94a08a34"
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "engineering smoke model for CBCT lesion ROI proxy segmentation",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": 0.2
+    },
+    {
+      "model_id": "nnunet_v2_osteo_baseline",
+      "family": "nnunet_v2",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/nnunet_v2",
+        "exists": false,
+        "type": "file",
+        "size_bytes": null,
+        "sha256": null
+      },
+      "checkpoint_ready_for_warmup": false,
+      "runtime_eligible_by_static_config": false,
+      "intended_use": "jaw osteomyelitis segmentation baseline",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": null
+    },
+    {
+      "model_id": "medsam2_osteo_promptable",
+      "family": "medsam_like",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/medsam2.pt",
+        "exists": false,
+        "type": "file",
+        "size_bytes": null,
+        "sha256": null
+      },
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "promptable lesion or necrotic bone ROI segmentation contract; fallback is not real MedSAM2 checkpoint inference",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": null
+    },
+    {
+      "model_id": "biomedclip_osteo_screening",
+      "family": "vlm_encoder",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": {
+        "path": "artifacts/checkpoints/osteo_vision/biomedclip.pt",
+        "exists": false,
+        "type": "file",
+        "size_bytes": null,
+        "sha256": null
+      },
+      "checkpoint_ready_for_warmup": false,
+      "runtime_eligible_by_static_config": false,
+      "intended_use": "auxiliary image-level screening platform workflow",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": null
+    },
+    {
+      "model_id": "fixture_default",
+      "family": "fixture",
+      "enabled": true,
+      "runtime_allowed": true,
+      "checkpoint": null,
+      "checkpoint_ready_for_warmup": true,
+      "runtime_eligible_by_static_config": true,
+      "intended_use": "deterministic fallback for tests and demos",
+      "clinical_claim_allowed": false,
+      "input_domain": null,
+      "target_domain": null,
+      "review_boundary": null,
+      "threshold": null
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "research/reports/planning/official_competition_problem_alignment_20260704_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 6237,
+      "sha256": "54e4639c54603a3424529aa4967ca2f925722f2fdf039334d5b7c3ee1e74b7d7"
+    },
+    {
+      "path": "research/reports/modeling/r01_r08_remediation_20260710_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 9032,
+      "sha256": "ff5735960fbae384ec9bcef8381c595d547c824404fc08ec3abf2042d04f1c82"
+    },
+    {
+      "path": "research/reports/modeling/keyframe_convnext2d_proxy_segmenter_20260710_grouped_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 2681,
+      "sha256": "752bc0bd3eb944dc314e2f40399e775f0e85c76efffaa229675c08a102bd9d5a"
+    },
+    {
+      "path": "research/reports/modeling/keyframe_threshold_eval_20260710_grouped_test/keyframe_threshold_eval.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 12889,
+      "sha256": "263eea400b219aac4478a92ec2f80d9fc79c99c0e1d6024882563afe06a414d4"
+    },
+    {
+      "path": "research/reports/modeling/dual_channel_ablation_20260710_dual_channel.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 5490,
+      "sha256": "39bad55bf4572b228a27a81793fdbce5ba9ca0aac5832a88cc74b11e8db38445"
+    },
+    {
+      "path": "research/reports/modeling/video_signal_multimask_v2_training_20260710_multimask_v2_grouped.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 15814,
+      "sha256": "578748222876359176b8a99c40fac75a3b08a52bf9f320a7044b07de21c4f809"
+    },
+    {
+      "path": "research/reports/modeling/public_video_4k_validation_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 5106,
+      "sha256": "384c749ba451879cf642782f92d2200f4fe1baf4a823db6e8dbba99d48bda681"
+    },
+    {
+      "path": "research/reports/modeling/public_video_dynamic_quantification_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 2405,
+      "sha256": "57e4788a06973f795b6c8f8fd770b062fcee532a3ca65c40cebc1dbc8f74e0d5"
+    },
+    {
+      "path": "research/reports/modeling/layered_dataset_registry_quality_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 1916,
+      "sha256": "667a262e1cc4a2e57b7bbecc4b1e7506d624a95b93502569c5be39835a91225f"
+    },
+    {
+      "path": "research/reports/modeling/video_active_review_queue_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 2963,
+      "sha256": "ff3cd0c4225795c272b451a5e8ad9aab6cdd49d92d0abebbc26822ccd9f2bb7e"
+    },
+    {
+      "path": "research/reports/modeling/d047_pmc_jaw_fluorescence_dataset_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 3305,
+      "sha256": "31e6019e5323c836d3d80e6320b455e52b4d6bbcabdf599dec0ed7f8d9a356ce"
+    },
+    {
+      "path": "research/datasets/public-candidates/d047_pmc_jaw_fluorescence_figures/pmc_jaw_fluorescence_figure_manifest.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 26138,
+      "sha256": "69985f75c88263a66bfc207ba9e7d06cab666c0f5fc74636788a41021e793e5e"
+    },
+    {
+      "path": "research/reports/modeling/d048_open_clinical_bone_fluorescence_dataset_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 6611,
+      "sha256": "e3ea7254355326b20b53a7e2126a628fad51abf1435a3cbeff050edf4a0714c0"
+    },
+    {
+      "path": "research/reports/modeling/live_stream_and_static_review_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 3552,
+      "sha256": "00783c63c8b254d6cd8a1e3077a4342bd3707df7fae91e3ca8a6b4ab17160f2d"
+    },
+    {
+      "path": "research/reports/modeling/static_panel_crop_suggestions_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 3456,
+      "sha256": "e8b26e0c58db426aab84c69dbaa9d551b2c6c181d3364b47219d74b4aa856fea"
+    },
+    {
+      "path": "research/datasets/public-candidates/d047_d048_static_figure_seed_manifest.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 25160,
+      "sha256": "44f5be1c68bc432c8a4387f3d0822322c72ecab251b5c8ebf57c55a2b85e8290"
+    },
+    {
+      "path": "research/datasets/public-candidates/d047_d048_static_crop_suggestion_manifest.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 72462,
+      "sha256": "d777165551affb031cabcaa713e41d2aaf836d1ab67723cbd5c5c906c62c0866"
+    },
+    {
+      "path": "research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/mp4_keyframe_segmentation_proxy_20260710_grouped/keyframe_segmentation_proxy_manifest.csv",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 245092,
+      "sha256": "83595ff78bef467821ab60107a189135a2e801472cd93f3836c3ba5ea5257b05"
+    },
+    {
+      "path": "research/datasets/public-candidates/d048_open_clinical_bone_fluorescence/open_clinical_bone_fluorescence_manifest.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 61995,
+      "sha256": "21216d7c683885f97d3c7396ea1a62223aba92aae52a35609b43c204bcdc7cf8"
+    },
+    {
+      "path": "backend/src/services/active_review_queue.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 29100,
+      "sha256": "d345b1745a2c80c81b668c6a85967ff25af29d569c00259998871f805a8e2339"
+    },
+    {
+      "path": "tools/build_keyframe_training_manifest_from_review.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 27154,
+      "sha256": "5e74a5e6c82d255e0906267c47ff1505d5fc1eb105e63c87edd2cc30b4786eeb"
+    },
+    {
+      "path": "src/datasets/training_admission.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 20377,
+      "sha256": "689a13da0c20a1fc5712a4b9430b5ff0036dc1fb04246b9f64ae4227beb459a2"
+    },
+    {
+      "path": "src/io/live_stream.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 17215,
+      "sha256": "6b99daf776c23a74ad58204bbc4a7644005774d8ff68472f947156fd2b17e882"
+    },
+    {
+      "path": "tests/smoke/test_live_stream_analysis.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 2295,
+      "sha256": "1787eaff33a5f835d3ba3aba208c176ee4c1cba63907209497a95ac89c325456"
+    },
+    {
+      "path": "backend/src/services/static_dataset_review.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 41729,
+      "sha256": "8f8e34de30a4c23882bd35543fffbe2ea22c48f4218a6ef5ce2193f46d8e75a8"
+    },
+    {
+      "path": "src/datasets/static_panel_detection.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 8722,
+      "sha256": "3ed2969c03c6b228d53fca27815dcf6514021a9e0fba9cf29509b93460e10ff7"
+    },
+    {
+      "path": "tools/build_static_panel_crop_suggestions.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 17647,
+      "sha256": "6fcc5441dba106baf920b90f5ce841f91b3a56457976c33ae375d858ca68935c"
+    },
+    {
+      "path": "tools/generate_static_review_seeds.py",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 4825,
+      "sha256": "0ff090a956b5cf68cd9e3b3cacc165bd31f1d17bbd4fedab84912adfd7e9302c"
+    },
+    {
+      "path": "frontend/src/components/StaticCropEditor.vue",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 12337,
+      "sha256": "175fea745d35274e964cf0eacb13674a2774d2bd810338e74dc57ace3f90e1e2"
+    },
+    {
+      "path": "frontend/src/pages/DatasetReviewPage.vue",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 25223,
+      "sha256": "f362fde44c9df7b4f7b64d17c34d6559feb2a32dbd466b5cc316ac261b82cd52"
+    },
+    {
+      "path": "artifacts/data_review/static_seed_batch_20260711.json",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 6256,
+      "sha256": "5b3cca485a0f3d0785bd995a12e2ca88cee296e167714ef82a1f86797629458d"
+    },
+    {
+      "path": "artifacts/platform_smoke/dataset_crop_review_ui_20260711.png",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 1214209,
+      "sha256": "5b0589f53f1d3607fc7a04b87108c7c441ad75cfc5aa062ee32980b7d4a9d18c"
+    },
+    {
+      "path": "artifacts/data_review/d047_d048_52_crop_suggestions_contact_sheet.jpg",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 720194,
+      "sha256": "d467528210270b9cabd6c21255cf7b98b1617745137acf94028e79629e27bafd"
+    },
+    {
+      "path": "artifacts/platform_smoke/dataset_crop_suggestions_ui_20260711.png",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 106509,
+      "sha256": "bc968b7477d6fe15a8831e901c24d21a1b06b4c5f543b08fd9055e8ac95bcdfa"
+    },
+    {
+      "path": "research/reports/submission/osteo_vision_final_technical_solution_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 33460,
+      "sha256": "e31147ed96faa7dd9275181d130914de2ef30bd908cd28b0f57e437469f99152"
+    },
+    {
+      "path": "research/reports/submission/osteo_vision_final_technical_solution_20260711_zh.docx",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 46310,
+      "sha256": "10f61c69157f07bb33e9b002cf01faca8e975b4b443a5e3de483cfc1d94c4383"
+    },
+    {
+      "path": "research/reports/submission/osteo_vision_final_technical_solution_20260711_zh.pdf",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 595171,
+      "sha256": "ff829bffdc94f93c266b508069b3688602e8423c2670e7015ce2db638ea9210c"
+    },
+    {
+      "path": "research/reports/submission/internal_verification_20260711_zh.md",
+      "exists": true,
+      "type": "file",
+      "size_bytes": 7541,
+      "sha256": "1ea0a8683cda6f433f402cfc6f3fcdc1e500e5a401b3ebc2978640c93c9b4dbe"
+    }
+  ],
+  "evidence_tiers": {
+    "literature": "候选造影剂、荧光机制、定量和标准化依据；不包含本项目原创实验结果。",
+    "proxy_engineering": "公开异域视频、代理标注、公开 CBCT 和压力样本；用于工程链路与相对比较。",
+    "physician_review": "当前目标域医生关键帧和像素级金标准暂缺。",
+    "enterprise_device": "当前企业原始双通道样片、滤光片曲线和目标硬件实机证据暂缺。"
+  },
+  "medical_boundary": "平台输出用于荧光/灌注信号候选区、骨面待复核门控、边界风险、不确定性和医生复核辅助，不提供自动确诊或疾病终判。",
+  "external_dependencies": [
+    "候选造影剂实物合成、光谱、选择性、安全性和组织仿体验证",
+    "真实目标域白光/NIR JPEG 或 MP4 与医生金标准",
+    "企业原始双通道、滤光片曲线和目标硬件实机验证"
+  ]
+}

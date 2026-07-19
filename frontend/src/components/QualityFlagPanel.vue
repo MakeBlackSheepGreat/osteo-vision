@@ -10,10 +10,10 @@
 
 <style scoped>
 .panel {
-  border: 1px solid #c8d4e0;
+  border: 1px solid var(--ov-border);
   border-radius: 8px;
   padding: 14px;
-  background: #fff;
+  background: var(--ov-bg-elevated);
 }
 
 .panel-heading p,
@@ -29,7 +29,7 @@ p {
 
 .panel-heading p {
   margin-bottom: 6px;
-  color: #5a6a7a;
+  color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -39,7 +39,7 @@ p {
 }
 
 p {
-  color: #5a6878;
+  color: var(--ov-text-secondary);
   font-size: 13px;
 }
 </style>

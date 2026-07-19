@@ -46,11 +46,16 @@ export function useVideoPlaybackSync(options: UseVideoPlaybackSyncOptions) {
 
   function jumpPlaybackToDetail(detail: HotspotFrameDetail) {
     if (detail.timestampSec === null || !Number.isFinite(detail.timestampSec)) return;
-    playbackSeekTimeSec.value = detail.timestampSec;
-    playbackSeekToken.value += 1;
-    currentPlaybackTime.value = detail.timestampSec;
+    seekPlaybackToTime(detail.timestampSec);
     lastSyncedFrameKey.value = detail.key;
     options.onSelectFrame(detail.key);
+  }
+
+  function seekPlaybackToTime(timeSec: number) {
+    const normalized = normalizeSeconds(timeSec);
+    playbackSeekTimeSec.value = normalized;
+    playbackSeekToken.value += 1;
+    currentPlaybackTime.value = normalized;
   }
 
   return {
@@ -61,6 +66,7 @@ export function useVideoPlaybackSync(options: UseVideoPlaybackSyncOptions) {
     nearestFrameDetail,
     syncPlaybackState,
     jumpPlaybackToDetail,
+    seekPlaybackToTime,
   };
 }
 
@@ -70,10 +76,14 @@ function nearestFrameDetailForTime(
   selectedFrameKey: string,
 ): HotspotFrameDetail | null {
   if (!details.length) return null;
-  const timedDetails = details.filter(
+  const displayableDetails = details.filter((detail) => detail.displayAllowed !== false);
+  const timedDetails = displayableDetails.filter(
     (detail) => typeof detail.timestampSec === "number" && Number.isFinite(detail.timestampSec),
   );
-  if (!timedDetails.length) return details.find((detail) => detail.key === selectedFrameKey) ?? details[0];
+  if (!displayableDetails.length) return details.find((detail) => detail.key === selectedFrameKey) ?? details[0];
+  if (!timedDetails.length) {
+    return displayableDetails.find((detail) => detail.key === selectedFrameKey) ?? displayableDetails[0];
+  }
 
   // 当前平台是 keyframe-based playback analysis：播放时只同步到最近关键帧，不宣称逐帧实时推理。
   return timedDetails.reduce((nearest, detail) =>

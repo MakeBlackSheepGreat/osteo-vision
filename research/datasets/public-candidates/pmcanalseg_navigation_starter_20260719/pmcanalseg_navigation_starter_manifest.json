@@ -1,0 +1,1346 @@
+{
+  "schema_version": "osteo-vision-pmcanalseg-navigation-starter-v1",
+  "generated_at_utc": "2026-07-19T01:20:56.293067+00:00",
+  "record_count": 1,
+  "file_count": 22,
+  "total_size_bytes": 75757662,
+  "records": [
+    {
+      "dataset_id": "D092",
+      "dataset_name": "PMCanalSeg five-patient paired CBCT navigation starter",
+      "source_page_url": "https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/RTIGTP",
+      "metadata_url": "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi%3A10.7910%2FDVN%2FRTIGTP",
+      "direct_download_urls": [
+        "https://dataverse.harvard.edu/api/access/datafile/13090101",
+        "https://dataverse.harvard.edu/api/access/datafile/13089500",
+        "https://dataverse.harvard.edu/api/access/datafile/13089564",
+        "https://dataverse.harvard.edu/api/access/datafile/13089995",
+        "https://dataverse.harvard.edu/api/access/datafile/13089533",
+        "https://dataverse.harvard.edu/api/access/datafile/13089426",
+        "https://dataverse.harvard.edu/api/access/datafile/13089918",
+        "https://dataverse.harvard.edu/api/access/datafile/13090061",
+        "https://dataverse.harvard.edu/api/access/datafile/13089679",
+        "https://dataverse.harvard.edu/api/access/datafile/13089730",
+        "https://dataverse.harvard.edu/api/access/datafile/13089487",
+        "https://dataverse.harvard.edu/api/access/datafile/13090105",
+        "https://dataverse.harvard.edu/api/access/datafile/13090075",
+        "https://dataverse.harvard.edu/api/access/datafile/13089326",
+        "https://dataverse.harvard.edu/api/access/datafile/13089344",
+        "https://dataverse.harvard.edu/api/access/datafile/13089601",
+        "https://dataverse.harvard.edu/api/access/datafile/13089490",
+        "https://dataverse.harvard.edu/api/access/datafile/13089339",
+        "https://dataverse.harvard.edu/api/access/datafile/13089759",
+        "https://dataverse.harvard.edu/api/access/datafile/13089688",
+        "https://dataverse.harvard.edu/api/access/datafile/13091480",
+        "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi%3A10.7910%2FDVN%2FRTIGTP"
+      ],
+      "license": "CC0 1.0",
+      "license_review_status": "verified_from_harvard_dataverse_api",
+      "domain_tier": "cross_domain_maxillofacial_cbct_navigation_proxy",
+      "modality": "cropped maxillofacial CBCT volumes with paired 3D canal masks",
+      "labels": "upper pterygopalatine canal and lower mandibular canal binary masks",
+      "patient_count": 5,
+      "source_patient_count": 191,
+      "clinical_variables_unavailable_reason": "The public release does not provide patient-level clinical variables for the selected CBCT volumes.",
+      "recommended_use": "Multi-patient NIfTI geometry, physical-coordinate, CBCT import, label alignment and registration robustness engineering.",
+      "selected_patients": [
+        "Patient_001",
+        "Patient_044",
+        "Patient_096",
+        "Patient_159",
+        "Patient_180"
+      ],
+      "geometry_checks": [
+        {
+          "patient_id": "Patient_001",
+          "region": "upper",
+          "image": {
+            "shape": [
+              512,
+              512,
+              948
+            ],
+            "spacing_mm": [
+              0.5703125,
+              0.5703120231628418,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.5703125,
+                0.0,
+                0.0,
+                146.0
+              ],
+              [
+                0.0,
+                -0.570312023,
+                -5.1e-08,
+                127.599998474
+              ],
+              [
+                0.0,
+                -9.3e-08,
+                0.3125,
+                -513.4375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.10164252365939586,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              948
+            ],
+            "spacing_mm": [
+              0.5703125,
+              0.5703120231628418,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.5703125,
+                0.0,
+                0.0,
+                146.0
+              ],
+              [
+                0.0,
+                -0.570312023,
+                -5.1e-08,
+                127.599998474
+              ],
+              [
+                0.0,
+                -9.3e-08,
+                0.3125,
+                -513.4375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.10164252365939586,
+            "dtype": "uint16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 2504,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_001",
+          "region": "lower",
+          "image": {
+            "shape": [
+              512,
+              512,
+              948
+            ],
+            "spacing_mm": [
+              0.5703125,
+              0.5703120231628418,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.5703125,
+                0.0,
+                0.0,
+                146.0
+              ],
+              [
+                0.0,
+                -0.570312023,
+                -5.1e-08,
+                127.599998474
+              ],
+              [
+                0.0,
+                -9.3e-08,
+                0.3125,
+                -513.4375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.10164252365939586,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              948
+            ],
+            "spacing_mm": [
+              0.5703125,
+              0.5703120231628418,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.5703125,
+                0.0,
+                0.0,
+                146.0
+              ],
+              [
+                0.0,
+                -0.570312023,
+                -5.1e-08,
+                127.599998474
+              ],
+              [
+                0.0,
+                -9.3e-08,
+                0.3125,
+                -513.4375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.10164252365939586,
+            "dtype": "int16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 5812,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_044",
+          "region": "upper",
+          "image": {
+            "shape": [
+              512,
+              512,
+              748
+            ],
+            "spacing_mm": [
+              0.4414063096046448,
+              0.4414060115814209,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.44140631,
+                0.0,
+                0.0,
+                113.0
+              ],
+              [
+                0.0,
+                -0.441406012,
+                -5.1e-08,
+                88.900001526
+              ],
+              [
+                0.0,
+                -7.2e-08,
+                0.3125,
+                -409.037506104
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.060887312065457895,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              748
+            ],
+            "spacing_mm": [
+              0.4414063096046448,
+              0.4414060115814209,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.44140631,
+                0.0,
+                0.0,
+                113.0
+              ],
+              [
+                0.0,
+                -0.441406012,
+                -5.1e-08,
+                88.900001526
+              ],
+              [
+                0.0,
+                -7.2e-08,
+                0.3125,
+                -409.037506104
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.060887312065457895,
+            "dtype": "uint16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 2021,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_044",
+          "region": "lower",
+          "image": {
+            "shape": [
+              512,
+              512,
+              748
+            ],
+            "spacing_mm": [
+              0.4414063096046448,
+              0.4414060115814209,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.44140631,
+                0.0,
+                0.0,
+                113.0
+              ],
+              [
+                0.0,
+                -0.441406012,
+                -5.1e-08,
+                88.900001526
+              ],
+              [
+                0.0,
+                -7.2e-08,
+                0.3125,
+                -409.037506104
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.060887312065457895,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              748
+            ],
+            "spacing_mm": [
+              0.4414063096046448,
+              0.4414060115814209,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.44140631,
+                0.0,
+                0.0,
+                113.0
+              ],
+              [
+                0.0,
+                -0.441406012,
+                -5.1e-08,
+                88.900001526
+              ],
+              [
+                0.0,
+                -7.2e-08,
+                0.3125,
+                -409.037506104
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.060887312065457895,
+            "dtype": "int16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 2956,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_096",
+          "region": "upper",
+          "image": {
+            "shape": [
+              512,
+              512,
+              815
+            ],
+            "spacing_mm": [
+              0.4160155951976776,
+              0.41601499915122986,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.416015595,
+                0.0,
+                0.0,
+                106.5
+              ],
+              [
+                0.0,
+                -0.416014999,
+                -5.1e-08,
+                81.900001526
+              ],
+              [
+                0.0,
+                -6.8e-08,
+                0.3125,
+                -451.375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.054083977338457746,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              815
+            ],
+            "spacing_mm": [
+              0.4160155951976776,
+              0.41601499915122986,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.416015595,
+                0.0,
+                0.0,
+                106.5
+              ],
+              [
+                0.0,
+                -0.416014999,
+                -5.1e-08,
+                81.900001526
+              ],
+              [
+                0.0,
+                -6.8e-08,
+                0.3125,
+                -451.375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.054083977338457746,
+            "dtype": "uint16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 2472,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_096",
+          "region": "lower",
+          "image": {
+            "shape": [
+              512,
+              512,
+              815
+            ],
+            "spacing_mm": [
+              0.4160155951976776,
+              0.41601499915122986,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.416015595,
+                0.0,
+                0.0,
+                106.5
+              ],
+              [
+                0.0,
+                -0.416014999,
+                -5.1e-08,
+                81.900001526
+              ],
+              [
+                0.0,
+                -6.8e-08,
+                0.3125,
+                -451.375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.054083977338457746,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              815
+            ],
+            "spacing_mm": [
+              0.4160155951976776,
+              0.41601499915122986,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.416015595,
+                0.0,
+                0.0,
+                106.5
+              ],
+              [
+                0.0,
+                -0.416014999,
+                -5.1e-08,
+                81.900001526
+              ],
+              [
+                0.0,
+                -6.8e-08,
+                0.3125,
+                -451.375
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.054083977338457746,
+            "dtype": "int16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 5103,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_159",
+          "region": "upper",
+          "image": {
+            "shape": [
+              512,
+              512,
+              872
+            ],
+            "spacing_mm": [
+              0.521484375,
+              0.5214840173721313,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.521484375,
+                0.0,
+                0.0,
+                133.5
+              ],
+              [
+                0.0,
+                -0.521484017,
+                -5.1e-08,
+                118.900001526
+              ],
+              [
+                0.0,
+                -8.5e-08,
+                0.3125,
+                -423.587493896
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.08498305214743819,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              872
+            ],
+            "spacing_mm": [
+              0.521484375,
+              0.5214840173721313,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.521484375,
+                0.0,
+                0.0,
+                133.5
+              ],
+              [
+                0.0,
+                -0.521484017,
+                -5.1e-08,
+                118.900001526
+              ],
+              [
+                0.0,
+                -8.5e-08,
+                0.3125,
+                -423.587493896
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.08498305214743819,
+            "dtype": "uint16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 2326,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_159",
+          "region": "lower",
+          "image": {
+            "shape": [
+              512,
+              512,
+              872
+            ],
+            "spacing_mm": [
+              0.521484375,
+              0.5214840173721313,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.521484375,
+                0.0,
+                0.0,
+                133.5
+              ],
+              [
+                0.0,
+                -0.521484017,
+                -5.1e-08,
+                118.900001526
+              ],
+              [
+                0.0,
+                -8.5e-08,
+                0.3125,
+                -423.587493896
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.08498305214743819,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              512,
+              512,
+              872
+            ],
+            "spacing_mm": [
+              0.521484375,
+              0.5214840173721313,
+              0.3125
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.521484375,
+                0.0,
+                0.0,
+                133.5
+              ],
+              [
+                0.0,
+                -0.521484017,
+                -5.1e-08,
+                118.900001526
+              ],
+              [
+                0.0,
+                -8.5e-08,
+                0.3125,
+                -423.587493896
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.08498305214743819,
+            "dtype": "int16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 3571,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_180",
+          "region": "upper",
+          "image": {
+            "shape": [
+              1024,
+              1024,
+              320
+            ],
+            "spacing_mm": [
+              0.244140625,
+              0.244140625,
+              0.6249999403953552
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.244140625,
+                0.0,
+                0.0,
+                125.0
+              ],
+              [
+                0.0,
+                -0.244140625,
+                0.0,
+                131.100006104
+              ],
+              [
+                0.0,
+                0.0,
+                0.62499994,
+                -412.674987793
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.03725289943190546,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              1024,
+              1024,
+              320
+            ],
+            "spacing_mm": [
+              0.244140625,
+              0.244140625,
+              0.6249999403953552
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.244140625,
+                0.0,
+                0.0,
+                125.0
+              ],
+              [
+                0.0,
+                -0.244140625,
+                0.0,
+                131.100006104
+              ],
+              [
+                0.0,
+                0.0,
+                0.62499994,
+                -412.674987793
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.03725289943190546,
+            "dtype": "uint16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 4690,
+          "orientation_review_required": true
+        },
+        {
+          "patient_id": "Patient_180",
+          "region": "lower",
+          "image": {
+            "shape": [
+              1024,
+              1024,
+              320
+            ],
+            "spacing_mm": [
+              0.244140625,
+              0.244140625,
+              0.6249999403953552
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.244140625,
+                0.0,
+                0.0,
+                125.0
+              ],
+              [
+                0.0,
+                -0.244140625,
+                0.0,
+                131.100006104
+              ],
+              [
+                0.0,
+                0.0,
+                0.62499994,
+                -412.674987793
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.03725289943190546,
+            "dtype": "int16"
+          },
+          "label": {
+            "shape": [
+              1024,
+              1024,
+              320
+            ],
+            "spacing_mm": [
+              0.244140625,
+              0.244140625,
+              0.6249999403953552
+            ],
+            "orientation": [
+              "L",
+              "P",
+              "S"
+            ],
+            "affine": [
+              [
+                -0.244140625,
+                0.0,
+                0.0,
+                125.0
+              ],
+              [
+                0.0,
+                -0.244140625,
+                0.0,
+                131.100006104
+              ],
+              [
+                0.0,
+                0.0,
+                0.62499994,
+                -412.674987793
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "affine_determinant": 0.03725289943190546,
+            "dtype": "int16"
+          },
+          "shape_matches": true,
+          "affine_matches": true,
+          "label_values": [
+            0.0,
+            1.0
+          ],
+          "label_nonzero_voxels": 7420,
+          "orientation_review_required": true
+        }
+      ],
+      "local_files": [
+        {
+          "path": "raw/Patient_001/lower/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_001",
+          "region": "lower",
+          "dataverse_file_id": 13090101,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13090101",
+          "size_bytes": 1675823,
+          "source_md5": "e30c9871ee6565f2f4bd00a25b043cb0",
+          "md5_verified": true,
+          "sha256": "aa5a6dd54f28bb5eedbfeada223e312eac43019dd667c9817db71e4de5bda9ae"
+        },
+        {
+          "path": "raw/Patient_001/lower/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_001",
+          "region": "lower",
+          "dataverse_file_id": 13089500,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089500",
+          "size_bytes": 488271,
+          "source_md5": "10b54bf2e3a1d5b44b87ae6777aa8c3c",
+          "md5_verified": true,
+          "sha256": "081cfe1c432a36cfac7d9683c777cca4f977c83b20247d2fe114e6f47276ba86"
+        },
+        {
+          "path": "raw/Patient_001/upper/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_001",
+          "region": "upper",
+          "dataverse_file_id": 13089564,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089564",
+          "size_bytes": 9028001,
+          "source_md5": "74d8310861943e73982fb1b630e900ea",
+          "md5_verified": true,
+          "sha256": "a3e778f3443977b171d530c011b3e437acd02da5c7c53a90c62aa55b7f6797d7"
+        },
+        {
+          "path": "raw/Patient_001/upper/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_001",
+          "region": "upper",
+          "dataverse_file_id": 13089995,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089995",
+          "size_bytes": 484822,
+          "source_md5": "97ce3b8cb6fd0dcfe744ce4dc463522a",
+          "md5_verified": true,
+          "sha256": "36ba4db7f2faa5699e8f6b2864efcc21b283d3b292116919e8cb584116fd9fc2"
+        },
+        {
+          "path": "raw/Patient_044/lower/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_044",
+          "region": "lower",
+          "dataverse_file_id": 13089533,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089533",
+          "size_bytes": 1631694,
+          "source_md5": "26001e3eb2933ec519e714fbdae14056",
+          "md5_verified": true,
+          "sha256": "bdf28ee33fd5ce2d8499f5b53dab88683090a74f95309365b19c338c481ab18c"
+        },
+        {
+          "path": "raw/Patient_044/lower/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_044",
+          "region": "lower",
+          "dataverse_file_id": 13089426,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089426",
+          "size_bytes": 384629,
+          "source_md5": "c18916e092e8bce618a317884a10d5f3",
+          "md5_verified": true,
+          "sha256": "5006004dca59112758f2c115a5d80143fc074f5046f938bc483ac01a6c79ad5e"
+        },
+        {
+          "path": "raw/Patient_044/upper/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_044",
+          "region": "upper",
+          "dataverse_file_id": 13089918,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089918",
+          "size_bytes": 10622492,
+          "source_md5": "cacd4eebac9fabcfe83df1ab3d8f542e",
+          "md5_verified": true,
+          "sha256": "426f1dd1d9e31ca4f4ac0c1d3b74f245d52b376a669519e7f2f3bde98d0c482e"
+        },
+        {
+          "path": "raw/Patient_044/upper/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_044",
+          "region": "upper",
+          "dataverse_file_id": 13090061,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13090061",
+          "size_bytes": 382659,
+          "source_md5": "2af7646723aacd409d7b5b3eba018039",
+          "md5_verified": true,
+          "sha256": "c388e0c6e5661f0205a0f6955e08cfe8921c4f9416b3ba27324736281c18c356"
+        },
+        {
+          "path": "raw/Patient_096/lower/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_096",
+          "region": "lower",
+          "dataverse_file_id": 13089679,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089679",
+          "size_bytes": 2272589,
+          "source_md5": "ba7cb94f84c8923b2b645c75bd8c51af",
+          "md5_verified": true,
+          "sha256": "11d5bf732e3592a07ff715f9741cdd603a560f8a133758a785cecc8783a437dc"
+        },
+        {
+          "path": "raw/Patient_096/lower/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_096",
+          "region": "lower",
+          "dataverse_file_id": 13089730,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089730",
+          "size_bytes": 419578,
+          "source_md5": "1884b5f89483dced1775fd515f466882",
+          "md5_verified": true,
+          "sha256": "51a8a35376cb18d8fdad109d266ab57176ca19fa24fe918b38bf847623cad857"
+        },
+        {
+          "path": "raw/Patient_096/upper/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_096",
+          "region": "upper",
+          "dataverse_file_id": 13089487,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089487",
+          "size_bytes": 14134533,
+          "source_md5": "c777096f8a8c21a467138c2be1fd8584",
+          "md5_verified": true,
+          "sha256": "ecbda9845214b032f838bf45e7a7724599b762758b23b063bd3bcced0c014f13"
+        },
+        {
+          "path": "raw/Patient_096/upper/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_096",
+          "region": "upper",
+          "dataverse_file_id": 13090105,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13090105",
+          "size_bytes": 416933,
+          "source_md5": "4a3565c17d29cf9cc8081412d506b519",
+          "md5_verified": true,
+          "sha256": "2d332534d251cedfcc36ba56915c478057c7eab470c9af4697f2f5099381a154"
+        },
+        {
+          "path": "raw/Patient_159/lower/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_159",
+          "region": "lower",
+          "dataverse_file_id": 13090075,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13090075",
+          "size_bytes": 1804712,
+          "source_md5": "17202845f8889e811f2473b4b1c271ce",
+          "md5_verified": true,
+          "sha256": "4998ecf8593128fef437c0e1f2584a8f19586766d858eeb8d105b0eb3df48704"
+        },
+        {
+          "path": "raw/Patient_159/lower/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_159",
+          "region": "lower",
+          "dataverse_file_id": 13089326,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089326",
+          "size_bytes": 448053,
+          "source_md5": "49473ea6786acb726146ff264fb8407d",
+          "md5_verified": true,
+          "sha256": "8a3cf7abc8ec7bd8dc5409e9fc2946a3aab6438adf7ea0ffb7b41e3725d59dae"
+        },
+        {
+          "path": "raw/Patient_159/upper/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_159",
+          "region": "upper",
+          "dataverse_file_id": 13089344,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089344",
+          "size_bytes": 9895232,
+          "source_md5": "72b5a61967d4cbe0a2a7c864329f8890",
+          "md5_verified": true,
+          "sha256": "fe8c0b9b07a60e07d33b64377eb2ea95d5f1784919872adf9c7997f0bfec6e6c"
+        },
+        {
+          "path": "raw/Patient_159/upper/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_159",
+          "region": "upper",
+          "dataverse_file_id": 13089601,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089601",
+          "size_bytes": 446044,
+          "source_md5": "930b5a8cd19bca29418c289fee328bf7",
+          "md5_verified": true,
+          "sha256": "bad6b90dd21336424d86be7381dbd593c9c2e9c2977f443c14d8296cc07c4061"
+        },
+        {
+          "path": "raw/Patient_180/lower/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_180",
+          "region": "lower",
+          "dataverse_file_id": 13089490,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089490",
+          "size_bytes": 3539964,
+          "source_md5": "4a81879c1afd5fc502076a3da5971475",
+          "md5_verified": true,
+          "sha256": "82c8c1b7aa90d123571c6be5b97bd0728b6895f9d2df501e03be5c12eda7cbf4"
+        },
+        {
+          "path": "raw/Patient_180/lower/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_180",
+          "region": "lower",
+          "dataverse_file_id": 13089339,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089339",
+          "size_bytes": 656237,
+          "source_md5": "f644160a9831057b338c2572ea45251f",
+          "md5_verified": true,
+          "sha256": "948e9dac07cfcb04925447af1fcf9485e05bd24a657edb885756ff683802780e"
+        },
+        {
+          "path": "raw/Patient_180/upper/image.nii.gz",
+          "file_role": "image",
+          "patient_id": "Patient_180",
+          "region": "upper",
+          "dataverse_file_id": 13089759,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089759",
+          "size_bytes": 15293497,
+          "source_md5": "691eaec4ca4dadfff4c01a72a6203cf8",
+          "md5_verified": true,
+          "sha256": "e496f990e9e763e594d7fcf4ed89e4d82c714857d5731e5e52ac56be2685d619"
+        },
+        {
+          "path": "raw/Patient_180/upper/label.nii.gz",
+          "file_role": "label",
+          "patient_id": "Patient_180",
+          "region": "upper",
+          "dataverse_file_id": 13089688,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13089688",
+          "size_bytes": 654110,
+          "source_md5": "9e5b0d31af14957eef1d3757e03cc99b",
+          "md5_verified": true,
+          "sha256": "7ce9a6e3d0c66a9a73102d236aa25b3d037d6fcf4877f133758a4bb5d30f6eff"
+        },
+        {
+          "path": "metadata/Information.xlsx",
+          "file_role": "information",
+          "patient_id": null,
+          "region": "metadata",
+          "dataverse_file_id": 13091480,
+          "direct_download_url": "https://dataverse.harvard.edu/api/access/datafile/13091480",
+          "size_bytes": 14449,
+          "source_md5": "c05c4fe3510bba58d9ffc9c418d4b787",
+          "md5_verified": true,
+          "sha256": "f18e1734e16941627ca65dde69456f5689dbaf5e7b99dfcfc5ee464ac572f840"
+        },
+        {
+          "path": "metadata/dataverse_dataset_metadata.json",
+          "file_role": "official_api_metadata",
+          "direct_download_url": "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi%3A10.7910%2FDVN%2FRTIGTP",
+          "size_bytes": 1063340,
+          "sha256": "68e1d3745a866312db023b7b2a56606745217c16a35018c1ddd5f010c8102a8c"
+        }
+      ],
+      "download_status": "verified_selected_patient_pairs_downloaded",
+      "downloaded_at_utc": "2026-07-19T01:20:56.293067+00:00",
+      "target_domain_flag": false,
+      "training_eligible": false,
+      "review_state": "review_required",
+      "navigation_claim_allowed": false,
+      "orientation_review_required": true,
+      "data_boundary": "Public maxillofacial CBCT anatomy proxy. It contains canal masks rather than osteomyelitis, necrotic-bone, jaw-surface or intraoperative fluorescence labels. It cannot support clinical segmentation, physical navigation accuracy or patient-adaptive spatial-effect claims."
+    }
+  ]
+}

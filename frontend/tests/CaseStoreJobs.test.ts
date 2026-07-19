@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "../src/services/apiClient";
 import { useCaseStore } from "../src/stores/caseStore";
@@ -9,6 +9,10 @@ describe("case store background jobs", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("refreshes an active analysis job without starting a duplicate run", async () => {
@@ -75,6 +79,154 @@ describe("case store background jobs", () => {
     expect(store.activeAnalysisJobStatus).toBe("completed");
     expect(store.activeAnalysisJobId).toBe("job_retry");
     expect(store.currentCase?.analysis_runs.at(-1)?.run_id).toBe("run_retry");
+  });
+
+  it("returns null for failed case selection requests without reporting the stale case as success", async () => {
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_existing", []);
+    vi.spyOn(apiClient, "createCase").mockRejectedValue(new Error("create failed"));
+    vi.spyOn(apiClient, "getCase").mockRejectedValue(new Error("load failed"));
+
+    const createdCase = await store.createCase("new case");
+    expect(createdCase).toBeNull();
+    expect(store.error).toBe("create failed");
+    expect(store.currentCase?.case_id).toBe("case_existing");
+
+    const loadedCase = await store.loadCase("case_missing");
+    expect(loadedCase).toBeNull();
+    expect(store.error).toBe("load failed");
+    expect(store.currentCase?.case_id).toBe("case_existing");
+  });
+
+  it("does not let an older case load overwrite a newer selection", async () => {
+    const store = useCaseStore();
+    let resolveFirst!: (value: CaseRecord) => void;
+    let resolveSecond!: (value: CaseRecord) => void;
+    vi.spyOn(apiClient, "getCase")
+      .mockReturnValueOnce(new Promise<CaseRecord>((resolve) => { resolveFirst = resolve; }))
+      .mockReturnValueOnce(new Promise<CaseRecord>((resolve) => { resolveSecond = resolve; }));
+
+    const first = store.loadCase("case_old");
+    const second = store.loadCase("case_new");
+    resolveFirst(caseRecord("case_old", []));
+    await first;
+    expect(store.currentCase).toBeNull();
+    resolveSecond(caseRecord("case_new", []));
+    await second;
+
+    expect(store.currentCase?.case_id).toBe("case_new");
+    expect(store.loading).toBe(false);
+  });
+
+  it("clears case-scoped export, job, and navigation state after loading a case", async () => {
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_existing", []);
+    store.exportPath = "old.zip";
+    store.exportResult = {
+      case_id: "case_existing",
+      bundle_path: "old.zip",
+      report_path: "old.json",
+      manifest_path: "old-manifest.json",
+    };
+    store.activeAnalysisJobId = "job-old";
+    store.activeAnalysisJobStatus = "running";
+    store.activeAnalysisJobError = "old error";
+    store.activeAnalysisJobProgress = { percent: 50 };
+    store.lastAnalysisJobTimedOut = true;
+    store.analysisJobPolling = true;
+    store.navigationFrameSelection = {
+      caseId: "case_existing",
+      candidateId: "candidate-old",
+      frameKey: "frame-old",
+      frameIndex: 1,
+      timestampSec: 1,
+    };
+    vi.spyOn(apiClient, "getCase").mockResolvedValue(caseRecord("case_loaded", []));
+
+    await store.loadCase("case_loaded");
+
+    expect(store.currentCase?.case_id).toBe("case_loaded");
+    expect(store.exportPath).toBe("");
+    expect(store.exportResult).toBeNull();
+    expect(store.activeAnalysisJobId).toBe("");
+    expect(store.activeAnalysisJobStatus).toBe("");
+    expect(store.activeAnalysisJobError).toBe("");
+    expect(store.activeAnalysisJobProgress).toEqual({});
+    expect(store.lastAnalysisJobTimedOut).toBe(false);
+    expect(store.analysisJobPolling).toBe(false);
+    expect(store.navigationFrameSelection).toBeNull();
+  });
+
+  it("refreshes the case after export so artifact state is current", async () => {
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_export", []);
+    vi.spyOn(apiClient, "exportCase").mockResolvedValue({
+      case_id: "case_export",
+      bundle_path: "bundle.zip",
+      report_path: "report.json",
+      manifest_path: "manifest.json",
+    });
+    const refreshed = caseRecord("case_export", []);
+    refreshed.version = 2;
+    refreshed.artifacts = [
+      { artifact_id: "artifact-export", case_id: "case_export", kind: "evidence_bundle", path: "bundle.zip" },
+    ];
+    vi.spyOn(apiClient, "getCase").mockResolvedValue(refreshed);
+
+    await store.exportCase();
+
+    expect(store.exportPath).toBe("bundle.zip");
+    expect(store.currentCase?.version).toBe(2);
+    expect(store.currentCase?.artifacts[0].path).toBe("bundle.zip");
+  });
+
+  it("submits explicit selected input IDs for JPEG analysis", async () => {
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_pair", []);
+    const startSpy = vi.spyOn(apiClient, "startAnalysis").mockResolvedValue(caseRecord("case_pair", []));
+
+    await store.runAnalysis({ threshold: 0.6 }, [], ["white-001", "fluor-001"]);
+
+    expect(startSpy).toHaveBeenCalledWith(
+      "case_pair",
+      { threshold: 0.6 },
+      [],
+      ["white-001", "fluor-001"],
+    );
+  });
+
+  it("releases global loading while a queued job is polled", async () => {
+    vi.useFakeTimers();
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_poll", []);
+    vi.spyOn(apiClient, "startAnalysisJob").mockResolvedValue({
+      job_id: "job-poll",
+      kind: "case_analysis",
+      status: "queued",
+      payload: { case_id: "case_poll" },
+      progress: { percent: 0 },
+    });
+    vi.spyOn(apiClient, "getAnalysisJob").mockResolvedValue({
+      job_id: "job-poll",
+      kind: "case_analysis",
+      status: "completed",
+      payload: { case_id: "case_poll" },
+      result: { case_id: "case_poll" },
+      progress: { percent: 100 },
+    });
+    vi.spyOn(apiClient, "getCase").mockResolvedValue(caseRecord("case_poll", []));
+
+    const pending = store.runAnalysisJob({ mode: "video_file" });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(store.loading).toBe(false);
+    expect(store.analysisJobPolling).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await pending;
+    expect(store.activeAnalysisJobStatus).toBe("completed");
+    expect(store.analysisJobPolling).toBe(false);
   });
 });
 

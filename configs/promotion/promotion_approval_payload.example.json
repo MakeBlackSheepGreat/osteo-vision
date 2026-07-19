@@ -1,0 +1,17 @@
+{
+  "schema_version": "osteo-vision-promotion-approval-v1",
+  "scope": "osteo-vision-target-domain-promotion",
+  "approval_id": "approval-example-00000001",
+  "capability": "patient_conditioned_segmentation",
+  "model_id": "replace-with-reviewed-model-id",
+  "checkpoint_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "evidence_bundle_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "decision": "approve",
+  "signer_actor_id": "replace-with-authenticated-actor-id",
+  "signer_role": "physician",
+  "signer_institution": "Replace With Authorized Institution",
+  "signed_at_utc": "2026-07-19T00:00:00Z",
+  "nonce": "replace-with-unique-random-nonce-000001",
+  "supersedes_approval_id": null
+}

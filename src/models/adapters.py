@@ -50,6 +50,14 @@ class BaseModelAdapter:
         warnings: list[dict[str, Any]] = []
         if not self.spec.enabled:
             reasons.append("model disabled")
+        if not bool(self.spec.extra.get("runtime_allowed", True)):
+            reasons.append("runtime execution disabled by configuration")
+            warnings.append(
+                warning(
+                    "model_runtime_not_allowed",
+                    f"Runtime execution is disabled for {self.spec.model_id}; the model remains inventory-only.",
+                )
+            )
         if not self.implements_inference:
             reasons.append("adapter inference not implemented")
         for module in DEPENDENCY_MODULES.get(self.spec.dependency_group, []):
@@ -92,11 +100,12 @@ class FixtureAdapter(BaseModelAdapter):
         self.classifier = DeterministicClassifier()
 
     def warmup(self) -> AdapterStatus:
-        return AdapterStatus(
-            model_id=self.spec.model_id, family=self.spec.family, available=self.spec.enabled, enabled=self.spec.enabled
-        )
+        return super().warmup()
 
     def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
         probability = self.classifier.predict_probability(request.input_path, request.metadata)
         label = self.classifier.class_label(probability)
         return AdapterResult(
@@ -128,7 +137,18 @@ class MedSAMLikeAdapter(BaseModelAdapter):
 
     def warmup(self) -> AdapterStatus:
         if self.spec.extra.get("prompt_fallback_enabled"):
+            reasons: list[str] = []
             warnings: list[dict[str, Any]] = []
+            if not self.spec.enabled:
+                reasons.append("model disabled")
+            if not bool(self.spec.extra.get("runtime_allowed", True)):
+                reasons.append("runtime execution disabled by configuration")
+                warnings.append(
+                    warning(
+                        "model_runtime_not_allowed",
+                        f"Runtime execution is disabled for {self.spec.model_id}; the model remains inventory-only.",
+                    )
+                )
             if self.spec.checkpoint_path and not Path(self.spec.checkpoint_path).exists():
                 warnings.append(
                     warning(
@@ -142,8 +162,9 @@ class MedSAMLikeAdapter(BaseModelAdapter):
             return AdapterStatus(
                 model_id=self.spec.model_id,
                 family=self.spec.family,
-                available=self.spec.enabled,
+                available=not reasons,
                 enabled=self.spec.enabled,
+                reasons=reasons,
                 warnings=warnings,
             )
         return super().warmup()
@@ -374,6 +395,7 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
             model_id=self.spec.model_id,
             tile_size=_optional_int(self.spec.extra.get("tile_size")),
             tile_overlap=int(self.spec.extra.get("tile_overlap", 64)),
+            tile_batch_size=int(self.spec.extra.get("tile_batch_size", 1)),
             force_tiled=bool(self.spec.extra.get("force_tiled", False)),
             max_whole_pixels=int(self.spec.extra.get("max_whole_pixels", 1024 * 1024)),
             target_domain=bool(self.spec.extra.get("target_domain", False)),
@@ -381,6 +403,17 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
             data_boundary=str(
                 self.spec.extra.get("training_data_boundary", "synthetic_or_pseudo_labeled_non_target_domain")
             ),
+            temperature=float(
+                self.spec.extra.get("temperature")
+                or (self._metadata.get("calibration") or {}).get("temperature")
+                or 1.0
+            ),
+            tta_enabled=bool(self.spec.extra.get("uncertainty_tta_enabled", False)),
+            fast_output=bool(self.spec.extra.get("fast_output", False)),
+            overlay_format=str(self.spec.extra.get("overlay_format", "png")),
+            overlay_jpeg_quality=int(self.spec.extra.get("overlay_jpeg_quality", 85)),
+            use_amp=bool(self.spec.extra.get("use_amp", False)),
+            rgb=request.metadata.get("predecoded_rgb"),
         )
         boundary_warning = warning(
             "convnext2d_keyframe_proxy_non_target_domain",
@@ -412,6 +445,618 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
         )
 
 
+class DualChannelSegmenterAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        fluorescence_path = request.metadata.get("fluorescence_path")
+        if request.input_type != "dual_channel_image" or not fluorescence_path:
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "dual channel paths are required"},
+                warnings=status.warnings
+                + [
+                    warning(
+                        "dual_channel_input_required", "White-light and fluorescence image paths are required.", True
+                    )
+                ],
+            )
+        if self._model is None:
+            self._load_model()
+        from src.core.paths import resolve_path
+        from src.models.dual_channel_segmenter import predict_dual_channel
+        from src.models.keyframe_segmenter import select_torch_device
+
+        assert self._model is not None
+        payload = predict_dual_channel(
+            self._model,
+            request.input_path,
+            str(fluorescence_path),
+            device=select_torch_device(self.spec.device_policy),
+            output_dir=resolve_path(
+                self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/dual_channel_ai")
+            ),
+            case_id=request.case_id,
+            threshold=float(self.spec.extra.get("threshold", self._metadata.get("threshold", 0.5))),
+            mode=str(self.spec.extra.get("mode", "intermediate_fusion")),
+        )
+        payload["input_boundary"] = {
+            "input_domain": str(self.spec.extra.get("input_domain", "non_target_domain_proxy")),
+            "white_light_source": str(self.spec.extra.get("white_light_source", "synthetic_white_light_proxy")),
+            "target_domain": bool(self.spec.extra.get("target_domain", False)),
+        }
+        payload["fallback_policy"] = str(self.spec.extra.get("fallback_policy", "traditional_registration_and_fusion"))
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload,
+            score=float(payload.get("max_probability", 0.0)),
+            segmentation_mask={
+                "path": payload.get("mask_path"),
+                "format": "png_binary_mask",
+                "positive_area_px": payload.get("positive_area_px"),
+            },
+            lesion_evidence={
+                "probability_path": payload.get("probability_path"),
+                "overlay_path": payload.get("overlay_path"),
+                "candidates": payload.get("candidates", []),
+            },
+            quantification={
+                "positive_area_px": payload.get("positive_area_px"),
+                "positive_area_fraction": payload.get("positive_area_fraction"),
+                "mean_probability": payload.get("mean_probability"),
+                "max_probability": payload.get("max_probability"),
+            },
+            warnings=[
+                warning(
+                    "dual_channel_proxy_non_target_domain",
+                    "Dual-channel AI is proxy-data engineering evidence requiring physician review.",
+                )
+            ],
+        )
+
+    def _load_model(self) -> None:
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.dual_channel_segmenter import load_dual_channel_checkpoint
+        from src.models.keyframe_segmenter import select_torch_device
+
+        self._model, self._metadata = load_dual_channel_checkpoint(
+            resolve_path(self.spec.checkpoint_path), device=select_torch_device(self.spec.device_policy)
+        )
+
+
+class PatientConditionedSegmenterAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+        self._runtime_evidence: Any | None = None
+
+    def warmup(self) -> AdapterStatus:
+        status = super().warmup()
+        reasons = list(status.reasons)
+        warnings = list(status.warnings)
+        if reasons:
+            return status
+        manifest_value = str(self.spec.extra.get("checkpoint_manifest_path") or "").strip()
+        if not manifest_value:
+            reasons.append("patient-conditioned checkpoint manifest is required")
+        else:
+            try:
+                self._ensure_runtime_loaded()
+            except (OSError, RuntimeError, TypeError, ValueError) as exc:
+                reasons.append(f"patient-conditioned runtime validation failed: {exc}")
+                warnings.append(
+                    warning(
+                        "patient_conditioned_runtime_validation_failed",
+                        f"Patient-conditioned checkpoint or manifest validation failed for {self.spec.model_id}.",
+                        True,
+                        error=str(exc),
+                    )
+                )
+        runtime = self._runtime_evidence
+        if self.spec.clinical_claim_allowed:
+            reasons.append("patient-conditioned adapter cannot allow clinical claims")
+        if runtime is not None and runtime.proxy_checkpoint:
+            if not runtime.engineering_ready:
+                reasons.append("proxy patient-conditioned checkpoint lacks engineering readiness")
+            if self.spec.extra.get("candidate_only") is not True:
+                reasons.append("proxy patient-conditioned checkpoint must remain candidate-only")
+            if self.spec.extra.get("engineering_candidate_execution_allowed") is not True:
+                reasons.append("proxy patient-conditioned engineering execution is not explicitly allowed")
+            warnings.append(
+                warning(
+                    "patient_conditioned_proxy_candidate_only",
+                    "Patient-conditioned proxy inference is limited to explicit engineering evidence and image-only fallback.",
+                )
+            )
+        if (
+            runtime is not None
+            and self.spec.extra.get("runtime_replacement_allowed") is True
+            and not runtime.runtime_replacement_allowed
+        ):
+            reasons.append("patient-conditioned runtime replacement lacks validated promotion evidence")
+        return AdapterStatus(
+            model_id=self.spec.model_id,
+            family=self.spec.family,
+            available=not reasons,
+            enabled=self.spec.enabled,
+            reasons=list(dict.fromkeys(reasons)),
+            warnings=warnings,
+        )
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        fluorescence_path = str(request.metadata.get("fluorescence_path") or "").strip()
+        if request.input_type not in {"2d_image", "dual_channel_image"} or not fluorescence_path:
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={
+                    "available": False,
+                    "spatial_effect_applied": False,
+                    "failure_reasons": ["registered_white_light_and_fluorescence_inputs_required"],
+                },
+                warnings=status.warnings
+                + [
+                    warning(
+                        "patient_conditioned_dual_channel_input_required",
+                        "Registered white-light and fluorescence image paths are required.",
+                        True,
+                    )
+                ],
+            )
+        assert self._model is not None
+        assert self._runtime_evidence is not None
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import select_torch_device
+        from src.models.patient_conditioned_runtime import predict_patient_conditioned_image
+
+        try:
+            payload = predict_patient_conditioned_image(
+                self._model,
+                self._runtime_evidence,
+                white_path=request.input_path,
+                fluorescence_path=fluorescence_path,
+                metadata=request.metadata,
+                device=select_torch_device(self.spec.device_policy),
+                output_dir=resolve_path(
+                    self.spec.extra.get(
+                        "output_dir",
+                        "artifacts/visual_evidence/osteo_vision/patient_conditioned_segmentation",
+                    )
+                ),
+                case_id=request.case_id,
+                segmentation_threshold=float(self.spec.extra.get("threshold", self._metadata.get("threshold", 0.5))),
+                uncertainty_threshold=float(self.spec.extra.get("uncertainty_threshold", 0.5)),
+            )
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={
+                    "available": False,
+                    "spatial_effect_applied": False,
+                    "failure_reasons": ["patient_conditioned_inference_failed"],
+                    "detail": str(exc),
+                    "checkpoint_sha256": self._runtime_evidence.checkpoint_sha256,
+                    "manifest_sha256": self._runtime_evidence.manifest_sha256,
+                    "runtime_replacement_allowed": False,
+                },
+                warnings=status.warnings
+                + [
+                    warning(
+                        "patient_conditioned_inference_failed",
+                        "Patient-conditioned inference failed closed before producing a spatial effect.",
+                        True,
+                        error=str(exc),
+                    )
+                ],
+            )
+
+        quantification = dict(payload["quantification"])
+        evidence_keys = (
+            "image_only_probability_path",
+            "conditioned_probability_path",
+            "delta_map_path",
+            "difference_mask_path",
+            "spatial_effect_mask_path",
+            "uncertainty_path",
+            "image_only_probability_array_path",
+            "conditioned_probability_array_path",
+            "delta_map_array_path",
+            "uncertainty_array_path",
+            "evidence_manifest_path",
+        )
+        lesion_evidence = {key: payload.get(key) for key in evidence_keys}
+        lesion_evidence.update(
+            {
+                "available": payload["available"],
+                "spatial_effect_applied": payload["spatial_effect_applied"],
+                "failure_reasons": list(payload["failure_reasons"]),
+                "checkpoint_sha256": payload["checkpoint_sha256"],
+                "manifest_sha256": payload["manifest_sha256"],
+                "runtime_replacement_allowed": payload["runtime_replacement_allowed"],
+                "asset_sha256": payload["asset_sha256"],
+                "reviewed_bone_gate": payload["reviewed_bone_gate"],
+                "source_inputs": payload["source_inputs"],
+                "dual_channel_registration_verified": payload["dual_channel_registration_verified"],
+                "medical_boundary": payload["medical_boundary"],
+            }
+        )
+        result_warnings = list(status.warnings)
+        if payload["failure_reasons"]:
+            result_warnings.append(
+                warning(
+                    "patient_conditioned_image_only_fallback",
+                    "Patient-conditioned safety gates retained the image-only segmentation for physician review.",
+                    failure_reasons=list(payload["failure_reasons"]),
+                )
+            )
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload,
+            score=float(quantification["conditioned_probability_max"]),
+            segmentation_mask={
+                "path": payload["conditioned_mask_path"],
+                "image_only_path": payload["image_only_mask_path"],
+                "format": "png_binary_mask",
+                "positive_area_px": quantification["positive_area_px"],
+                "positive_area_fraction": quantification["positive_area_fraction"],
+                "safe_fallback_applied": payload["safe_fallback_applied"],
+                "physician_review_required": True,
+            },
+            lesion_evidence=lesion_evidence,
+            quantification=quantification,
+            warnings=result_warnings,
+        )
+
+    def _ensure_runtime_loaded(self) -> None:
+        if self._model is not None and self._runtime_evidence is not None:
+            return
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import select_torch_device
+        from src.models.patient_conditioned_runtime import load_validated_patient_conditioned_runtime
+
+        manifest_path = resolve_path(str(self.spec.extra["checkpoint_manifest_path"]))
+        self._model, self._metadata, self._runtime_evidence = load_validated_patient_conditioned_runtime(
+            resolve_path(self.spec.checkpoint_path),
+            manifest_path,
+            device=select_torch_device(self.spec.device_policy),
+            expected_manifest_sha256=(
+                str(self.spec.extra.get("checkpoint_manifest_sha256"))
+                if self.spec.extra.get("checkpoint_manifest_sha256")
+                else None
+            ),
+            strict_promotion_authorized=self.spec.extra.get("strict_promotion_authorized") is True,
+        )
+
+
+class BoneActivityMultiTaskAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+        self._runtime_evidence: Any | None = None
+
+    def warmup(self) -> AdapterStatus:
+        status = super().warmup()
+        reasons = list(status.reasons)
+        warnings = list(status.warnings)
+        if reasons:
+            return status
+        manifest_value = str(self.spec.extra.get("checkpoint_manifest_path") or "").strip()
+        expected_manifest_sha256 = str(self.spec.extra.get("checkpoint_manifest_sha256") or "").strip()
+        if not manifest_value:
+            reasons.append("bone-activity checkpoint manifest is required")
+        if len(expected_manifest_sha256) != 64:
+            reasons.append("bone-activity checkpoint manifest SHA256 is required")
+        if not reasons:
+            try:
+                self._ensure_runtime_loaded()
+            except (OSError, RuntimeError, TypeError, ValueError) as exc:
+                reasons.append(f"bone-activity runtime validation failed: {exc}")
+                warnings.append(
+                    warning(
+                        "bone_activity_runtime_validation_failed",
+                        f"Bone-activity checkpoint or manifest validation failed for {self.spec.model_id}.",
+                        True,
+                        error=str(exc),
+                    )
+                )
+        runtime = self._runtime_evidence
+        if self.spec.clinical_claim_allowed:
+            reasons.append("bone-activity adapter cannot allow clinical claims")
+        if runtime is not None and runtime.proxy_checkpoint:
+            if not runtime.engineering_ready:
+                reasons.append("proxy bone-activity checkpoint lacks engineering readiness")
+            if self.spec.extra.get("candidate_only") is not True:
+                reasons.append("proxy bone-activity checkpoint must remain candidate-only")
+            if self.spec.extra.get("engineering_candidate_execution_allowed") is not True:
+                reasons.append("proxy bone-activity engineering execution is not explicitly allowed")
+            if self.spec.extra.get("mainline_replacement_allowed") is True:
+                reasons.append("proxy bone-activity checkpoint cannot replace the mainline")
+            warnings.append(
+                warning(
+                    "bone_activity_proxy_engineering_only",
+                    "Bone-activity proxy inference is restricted to checksum-bound engineering evidence with spatial fallback.",
+                )
+            )
+            if not runtime.engineering_utility_ready:
+                warnings.append(
+                    warning(
+                        "bone_activity_engineering_utility_gate_failed",
+                        "The frozen proxy test did not pass its engineering utility constraints.",
+                    )
+                )
+        if (
+            runtime is not None
+            and self.spec.extra.get("runtime_replacement_allowed") is True
+            and not runtime.runtime_replacement_allowed
+        ):
+            reasons.append("bone-activity runtime replacement lacks validated promotion evidence")
+        return AdapterStatus(
+            model_id=self.spec.model_id,
+            family=self.spec.family,
+            available=not reasons,
+            enabled=self.spec.enabled,
+            reasons=list(dict.fromkeys(reasons)),
+            warnings=warnings,
+        )
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        fluorescence_path = str(request.metadata.get("fluorescence_path") or "").strip()
+        if request.input_type != "dual_channel_image" or not fluorescence_path:
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={
+                    "available": False,
+                    "engineering_inference_executed": False,
+                    "spatial_candidates_available": False,
+                    "failure_reasons": ["registered_white_light_and_fluorescence_inputs_required"],
+                },
+                warnings=status.warnings
+                + [
+                    warning(
+                        "bone_activity_dual_channel_input_required",
+                        "Registered white-light and fluorescence image paths are required.",
+                        True,
+                    )
+                ],
+            )
+        assert self._model is not None
+        assert self._runtime_evidence is not None
+        from src.core.paths import resolve_path
+        from src.models.bone_activity_runtime import predict_bone_activity_image
+        from src.models.keyframe_segmenter import select_torch_device
+
+        shape_values = self.spec.extra.get("input_shape") or (192, 256)
+        try:
+            input_shape = (int(shape_values[0]), int(shape_values[1]))
+            payload = predict_bone_activity_image(
+                self._model,
+                self._runtime_evidence,
+                white_path=request.input_path,
+                fluorescence_path=fluorescence_path,
+                metadata=request.metadata,
+                device=select_torch_device(self.spec.device_policy),
+                output_dir=resolve_path(
+                    self.spec.extra.get(
+                        "output_dir",
+                        "artifacts/visual_evidence/osteo_vision/bone_activity_multitask",
+                    )
+                ),
+                case_id=request.case_id,
+                input_shape=input_shape,
+            )
+        except (IndexError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={
+                    "available": False,
+                    "engineering_inference_executed": False,
+                    "spatial_candidates_available": False,
+                    "failure_reasons": ["bone_activity_inference_failed"],
+                    "detail": str(exc),
+                    "checkpoint_sha256": self._runtime_evidence.checkpoint_sha256,
+                    "manifest_sha256": self._runtime_evidence.manifest_sha256,
+                    "runtime_replacement_allowed": False,
+                },
+                warnings=status.warnings
+                + [
+                    warning(
+                        "bone_activity_inference_failed",
+                        "Bone-activity inference failed closed before spatial candidates were produced.",
+                        True,
+                        error=str(exc),
+                    )
+                ],
+            )
+
+        spectrum = dict(payload["bone_activity_spectrum"])
+        spatial_available = payload["spatial_candidates_available"] is True
+        quantification: dict[str, Any] = {
+            "spatial_candidates_available": spatial_available,
+            "raw_engineering_summary": dict(payload["raw_engineering_outputs"]["summary"]),
+        }
+        if spatial_available:
+            for key in (
+                "low_activity_candidate",
+                "transition_candidate",
+                "high_activity_candidate",
+                "ignore_region",
+            ):
+                candidate = dict(spectrum.get(key) or {})
+                quantification[f"{key}_area_px"] = candidate.get("positive_area_px")
+                quantification[f"{key}_bone_gate_fraction"] = candidate.get("bone_gate_fraction")
+        result_warnings = list(status.warnings)
+        if not spatial_available:
+            result_warnings.append(
+                warning(
+                    "bone_activity_spatial_fallback",
+                    "Bone-activity spatial candidates remain unavailable under the active safety gates.",
+                    failure_reasons=list(payload["failure_reasons"]),
+                )
+            )
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload,
+            segmentation_mask={
+                "available": spatial_available,
+                "path": spectrum.get("activity_class_map_path") if spatial_available else None,
+                "format": "png_bone_activity_class_map" if spatial_available else None,
+                "physician_review_required": True,
+                "safe_fallback_applied": payload["safe_fallback_applied"],
+            },
+            lesion_evidence={
+                "available": spatial_available,
+                "bone_activity_spectrum": spectrum,
+                "raw_engineering_outputs": payload["raw_engineering_outputs"],
+                "evidence_manifest_path": payload["evidence_manifest_path"],
+                "evidence_manifest_sha256": payload["evidence_manifest_sha256"],
+                "checkpoint_sha256": payload["checkpoint_sha256"],
+                "manifest_sha256": payload["manifest_sha256"],
+                "source_inputs": payload["source_inputs"],
+                "reviewed_bone_gate": payload["reviewed_bone_gate"],
+                "medical_boundary": payload["medical_boundary"],
+            },
+            quantification=quantification,
+            warnings=result_warnings,
+        )
+
+    def _ensure_runtime_loaded(self) -> None:
+        if self._model is not None and self._runtime_evidence is not None:
+            return
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.bone_activity_runtime import load_validated_bone_activity_runtime
+        from src.models.keyframe_segmenter import select_torch_device
+
+        self._model, self._metadata, self._runtime_evidence = load_validated_bone_activity_runtime(
+            resolve_path(self.spec.checkpoint_path),
+            resolve_path(str(self.spec.extra["checkpoint_manifest_path"])),
+            device=select_torch_device(self.spec.device_policy),
+            expected_manifest_sha256=str(self.spec.extra["checkpoint_manifest_sha256"]),
+            strict_promotion_authorized=self.spec.extra.get("strict_promotion_authorized") is True,
+        )
+
+
+class VideoSignalMultiMaskAdapter(BaseModelAdapter):
+    implements_inference = True
+
+    def __init__(self, spec: ModelSpec) -> None:
+        super().__init__(spec)
+        self._model: Any | None = None
+        self._metadata: dict[str, Any] = {}
+
+    def predict(self, request: AdapterRequest) -> AdapterResult:
+        status = self.warmup()
+        if not status.available:
+            return super().predict(request)
+        if request.input_type != "2d_image":
+            return AdapterResult(
+                model_id=self.spec.model_id,
+                model_family=self.spec.family,
+                prediction={"available": False, "reason": "2d_image input is required"},
+                warnings=status.warnings
+                + [
+                    warning(
+                        "multimask_2d_input_required",
+                        "The video-signal multi-mask candidate requires a 2D image.",
+                        True,
+                    )
+                ],
+            )
+        if self._model is None:
+            self._load_model()
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import select_torch_device
+        from src.models.video_signal_multimask import predict_video_signal_multimask
+
+        assert self._model is not None
+        payload = predict_video_signal_multimask(
+            self._model,
+            request.input_path,
+            device=select_torch_device(self.spec.device_policy),
+            output_dir=resolve_path(
+                self.spec.extra.get("output_dir", "artifacts/visual_evidence/osteo_vision/video_signal_multimask")
+            ),
+            case_id=request.case_id,
+            model_id=self.spec.model_id,
+            thresholds=dict(self.spec.extra.get("thresholds") or {}),
+            input_shape=tuple(self.spec.extra.get("input_shape") or (128, 176)),
+            metadata=self._metadata,
+            review_weights=dict(self.spec.extra.get("review_weights") or {}),
+        )
+        fluorescence = payload["fluorescence_signal_mask"]
+        return AdapterResult(
+            model_id=self.spec.model_id,
+            model_family=self.spec.family,
+            prediction=payload,
+            score=float(fluorescence["positive_area_fraction"]),
+            segmentation_mask=fluorescence,
+            lesion_evidence={
+                "type": "video_signal_multimask_candidate",
+                "fluorescence_signal_mask": fluorescence,
+                "bone_gate_mask": payload["bone_gate_mask"],
+                "review_contract": payload["review_contract"],
+                "target_domain_flag": False,
+            },
+            quantification={
+                "fluorescence_signal_positive_area_px": fluorescence["positive_area_px"],
+                "fluorescence_signal_positive_area_fraction": fluorescence["positive_area_fraction"],
+                "bone_gate_positive_area_px": payload["bone_gate_mask"]["positive_area_px"],
+                "bone_gate_positive_area_fraction": payload["bone_gate_mask"]["positive_area_fraction"],
+            },
+            warnings=status.warnings
+            + [
+                warning(
+                    "video_signal_multimask_proxy_review_required",
+                    "Multi-mask outputs come from non-target-domain proxy supervision; bone-gate output requires physician review.",
+                )
+            ],
+        )
+
+    def _load_model(self) -> None:
+        if not self.spec.checkpoint_path:
+            raise ValueError(f"Model {self.spec.model_id} has no checkpoint_path")
+        from src.core.paths import resolve_path
+        from src.models.keyframe_segmenter import select_torch_device
+        from src.models.video_signal_multimask import load_video_signal_multimask_checkpoint
+
+        self._model, self._metadata = load_video_signal_multimask_checkpoint(
+            resolve_path(self.spec.checkpoint_path),
+            device=select_torch_device(self.spec.device_policy),
+        )
+
+
 class Vista3DLikeAdapter(BaseModelAdapter):
     pass
 
@@ -430,6 +1075,12 @@ ADAPTER_CLASSES = {
     "convnext3d_segmenter": ConvNeXt3DLesionSegmenterAdapter,
     "fluorescence_hotspot_segmenter": FluorescenceHotspotSegmenterAdapter,
     "convnext2d_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
+    "residual_attention_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
+    "multiscale_depthwise_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
+    "dual_channel_segmenter": DualChannelSegmenterAdapter,
+    "patient_conditioned_segmenter": PatientConditionedSegmenterAdapter,
+    "bone_activity_multitask": BoneActivityMultiTaskAdapter,
+    "video_signal_multimask": VideoSignalMultiMaskAdapter,
     "vista3d_like": Vista3DLikeAdapter,
     "vlm_encoder": VLMEncoderAdapter,
 }
@@ -462,9 +1113,11 @@ def build_adapter(spec: ModelSpec) -> BaseModelAdapter:
 
 
 def build_adapters(runtime: dict[str, Any]) -> list[BaseModelAdapter]:
-    specs = runtime.get("models") or [
-        {"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"]}
-    ]
+    specs = list(runtime.get("models") or [])
+    if not specs and bool(runtime.get("use_fixture_model", True)):
+        specs = [{"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"]}]
+    if not bool(runtime.get("use_fixture_model", True)):
+        specs = [spec for spec in specs if str(spec.get("family") or "") != "fixture"]
     return [build_adapter(model_spec_from_mapping(spec)) for spec in specs]
 
 
@@ -491,6 +1144,9 @@ def select_adapter(
         adapter for adapter in adapters if not explicit_model_id or adapter.describe().model_id == explicit_model_id
     ]
     for adapter in candidates:
+        spec = adapter.describe()
+        if spec.extra.get("candidate_only") and explicit_model_id != spec.model_id:
+            continue
         if not adapter.supports(task_type, input_type, modality):
             continue
         status = adapter.warmup()

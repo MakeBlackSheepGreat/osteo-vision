@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -80,8 +81,15 @@ def test_model_checkpoint_manifest_records_available_and_missing_models(tmp_path
         encoding="utf-8",
     )
 
-    payload = build_model_checkpoint_manifest(config_path)
+    payload = build_model_checkpoint_manifest(
+        config_path,
+        generated_at_utc="2026-07-14T00:00:00+00:00",
+    )
 
+    assert payload["schema_version"] == "osteo-vision-model-checkpoint-manifest-v2"
+    assert payload["config_sha256"]
+    assert payload["runtime_profile"] == "development"
+    assert payload["strict_startup"] is False
     assert payload["model_count"] == 3
     assert payload["available_model_count"] == 2
     assert payload["summary"]["available_model_ids"] == ["convnext_proxy", "fixture_default"]
@@ -96,6 +104,147 @@ def test_model_checkpoint_manifest_records_available_and_missing_models(tmp_path
     assert convnext_row["runtime_threshold"] == 0.2
     assert convnext_row["sidecar_metric_threshold"] == 0.2
     assert convnext_row["threshold_alignment"]["matches"] is True
+
+    regenerated = build_model_checkpoint_manifest(
+        config_path,
+        generated_at_utc="2026-07-14T00:00:00+00:00",
+    )
+    assert regenerated == payload
+
+
+def test_runtime_promotion_sidecar_is_preferred_for_checkpoint_identity_and_threshold(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "residual_attention.pt"
+    checkpoint_path.write_bytes(b"residual attention checkpoint")
+    checkpoint_sha256 = hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
+    (tmp_path / "residual_attention_manifest.json").write_text(
+        json.dumps(
+            {
+                "model_id": "residual_attention_mainline",
+                "model_family": "residual_attention_unet_keyframe_segmenter",
+                "checkpoint_sha256": checkpoint_sha256,
+                "metrics": {"threshold": 0.5},
+            }
+        ),
+        encoding="utf-8",
+    )
+    runtime_sidecar_path = tmp_path / "residual_attention_runtime_promotion.json"
+    runtime_sidecar_path.write_text(
+        json.dumps(
+            {
+                "model_id": "residual_attention_checkpoint",
+                "model_family": "residual_attention_unet_keyframe_segmenter",
+                "checkpoint_sha256": checkpoint_sha256,
+                "threshold": 0.4,
+                "runtime_allowed": True,
+                "clinical_claim_allowed": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "inference.yml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "runtime": {
+                    "use_fixture_model": False,
+                    "models": [
+                        {
+                            "model_id": "residual_attention_mainline",
+                            "family": "residual_attention_unet_keyframe_segmenter",
+                            "task_types": ["segmentation"],
+                            "input_types": ["2d_image"],
+                            "spatial_dims": [2],
+                            "checkpoint_path": str(checkpoint_path),
+                            "dependency_group": "torch",
+                            "clinical_claim_allowed": False,
+                            "extra": {
+                                "runtime_allowed": True,
+                                "runtime_sidecar_path": str(runtime_sidecar_path),
+                                "checkpoint_model_id": "residual_attention_checkpoint",
+                                "threshold": 0.4,
+                            },
+                        }
+                    ],
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = build_model_checkpoint_manifest(config_path, generated_at_utc="2026-07-15T00:00:00+00:00")
+    row = payload["models"][0]
+
+    assert row["runtime_evidence_source"] == "runtime_promotion_sidecar"
+    assert row["runtime_promotion_sidecar"]["exists"] is True
+    assert row["sidecar_metric_threshold"] == 0.4
+    assert row["threshold_alignment"]["matches"] is True
+    assert row["manifest_model_id_matches"] is True
+    assert row["runtime_evidence_validation"]["passed"] is True
+    assert row["runtime_evidence_validation"]["checks"] == {
+        "checkpoint_sha256_matches": True,
+        "model_id_matches": True,
+        "model_family_matches": True,
+        "threshold_matches": True,
+    }
+    assert "non-target-domain" in row["medical_boundary"]
+    assert payload["summary"]["models_with_invalid_runtime_promotion_evidence"] == []
+
+
+def test_runtime_promotion_sidecar_mismatches_are_reported(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "multiscale.pt"
+    checkpoint_path.write_bytes(b"multiscale checkpoint")
+    runtime_sidecar_path = tmp_path / "multiscale_runtime_promotion.json"
+    runtime_sidecar_path.write_text(
+        json.dumps(
+            {
+                "model_id": "wrong_model",
+                "model_family": "wrong_family",
+                "checkpoint_sha256": "0" * 64,
+                "threshold": 0.9,
+            }
+        ),
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "inference.yml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "runtime": {
+                    "use_fixture_model": False,
+                    "models": [
+                        {
+                            "model_id": "multiscale_mainline",
+                            "family": "multiscale_depthwise_unet_keyframe_segmenter",
+                            "task_types": ["segmentation"],
+                            "input_types": ["2d_image"],
+                            "checkpoint_path": str(checkpoint_path),
+                            "dependency_group": "torch",
+                            "extra": {
+                                "runtime_sidecar_path": str(runtime_sidecar_path),
+                                "threshold": 0.4,
+                            },
+                        }
+                    ],
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = build_model_checkpoint_manifest(config_path, generated_at_utc="2026-07-15T00:00:00+00:00")
+    row = payload["models"][0]
+
+    assert row["runtime_evidence_validation"]["passed"] is False
+    assert row["runtime_evidence_validation"]["errors"] == [
+        "checkpoint_sha256_matches",
+        "model_id_matches",
+        "model_family_matches",
+        "threshold_matches",
+    ]
+    assert "non-target-domain" in row["medical_boundary"]
+    assert payload["summary"]["models_with_invalid_runtime_promotion_evidence"] == ["multiscale_mainline"]
 
 
 def test_write_manifest_bundle_outputs_json_csv_and_reports(tmp_path: Path) -> None:

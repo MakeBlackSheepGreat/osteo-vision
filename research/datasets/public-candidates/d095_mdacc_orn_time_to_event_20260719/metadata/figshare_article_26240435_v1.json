@@ -1,0 +1,129 @@
+{
+  "authors": [
+    {
+      "first_name": "Laia",
+      "full_name": "Laia Humbert-Vidan",
+      "id": 19066769,
+      "is_active": true,
+      "last_name": "Humbert-Vidan",
+      "orcid_id": "0000-0002-8005-6770",
+      "url_name": "Laia_Humbert-Vidan"
+    },
+    {
+      "first_name": "Serageldin",
+      "full_name": "Serageldin Kamel",
+      "id": 17616534,
+      "is_active": true,
+      "last_name": "Kamel",
+      "orcid_id": "0000-0002-0046-4337",
+      "url_name": "Serageldin_Kamel"
+    },
+    {
+      "first_name": "Clifton",
+      "full_name": "Clifton D Fuller",
+      "id": 65523,
+      "is_active": false,
+      "last_name": "D Fuller",
+      "orcid_id": "",
+      "url_name": "Clifton_D_Fuller"
+    },
+    {
+      "first_name": "Amy",
+      "full_name": "Amy Moreno",
+      "id": 13002687,
+      "is_active": true,
+      "last_name": "Moreno",
+      "orcid_id": "0000-0001-6762-6807",
+      "url_name": "Amy_Moreno"
+    },
+    {
+      "first_name": "Stephen",
+      "full_name": "Stephen Lai",
+      "id": 15349065,
+      "is_active": false,
+      "last_name": "Lai",
+      "orcid_id": "0000-0001-8301-7286",
+      "url_name": "_"
+    }
+  ],
+  "categories": [
+    {
+      "id": 24805,
+      "parent_id": 24775,
+      "path": "/24457/24775/24805",
+      "source_id": "321110",
+      "taxonomy_id": 100,
+      "title": "Radiation therapy"
+    }
+  ],
+  "citation": "Humbert-Vidan, Laia; Kamel, Serageldin; D Fuller, Clifton; Moreno, Amy; Lai, Stephen (2025). MDACC ORN Time-to-event anonymized clinical dataset. figshare. Dataset. https://doi.org/10.6084/m9.figshare.26240435.v1",
+  "confidential_reason": "",
+  "created_date": "2025-05-12T20:30:49Z",
+  "custom_fields": [],
+  "defined_type": 3,
+  "defined_type_name": "dataset",
+  "description": "<p dir=\"ltr\">In this study, we have developed a novel time to event approach to orodental toxicity prediction, thus providing a more comprehensive estimation of the disease trajectory in order to allow effective risk stratification and surveillance strategies. The developed Weibull AFT model offers a significant advancement in predicting mandibular ORNJ risk following radiotherapy in HNC patients. Being able to predict the time to ORNJ allows for early identification and proactive management of high-risk patients with potential reduction of the severity of ORNJ and improvement of patient outcomes and quality of life.</p>",
+  "doi": "10.6084/m9.figshare.26240435.v1",
+  "download_disabled": false,
+  "embargo_date": null,
+  "embargo_options": [],
+  "embargo_reason": "",
+  "embargo_title": "",
+  "embargo_type": null,
+  "figshare_url": "https://figshare.com/articles/dataset/MDACC_ORN_Time-to-event_anonymized_clinical_dataset/26240435",
+  "files": [
+    {
+      "computed_md5": "9935bb4bc167f9f393de912edb99652d",
+      "download_url": "https://ndownloader.figshare.com/files/47559242",
+      "id": 47559242,
+      "is_link_only": false,
+      "mimetype": "text/plain",
+      "name": "TTE_ORN_data_Figshare.csv",
+      "size": 403524,
+      "supplied_md5": "9935bb4bc167f9f393de912edb99652d"
+    }
+  ],
+  "folder_structure": {},
+  "funding": null,
+  "funding_list": [],
+  "group_id": null,
+  "handle": "",
+  "has_linked_file": false,
+  "id": 26240435,
+  "is_confidential": false,
+  "is_embargoed": false,
+  "is_metadata_record": false,
+  "is_public": true,
+  "keywords": [
+    "osteoradionecrosis of the jaw"
+  ],
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "value": 1
+  },
+  "metadata_reason": "",
+  "modified_date": "2025-05-12T20:31:53Z",
+  "published_date": "2025-05-12T20:30:49Z",
+  "references": [],
+  "related_materials": [],
+  "resource_doi": null,
+  "resource_title": null,
+  "size": 403524,
+  "status": "public",
+  "tags": [
+    "osteoradionecrosis of the jaw"
+  ],
+  "thumb": "",
+  "timeline": {
+    "firstOnline": "2025-05-12",
+    "posted": "2025-05-12T20:30:49"
+  },
+  "title": "MDACC ORN Time-to-event anonymized clinical dataset",
+  "url": "https://api.figshare.com/v2/articles/26240435",
+  "url_private_api": "https://api.figshare.com/v2/account/articles/26240435",
+  "url_private_html": "https://figshare.com/account/articles/26240435",
+  "url_public_api": "https://api.figshare.com/v2/articles/26240435",
+  "url_public_html": "https://figshare.com/articles/dataset/MDACC_ORN_Time-to-event_anonymized_clinical_dataset/26240435",
+  "version": 1
+}
