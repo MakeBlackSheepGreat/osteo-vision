@@ -7,7 +7,8 @@ param(
     [switch]$StrictCompetition,
     [switch]$PreflightOnly,
     [switch]$NoInstall,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$Headless
 )
 
 $ErrorActionPreference = "Stop"
@@ -88,7 +89,8 @@ function Start-DevWindow {
     param(
         [string]$Title,
         [string]$Command,
-        [string]$WorkingDirectory
+        [string]$WorkingDirectory,
+        [switch]$Headless
     )
 
     $wrapped = @"
@@ -97,13 +99,22 @@ Set-Location -LiteralPath '$WorkingDirectory'
 $Command
 "@
 
-    Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoExit",
+    $arguments = @(
+        $(if (-not $Headless) { "-NoExit" }),
         "-ExecutionPolicy",
         "Bypass",
         "-Command",
         $wrapped
-    ) -WorkingDirectory $WorkingDirectory
+    ) | Where-Object { $_ }
+    $launch = @{
+        FilePath = "powershell.exe"
+        ArgumentList = $arguments
+        WorkingDirectory = $WorkingDirectory
+    }
+    if ($Headless) {
+        $launch.WindowStyle = "Hidden"
+    }
+    Start-Process @launch
 }
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -204,7 +215,7 @@ else {
 $(if ($StrictCompetition) { "`$env:OSTEO_ARTIFACT_ROOT = '$competitionArtifactRoot'`n`$env:OSTEO_CASE_STORE_PATH = '$competitionCaseStore'`n`$env:OSTEO_JOB_STORE_PATH = '$competitionJobStore'" })
 $backendRun
 "@
-    Start-DevWindow -Title "Osteo Vision Backend :$BackendPort" -Command $backendCommand -WorkingDirectory $repoRoot
+    Start-DevWindow -Title "Osteo Vision Backend :$BackendPort" -Command $backendCommand -WorkingDirectory $repoRoot -Headless:$Headless
 }
 
 Write-Host "[wait] Waiting for backend readiness at $apiUrl/ready ..."
@@ -276,7 +287,7 @@ else {
 `$env:VITE_OSTEO_EXPECT_STRICT_RUNTIME = '$expectStrictRuntime'
 npm --prefix "$frontendDir" run dev -- --host $HostAddress --port $FrontendPort --strictPort
 "@
-    Start-DevWindow -Title "Osteo Vision Frontend :$FrontendPort" -Command $frontendCommand -WorkingDirectory $repoRoot
+    Start-DevWindow -Title "Osteo Vision Frontend :$FrontendPort" -Command $frontendCommand -WorkingDirectory $repoRoot -Headless:$Headless
 }
 
 Write-Host "[wait] Waiting for frontend at $frontendUrl ..."

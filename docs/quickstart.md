@@ -31,6 +31,12 @@ start_platform.cmd
 start_platform.cmd -NoBrowser
 ```
 
+后台启动且不打开浏览器：
+
+```cmd
+start_platform.cmd -NoBrowser -Headless
+```
+
 根目录启动器依次检查：
 
 - 比赛严格配置及其哈希。
