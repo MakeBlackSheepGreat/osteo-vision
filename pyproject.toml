@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "osteo-vision"
-version = "0.2.0"
+version = "0.3.0rc1"
 description = "颌骨骨髓炎智能化荧光诊疗开发框架"
 readme = "README.md"
 license = {text = "MIT"}
