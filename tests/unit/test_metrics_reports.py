@@ -18,4 +18,3 @@ def test_single_case_report_contains_disclaimer(tmp_path) -> None:
     payload = json.loads((tmp_path / "single_case_x.json").read_text(encoding="utf-8"))
     assert payload["report_path"] == path
     assert "clinical diagnosis" in payload["disclaimer"]
-

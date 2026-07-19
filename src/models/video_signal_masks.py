@@ -53,6 +53,7 @@ def save_video_signal_maps(
     safe_case: str,
     model_id: str,
     threshold: float,
+    activity_score_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Write v1 risk and uncertain masks without changing the binary segmentation mask."""
 
@@ -61,14 +62,20 @@ def save_video_signal_maps(
     uncertain = uncertain_from_signal(probability=probability, uncertainty=uncertainty, threshold=threshold)
     risk_path = out_dir / f"{safe_case}_{model_id}_risk.png"
     uncertain_mask_path = out_dir / f"{safe_case}_{model_id}_uncertain_mask.png"
-    activity_score_path = out_dir / f"{safe_case}_{model_id}_activity_score.png"
+    resolved_activity_score_path = (
+        Path(activity_score_path)
+        if activity_score_path is not None
+        else out_dir / f"{safe_case}_{model_id}_activity_score.png"
+    )
     Image.fromarray(np.clip(risk * 255.0, 0, 255).astype(np.uint8)).save(risk_path)
     Image.fromarray((uncertain * 255).astype(np.uint8)).save(uncertain_mask_path)
-    Image.fromarray(np.clip(np.asarray(probability) * 255.0, 0, 255).astype(np.uint8)).save(activity_score_path)
+    Image.fromarray(np.clip(np.asarray(probability) * 255.0, 0, 255).astype(np.uint8)).save(
+        resolved_activity_score_path
+    )
     return {
         "risk_mask_path": str(risk_path),
         "uncertain_mask_path": str(uncertain_mask_path),
-        "activity_score_path": str(activity_score_path),
+        "activity_score_path": str(resolved_activity_score_path),
         "risk_summary": {
             "method": "fluorescence_signal_with_uncertainty_v1",
             "mean_risk": float(risk.mean()) if risk.size else 0.0,

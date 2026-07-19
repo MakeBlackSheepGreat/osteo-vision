@@ -21,7 +21,9 @@ def test_platform_import_review_export_smoke(tmp_path: Path, monkeypatch) -> Non
             {"channel": "fluorescence", "path": str(fluorescence)},
         ],
     )
-    analyzed = client.post(f"/cases/{case_id}/analysis-runs", json={"selected_input_ids": [], "parameters": {}, "roi_hints": []})
+    analyzed = client.post(
+        f"/cases/{case_id}/analysis-runs", json={"selected_input_ids": [], "parameters": {}, "roi_hints": []}
+    )
     assert analyzed.json()["analysis_runs"][-1]["status"] == "completed"
     exported = client.post(f"/cases/{case_id}/exports", json={"export_format": "bundle", "selected_artifacts": []})
     assert Path(exported.json()["bundle_path"]).exists()

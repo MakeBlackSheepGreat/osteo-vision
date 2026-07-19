@@ -651,6 +651,7 @@ let loadedAnatomyGroup: THREE.Group | null = null;
 let modelLoadSequence = 0;
 let frameId = 0;
 let resizeObserver: ResizeObserver | null = null;
+let sceneDisposed = false;
 
 const evidence = computed(() => localThreeDEvidence.value ?? props.threeDEvidence ?? null);
 const evidenceModelPath = computed(() => stringFromEvidence(evidence.value?.model_path));
@@ -1985,7 +1986,7 @@ onMounted(() => {
 
 async function ensureSceneReady() {
   await nextTick();
-  if (!canvasHost.value) return;
+  if (sceneDisposed || !canvasHost.value) return;
   if (scene && renderer) {
     if (!canvasHost.value.contains(renderer.domElement)) {
       canvasHost.value.appendChild(renderer.domElement);
@@ -2004,15 +2005,26 @@ async function ensureSceneReady() {
 }
 
 onBeforeUnmount(() => {
+  sceneDisposed = true;
+  modelLoadSequence += 1;
+  modelingPollGeneration += 1;
   stopAnimation();
   revokeLocalSurfaceObjectUrl();
   resizeObserver?.disconnect();
   resizeObserver = null;
+  controls?.dispose();
+  if (scene) {
+    disposeObject(scene);
+    disposeTexture(scene.background);
+    disposeTexture(scene.environment);
+    scene.clear();
+  }
   if (renderer?.domElement && canvasHost.value?.contains(renderer.domElement)) {
     canvasHost.value.removeChild(renderer.domElement);
   }
+  renderer?.renderLists.dispose();
   renderer?.dispose();
-  controls?.dispose();
+  renderer?.forceContextLoss();
   renderer = null;
   scene = null;
   camera = null;
@@ -2050,7 +2062,7 @@ watch(registrationMarkupRows, () => renderRegistrationMarkups(), { deep: true })
 
 function initScene() {
   const host = canvasHost.value;
-  if (!host) return;
+  if (sceneDisposed || !host) return;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x081522);
@@ -2504,14 +2516,47 @@ function normalizeLoadedModel(model: THREE.Object3D, rotationXDegrees: number) {
   model.position.y += 0.5;
 }
 
+function disposeTexture(value: unknown, disposedTextures = new Set<THREE.Texture>()) {
+  if (!value || typeof value !== "object" || !("isTexture" in value)) return;
+  const texture = value as THREE.Texture;
+  if (!texture.isTexture || disposedTextures.has(texture)) return;
+  disposedTextures.add(texture);
+  texture.dispose();
+}
+
+function disposeObjects(objects: Iterable<THREE.Object3D>) {
+  const disposedGeometries = new Set<THREE.BufferGeometry>();
+  const disposedMaterials = new Set<THREE.Material>();
+  const disposedTextures = new Set<THREE.Texture>();
+  for (const object of objects) {
+    object.traverse((child) => {
+      const renderable = child as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+      };
+      const geometry = renderable.geometry;
+      if (geometry && !disposedGeometries.has(geometry)) {
+        disposedGeometries.add(geometry);
+        geometry.dispose();
+      }
+      const materials = Array.isArray(renderable.material) ? renderable.material : [renderable.material];
+      materials.forEach((material) => {
+        if (!material || disposedMaterials.has(material)) return;
+        disposedMaterials.add(material);
+        Object.values(material).forEach((value) => disposeTexture(value, disposedTextures));
+        material.dispose();
+      });
+    });
+  }
+}
+
 function disposeObject(object: THREE.Object3D) {
-  object.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      child.geometry.dispose();
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-      materials.forEach((material) => material.dispose());
-    }
-  });
+  disposeObjects([object]);
+}
+
+function clearAndDisposeGroup(group: THREE.Group) {
+  disposeObjects([...group.children]);
+  group.clear();
 }
 
 function buildAnatomyPlanes() {
@@ -2612,7 +2657,7 @@ function buildAxisTriad() {
 function renderHotspots() {
   if (!hotspotGroup) return;
   const group = hotspotGroup;
-  group.clear();
+  clearAndDisposeGroup(group);
   normalizedHotspots.value.forEach((hotspot) => {
     const color = isRegistered.value ? riskColors[hotspot.risk] : 0x8fb1bd;
     const selected = selectedHotspotKey.value === hotspot.key;
@@ -2660,7 +2705,7 @@ function renderHotspots() {
 function renderRegistrationMarkups() {
   if (!registrationMarkupGroup) return;
   const group = registrationMarkupGroup;
-  group.clear();
+  clearAndDisposeGroup(group);
   registrationMarkupRows.value.filter((markup) => markup.ready).forEach((markup, index) => {
     const selected = selectedMarkupId.value === markup.id;
     const color = markup.ready ? 0x49b988 : 0x8798a8;

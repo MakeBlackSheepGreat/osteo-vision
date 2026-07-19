@@ -14,4 +14,3 @@ class DetectionPipeline(Pipeline):
             "prediction": {"candidate_count": len(candidates), "candidates": candidates},
             "score": candidates[0]["score"] if candidates else None,
         }
-

@@ -57,7 +57,7 @@ from src.models.adapters import BaseModelAdapter
 class MyAdapter(BaseModelAdapter):
     def __init__(self, spec: ModelSpec) -> None:
         super().__init__(spec)
-    
+
     def warmup(self) -> AdapterStatus:
         # 检查模型是否可用
         return AdapterStatus(
@@ -66,7 +66,7 @@ class MyAdapter(BaseModelAdapter):
             available=True,
             enabled=self.spec.enabled,
         )
-    
+
     def predict(self, request: AdapterRequest) -> AdapterResult:
         # 执行推理
         return AdapterResult(
@@ -124,39 +124,39 @@ from src.models.adapters import BaseModelAdapter, DEPENDENCY_MODULES
 
 class MyModelAdapter(BaseModelAdapter):
     """自定义模型适配器示例"""
-    
+
     def __init__(self, spec: ModelSpec) -> None:
         super().__init__(spec)
         self.model = None
-    
+
     def warmup(self) -> AdapterStatus:
         """
         检查模型是否可用
-        
+
         Returns:
             AdapterStatus: 模型状态
         """
         reasons: list[str] = []
         warnings: list[dict[str, Any]] = []
-        
+
         # 1. 检查是否启用
         if not self.spec.enabled:
             reasons.append("model disabled")
-        
+
         # 2. 检查依赖
         for module in DEPENDENCY_MODULES.get(self.spec.dependency_group, []):
             try:
                 __import__(module)
             except ImportError:
                 reasons.append(f"missing dependency: {module}")
-        
+
         # 3. 检查检查点
         if self.spec.checkpoint_path and not Path(self.spec.checkpoint_path).exists():
             reasons.append(f"missing checkpoint: {self.spec.checkpoint_path}")
             warnings.append(
                 warning(STATUS_CHECKPOINT_MISSING, f"Missing checkpoint for {self.spec.model_id}")
             )
-        
+
         return AdapterStatus(
             model_id=self.spec.model_id,
             family=self.spec.family,
@@ -165,14 +165,14 @@ class MyModelAdapter(BaseModelAdapter):
             reasons=reasons,
             warnings=warnings,
         )
-    
+
     def predict(self, request: AdapterRequest) -> AdapterResult:
         """
         执行推理
-        
+
         Args:
             request: 推理请求
-            
+
         Returns:
             AdapterResult: 推理结果
         """
@@ -185,14 +185,14 @@ class MyModelAdapter(BaseModelAdapter):
                 prediction={"available": False, "reason": "; ".join(status.reasons)},
                 warnings=status.warnings,
             )
-        
+
         # 2. 加载模型（如果尚未加载）
         if self.model is None:
             self._load_model()
-        
+
         # 3. 执行推理
         prediction = self._run_inference(request)
-        
+
         # 4. 构建结果
         return AdapterResult(
             model_id=self.spec.model_id,
@@ -203,12 +203,12 @@ class MyModelAdapter(BaseModelAdapter):
             class_label=prediction.get("label"),
             risk_level=prediction.get("risk_level"),
         )
-    
+
     def _load_model(self) -> None:
         """加载模型"""
         # 实现模型加载逻辑
         raise NotImplementedError
-    
+
     def _run_inference(self, request: AdapterRequest) -> dict[str, Any]:
         """执行推理"""
         # 实现推理逻辑

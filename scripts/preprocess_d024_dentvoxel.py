@@ -267,9 +267,21 @@ def generate_previews(cases: list[dict[str, Any]], preview_dir: Path, *, count: 
             "coronal": str(case_dir / "coronal.png"),
             "sagittal": str(case_dir / "sagittal.png"),
         }
-        _save_preview(image_data[:, :, image_data.shape[2] // 2], label_data[:, :, label_data.shape[2] // 2], case_dir / "axial.png")
-        _save_preview(image_data[:, image_data.shape[1] // 2, :], label_data[:, label_data.shape[1] // 2, :], case_dir / "coronal.png")
-        _save_preview(image_data[image_data.shape[0] // 2, :, :], label_data[label_data.shape[0] // 2, :, :], case_dir / "sagittal.png")
+        _save_preview(
+            image_data[:, :, image_data.shape[2] // 2],
+            label_data[:, :, label_data.shape[2] // 2],
+            case_dir / "axial.png",
+        )
+        _save_preview(
+            image_data[:, image_data.shape[1] // 2, :],
+            label_data[:, label_data.shape[1] // 2, :],
+            case_dir / "coronal.png",
+        )
+        _save_preview(
+            image_data[image_data.shape[0] // 2, :, :],
+            label_data[label_data.shape[0] // 2, :, :],
+            case_dir / "sagittal.png",
+        )
         generated.append(paths)
     return generated
 

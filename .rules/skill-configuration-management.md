@@ -216,32 +216,32 @@ runtime:
   # 版本信息
   model_version: my_model_v1
   framework_version: v2
-  
+
   # 任务配置
   task_package: configs/tasks/my_task.yml
   default_task_type: classification
   default_threshold: 0.5
   low_confidence_margin: 0.1
-  
+
   # 设备配置
   device_policy: auto  # auto, cpu, gpu, multi_gpu
   gpu_ids: [0]
   max_batch_size: 32
-  
+
   # 模型配置
   use_fixture_model: false
   checkpoint_path: artifacts/checkpoints/my_model.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback  # fixture_fallback, explicit, best_available
-  
+
   # 性能配置
   num_workers: 4
   prefetch_factor: 2
   pin_memory: true
-  
+
   # 声明
   disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
-  
+
   # 模型列表
   models:
     - model_id: my_model_v1
@@ -258,7 +258,7 @@ runtime:
       enabled: true
       intended_use: platform validation workflow
       clinical_claim_allowed: false
-  
+
   # 任务配置
   tasks:
     classification:

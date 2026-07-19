@@ -51,7 +51,10 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
                 "channel": "video",
                 "path": str(video_path),
                 "mime_type": "video/mp4",
-                "metadata": {"input_domain": "D046 public/proxy non-target-domain MP4", "medical_boundary": BOUNDARY_NOTE},
+                "metadata": {
+                    "input_domain": "D046 public/proxy non-target-domain MP4",
+                    "medical_boundary": BOUNDARY_NOTE,
+                },
             }
         ],
     )

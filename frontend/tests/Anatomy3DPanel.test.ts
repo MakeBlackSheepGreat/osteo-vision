@@ -9,6 +9,14 @@ const threeLoadState = vi.hoisted(() => ({
   stlPaths: [] as string[],
 }));
 
+const threeResourceState = vi.hoisted(() => ({
+  geometryDispose: vi.fn(),
+  materialDispose: vi.fn(),
+  renderListDispose: vi.fn(),
+  rendererDispose: vi.fn(),
+  rendererForceContextLoss: vi.fn(),
+}));
+
 vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   OrbitControls: class {
     enableDamping = false;
@@ -126,10 +134,10 @@ vi.mock("three", () => {
   class LineSegments extends Mesh {}
   class Geometry {
     computeVertexNormals = vi.fn();
-    dispose = vi.fn();
+    dispose = vi.fn(() => threeResourceState.geometryDispose(this));
   }
   class Material {
-    dispose = vi.fn();
+    dispose = vi.fn(() => threeResourceState.materialDispose(this));
   }
 
   return {
@@ -155,13 +163,15 @@ vi.mock("three", () => {
     WebGLRenderer: class {
       domElement = document.createElement("canvas");
       shadowMap = { enabled: false, type: "" };
+      renderLists = { dispose: threeResourceState.renderListDispose };
       outputColorSpace = "";
       toneMapping = "";
       toneMappingExposure = 1;
       setPixelRatio = vi.fn();
       setSize = vi.fn();
       render = vi.fn();
-      dispose = vi.fn();
+      dispose = threeResourceState.rendererDispose;
+      forceContextLoss = threeResourceState.rendererForceContextLoss;
     },
     HemisphereLight: class extends Object3D {},
     DirectionalLight: class extends Object3D {
@@ -229,6 +239,11 @@ describe("Anatomy3DPanel", () => {
   beforeEach(() => {
     threeLoadState.gltfPaths = [];
     threeLoadState.stlPaths = [];
+    threeResourceState.geometryDispose.mockClear();
+    threeResourceState.materialDispose.mockClear();
+    threeResourceState.renderListDispose.mockClear();
+    threeResourceState.rendererDispose.mockClear();
+    threeResourceState.rendererForceContextLoss.mockClear();
     window.requestAnimationFrame = vi.fn(() => 1) as unknown as typeof window.requestAnimationFrame;
     window.cancelAnimationFrame = vi.fn() as unknown as typeof window.cancelAnimationFrame;
     URL.createObjectURL = vi.fn(() => "blob:local-mandible-model") as unknown as typeof URL.createObjectURL;
@@ -836,5 +851,48 @@ describe("Anatomy3DPanel", () => {
 
     expect(wrapper.text()).toContain("显示上方 = -Z 轴");
     expect(wrapper.text()).toContain("MHA 轴向推断 / 待复核");
+  });
+
+  it("disposes replaced hotspot resources and releases the WebGL scene on unmount", async () => {
+    const wrapper = mount(Anatomy3DPanel, {
+      props: {
+        candidates: [
+          {
+            candidate_id: "cand_resource",
+            run_id: "run_resource",
+            risk_type: "high fluorescence prompt",
+            confidence: 0.91,
+            status: "review_required",
+            metadata: { timestamp_sec: 2.4 },
+          },
+        ],
+        metrics: {},
+        threeDEvidence: {
+          model_path: "artifacts/models/resource_test.stl",
+          model_format: "stl",
+          registration_status: "unregistered",
+        },
+      },
+    });
+
+    await flushPromises();
+    threeResourceState.geometryDispose.mockClear();
+    threeResourceState.materialDispose.mockClear();
+
+    await wrapper.get(".anatomy-3d__hotspot").trigger("click");
+    await nextTick();
+
+    expect(threeResourceState.geometryDispose).toHaveBeenCalledTimes(3);
+    expect(threeResourceState.materialDispose).toHaveBeenCalledTimes(3);
+
+    threeResourceState.geometryDispose.mockClear();
+    threeResourceState.materialDispose.mockClear();
+    wrapper.unmount();
+
+    expect(threeResourceState.geometryDispose).toHaveBeenCalled();
+    expect(threeResourceState.materialDispose).toHaveBeenCalled();
+    expect(threeResourceState.renderListDispose).toHaveBeenCalledTimes(1);
+    expect(threeResourceState.rendererDispose).toHaveBeenCalledTimes(1);
+    expect(threeResourceState.rendererForceContextLoss).toHaveBeenCalledTimes(1);
   });
 });

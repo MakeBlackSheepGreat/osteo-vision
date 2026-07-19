@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from src.core.paths import ensure_dir, project_root, resolve_path
@@ -140,7 +140,9 @@ def train_smoke_model(args: argparse.Namespace) -> dict[str, Any]:
             "mean_train_loss": float(np.mean(losses)) if losses else None,
             "resume_checkpoint": resume_record["checkpoint_path"] if resume_record else None,
             "resume_checkpoint_sha256": resume_record["checkpoint_sha256"] if resume_record else None,
-            "previous_completed_train_batches": resume_record["previous_completed_train_batches"] if resume_record else 0,
+            "previous_completed_train_batches": (
+                resume_record["previous_completed_train_batches"] if resume_record else 0
+            ),
             "total_completed_train_batches": completed_batches
             + (resume_record["previous_completed_train_batches"] if resume_record else 0),
         },
@@ -231,7 +233,9 @@ def _load_resume_record(resume_checkpoint: str | Path, *, device: torch.device) 
         "checkpoint_sha256": checkpoint_sha256(checkpoint_path),
         "state_dict": state_dict,
         "model_config": dict(checkpoint.get("model_config") or {}),
-        "previous_completed_train_batches": int(training.get("total_completed_train_batches") or training.get("completed_train_batches") or 0),
+        "previous_completed_train_batches": int(
+            training.get("total_completed_train_batches") or training.get("completed_train_batches") or 0
+        ),
     }
 
 

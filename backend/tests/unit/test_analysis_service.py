@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 from PIL import Image
 
@@ -42,6 +43,28 @@ def _write_no_fallback_runtime_config(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return config_path
+
+
+def test_strict_runtime_requires_explicit_segmentation_model_binding(tmp_path: Path) -> None:
+    config_path = tmp_path / "strict_missing_model.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "runtime:",
+                "  strict_startup: true",
+                "  models: []",
+                "reports:",
+                f"  output_dir: {json.dumps(str(tmp_path / 'reports'))}",
+                f"  visual_dir: {json.dumps(str(tmp_path / 'visual'))}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    service = AnalysisService(JsonCaseRepository(tmp_path / "cases.json"), config_path=str(config_path))
+
+    with pytest.raises(ValueError, match="runtime.tasks.segmentation.model_id"):
+        service._configured_segmentation_model_id()
 
 
 def test_analysis_service_creates_fluorescence_outputs(tmp_path: Path, monkeypatch) -> None:

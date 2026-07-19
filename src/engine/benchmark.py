@@ -61,13 +61,32 @@ def evaluate_manifest(config_path: str | Path, manifest_path: str | Path, output
     write_csv(
         prediction_csv,
         prediction_rows,
-        ["run_id", "case_id", "input_path", "label", "task_type", "status", "probability", "class_label", "risk_level", "model_id", "model_family", "report_path"],
+        [
+            "run_id",
+            "case_id",
+            "input_path",
+            "label",
+            "task_type",
+            "status",
+            "probability",
+            "class_label",
+            "risk_level",
+            "model_id",
+            "model_family",
+            "report_path",
+        ],
     )
     metrics = classification_metrics(y_true, y_score, threshold=0.5) if y_true else {}
     threshold = threshold_sweep(y_true, y_score)
-    leakage = patient_leakage_report(rows) if "patient_id" in info.get("optional_columns_present", []) else {"leakage_detected": False, "reason": "patient_id column missing"}
+    leakage = (
+        patient_leakage_report(rows)
+        if "patient_id" in info.get("optional_columns_present", [])
+        else {"leakage_detected": False, "reason": "patient_id column missing"}
+    )
     metrics_path = out / "metrics.json"
-    write_json(metrics_path, {"metrics": metrics, "threshold_analysis": threshold, "manifest": info, "leakage": leakage})
+    write_json(
+        metrics_path, {"metrics": metrics, "threshold_analysis": threshold, "manifest": info, "leakage": leakage}
+    )
     report = BenchmarkReport(
         run_id=run_id,
         config_path=str(config_path),
@@ -95,7 +114,9 @@ def _run_output_dir(output_dir: str | Path, run_id: str) -> Path:
     return ensure_dir(root / run_id)
 
 
-def _write_snapshots(config_path: str | Path, manifest_path: str | Path, service: MedicalImagingInferenceService, output_dir: Path) -> None:
+def _write_snapshots(
+    config_path: str | Path, manifest_path: str | Path, service: MedicalImagingInferenceService, output_dir: Path
+) -> None:
     config_source = Path(config_path)
     manifest_source = Path(manifest_path)
     if config_source.exists():
@@ -105,5 +126,7 @@ def _write_snapshots(config_path: str | Path, manifest_path: str | Path, service
     if service.task_package.source_path:
         task_source = Path(service.task_package.source_path)
         if task_source.exists():
-            (output_dir / "task_package_snapshot.yml").write_text(task_source.read_text(encoding="utf-8"), encoding="utf-8")
+            (output_dir / "task_package_snapshot.yml").write_text(
+                task_source.read_text(encoding="utf-8"), encoding="utf-8"
+            )
     write_json(output_dir / "model_specs.json", {"models": service.model_inventory()})

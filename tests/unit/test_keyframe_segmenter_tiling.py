@@ -51,11 +51,17 @@ def test_predict_keyframe_image_writes_tiled_full_size_outputs(tmp_path: Path) -
     assert Path(mask["path"]).exists()
     assert Path(mask["uncertainty_path"]).exists()
     assert Path(result["lesion_evidence"]["probability_path"]).exists()
+    assert (
+        result["signal_masks"]["bone_activity_spectrum"]["activity_score"]["path"]
+        == result["lesion_evidence"]["probability_path"]
+    )
     assert Path(result["lesion_evidence"]["uncertainty_path"]).exists()
     assert Path(result["lesion_evidence"]["overlay_path"]).exists()
     assert result["quantification"]["uncertainty"]["method"] == "predictive_entropy_plus_tta_variance"
     assert result["quantification"]["inference"]["elapsed_ms"] > 0
     assert result["quantification"]["inference"]["tta_enabled"] is True
+    assert result["quantification"]["inference"]["postprocess"]["total_ms"] > 0
+    assert result["quantification"]["inference"]["postprocess"]["probability_activity_score_shared"] is True
 
 
 def test_tiled_batch_inference_matches_single_tile_results() -> None:

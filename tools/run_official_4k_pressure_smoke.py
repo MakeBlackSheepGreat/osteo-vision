@@ -30,7 +30,9 @@ def main() -> None:
     if not tracemalloc.is_tracing():
         tracemalloc.start()
     args = parse_args()
-    output_dir = Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"{timestamp()}_4k"
+    output_dir = (
+        Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"{timestamp()}_4k"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
     os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")
@@ -287,7 +289,9 @@ def create_official_jpeg(path: Path, *, channel: str) -> Path:
         green = np.broadcast_to(92 + 38 * y, (OFFICIAL_HEIGHT, OFFICIAL_WIDTH))
         red = np.broadcast_to(122 + 38 * (1 - x) + 12 * y, (OFFICIAL_HEIGHT, OFFICIAL_WIDTH))
         image = np.dstack([blue, green, red]).astype(np.uint8)
-        cv2.putText(image, "official 4K white-light proxy", (140, 220), cv2.FONT_HERSHEY_SIMPLEX, 3.0, (235, 235, 235), 8)
+        cv2.putText(
+            image, "official 4K white-light proxy", (140, 220), cv2.FONT_HERSHEY_SIMPLEX, 3.0, (235, 235, 235), 8
+        )
     else:
         image = np.zeros((OFFICIAL_HEIGHT, OFFICIAL_WIDTH, 3), dtype=np.uint8)
         image[:, :, 1] = (24 + 42 * y).astype(np.uint8)
@@ -315,7 +319,9 @@ def create_official_video(path: Path, *, frames: int, fps: float) -> Path:
         center_y = int(OFFICIAL_HEIGHT * (0.46 + 0.08 * np.sin(index / max(1, frame_count - 1) * np.pi)))
         cv2.circle(frame, (center_x, center_y), 210, (0, 255, 0), -1)
         cv2.rectangle(frame, (OFFICIAL_WIDTH - 780, 280), (OFFICIAL_WIDTH - 260, 620), (0, 175, 0), -1)
-        cv2.putText(frame, f"4K MP4 proxy frame {index:02d}", (140, 210), cv2.FONT_HERSHEY_SIMPLEX, 3.0, (230, 245, 255), 8)
+        cv2.putText(
+            frame, f"4K MP4 proxy frame {index:02d}", (140, 210), cv2.FONT_HERSHEY_SIMPLEX, 3.0, (230, 245, 255), 8
+        )
         writer.write(frame)
     writer.release()
     return path
@@ -438,7 +444,7 @@ def render_markdown(summary: dict[str, Any]) -> str:
 
 - 这是代理 4K 工程 smoke，不是长时真实手术视频压力测试。
 - 背景任务仍在本地 FastAPI/TestClient 进程内验证，不等同正式部署队列。
-- MP4 结果仍来自 2D hotspot 启发式，不代表赛点二真实训练模型性能。
+- MP4 结果仍来自 2D hotspot 启发式，只验证 AI 辅助判读工程链路，不代表真实训练模型或临床性能。
 """
 
 

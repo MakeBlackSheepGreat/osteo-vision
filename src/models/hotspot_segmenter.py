@@ -23,14 +23,21 @@ def segment_2d_fluorescence_hotspots(
     alpha: float = 0.45,
     model_id: str = "fluorescence_hotspot_2d_segmenter",
     roi_hints: list[dict[str, Any]] | None = None,
+    rgb: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Segment bright fluorescence-like hotspots in a 2D image for platform validation evidence."""
 
     source = Path(input_path)
     out_dir = ensure_dir(output_dir)
     safe_case_id = _safe_name(case_id)
-    with Image.open(source) as image:
-        rgb = np.asarray(image.convert("RGB"), dtype=np.uint8)
+    if rgb is None:
+        with Image.open(source) as image:
+            rgb = np.asarray(image.convert("RGB"), dtype=np.uint8)
+    else:
+        rgb = np.asarray(rgb, dtype=np.uint8)
+        if rgb.ndim != 3 or rgb.shape[2] < 3:
+            raise ValueError(f"Predecoded hotspot frame must be RGB, got shape {rgb.shape}.")
+        rgb = rgb[..., :3]
     enhanced = enhance_fluorescence_signal(rgb, threshold=threshold, colormap=colormap)
     enhanced_float = np.asarray(enhanced["enhanced"], dtype=np.float32)
     mask = (enhanced_float >= float(threshold)).astype(np.uint8)
@@ -59,10 +66,10 @@ def segment_2d_fluorescence_hotspots(
         safe_case=safe_case_id,
         model_id=model_id,
         threshold=float(threshold),
+        activity_score_path=enhanced_path,
     )
     overlay = blend_pseudocolor_on_reference(rgb, enhanced["pseudo_color"], alpha=alpha)
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
-    Image.fromarray(enhanced["enhanced_uint8"]).save(enhanced_path)
     Image.fromarray(enhanced["pseudo_color"]).save(pseudo_path)
     Image.fromarray(overlay).save(overlay_path)
     positive_area = int(mask.sum())
@@ -152,21 +159,24 @@ def connected_hotspot_candidates(
         )
     except Exception:
         return _single_candidate(mask, intensity, min_component_area=min_component_area, model_id=model_id)
+    flat_labels = np.asarray(labels, dtype=np.int32).ravel()
+    flat_intensity = intensity.astype(np.float32, copy=False).ravel()
+    component_count = int(component_count)
+    component_sums = np.bincount(flat_labels, weights=flat_intensity, minlength=component_count)
+    component_max = np.full(component_count, -np.inf, dtype=np.float32)
+    np.maximum.at(component_max, flat_labels, flat_intensity)
     candidates: list[dict[str, Any]] = []
     for label in range(1, component_count):
         x, y, width, height, area = [int(value) for value in stats[label]]
         if area < min_component_area:
             continue
-        component = labels == label
-        component_values = intensity[component]
-        score = float(component_values.mean()) if component_values.size else 0.0
         candidates.append(
             {
                 "candidate_id": f"{model_id}_component_{label}",
                 "bbox_xyxy": [x, y, x + width, y + height],
                 "area_px": area,
-                "score": score,
-                "confidence": float(component_values.max()) if component_values.size else 0.0,
+                "score": float(component_sums[label] / area) if area else 0.0,
+                "confidence": float(component_max[label]) if area else 0.0,
                 "source": model_id,
             }
         )

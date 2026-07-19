@@ -5,6 +5,7 @@ import pytest
 
 from src.navigation.offline_pose_replay import (
     DYNAMIC_AR_MODE,
+    MAX_PROJECTION_POINT_COUNT,
     POSE_ONLY_MODE,
     OfflinePoseReplayConfig,
     OfflinePoseReplayError,
@@ -217,6 +218,60 @@ def test_pose_only_engineering_never_unlocks_navigation() -> None:
     assert result.navigation_level == "L0"
     assert result.safe_frame_count == 0
     assert "pose_only_engineering_no_navigation" in result.failure_reasons
+
+
+def test_pose_only_nearest_pose_tie_selects_earlier_record() -> None:
+    poses = _poses()
+    poses[0]["timestamp_s"] = 0.0
+    poses[1]["timestamp_s"] = 0.2
+    poses[2]["timestamp_s"] = 0.4
+
+    result = replay_offline_poses(
+        [0.1, 0.3],
+        poses,
+        calibration_table=_calibration_table(),
+        static_l1_transform=_matrix(0.0, 500.0),
+        l1_tre_mm=0.2,
+        validation_mode=POSE_ONLY_MODE,
+    )
+
+    assert [frame.pose_index for frame in result.frames] == [0, 1]
+
+
+def test_pose_only_nearest_pose_tie_selects_first_duplicate_record() -> None:
+    poses = _poses()
+    poses[0]["timestamp_s"] = 0.0
+    poses[1]["timestamp_s"] = 0.0
+    poses[2]["timestamp_s"] = 0.2
+
+    result = replay_offline_poses(
+        [0.0, 0.1],
+        poses,
+        calibration_table=_calibration_table(),
+        static_l1_transform=_matrix(0.0, 500.0),
+        l1_tre_mm=0.2,
+        validation_mode=POSE_ONLY_MODE,
+    )
+
+    assert [frame.pose_index for frame in result.frames] == [0, 0]
+
+
+def test_dynamic_ar_rejects_unbounded_projection_point_payload() -> None:
+    points = [[float(index), float(index % 17), 0.0] for index in range(MAX_PROJECTION_POINT_COUNT + 1)]
+
+    with pytest.raises(OfflinePoseReplayError) as exc_info:
+        replay_offline_poses(
+            [0.0],
+            [_poses()[0]],
+            calibration_table=_calibration_table(),
+            static_l1_transform=_matrix(0.0, 500.0),
+            l1_tre_mm=0.2,
+            projection_points_3d=points,
+            frame_indices=[0],
+            validation_mode=DYNAMIC_AR_MODE,
+        )
+
+    assert exc_info.value.code == "projection_points_limit_exceeded"
 
 
 def test_dynamic_ar_selects_nearest_bounded_intrinsics_per_frame() -> None:

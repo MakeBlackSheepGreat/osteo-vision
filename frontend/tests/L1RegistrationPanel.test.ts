@@ -4,7 +4,10 @@ import L1RegistrationPanel from "@/components/L1RegistrationPanel.vue";
 import { apiClient } from "@/services/apiClient";
 
 describe("L1RegistrationPanel", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   it("submits traceable phantom points and keeps the L0 safety boundary visible", async () => {
     const start = vi.spyOn(apiClient, "startL1RegistrationJob").mockResolvedValue({ job_id: "job_l1", kind: "l1_static_registration", status: "queued" });
@@ -105,5 +108,64 @@ describe("L1RegistrationPanel", () => {
 
     expect(start).not.toHaveBeenCalled();
     expect(wrapper.get('[role="alert"]').text()).toContain("64 位十六进制摘要");
+  });
+
+  it("aborts the active poll and suppresses a stale completion after the case changes", async () => {
+    let resolveJob: ((job: Awaited<ReturnType<typeof apiClient.getL1RegistrationJob>>) => void) | undefined;
+    let pollSignal: AbortSignal | undefined;
+    vi.spyOn(apiClient, "startL1RegistrationJob").mockResolvedValue({
+      job_id: "job_old_case",
+      kind: "l1_static_registration",
+      status: "queued",
+    });
+    vi.spyOn(apiClient, "getL1RegistrationJob").mockImplementation((_jobId, signal) => {
+      pollSignal = signal;
+      return new Promise((resolve) => {
+        resolveJob = resolve;
+      });
+    });
+    const wrapper = mount(L1RegistrationPanel, { props: { caseId: "case_old" } });
+
+    await wrapper.findAll("button").find((button) => button.text().includes("载入固定仿体"))!.trigger("click");
+    await wrapper.findAll("button").find((button) => button.text().includes("运行 L0"))!.trigger("click");
+    await flushPromises();
+    expect(pollSignal?.aborted).toBe(false);
+
+    await wrapper.setProps({ caseId: "case_new" });
+    expect(pollSignal?.aborted).toBe(true);
+    resolveJob?.({
+      job_id: "job_old_case",
+      kind: "l1_static_registration",
+      status: "completed",
+    });
+    await flushPromises();
+
+    expect(wrapper.emitted("completed")).toBeUndefined();
+    expect(wrapper.text()).toContain("待运行");
+  });
+
+  it("clears the scheduled L1 poll when the panel unmounts", async () => {
+    vi.useFakeTimers();
+    let pollSignal: AbortSignal | undefined;
+    vi.spyOn(apiClient, "startL1RegistrationJob").mockResolvedValue({
+      job_id: "job_unmount",
+      kind: "l1_static_registration",
+      status: "queued",
+    });
+    const getJob = vi.spyOn(apiClient, "getL1RegistrationJob").mockImplementation((_jobId, signal) => {
+      pollSignal = signal;
+      return Promise.resolve({ job_id: "job_unmount", kind: "l1_static_registration", status: "running" });
+    });
+    const wrapper = mount(L1RegistrationPanel, { props: { caseId: "case_unmount" } });
+
+    await wrapper.findAll("button").find((button) => button.text().includes("载入固定仿体"))!.trigger("click");
+    await wrapper.findAll("button").find((button) => button.text().includes("运行 L0"))!.trigger("click");
+    await flushPromises();
+    expect(getJob).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+    expect(pollSignal?.aborted).toBe(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(getJob).toHaveBeenCalledTimes(1);
   });
 });

@@ -79,7 +79,9 @@ def build_bone_gate_seed_batch(args: argparse.Namespace) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     for source in rows:
-        record, reason = create_seed_record(source, mask_dir=mask_dir, overlay_dir=overlay_dir, bbox_padding=float(args.bbox_padding))
+        record, reason = create_seed_record(
+            source, mask_dir=mask_dir, overlay_dir=overlay_dir, bbox_padding=float(args.bbox_padding)
+        )
         if record is None:
             skipped.append({"case_id": source.get("case_id"), "reason": reason})
             continue

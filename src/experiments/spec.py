@@ -55,4 +55,3 @@ def write_experiment_spec(spec: ExperimentSpec, path: str | Path) -> str:
     payload.pop("source_path", None)
     p.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return str(p)
-

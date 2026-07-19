@@ -4,8 +4,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ManualAnnotationCanvas from "../src/components/ManualAnnotationCanvas.vue";
 import type { AnnotationGeometry } from "../src/types/annotation";
 
+interface CanvasContextHarness {
+  canvas: HTMLCanvasElement;
+  clearRect: ReturnType<typeof vi.fn>;
+  save: ReturnType<typeof vi.fn>;
+  restore: ReturnType<typeof vi.fn>;
+  beginPath: ReturnType<typeof vi.fn>;
+  moveTo: ReturnType<typeof vi.fn>;
+  lineTo: ReturnType<typeof vi.fn>;
+  closePath: ReturnType<typeof vi.fn>;
+  stroke: ReturnType<typeof vi.fn>;
+  fill: ReturnType<typeof vi.fn>;
+  arc: ReturnType<typeof vi.fn>;
+  setLineDash: ReturnType<typeof vi.fn>;
+  globalCompositeOperation: GlobalCompositeOperation;
+  strokeStyle: string;
+  fillStyle: string;
+  lineWidth: number;
+  lineCap: CanvasLineCap;
+  lineJoin: CanvasLineJoin;
+}
+
+let canvasContexts: Map<HTMLCanvasElement, CanvasContextHarness>;
+
 describe("ManualAnnotationCanvas", () => {
   beforeEach(() => {
+    canvasContexts = new Map();
     class ResizeObserverStub {
       constructor(private readonly callback: ResizeObserverCallback) {}
       observe() {
@@ -19,7 +43,9 @@ describe("ManualAnnotationCanvas", () => {
     }
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     HTMLCanvasElement.prototype.getContext = vi.fn(function (this: HTMLCanvasElement) {
-      return {
+      const existing = canvasContexts.get(this);
+      if (existing) return existing as unknown as CanvasRenderingContext2D;
+      const context: CanvasContextHarness = {
         canvas: this,
         clearRect: vi.fn(),
         save: vi.fn(),
@@ -38,7 +64,9 @@ describe("ManualAnnotationCanvas", () => {
         lineWidth: 1,
         lineCap: "round",
         lineJoin: "round",
-      } as unknown as CanvasRenderingContext2D;
+      };
+      canvasContexts.set(this, context);
+      return context as unknown as CanvasRenderingContext2D;
     }) as unknown as HTMLCanvasElement["getContext"];
     HTMLCanvasElement.prototype.getBoundingClientRect = vi.fn(
       () => ({ left: 0, top: 0, width: 800, height: 600 }) as DOMRect,
@@ -120,6 +148,102 @@ describe("ManualAnnotationCanvas", () => {
     expect(wrapper.get<HTMLButtonElement>('button[aria-label="画笔"]').element.disabled).toBe(true);
     expect(wrapper.get<HTMLButtonElement>('button[aria-label="橡皮擦"]').element.disabled).toBe(true);
     expect(wrapper.text()).toContain("待医生复核，编辑已锁定");
+  });
+
+  it("renders a 4K active stroke incrementally without replaying committed geometry per pointer sample", async () => {
+    const wrapper = mount(ManualAnnotationCanvas, {
+      props: {
+        sourceUrl: "/frame-4k.jpg",
+        originalWidth: 3840,
+        originalHeight: 2160,
+      },
+      global: { stubs: { AppIcon: true } },
+    });
+    const image = wrapper.get("img").element as HTMLImageElement;
+    Object.defineProperty(image, "naturalWidth", { configurable: true, value: 3840 });
+    Object.defineProperty(image, "naturalHeight", { configurable: true, value: 2160 });
+    await wrapper.get("img").trigger("load");
+
+    const canvases = wrapper.findAll("canvas");
+    expect(canvases).toHaveLength(2);
+    const committed = canvasContexts.get(canvases[0].element as HTMLCanvasElement);
+    const draft = canvasContexts.get(canvases[1].element as HTMLCanvasElement);
+    expect(committed).toBeDefined();
+    expect(draft).toBeDefined();
+    committed!.clearRect.mockClear();
+    committed!.lineTo.mockClear();
+    draft!.clearRect.mockClear();
+    draft!.lineTo.mockClear();
+
+    await canvases[0].trigger("pointerdown", { pointerId: 9, clientX: 40, clientY: 50 });
+    for (let index = 1; index <= 120; index += 1) {
+      await canvases[0].trigger("pointermove", {
+        pointerId: 9,
+        clientX: 40 + index * 2,
+        clientY: 50 + index,
+      });
+    }
+
+    expect(committed!.clearRect).not.toHaveBeenCalled();
+    expect(committed!.lineTo).not.toHaveBeenCalled();
+    expect(draft!.clearRect).toHaveBeenCalledTimes(1);
+    expect(draft!.lineTo).toHaveBeenCalledTimes(120);
+
+    await canvases[0].trigger("pointerup", { pointerId: 9, clientX: 280, clientY: 170 });
+
+    expect(committed!.clearRect).not.toHaveBeenCalled();
+    expect(committed!.lineTo).toHaveBeenCalledTimes(120);
+    expect(draft!.clearRect).toHaveBeenCalledTimes(2);
+    const geometry = latestGeometry(wrapper.emitted("geometry-change"));
+    expect(geometry.operations[0].points).toHaveLength(121);
+    expect(geometry.coordinate_space).toBe("image_pixels");
+  });
+
+  it("previews 4K erasing incrementally and performs one canonical replay when the stroke ends", async () => {
+    const wrapper = mount(ManualAnnotationCanvas, {
+      props: {
+        sourceUrl: "/frame-4k.jpg",
+        originalWidth: 3840,
+        originalHeight: 2160,
+        geometry: {
+          coordinate_space: "image_pixels",
+          operations: [{
+            tool: "brush",
+            mode: "add",
+            radius: 30,
+            points: [{ x: 100, y: 100 }, { x: 800, y: 500 }],
+          }],
+        },
+      },
+      global: { stubs: { AppIcon: true } },
+    });
+    const image = wrapper.get("img").element as HTMLImageElement;
+    Object.defineProperty(image, "naturalWidth", { configurable: true, value: 3840 });
+    Object.defineProperty(image, "naturalHeight", { configurable: true, value: 2160 });
+    await wrapper.get("img").trigger("load");
+    await wrapper.get('button[aria-label="橡皮擦"]').trigger("click");
+
+    const canvases = wrapper.findAll("canvas");
+    const committed = canvasContexts.get(canvases[0].element as HTMLCanvasElement)!;
+    committed.clearRect.mockClear();
+    committed.lineTo.mockClear();
+
+    await canvases[0].trigger("pointerdown", { pointerId: 10, clientX: 120, clientY: 100 });
+    for (let index = 1; index <= 40; index += 1) {
+      await canvases[0].trigger("pointermove", {
+        pointerId: 10,
+        clientX: 120 + index * 3,
+        clientY: 100 + index * 2,
+      });
+    }
+
+    expect(committed.clearRect).not.toHaveBeenCalled();
+    expect(committed.lineTo).toHaveBeenCalledTimes(40);
+    await canvases[0].trigger("pointerup", { pointerId: 10, clientX: 240, clientY: 180 });
+    expect(committed.clearRect).toHaveBeenCalledTimes(1);
+    const geometry = latestGeometry(wrapper.emitted("geometry-change"));
+    expect(geometry.operations.at(-1)).toMatchObject({ tool: "eraser", mode: "erase" });
+    expect(geometry.operations.at(-1)?.points).toHaveLength(41);
   });
 });
 

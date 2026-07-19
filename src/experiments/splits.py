@@ -25,7 +25,9 @@ def _assign_fixed(rows: list[dict[str, Any]], strategy: dict[str, Any]) -> tuple
     return assigned, {"type": "fixed", "split_column": split_column, "default_split": default_split}
 
 
-def _assign_external(rows: list[dict[str, Any]], strategy: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _assign_external(
+    rows: list[dict[str, Any]], strategy: dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     external_value = str(strategy.get("external_split", "external"))
     assigned = []
     for row in rows:
@@ -49,4 +51,3 @@ def _assign_kfold(rows: list[dict[str, Any]], strategy: dict[str, Any]) -> tuple
         item["_split"] = "validation"
         assigned.append(item)
     return assigned, {"type": "kfold", "folds": folds, "group_column": group_column}
-

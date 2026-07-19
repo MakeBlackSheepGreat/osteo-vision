@@ -18,4 +18,3 @@ class QuantificationPipeline(Pipeline):
             "source": "metadata_fixture",
         }
         return {"quantification": quant, "prediction": {"quantification_available": quant["available"]}}
-

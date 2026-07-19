@@ -19,7 +19,6 @@ from src.core.paths import ensure_dir
 from src.datasets.manifests import read_manifest
 from src.reports.writers import write_json
 
-
 PROJECT_DATASET_ROOT = Path("research/datasets/public-candidates")
 ARCHIVE_DATASET_ROOT = Path("D:/projects/osteo-vision/research/datasets/public-candidates")
 REPORT_DIR = Path("research/reports/preprocessing")
@@ -170,7 +169,9 @@ def build_d025_cache(
     cases, pairing = build_dolchid_cases(archive_raw)
     if limit is not None:
         cases = cases[:limit]
-    output_dir = project_dataset_root / "d025_lesion_cbct" / "derived" / "local_preprocessed" / f"lesion_roi_{target_shape[0]}"
+    output_dir = (
+        project_dataset_root / "d025_lesion_cbct" / "derived" / "local_preprocessed" / f"lesion_roi_{target_shape[0]}"
+    )
     rows, generated_count, reused_count = build_case_cache(
         cases,
         output_dir,
@@ -211,7 +212,9 @@ def build_d036_cache(
     cases, pairing = build_toothfairy2_cases(archive_raw)
     if limit is not None:
         cases = cases[:limit]
-    output_dir = project_dataset_root / "d036_toothfairy2" / "derived" / "local_preprocessed" / f"anatomy_roi_{target_shape[0]}"
+    output_dir = (
+        project_dataset_root / "d036_toothfairy2" / "derived" / "local_preprocessed" / f"anatomy_roi_{target_shape[0]}"
+    )
     rows, generated_count, reused_count = build_case_cache(
         cases,
         output_dir,
@@ -222,7 +225,9 @@ def build_d036_cache(
         task_label_source="ToothFairy2 anatomical mask local cache",
         force=force,
     )
-    manifest_info = write_cache_manifest(rows, output_dir / f"d036_toothfairy2_anatomy_roi_{target_shape[0]}_manifest.csv")
+    manifest_info = write_cache_manifest(
+        rows, output_dir / f"d036_toothfairy2_anatomy_roi_{target_shape[0]}_manifest.csv"
+    )
     return {
         "dataset_id": "D036",
         "task_name": "anatomy_roi",
@@ -315,7 +320,11 @@ def inspect_npz_cache(cache_path: Path) -> dict[str, str]:
         original_shape = payload["original_shape"].tolist() if "original_shape" in payload.files else []
         original_spacing = payload["original_spacing"].tolist() if "original_spacing" in payload.files else []
         target_shape = payload["target_shape"].tolist() if "target_shape" in payload.files else list(image.shape)
-        label_values = payload["label_values"].tolist() if "label_values" in payload.files else np.unique(label).astype(int).tolist()
+        label_values = (
+            payload["label_values"].tolist()
+            if "label_values" in payload.files
+            else np.unique(label).astype(int).tolist()
+        )
     return {
         "original_shape": format_tuple(original_shape),
         "original_spacing": format_tuple(round(float(item), 6) for item in original_spacing),
@@ -461,7 +470,9 @@ def build_local_training_cache(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build local CBCT NPZ caches that do not depend on raw archive mounts.")
+    parser = argparse.ArgumentParser(
+        description="Build local CBCT NPZ caches that do not depend on raw archive mounts."
+    )
     parser.add_argument("--datasets", default="d024,d025,d036", help="Comma-separated dataset IDs: d024,d025,d036")
     parser.add_argument("--archive-root", default=str(ARCHIVE_DATASET_ROOT))
     parser.add_argument("--project-dataset-root", default=str(PROJECT_DATASET_ROOT))

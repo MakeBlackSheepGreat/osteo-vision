@@ -6,7 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.preprocess.video import extract_keyframes
+from src.preprocess.video import _frame_quality, extract_keyframes
 
 
 def _write_signal_video(path: Path, *, signal_frame: int = 8) -> None:
@@ -48,6 +48,34 @@ def test_quality_peak_keyframes_prioritize_signal_frame(tmp_path: Path) -> None:
     assert timeline_payload["schema_version"] == "osteo-vision-video-timeline-manifest-v1"
     assert timeline_payload["timeline_scope"] == "full_duration_index_with_scored_candidates"
     assert timeline_payload["coverage"]["selected_frame_count"] == 3
+
+
+def test_quality_evaluation_uses_bounded_thumbnail_and_records_scale() -> None:
+    frame = np.zeros((2160, 3840, 3), dtype=np.uint8)
+    frame[600:1500, 1200:2600, 1] = 255
+
+    quality = _frame_quality(frame, max_evaluation_side=1280)
+
+    assert quality["source_width"] == 3840
+    assert quality["source_height"] == 2160
+    assert quality["evaluation_width"] == 1280
+    assert quality["evaluation_height"] == 720
+    assert quality["evaluation_scale"] == 1 / 3
+    assert quality["evaluation_downsampled"] is True
+
+
+def test_quality_evaluation_defaults_to_full_resolution_metrics() -> None:
+    frame = np.zeros((216, 384, 3), dtype=np.uint8)
+    frame[60:150, 120:260, 1] = 255
+
+    quality = _frame_quality(frame)
+
+    assert quality["source_width"] == 384
+    assert quality["source_height"] == 216
+    assert quality["evaluation_width"] == 384
+    assert quality["evaluation_height"] == 216
+    assert quality["evaluation_scale"] == 1.0
+    assert quality["evaluation_downsampled"] is False
 
 
 def test_uniform_keyframes_remain_available(tmp_path: Path) -> None:

@@ -12,7 +12,7 @@ description: "Task list for Osteo Vision software platform target"
 
 **Organization**: Tasks are grouped by user story so each story can be implemented, tested, and demonstrated independently.
 
-**Clarification Assumption**: V1 assumes local single-user operation with de-identified samples and local evidence bundles. If the access model changes later, update `spec.md`, `data-model.md`, and this task list before implementation.
+**Clarification Assumption**: The competition workstation profile assumes local single-user operation with de-identified samples and local evidence bundles. If the access model changes later, update `spec.md`, `data-model.md`, and this task list before implementation.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -32,7 +32,7 @@ description: "Task list for Osteo Vision software platform target"
 - [X] T006 Create backend package markers in `backend/src/__init__.py` and `backend/tests/__init__.py`
 - [X] T007 [P] Create backend app settings module in `backend/src/core/settings.py`
 - [X] T008 [P] Create backend application factory in `backend/src/api/app.py`
-- [X] T009 Document local single-user V1 assumption in `specs/001-software-platform-target/quickstart.md`
+- [X] T009 Document the local single-user competition workstation assumption in `specs/001-software-platform-target/quickstart.md`
 
 ---
 
@@ -162,11 +162,11 @@ description: "Task list for Osteo Vision software platform target"
 
 - [X] T071 [P] Update platform workflow documentation in `docs/architecture.md`
 - [X] T072 [P] Update demo and validation instructions in `docs/quickstart.md`
-- [X] T073 [P] Add a planning report for the frontend/backend platform target in `research/reports/planning/software_platform_target_tasks_zh.md`
+- [X] T073 [P] Add the frontend/backend platform target to the current planning index and archive superseded task notes
 - [X] T074 Add end-to-end smoke test for import → review → export in `tests/smoke/test_platform_case_workflow.py`
 - [X] T075 Verify generated reports, JSON/CSV outputs, and preview assets are stored under `artifacts/` or `research/reports/` in `tests/unit/test_platform_artifact_locations.py`
 - [X] T076 Verify large raw data, DICOM/NIfTI volumes, checkpoints, nnU-Net probability arrays, and transient artifacts are excluded from Git in `tools/check_project_readiness.py`
-- [X] T077 Run `python check_env.py`
+- [X] T077 Run `python tools/check_project_readiness.py`
 - [X] T078 Run `python -m pytest tests/unit tests/smoke`
 - [X] T079 Run frontend tests with the command defined in `frontend/package.json`
 - [X] T080 Validate quickstart workflow in `specs/001-software-platform-target/quickstart.md`
@@ -345,17 +345,18 @@ Task: T060 Report safety wording test in tests/unit/test_platform_report_safety.
 ### Validation Commands
 
 ```powershell
-python check_env.py
+python tools/audit_active_documentation.py
 python -m pytest tests/unit tests/smoke
 python -m backend.src.main
 npm --prefix frontend run dev
 python tools/check_project_readiness.py
+python tools/benchmark_core_hotpaths.py --output artifacts/performance/core_hotpaths_current.json
 ```
 
 ## Notes
 
 - Gradio remains a temporary legacy bridge; the target UI is the Vue frontend with the FastAPI backend.
 - Default local ports are frontend `5174` and backend `8001`.
-- V1 avoids live device SDKs, hospital system integration, and automatic diagnosis.
+- The platform excludes live device SDKs, hospital system integration, and automatic diagnosis from its software boundary.
 - Keep model and dataset choices replaceable through configuration, adapters, and service boundaries.
 - Large medical data, checkpoints, and transient experiment outputs must not be staged for Git.

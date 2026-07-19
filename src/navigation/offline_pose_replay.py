@@ -23,6 +23,8 @@ DYNAMIC_AR_MODE = "dynamic_ar_validation"
 RIGHT_HANDED = "right_handed"
 CAMERA_AXIS_CONVENTION = "opencv_camera_x_right_y_down_z_forward"
 MIN_PROJECTED_HULL_AREA_PX2 = 16.0
+MAX_PROJECTION_POINT_COUNT = 10_000
+MIN_PROJECTION_POINT_DISTANCE_MM = 1e-3
 
 
 class OfflinePoseReplayError(ValueError):
@@ -171,6 +173,11 @@ def replay_offline_poses(
         if mode == DYNAMIC_AR_MODE
         else None
     )
+    nearest_pose_indices = (
+        _nearest_sorted_indices(pose_times, np.asarray(frames, dtype=np.float64))
+        if dynamic_pose_indices is None
+        else None
+    )
     pose_matrices = [_optional_matrix(item.get("matrix")) for item in poses]
     baseline_translation = next(
         (matrix[:3, 3] for matrix in pose_matrices if matrix is not None),
@@ -193,11 +200,11 @@ def replay_offline_poses(
     max_switch_rate = 0.0
     for position, timestamp in enumerate(frames):
         frame_index = indices[position]
-        pose_index = (
-            dynamic_pose_indices[position]
-            if dynamic_pose_indices is not None
-            else int(np.argmin(np.abs(pose_times - timestamp)))
-        )
+        if dynamic_pose_indices is not None:
+            pose_index = dynamic_pose_indices[position]
+        else:
+            assert nearest_pose_indices is not None
+            pose_index = int(nearest_pose_indices[position])
         pose = poses[pose_index]
         pose_matrix = pose_matrices[pose_index]
         injections = set((failure_injections or {}).get(frame_index, []))
@@ -596,6 +603,11 @@ def _projection_points(
             "projection_points_invalid",
             "At least four 3D projection points are required.",
         )
+    if points.shape[0] > MAX_PROJECTION_POINT_COUNT:
+        raise OfflinePoseReplayError(
+            "projection_points_limit_exceeded",
+            f"Projection point count must not exceed {MAX_PROJECTION_POINT_COUNT}.",
+        )
     if not np.isfinite(points).all():
         raise OfflinePoseReplayError(
             "projection_points_invalid",
@@ -612,14 +624,52 @@ def _projection_points(
             "projection_points_degenerate",
             "Projection points must span a non-collinear 3D surface region.",
         )
-    pairwise = np.linalg.norm(points[:, None, :] - points[None, :, :], axis=2)
-    nonzero_distances = pairwise[pairwise > 0]
-    if nonzero_distances.size == 0 or float(nonzero_distances.min()) < 1e-3:
+    if _contains_too_close_projection_points(points, minimum_distance=MIN_PROJECTION_POINT_DISTANCE_MM):
         raise OfflinePoseReplayError(
             "projection_points_too_close",
             "Projection points must be separated by at least 0.001 mm.",
         )
     return points
+
+
+def _nearest_sorted_indices(sorted_values: NDArray[np.float64], queries: NDArray[np.float64]) -> NDArray[np.intp]:
+    """Return nearest indexes while preserving np.argmin's earlier-index tie rule."""
+
+    insertions = np.searchsorted(sorted_values, queries, side="left")
+    right = np.clip(insertions, 0, sorted_values.size - 1)
+    left = np.clip(insertions - 1, 0, sorted_values.size - 1)
+    choose_right = np.abs(sorted_values[right] - queries) < np.abs(sorted_values[left] - queries)
+    nearest = np.where(choose_right, right, left)
+    return np.searchsorted(sorted_values, sorted_values[nearest], side="left").astype(np.intp, copy=False)
+
+
+def _contains_too_close_projection_points(
+    points: NDArray[np.float64],
+    *,
+    minimum_distance: float,
+) -> bool:
+    origin = points.min(axis=0)
+    scaled = (points - origin) / minimum_distance
+    if float(np.max(scaled)) > float(np.iinfo(np.int64).max - 1):
+        raise OfflinePoseReplayError(
+            "projection_points_invalid",
+            "Projection point coordinate span is too large for millimetre-scale validation.",
+        )
+
+    cells: dict[tuple[int, int, int], list[int]] = {}
+    offsets = tuple((x, y, z) for x in (-1, 0, 1) for y in (-1, 0, 1) for z in (-1, 0, 1))
+    minimum_squared = minimum_distance * minimum_distance
+    for point_index, point in enumerate(points):
+        cell_array = np.floor(scaled[point_index]).astype(np.int64)
+        cell = (int(cell_array[0]), int(cell_array[1]), int(cell_array[2]))
+        for offset in offsets:
+            neighbour = (cell[0] + offset[0], cell[1] + offset[1], cell[2] + offset[2])
+            for other_index in cells.get(neighbour, ()):
+                delta = point - points[other_index]
+                if float(np.dot(delta, delta)) < minimum_squared:
+                    return True
+        cells.setdefault(cell, []).append(point_index)
+    return False
 
 
 def _dynamic_pose_indices(

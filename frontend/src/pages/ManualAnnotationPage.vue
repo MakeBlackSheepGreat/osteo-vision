@@ -313,7 +313,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, shallowRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
@@ -350,7 +350,7 @@ const sourceFilter = ref<SourceFilter>("all");
 const selectedSourceKey = ref("");
 const selectedLabel = ref<AnnotationLabel>("lesion");
 const activeAnnotation = ref<ManualAnnotation | null>(null);
-const geometry = ref<AnnotationGeometry>({ coordinate_space: "image_pixels", operations: [] });
+const geometry = shallowRef<AnnotationGeometry>({ coordinate_space: "image_pixels", operations: [] });
 const notes = ref("");
 const dirty = ref(false);
 const notesDirty = ref(false);
@@ -534,7 +534,7 @@ function resetAnnotationState() {
 }
 
 function handleGeometryChange(nextGeometry: AnnotationGeometry) {
-  geometry.value = cloneGeometry(nextGeometry);
+  geometry.value = nextGeometry;
   dirty.value = true;
 }
 

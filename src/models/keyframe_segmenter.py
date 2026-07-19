@@ -178,6 +178,7 @@ def predict_keyframe_image(
     inference_meta["peak_gpu_memory_mb"] = (
         round(float(torch.cuda.max_memory_allocated(device) / (1024**2)), 3) if device.type == "cuda" else None
     )
+    postprocess_started = time.perf_counter()
     mask = (probability >= float(threshold)).astype(np.uint8)
     out_dir = ensure_dir(output_dir)
     safe_case = _safe_name(case_id)
@@ -188,10 +189,13 @@ def predict_keyframe_image(
     overlay_suffix = ".jpg" if normalized_overlay_format == "jpeg" else ".png"
     overlay_path = out_dir / f"{safe_case}_{model_id}_overlay{overlay_suffix}"
     pseudo_path = None if fast_output else out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
+    uncertainty_started = time.perf_counter()
     entropy = predictive_entropy(probability)
     threshold_uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
     variance_uncertainty = np.clip(np.sqrt(np.maximum(technical_variance, 0.0)) * 4.0, 0.0, 1.0)
     uncertainty = np.maximum.reduce([entropy, threshold_uncertainty * 0.5, variance_uncertainty]).astype(np.float32)
+    uncertainty_ms = (time.perf_counter() - uncertainty_started) * 1000.0
+    signal_maps_started = time.perf_counter()
     signal_paths = save_video_signal_maps(
         probability=probability,
         mask=mask,
@@ -200,12 +204,15 @@ def predict_keyframe_image(
         safe_case=safe_case,
         model_id=model_id,
         threshold=float(threshold),
+        activity_score_path=probability_path,
     )
+    signal_maps_ms = (time.perf_counter() - signal_maps_started) * 1000.0
+    visualization_started = time.perf_counter()
     pseudo = _green_pseudocolor(probability)
     overlay = blend_pseudocolor_on_reference(rgb, pseudo, alpha=0.45)
+    visualization_ms = (time.perf_counter() - visualization_started) * 1000.0
+    evidence_encoding_started = time.perf_counter()
     Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path)
-    if probability_path is not None:
-        Image.fromarray(np.clip(probability * 255.0, 0, 255).astype(np.uint8)).save(probability_path)
     if uncertainty_path is not None:
         Image.fromarray(np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8)).save(uncertainty_path)
     if pseudo_path is not None:
@@ -215,6 +222,8 @@ def predict_keyframe_image(
         overlay_image.save(overlay_path, quality=max(30, min(95, int(overlay_jpeg_quality))), optimize=False)
     else:
         overlay_image.save(overlay_path)
+    evidence_encoding_ms = (time.perf_counter() - evidence_encoding_started) * 1000.0
+    candidate_stats_started = time.perf_counter()
     candidates = connected_probability_candidates(mask, probability, min_component_area=16, model_id=model_id)
     positive_area = int(mask.sum())
     total_area = int(mask.size)
@@ -230,6 +239,16 @@ def predict_keyframe_image(
         mean_boundary_uncertainty=float(uncertainty_summary["mean_uncertainty_in_mask"]),
         target_domain=bool(target_domain),
     )
+    candidate_stats_ms = (time.perf_counter() - candidate_stats_started) * 1000.0
+    inference_meta["postprocess"] = {
+        "uncertainty_ms": round(uncertainty_ms, 3),
+        "signal_map_generation_and_encoding_ms": round(signal_maps_ms, 3),
+        "visualization_ms": round(visualization_ms, 3),
+        "evidence_encoding_ms": round(evidence_encoding_ms, 3),
+        "candidate_statistics_ms": round(candidate_stats_ms, 3),
+        "total_ms": round((time.perf_counter() - postprocess_started) * 1000.0, 3),
+        "probability_activity_score_shared": probability_path is not None,
+    }
     quantification = {
         "available": True,
         "source": model_id,
@@ -714,11 +733,10 @@ def connected_probability_candidates(
         )
     except Exception:
         return _single_candidate(mask, probability, min_component_area=min_component_area, model_id=model_id)
-    flat_labels = np.asarray(labels, dtype=np.intp).ravel()
+    flat_labels = np.asarray(labels, dtype=np.int32).ravel()
     flat_probability = probability.astype(np.float32, copy=False).ravel()
     component_count = int(component_count)
     component_sums = np.bincount(flat_labels, weights=flat_probability, minlength=component_count)
-    component_sizes = np.bincount(flat_labels, minlength=component_count)
     component_max = np.full(component_count, -np.inf, dtype=np.float32)
     np.maximum.at(component_max, flat_labels, flat_probability)
     candidates: list[dict[str, Any]] = []
@@ -731,8 +749,8 @@ def connected_probability_candidates(
                 "candidate_id": f"{model_id}_component_{label}",
                 "bbox_xyxy": [x, y, x + width, y + height],
                 "area_px": area,
-                "score": float(component_sums[label] / component_sizes[label]) if component_sizes[label] else 0.0,
-                "confidence": float(component_max[label]) if component_sizes[label] else 0.0,
+                "score": float(component_sums[label] / area) if area else 0.0,
+                "confidence": float(component_max[label]) if area else 0.0,
                 "source": model_id,
             }
         )

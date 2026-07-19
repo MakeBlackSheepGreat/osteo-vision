@@ -168,7 +168,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
-- [ ] TXXX Run `python check_env.py`
+- [ ] TXXX Run `python tools/check_project_readiness.py` (or the applicable Makefile quality target)
 - [ ] TXXX Run `python -m pytest tests/unit tests/smoke`
 - [ ] TXXX Verify generated reports, JSON/CSV outputs, and preview assets are stored in approved locations
 - [ ] TXXX Verify large raw data, DICOM/NIfTI volumes, checkpoints, nnU-Net probabilities, and transient artifacts are not staged for Git

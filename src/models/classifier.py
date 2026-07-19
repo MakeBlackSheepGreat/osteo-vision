@@ -18,4 +18,3 @@ class DeterministicClassifier:
 
     def class_label(self, probability: float) -> str:
         return "positive" if probability >= self.threshold else "negative"
-

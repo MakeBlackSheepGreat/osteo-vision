@@ -553,7 +553,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     payload = evaluate_checkpoint(parse_args())
-    print(json.dumps({"outputs": payload["outputs"], "evaluation": payload["evaluation"]}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps({"outputs": payload["outputs"], "evaluation": payload["evaluation"]}, ensure_ascii=False, indent=2)
+    )
     return 0
 
 

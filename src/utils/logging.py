@@ -21,11 +21,11 @@ def utc_timestamp() -> str:
 class Logger:
     """
     Unified logger for the medical imaging competition framework.
-    
+
     Provides standard logging methods plus specialized methods for
     performance, lifecycle, inference, and training events.
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -34,7 +34,7 @@ class Logger:
     ):
         """
         Initialize logger.
-        
+
         Args:
             name: Logger name (usually module name)
             level: Logging level
@@ -42,7 +42,7 @@ class Logger:
         """
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
-        
+
         # Avoid adding handlers multiple times
         if not self.logger.handlers:
             # Console handler
@@ -54,7 +54,7 @@ class Logger:
             )
             console_handler.setFormatter(console_format)
             self.logger.addHandler(console_handler)
-            
+
             # File handler (if specified)
             if log_file:
                 log_path = Path(log_file)
@@ -67,31 +67,31 @@ class Logger:
                 )
                 file_handler.setFormatter(file_format)
                 self.logger.addHandler(file_handler)
-    
+
     def debug(self, message: str, **kwargs: Any) -> None:
         """Log debug message."""
         self.logger.debug(message, **kwargs)
-    
+
     def info(self, message: str, **kwargs: Any) -> None:
         """Log info message."""
         self.logger.info(message, **kwargs)
-    
+
     def warning(self, message: str, **kwargs: Any) -> None:
         """Log warning message."""
         self.logger.warning(message, **kwargs)
-    
+
     def error(self, message: str, **kwargs: Any) -> None:
         """Log error message."""
         self.logger.error(message, **kwargs)
-    
+
     def critical(self, message: str, **kwargs: Any) -> None:
         """Log critical message."""
         self.logger.critical(message, **kwargs)
-    
+
     def performance(self, operation: str, duration_ms: float, **kwargs: Any) -> None:
         """
         Log performance metric.
-        
+
         Args:
             operation: Operation name
             duration_ms: Duration in milliseconds
@@ -102,11 +102,11 @@ class Logger:
         if extra:
             msg += f" | {extra}"
         self.logger.info(msg)
-    
+
     def lifecycle(self, component: str, event: str, **kwargs: Any) -> None:
         """
         Log lifecycle event.
-        
+
         Args:
             component: Component name
             event: Event name (e.g., "initialized", "started", "stopped")
@@ -117,7 +117,7 @@ class Logger:
         if extra:
             msg += f" | {extra}"
         self.logger.info(msg)
-    
+
     def inference(
         self,
         case_id: str,
@@ -128,7 +128,7 @@ class Logger:
     ) -> None:
         """
         Log inference event.
-        
+
         Args:
             case_id: Case ID
             model_id: Model ID
@@ -141,7 +141,7 @@ class Logger:
         if extra:
             msg += f" | {extra}"
         self.logger.info(msg)
-    
+
     def training(
         self,
         epoch: int,
@@ -151,7 +151,7 @@ class Logger:
     ) -> None:
         """
         Log training event.
-        
+
         Args:
             epoch: Current epoch
             loss: Current loss
@@ -178,12 +178,12 @@ def get_logger(
 ) -> Logger:
     """
     Get or create a logger instance.
-    
+
     Args:
         name: Logger name
         level: Logging level
         log_file: Optional log file path
-        
+
     Returns:
         Logger instance
     """

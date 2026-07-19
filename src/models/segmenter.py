@@ -24,4 +24,3 @@ class FixtureSegmenter:
         }
         path.write_text(__import__("json").dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return {"path": str(path), **payload}
-

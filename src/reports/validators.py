@@ -27,4 +27,3 @@ def validate_prediction_result(payload: dict[str, Any]) -> list[str]:
     if not isinstance(payload.get("warnings", []), list):
         errors.append("warnings must be a list")
     return errors
-

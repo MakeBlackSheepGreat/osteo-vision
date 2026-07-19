@@ -1,14 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["setuptools>=77.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "osteo-vision"
-version = "0.3.0rc1"
-description = "颌骨骨髓炎智能化荧光诊疗开发框架"
+version = "0.3.0rc2"
+description = "颌骨骨髓炎术中荧光辅助决策研发验证版平台"
 readme = "README.md"
-license = {text = "MIT"}
-requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+dynamic = ["dependencies"]
+requires-python = ">=3.11,<3.12"
 authors = [
     {name = "Osteo Vision Team"}
 ]
@@ -16,24 +18,21 @@ keywords = ["medical-imaging", "osteomyelitis", "fluorescence", "competition", "
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "mypy>=1.0.0",
     "black>=23.0.0",
     "isort>=5.12.0",
-    "flake8>=6.0.0",
+    "ruff>=0.4.0",
     "pre-commit>=3.0.0",
 ]
 docs = [
@@ -41,13 +40,20 @@ docs = [
     "sphinx-rtd-theme>=1.0.0",
 ]
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*", "backend*"]
+exclude = ["backend.tests*", "tests*"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [tool.black]
 line-length = 120
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py311"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -60,6 +66,7 @@ exclude = '''
   | buck-out
   | build
   | dist
+  | scripts/archive
 )/
 '''
 
@@ -74,6 +81,7 @@ ensure_newline_before_comments = true
 known_first_party = ["src"]
 known_third_party = ["pytest", "numpy", "torch", "yaml"]
 default_section = "THIRDPARTY"
+skip_glob = ["scripts/archive/**"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -82,14 +90,43 @@ warn_unused_configs = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 strict_optional = true
 show_error_codes = true
 show_column_numbers = true
 show_error_context = true
+follow_imports = "normal"
+ignore_missing_imports = false
+exclude = ["^tests/", "^backend/tests/"]
+
+[[tool.mypy.overrides]]
+module = ["src.*"]
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+    "pytest.*",
+    "numpy.*",
+    "torch.*",
+    "skimage.*",
+    "sklearn.*",
+    "PIL.*",
+    "cv2.*",
+    "scipy.*",
+    "psutil.*",
+    "pydicom.*",
+    "nibabel.*",
+    "monai.*",
+    "nnunet.*",
+    "timm.*",
+    "open_clip.*",
+    "gradio.*",
+    "yaml.*",
+    "tqdm.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

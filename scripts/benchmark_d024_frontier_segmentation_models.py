@@ -20,7 +20,9 @@ from scripts.benchmark_d024_segmentation_models import (
     ModelCandidate,
     _fmt,
     _result_table_row,
-    model_catalog as baseline_model_catalog,
+)
+from scripts.benchmark_d024_segmentation_models import model_catalog as baseline_model_catalog
+from scripts.benchmark_d024_segmentation_models import (
     prepare_downsampled_cache,
     train_and_evaluate_model,
     write_results_csv,
@@ -28,7 +30,6 @@ from scripts.benchmark_d024_segmentation_models import (
 from scripts.convert_d024_to_nnunet import DEFAULT_NNUNET_ROOT
 from src.core.paths import ensure_dir
 from src.reports.writers import write_json
-
 
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/d024_frontier_segmentation_model_benchmark")
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")
@@ -306,7 +307,9 @@ class TransformerBottleneck3D(nn.Module):
             heads -= 1
         self.norm = nn.LayerNorm(channels)
         self.attn = nn.MultiheadAttention(channels, heads, batch_first=True)
-        self.ffn = nn.Sequential(nn.LayerNorm(channels), nn.Linear(channels, channels * 2), nn.GELU(), nn.Linear(channels * 2, channels))
+        self.ffn = nn.Sequential(
+            nn.LayerNorm(channels), nn.Linear(channels, channels * 2), nn.GELU(), nn.Linear(channels * 2, channels)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, d, h, w = x.shape
@@ -394,9 +397,15 @@ class GenericUNet3D(nn.Module):
         super().__init__()
         c1, c2, c3, c4 = base_channels, base_channels * 2, base_channels * 4, base_channels * 8
         self.stem = nn.Sequential(ConvBlock3D(in_channels, c1), block_factory(c1))
-        self.down1 = nn.Sequential(nn.Conv3d(c1, c2, 3, stride=2, padding=1), nn.InstanceNorm3d(c2, affine=True), nn.GELU(), block_factory(c2))
-        self.down2 = nn.Sequential(nn.Conv3d(c2, c3, 3, stride=2, padding=1), nn.InstanceNorm3d(c3, affine=True), nn.GELU(), block_factory(c3))
-        self.down3 = nn.Sequential(nn.Conv3d(c3, c4, 3, stride=2, padding=1), nn.InstanceNorm3d(c4, affine=True), nn.GELU(), block_factory(c4))
+        self.down1 = nn.Sequential(
+            nn.Conv3d(c1, c2, 3, stride=2, padding=1), nn.InstanceNorm3d(c2, affine=True), nn.GELU(), block_factory(c2)
+        )
+        self.down2 = nn.Sequential(
+            nn.Conv3d(c2, c3, 3, stride=2, padding=1), nn.InstanceNorm3d(c3, affine=True), nn.GELU(), block_factory(c3)
+        )
+        self.down3 = nn.Sequential(
+            nn.Conv3d(c3, c4, 3, stride=2, padding=1), nn.InstanceNorm3d(c4, affine=True), nn.GELU(), block_factory(c4)
+        )
         self.ms1 = block_factory(c1) if multiscale_blocks else nn.Identity()
         self.ms2 = block_factory(c2) if multiscale_blocks else nn.Identity()
         self.ms3 = block_factory(c3) if multiscale_blocks else nn.Identity()
@@ -450,7 +459,11 @@ class RepLargeKernelUNet3D(GenericUNet3D):
 class AttentionBottleneckUNet3D(GenericUNet3D):
     def __init__(self, in_channels: int, out_channels: int, *, base_channels: int, attention: str) -> None:
         bottleneck_channels = base_channels * 8
-        bottleneck = EfficientPairedAttention3D(bottleneck_channels) if attention == "epa" else TransformerBottleneck3D(bottleneck_channels)
+        bottleneck = (
+            EfficientPairedAttention3D(bottleneck_channels)
+            if attention == "epa"
+            else TransformerBottleneck3D(bottleneck_channels)
+        )
         super().__init__(
             in_channels,
             out_channels,
@@ -545,7 +558,10 @@ def write_summary_reports(payload: dict[str, Any], report_dir: Path) -> dict[str
 def render_report(payload: dict[str, Any], *, language: str) -> str:
     rows = sorted(
         payload["results"],
-        key=lambda item: (-1 if item.get("foreground_mean_dice") is None else -float(item["foreground_mean_dice"]), item["model_id"]),
+        key=lambda item: (
+            -1 if item.get("foreground_mean_dice") is None else -float(item["foreground_mean_dice"]),
+            item["model_id"],
+        ),
     )
     label_names = ", ".join(f"{key}:{value}" for key, value in LABELS.items())
     if language == "zh":
@@ -698,7 +714,11 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
 def _best_model_sentence(rows: list[dict[str, Any]], *, language: str) -> str:
     completed = [row for row in rows if row.get("foreground_mean_dice") is not None]
     if not completed:
-        return "- 本轮没有模型产生可用 Dice，需要先检查训练失败原因。" if language == "zh" else "- No model produced an available Dice score; inspect training failures first."
+        return (
+            "- 本轮没有模型产生可用 Dice，需要先检查训练失败原因。"
+            if language == "zh"
+            else "- No model produced an available Dice score; inspect training failures first."
+        )
     best = completed[0]
     dice = _fmt(best.get("foreground_mean_dice"))
     if language == "zh":
@@ -776,7 +796,9 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Benchmark 10 frontier 3D segmentation model candidates on D024 jaw-roi.")
+    parser = argparse.ArgumentParser(
+        description="Benchmark 10 frontier 3D segmentation model candidates on D024 jaw-roi."
+    )
     parser.add_argument("--dataset-dir", default=str(DEFAULT_NNUNET_DATASET))
     parser.add_argument("--cache-dir", default=str(DEFAULT_NNUNET_ROOT / "monai_cache" / "jaw_roi_64"))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_ROOT))
@@ -788,7 +810,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=20260616)
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
-    parser.add_argument("--models", default="", help="Comma-separated model IDs. Empty runs all 10 frontier candidates.")
+    parser.add_argument(
+        "--models", default="", help="Comma-separated model IDs. Empty runs all 10 frontier candidates."
+    )
     parser.add_argument("--force-cache", action="store_true")
     return parser.parse_args()
 

@@ -102,7 +102,10 @@ class InputService:
             flags.append(
                 QualityFlag(
                     code=QualityFlagCode.MISMATCHED,
-                    message="White-light and fluorescence inputs differ in dimensions; V1 will use resize-only alignment.",
+                    message=(
+                        "White-light and fluorescence inputs differ in dimensions; the current fallback uses "
+                        "resize-only alignment and requires physician review."
+                    ),
                     blocking=False,
                     details={"white_light": white.dimensions, "fluorescence": fluor.dimensions},
                 )

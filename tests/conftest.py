@@ -8,4 +8,3 @@ import pytest
 @pytest.fixture()
 def fixture_dir() -> Path:
     return Path(__file__).resolve().parent / "fixtures"
-

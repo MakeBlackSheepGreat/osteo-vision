@@ -137,6 +137,13 @@
           @pointerup="handlePointerUp"
           @pointercancel="handlePointerUp"
         />
+        <canvas
+          ref="draftCanvasEl"
+          class="annotation-draft-layer"
+          :width="imageWidth"
+          :height="imageHeight"
+          aria-hidden="true"
+        />
       </div>
 
       <div v-if="!sourceUrl" class="annotation-empty">
@@ -157,10 +164,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
 import type { AnnotationGeometry, AnnotationOperation, AnnotationPoint } from "@/types/annotation";
+import {
+  appendAnnotationOperation,
+  appendBoundedHistory,
+  clearAnnotationOperations,
+  redoAnnotationEntry,
+  type AnnotationHistoryEntry,
+  undoAnnotationEntry,
+} from "@/utils/annotationHistory";
 
 type CanvasTool = "brush" | "eraser" | "polygon" | "pan";
 
@@ -195,6 +210,7 @@ const emit = defineEmits<{
 const viewportEl = ref<HTMLElement | null>(null);
 const sourceImageEl = ref<HTMLImageElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
+const draftCanvasEl = ref<HTMLCanvasElement | null>(null);
 const viewportWidth = ref(1);
 const viewportHeight = ref(1);
 const imageWidth = ref(positiveDimension(props.originalWidth) || 1);
@@ -206,15 +222,16 @@ const brushDiameter = ref(42);
 const zoom = ref(1);
 const panX = ref(0);
 const panY = ref(0);
-const operations = ref<AnnotationOperation[]>([]);
+const operations = shallowRef<AnnotationOperation[]>([]);
 const pendingPolygon = ref<AnnotationPoint[]>([]);
-const history = ref<AnnotationOperation[][]>([]);
-const redoHistory = ref<AnnotationOperation[][]>([]);
-const activeStroke = ref<AnnotationOperation | null>(null);
+const history = shallowRef<AnnotationHistoryEntry[]>([]);
+const redoHistory = shallowRef<AnnotationHistoryEntry[]>([]);
+const activeStroke = shallowRef<AnnotationOperation | null>(null);
 const pointerId = ref<number | null>(null);
 const panOrigin = ref<{ clientX: number; clientY: number; x: number; y: number } | null>(null);
 const statusText = ref("选择标注来源后开始描画。请保存草稿，再提交医生复核。");
 let resizeObserver: ResizeObserver | null = null;
+const emittedGeometries = new WeakSet<AnnotationGeometry>();
 
 const editingDisabled = computed(() => props.disabled || !imageReady.value || Boolean(imageError.value));
 const operationCount = computed(() => operations.value.length + (pendingPolygon.value.length ? 1 : 0));
@@ -248,18 +265,20 @@ const contentStyle = computed(() => ({
 watch(
   () => props.geometry,
   (geometry) => {
-    const nextOperations = cloneOperations(geometry?.operations ?? []);
-    if (operationsEqual(operations.value, nextOperations)) {
-      nextTick(renderCanvas);
+    if (geometry && emittedGeometries.has(geometry)) {
+      emittedGeometries.delete(geometry);
       return;
     }
-    operations.value = nextOperations;
+    const sourceOperations = geometry?.operations ?? [];
+    if (operationsEqual(operations.value, sourceOperations)) return;
+    operations.value = cloneOperations(sourceOperations);
     pendingPolygon.value = [];
     history.value = [];
     redoHistory.value = [];
-    nextTick(renderCanvas);
+    activeStroke.value = null;
+    nextTick(renderAllCanvases);
   },
-  { deep: true, immediate: true },
+  { immediate: true },
 );
 
 watch(
@@ -269,12 +288,15 @@ watch(
     imageError.value = "";
     imageWidth.value = positiveDimension(props.originalWidth) || 1;
     imageHeight.value = positiveDimension(props.originalHeight) || 1;
+    activeStroke.value = null;
+    pendingPolygon.value = [];
     resetView();
     statusText.value = props.sourceUrl ? "正在读取标注来源..." : "请选择标注来源。";
+    nextTick(renderAllCanvases);
   },
 );
 
-watch([operations, pendingPolygon, imageWidth, imageHeight], () => nextTick(renderCanvas), { deep: true });
+watch(() => props.overlayColor, () => nextTick(renderAllCanvases));
 
 onMounted(() => {
   resizeObserver = new ResizeObserver((entries) => {
@@ -296,7 +318,7 @@ function handleSourceLoad(event: Event) {
   imageError.value = "";
   statusText.value = operations.value.length ? "已载入当前版本，可继续修改。" : "标注来源已载入。";
   emit("source-ready", { width: imageWidth.value, height: imageHeight.value });
-  nextTick(renderCanvas);
+  nextTick(renderAllCanvases);
 }
 
 function handleSourceError() {
@@ -308,6 +330,7 @@ function handleSourceError() {
 function selectTool(nextTool: CanvasTool) {
   if (nextTool !== "polygon" && pendingPolygon.value.length) {
     pendingPolygon.value = [];
+    renderDraftCanvas();
     statusText.value = "未闭合的多边形已取消。";
   }
   tool.value = nextTool;
@@ -329,6 +352,7 @@ function handlePointerDown(event: PointerEvent) {
   const point = pointerPoint(event);
   if (tool.value === "polygon") {
     pendingPolygon.value = [...pendingPolygon.value, point];
+    renderDraftCanvas();
     statusText.value = `多边形已记录 ${pendingPolygon.value.length} 个顶点。`;
     return;
   }
@@ -339,6 +363,12 @@ function handlePointerDown(event: PointerEvent) {
     radius: brushDiameter.value / 2,
     points: [point],
   };
+  if (activeStroke.value.tool === "eraser") {
+    const context = committedCanvasContext();
+    if (context) drawOperation(context, activeStroke.value);
+  } else {
+    renderDraftCanvas();
+  }
 }
 
 function handlePointerMove(event: PointerEvent) {
@@ -353,7 +383,8 @@ function handlePointerMove(event: PointerEvent) {
   const previous = activeStroke.value.points.at(-1);
   if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 1) return;
   activeStroke.value.points.push(point);
-  renderCanvas();
+  const context = activeStroke.value.tool === "eraser" ? committedCanvasContext() : draftCanvasContext();
+  if (context && previous) drawStrokeSegment(context, activeStroke.value, previous, point);
 }
 
 function handlePointerUp(event: PointerEvent) {
@@ -363,9 +394,9 @@ function handlePointerUp(event: PointerEvent) {
   const canvas = canvasEl.value;
   if (canvas?.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture?.(event.pointerId);
   if (!activeStroke.value) return;
-  const completed = cloneOperation(activeStroke.value);
+  const completed = activeStroke.value;
   activeStroke.value = null;
-  commitOperations([...operations.value, completed]);
+  commitOperation(completed);
   statusText.value = completed.tool === "eraser" ? "擦除操作已记录。" : "画笔操作已记录。";
 }
 
@@ -377,14 +408,19 @@ function completePolygon() {
     points: pendingPolygon.value.map((point) => ({ ...point })),
   };
   pendingPolygon.value = [];
-  commitOperations([...operations.value, polygon]);
+  commitOperation(polygon);
   statusText.value = "多边形标注已闭合。";
 }
 
 function clearGeometry() {
   if (editingDisabled.value) return;
   pendingPolygon.value = [];
-  commitOperations([]);
+  const change = clearAnnotationOperations(operations.value);
+  recordHistory(change.entry);
+  operations.value = change.operations;
+  clearCanvas(canvasEl.value);
+  clearDraftCanvas();
+  emitGeometry();
   statusText.value = "当前标签掩膜已清空，可撤销恢复。";
 }
 
@@ -392,37 +428,65 @@ function undo() {
   if (editingDisabled.value) return;
   if (pendingPolygon.value.length) {
     pendingPolygon.value = pendingPolygon.value.slice(0, -1);
+    renderDraftCanvas();
     statusText.value = "已撤销一个多边形顶点。";
     return;
   }
-  const previous = history.value.pop();
-  if (!previous) return;
-  redoHistory.value.push(cloneOperations(operations.value));
-  operations.value = cloneOperations(previous);
+  const entry = history.value.at(-1);
+  if (!entry) return;
+  history.value = history.value.slice(0, -1);
+  redoHistory.value = appendBoundedHistory(redoHistory.value, entry);
+  operations.value = undoAnnotationEntry(operations.value, entry);
+  renderCommittedCanvas();
+  clearDraftCanvas();
   emitGeometry();
   statusText.value = "已撤销上一步标注。";
 }
 
 function redo() {
   if (editingDisabled.value) return;
-  const next = redoHistory.value.pop();
-  if (!next) return;
-  history.value.push(cloneOperations(operations.value));
-  operations.value = cloneOperations(next);
+  const entry = redoHistory.value.at(-1);
+  if (!entry) return;
+  redoHistory.value = redoHistory.value.slice(0, -1);
+  history.value = appendBoundedHistory(history.value, entry);
+  operations.value = redoAnnotationEntry(operations.value, entry);
+  if (entry.kind === "clear") {
+    clearCanvas(canvasEl.value);
+  } else {
+    const context = committedCanvasContext();
+    if (context) drawOperation(context, entry.operation);
+  }
+  clearDraftCanvas();
   emitGeometry();
   statusText.value = "已重做上一步标注。";
 }
 
-function commitOperations(next: AnnotationOperation[]) {
-  history.value.push(cloneOperations(operations.value));
-  if (history.value.length > 100) history.value.shift();
-  redoHistory.value = [];
-  operations.value = cloneOperations(next);
+function commitOperation(operation: AnnotationOperation) {
+  const change = appendAnnotationOperation(operations.value, operation);
+  recordHistory(change.entry);
+  operations.value = change.operations;
+  if (operation.tool === "eraser") {
+    renderCommittedCanvas();
+  } else {
+    const context = committedCanvasContext();
+    if (context) drawOperation(context, operation);
+  }
+  clearDraftCanvas();
   emitGeometry();
 }
 
+function recordHistory(entry: AnnotationHistoryEntry) {
+  history.value = appendBoundedHistory(history.value, entry);
+  redoHistory.value = [];
+}
+
 function emitGeometry() {
-  emit("geometry-change", { coordinate_space: "image_pixels", operations: cloneOperations(operations.value) });
+  const geometry: AnnotationGeometry = {
+    coordinate_space: "image_pixels",
+    operations: cloneOperations(operations.value),
+  };
+  emittedGeometries.add(geometry);
+  emit("geometry-change", geometry);
 }
 
 function pointerPoint(event: PointerEvent): AnnotationPoint {
@@ -435,15 +499,46 @@ function pointerPoint(event: PointerEvent): AnnotationPoint {
   };
 }
 
-function renderCanvas() {
-  const canvas = canvasEl.value;
-  if (!canvas || canvas.width < 1 || canvas.height < 1) return;
-  const context = canvas.getContext("2d");
+function renderAllCanvases() {
+  renderCommittedCanvas();
+  renderDraftCanvas();
+}
+
+function renderCommittedCanvas() {
+  const context = committedCanvasContext();
   if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
   for (const operation of operations.value) drawOperation(context, operation);
+}
+
+function renderDraftCanvas() {
+  const context = draftCanvasContext();
+  if (!context) return;
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
   if (activeStroke.value) drawOperation(context, activeStroke.value);
   if (pendingPolygon.value.length) drawPendingPolygon(context, pendingPolygon.value);
+}
+
+function committedCanvasContext(): CanvasRenderingContext2D | null {
+  const canvas = canvasEl.value;
+  if (!canvas || canvas.width < 1 || canvas.height < 1) return null;
+  return canvas.getContext("2d");
+}
+
+function draftCanvasContext(): CanvasRenderingContext2D | null {
+  const canvas = draftCanvasEl.value;
+  if (!canvas || canvas.width < 1 || canvas.height < 1) return null;
+  return canvas.getContext("2d");
+}
+
+function clearCanvas(canvas: HTMLCanvasElement | null) {
+  if (!canvas || canvas.width < 1 || canvas.height < 1) return;
+  const context = canvas.getContext("2d");
+  context?.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function clearDraftCanvas() {
+  clearCanvas(draftCanvasEl.value);
 }
 
 function drawOperation(context: CanvasRenderingContext2D, operation: AnnotationOperation) {
@@ -460,7 +555,10 @@ function drawOperation(context: CanvasRenderingContext2D, operation: AnnotationO
   if (operation.tool === "polygon") {
     context.beginPath();
     context.moveTo(operation.points[0].x, operation.points[0].y);
-    for (const point of operation.points.slice(1)) context.lineTo(point.x, point.y);
+    for (let index = 1; index < operation.points.length; index += 1) {
+      const point = operation.points[index];
+      context.lineTo(point.x, point.y);
+    }
     context.closePath();
     context.fill();
     context.lineWidth = Math.max(2, Math.min(imageWidth.value, imageHeight.value) * 0.002);
@@ -473,13 +571,37 @@ function drawOperation(context: CanvasRenderingContext2D, operation: AnnotationO
   context.lineWidth = radius * 2;
   context.beginPath();
   context.moveTo(operation.points[0].x, operation.points[0].y);
-  for (const point of operation.points.slice(1)) context.lineTo(point.x, point.y);
+  for (let index = 1; index < operation.points.length; index += 1) {
+    const point = operation.points[index];
+    context.lineTo(point.x, point.y);
+  }
   context.stroke();
   if (operation.points.length === 1) {
     context.beginPath();
     context.arc(operation.points[0].x, operation.points[0].y, radius, 0, Math.PI * 2);
     context.fill();
   }
+  context.restore();
+}
+
+function drawStrokeSegment(
+  context: CanvasRenderingContext2D,
+  operation: AnnotationOperation,
+  from: AnnotationPoint,
+  to: AnnotationPoint,
+) {
+  context.save();
+  context.globalCompositeOperation = operation.mode === "erase" || operation.tool === "eraser"
+    ? "destination-out"
+    : "source-over";
+  context.strokeStyle = colorWithAlpha(props.overlayColor, 0.92);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.lineWidth = Math.max(1, operation.radius ?? brushDiameter.value / 2) * 2;
+  context.beginPath();
+  context.moveTo(from.x, from.y);
+  context.lineTo(to.x, to.y);
+  context.stroke();
   context.restore();
 }
 
@@ -491,7 +613,10 @@ function drawPendingPolygon(context: CanvasRenderingContext2D, points: Annotatio
   context.lineWidth = Math.max(2, Math.min(imageWidth.value, imageHeight.value) * 0.002);
   context.beginPath();
   context.moveTo(points[0].x, points[0].y);
-  for (const point of points.slice(1)) context.lineTo(point.x, point.y);
+  for (let index = 1; index < points.length; index += 1) {
+    const point = points[index];
+    context.lineTo(point.x, point.y);
+  }
   context.stroke();
   context.setLineDash([]);
   for (const point of points) {
@@ -741,6 +866,10 @@ function clamp(value: number, minimum: number, maximum: number): number {
 .annotation-content canvas {
   touch-action: none;
   cursor: crosshair;
+}
+
+.annotation-content .annotation-draft-layer {
+  pointer-events: none;
 }
 
 .annotation-viewport--pan canvas {

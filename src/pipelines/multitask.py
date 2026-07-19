@@ -8,7 +8,6 @@ from src.pipelines.detection import DetectionPipeline
 from src.pipelines.quantification import QuantificationPipeline
 from src.pipelines.segmentation import SegmentationPipeline
 
-
 PIPELINES = {
     "classification": ClassificationPipeline,
     "segmentation": SegmentationPipeline,
@@ -47,7 +46,9 @@ def _merge(target: dict[str, Any], incoming: dict[str, Any]) -> None:
             target.setdefault("warnings", []).extend(value)
         elif key == "prediction" and isinstance(value, dict):
             target.setdefault("prediction", {}).update(value)
-        elif key in {"lesion_evidence", "quantification", "segmentation_mask", "explanation_evidence"} and isinstance(value, dict):
+        elif key in {"lesion_evidence", "quantification", "segmentation_mask", "explanation_evidence"} and isinstance(
+            value, dict
+        ):
             target.setdefault(key, {}).update(value)
         else:
             target[key] = value

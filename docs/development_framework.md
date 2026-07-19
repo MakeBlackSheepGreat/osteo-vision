@@ -1,196 +1,114 @@
-# osteo-vision Development Framework
+# osteo-vision 工程架构
 
-This directory is the formal development project for intelligent fluorescence diagnosis and treatment of jaw osteomyelitis. It is based on a reusable medical-imaging competition framework and provides classification, segmentation, detection, quantification, explainability, reports, Demo, and Benchmark workflows.
+适用版本：`0.3.0-rc.2`。
 
-This repository is platform software for research and competition validation. Outputs are not clinical diagnosis and must not replace physician review.
+## 设计原则
 
-## What Is Included
+1. 患者安全、医生复核、失效降级和证据追踪优先。
+2. 官方 JPEG/MP4 文件输入始终保持可运行。
+3. 设备接入通过文件与标准化 manifest 解耦。
+4. 目标域数据、医生真值和晋级证据缺失时，代理模型保持研发验证状态。
+5. 活动代码、当前文档、生成产物和历史证据分层保存。
+6. 性能改动需绑定基准、profiling、回归测试和前后指标。
 
-- Config-driven runtime with `configs/inference/osteo_vision.yml` as the shared osteo-vision Demo and Benchmark authority.
-- TaskPackage contracts under `configs/tasks/` for fast competition scaffolding.
-- `MedicalImagingInferenceService` as the single inference entrypoint.
-- ModelSpec and adapter contracts for fixture, timm, MONAI Bundle, nnU-Net v2, MedSAM-like, VISTA3D-like, and VLM encoder model families.
-- V3 experiment contracts for fixture training loops, evaluation, threshold selection, model cards, checkpoint manifests, and promotion drafts.
-- Fixture pipelines for classification, segmentation, detection, quantification, and multitask demos.
-- Input recognition for 2D images, NPZ ROI packages, DICOM series, and NIfTI volumes.
-- Single-case reports, Benchmark reports, metrics, warnings, and release asset templates.
-- Vue 3 + TypeScript frontend, FastAPI backend, legacy Gradio Demo skeleton, and CLI scripts.
-- Unit, smoke, and integration tests.
+## 运行分层
 
-## Architecture Overview
-
-The framework follows a layered architecture with clear separation of concerns:
-
-### Core Layer (`src/core/`)
-- **Configuration**: Config loading, validation, and management
-- **Registry**: Component registration and discovery
-- **Contracts**: Core interfaces and protocols
-- **Schemas**: Data model definitions
-- **Warnings**: Warning and error management
-
-### Datasets Layer (`src/datasets/`)
-- **Manifests**: Dataset manifest reading and validation
-- **Splits**: Data splitting strategies
-- **Leakage**: Data leakage detection
-
-### Engine Layer (`src/engine/`)
-- **Inference**: Single-case inference service
-- **Experiment**: Experiment execution and management
-- **Benchmark**: Benchmark evaluation
-- **Training**: Model training orchestration
-
-### Models Layer (`src/models/`)
-- **Adapters**: Model adapter interface and implementations
-- **Registry**: Model registration and discovery
-- **Classifier**: Fixture classification models
-- **Segmenter**: Fixture segmentation models
-- **Detector**: Fixture detection models
-
-### Pipelines Layer (`src/pipelines/`)
-- **Base**: Pipeline base class and context
-- **Classification**: Classification pipeline
-- **Segmentation**: Segmentation pipeline
-- **Detection**: Detection pipeline
-- **Quantification**: Quantification pipeline
-- **Multitask**: Multi-task pipeline
-
-### Preprocess Layer (`src/preprocess/`)
-- **Input Validation**: Input type detection and validation
-- **Image Quality**: Image quality assessment
-- **CT Preprocess**: CT-specific preprocessing
-- **Mask Postprocess**: Mask post-processing
-- **ROI**: Region of interest processing
-
-### Reports Layer (`src/reports/`)
-- **Single Case**: Single-case report generation
-- **Benchmark**: Benchmark report generation
-- **Writers**: Report writing utilities
-- **Validators**: Report validation
-
-### Utils Layer (`src/utils/`)
-- **Logging**: Unified logging system
-- **Runtime**: Runtime environment and device management
-
-## Quick Commands
-
-V1 split frontend/backend platform:
-
-```powershell
-conda activate osteo-vision
-python -m backend.src.main
-npm --prefix frontend run dev
+```mermaid
+flowchart LR
+    A[JPEG / MP4 / metadata] --> B[数据准入与病例持久化]
+    B --> C[荧光处理与质量检查]
+    C --> D[AI 分割与不确定性]
+    D --> E[医生复核与人工标注]
+    E --> F[结构化报告与证据包]
+    B --> G[CBCT / STL / calibration]
+    G --> H[L1 配准与 L2 离线回放]
+    H --> E
 ```
 
-Defaults:
+### 前端层 `frontend/`
 
-- Backend health check: `http://127.0.0.1:8001/health`
-- Frontend: `http://127.0.0.1:5174/`
+Vue 3、TypeScript、Pinia、Vue Router 和 Three.js。顶部导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出、研发支持入口排列。桌面工作站为当前验收视口。
 
-Regression and research commands:
+### API 层 `backend/src/api/`
 
-```powershell
-python check_env.py
-python -m pytest tests/unit tests/smoke
-python scripts/model_inventory.py --config configs/inference/osteo_vision.yml
-python scripts/benchmark.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest.csv --output artifacts/runs
-python scripts/new_task.py --task-id my_competition --template classification --output-dir configs/tasks
-python scripts/new_experiment.py --experiment-id my_competition_fixture --manifest tests/fixtures/benchmark_manifest_v2.csv
-python scripts/run_experiment.py --spec artifacts/experiments/my_competition_fixture/experiment.yml
-python scripts/promote_model.py --run-dir artifacts/runs/<run_id>
-```
+FastAPI 路由负责输入校验、身份上下文、HTTP 状态、文件流和服务调用。路由层不承载医学算法。
 
-Legacy Gradio Demo:
+### 应用服务层 `backend/src/services/`
 
-```powershell
-python app/main.py --config configs/inference/osteo_vision.yml
-```
+负责病例分析、视频关键帧、实时帧、荧光融合、医生复核、人工标注、训练准入、导出、医院数据准入、CBCT 建模、静态配准和离线位姿回放。
 
-## Repository Layout
+### 领域与持久化层 `backend/src/domains/`
 
-```text
-AGENTS.md      Project specification for AI agents
-configs/       Runtime and task example configs
-  inference/   Inference configurations
-  tasks/       Task configurations
-src/           Core framework
-  core/        Core contracts, config, registry, schemas
-  datasets/    Dataset loading, splitting, leakage detection
-  engine/      Inference, experiment, benchmark, training
-  experiments/ Experiment specs, splits, thresholds, promotion
-  explain/     GradCAM, overlay visualization
-  io/          DICOM, image, NIfTI I/O
-  metrics/     Classification, segmentation, detection metrics
-  models/      Model adapters, registry, classifiers, segmenters
-  pipelines/   Pipeline implementations
-  preprocess/  Input validation, quality assessment, preprocessing
-  reports/     Report generation and writing
-  utils/       Logging, runtime utilities
-app/           Legacy Gradio demo entrypoint
-backend/       FastAPI platform backend
-frontend/      Vue 3 + TypeScript platform frontend
-scripts/       Training, evaluation, benchmark, export templates
-tests/         Unit, smoke, and integration tests
-  unit/        Unit tests
-  integration/ Integration tests
-  smoke/       Smoke tests
-  fixtures/    Test fixtures
-docs/          Architecture, quickstart, task adapter guide
-artifacts/     Generated checkpoints, reports, visual evidence, release files
-.rules/        Skill rules for AI agents
-```
+Pydantic schema、枚举和 SQLite repository 保存病例、输入、分析任务、复核、人工标注与版本。写入采用乐观并发控制和原子替换。
 
-## Skill Rules Library (.rules/)
+### 核心算法层 `src/`
 
-The framework includes a skill rules library for AI agents. See [.rules/README.md](.rules/README.md) for details.
+- `src/models/`：模型 adapter、keyframe 分割、患者条件、骨活性、晋级门。
+- `src/preprocess/`：荧光、图像质量、CT、ROI 和 mask 后处理。
+- `src/io/`：JPEG、MP4、DICOM、NIfTI 和实时流 I/O。
+- `src/navigation/`：坐标契约、刚体配准、离线位姿回放。
+- `src/datasets/`：来源清单、分组切分、训练准入和泄漏检查。
+- `src/metrics/`：分割、分类、校准和性能指标。
+- `src/engine/`：统一推理、实验与 benchmark 入口。
 
-| Skill File | Description |
-|------------|-------------|
-| [skill-data-preprocessing.md](.rules/skill-data-preprocessing.md) | Data preprocessing patterns |
-| [skill-model-adapter.md](.rules/skill-model-adapter.md) | Model adapter implementation |
-| [skill-pipeline-creation.md](.rules/skill-pipeline-creation.md) | Pipeline creation patterns |
-| [skill-evaluation-metrics.md](.rules/skill-evaluation-metrics.md) | Evaluation metrics |
-| [skill-configuration-management.md](.rules/skill-configuration-management.md) | Configuration management |
-| [skill-competition-integration.md](.rules/skill-competition-integration.md) | Competition integration |
+## 配置权威
 
-## Contracts
+| 配置 | 用途 |
+|---|---|
+| `configs/inference/osteo_vision_competition_strict.yml` | 比赛演示和严格运行 |
+| `configs/inference/osteo_vision.yml` | 研发、模型清单和安全关闭的代理能力 |
+| `configs/tasks/osteo_vision.yml` | 颌骨骨髓炎任务契约 |
+| `configs/paths.local.yml` | 本机路径覆盖，Git 忽略 |
 
-The framework defines contracts (interfaces) for all major components:
+模型、阈值、checkpoint、运行许可、目标域状态和回退策略只能通过配置、manifest 与晋级记录进入运行时。
 
-- **Core Contracts** (`src/core/contracts/`): Config loader, registry, logger, lifecycle
-- **Dataset Contracts** (`src/datasets/contracts/`): Dataset loader, split strategy, manifest reader
-- **Model Contracts** (`src/models/contracts/`): Model adapter, model registry, checkpoint manager
-- **Pipeline Contracts** (`src/pipelines/contracts/`): Pipeline, pipeline registry, pipeline step
-- **Preprocess Contracts** (`src/preprocess/contracts/`): Preprocessor, input validator, post-processor
-- **Engine Contracts** (`src/engine/contracts/`): Inference service, experiment runner, benchmark evaluator
-- **Report Contracts** (`src/reports/contracts/`): Report generator, report writer, report validator
+## 两条视频路径
 
-## Type Safety
+### MP4 文件分析
 
-The framework uses mypy for static type checking. Configuration: `mypy.ini`
+视频经 ffprobe/解码检查后抽取关键帧，逐帧生成完整证据，并写入帧明细、时序摘要和 video segmentation manifest。该路径强调证据完整性。
 
-```bash
-# Run type checking
-mypy src/
+### 视频流连续帧分析
 
-# Run with strict mode
-mypy --strict src/
-```
+浏览器将当前帧缩放到最长边 960，JPEG 编码后串行提交。后端复用已加载模型并返回唯一帧证据路径。上一帧完成后继续下一帧，避免请求积压。该路径保留 mask、风险图、不确定性图、叠加图和端到端延迟。
 
-## V2 Model Adapter Boundary
+## 模型运行边界
 
-V2 plans for current medical-imaging inference model families such as VISTA3D, MedSAM2, nnU-Net v2, TotalSegmentator-style workflows, MONAI Bundles, BiomedCLIP, Rad-DINO, and MedImageInsight. The repository does not download or bundle real weights. Missing dependencies and weights are reported through adapter status, and fixture fallback remains available for tests and demos.
+所有 adapter 通过 `ModelSpec` 描述依赖、输入、任务、checkpoint、设备、运行许可和医学声明。`MedicalImagingInferenceService` 是通用推理入口，病例工作台通过应用服务复用同一 adapter 体系。
 
-## V3 Training Loop Contract
+比赛严格模式关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。患者条件与骨活性代理 checkpoint 可生成离线工程证据，其目标域替换权限保持关闭。
 
-V3 adds the competition experiment layer. `ExperimentSpec` records the task package, manifest, model candidate, split strategy, training config, evaluation config, threshold strategy, and promotion gate. `scripts/run_experiment.py` runs a deterministic fixture loop and writes `training_report.json`, `evaluation_report.json`, `oof_predictions.csv`, `model_card.json`, `checkpoint_manifest.json`, and `promotion_record.json` under `artifacts/runs/<run_id>/`.
+## 三维安全分级
 
-Promotion is review-first. `scripts/promote_model.py` reads a run directory and writes a runtime promotion draft; it does not modify `configs/inference/osteo_vision.yml`. Patient-level metadata and leakage checks are part of the default gate.
+- `L0`：未配准三维参考。
+- `L1`：静态仿体配准工程验证。
+- `L2`：离线动态位姿回放工程验证。
 
-## Reference Projects
+来源、单位、坐标 frame、手性、轴方向、矩阵约定、标定、同步、TRE、漂移和医生复核均属于门控条件。任一必要证据失败时结果降级至 L0。
 
-The first version is shaped by two existing local projects:
+## 数据与产物分层
 
-- `D:\Agent`: breast ultrasound CAD, 2D classification, ROI segmentation, Grad-CAM, Gradio Demo.
-- `D:\ct-nodule-risk`: CT nodule risk grading, shared inference service, DICOM/ROI governance, Benchmark, warning/report schema.
+- 代码与当前文档：Git 跟踪。
+- 小型来源清单、许可和下载收据：Git 跟踪。
+- 原始患者影像、视频、checkpoint、数据库、密钥、三维模型和大体积派生数据：Git 忽略。
+- 本地运行证据：`artifacts/`，按任务和时间生成。
+- 历史报告：日期化保留并在索引中标记归档属性。
 
-No data, checkpoints, historical reports, or large artifacts are copied from those projects.
+详细目录规则见 [project_structure.md](project_structure.md)。
+
+## 质量与性能
+
+主要质量门：Ruff、mypy、Black、isort、pytest、Vitest、`vue-tsc`、Vite build、Playwright、严格运行预检和数据 manifest 核验。
+
+性能流程：
+
+1. 固定输入、checkpoint、配置、设备和运行次数。
+2. 记录端到端、模型、后处理、I/O 和内存基线。
+3. 使用 cProfile、浏览器性能记录或明确静态证据定位热点。
+4. 保持输出契约与安全回退。
+5. 运行针对性回归和全量质量门。
+6. 保存前后对比到 `artifacts/performance/`，摘要进入 release 证据。
+
+## 扩展边界
+
+新增模型需提供 adapter、配置、checkpoint manifest、来源许可、最小测试和运行许可。新增数据需提供来源、许可、患者/样本数量、模态、标签、临床变量、SHA256、下载时间和用途边界。新增临床字段需经过最小必要性、可信来源、缺失值、范围和亚组审计设计。

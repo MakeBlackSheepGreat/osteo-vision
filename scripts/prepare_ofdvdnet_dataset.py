@@ -346,7 +346,7 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             "",
             payload["domain_boundary"],
             "",
-            "这些视频可用于赛点一的荧光视频增强、伪彩稳定性和三视图拆分演示；不能作为颌骨骨髓炎诊断或真实术中 ICG 目标域数据。",
+            "这些视频可用于多模态荧光处理中的视频增强、伪彩稳定性和三视图拆分工程验证；禁止作为颌骨骨髓炎诊断或真实术中 ICG 目标域数据。",
         ]
     else:
         lines = [

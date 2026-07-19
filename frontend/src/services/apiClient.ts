@@ -36,8 +36,10 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly body: unknown,
+    public readonly retryAfterMs: number | null = null,
   ) {
     super(`接口请求失败，状态码 ${status}`);
+    this.name = "ApiError";
   }
 }
 
@@ -431,6 +433,7 @@ export const apiClient = {
       threshold: number;
       colormap: string;
       modelId?: string;
+      signal?: AbortSignal;
     },
   ): Promise<LiveFrameAnalysisResult> {
     const response = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}/live-frames`, {
@@ -446,10 +449,11 @@ export const apiClient = {
         ...(options.modelId ? { "X-Segmentation-Model-Id": options.modelId } : {}),
       },
       body: frame,
+      signal: options.signal,
     });
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      throw new ApiError(response.status, body);
+      throw new ApiError(response.status, body, parseRetryAfterMs(response.headers.get("Retry-After")));
     }
     return response.json() as Promise<LiveFrameAnalysisResult>;
   },
@@ -491,8 +495,8 @@ export const apiClient = {
   startL1RegistrationJob(parameters: L1StaticRegistrationRequest): Promise<BackendJob> {
     return request<BackendJob>("/three-d/registration-jobs", { method: "POST", body: JSON.stringify(parameters) });
   },
-  getL1RegistrationJob(jobId: string): Promise<BackendJob> {
-    return request<BackendJob>(`/three-d/registration-jobs/${encodeURIComponent(jobId)}`);
+  getL1RegistrationJob(jobId: string, signal?: AbortSignal): Promise<BackendJob> {
+    return request<BackendJob>(`/three-d/registration-jobs/${encodeURIComponent(jobId)}`, { signal });
   },
   cancelL1RegistrationJob(jobId: string): Promise<BackendJob> {
     return request<BackendJob>(`/three-d/registration-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
@@ -500,10 +504,19 @@ export const apiClient = {
   startL2PoseReplayJob(parameters: L2PoseReplayRequest): Promise<BackendJob> {
     return request<BackendJob>("/three-d/pose-replay-jobs", { method: "POST", body: JSON.stringify(parameters) });
   },
-  getL2PoseReplayJob(jobId: string): Promise<BackendJob> {
-    return request<BackendJob>(`/three-d/pose-replay-jobs/${encodeURIComponent(jobId)}`);
+  getL2PoseReplayJob(jobId: string, signal?: AbortSignal): Promise<BackendJob> {
+    return request<BackendJob>(`/three-d/pose-replay-jobs/${encodeURIComponent(jobId)}`, { signal });
   },
   cancelL2PoseReplayJob(jobId: string): Promise<BackendJob> {
     return request<BackendJob>(`/three-d/pose-replay-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
   },
 };
+
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const seconds = Number(value.trim());
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
+  const retryAt = Date.parse(value);
+  if (!Number.isFinite(retryAt)) return null;
+  return Math.max(0, retryAt - Date.now());
+}

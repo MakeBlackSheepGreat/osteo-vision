@@ -33,4 +33,3 @@ def runtime_config(config: dict[str, Any]) -> dict[str, Any]:
     runtime.setdefault("default_threshold", 0.5)
     runtime.setdefault("use_fixture_model", True)
     return runtime
-

@@ -71,6 +71,25 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
+function makeRecords(
+  count: number,
+  datasetId = "d047_pmc_jaw_fluorescence_figures",
+  prefix = "d047",
+): DatasetReviewRecord[] {
+  return Array.from({ length: count }, (_, index) => {
+    const sequence = String(index + 1).padStart(3, "0");
+    return {
+      record_id: `${prefix}-panel-${sequence}`,
+      dataset_id: datasetId,
+      source_record_id: `${prefix.toUpperCase()}_figure_${sequence}`,
+      image_path: `C:\\data\\${prefix}\\panel-${sequence}.png`,
+      review_state: "review_required",
+      license: "CC BY",
+      training_eligible: false,
+    } satisfies DatasetReviewRecord;
+  });
+}
+
 describe("DatasetReviewPage", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -286,5 +305,77 @@ describe("DatasetReviewPage", () => {
     expect(wrapper.get<HTMLButtonElement>(".queue-toolbar button").element.disabled).toBe(false);
     expect(wrapper.findAll<HTMLSelectElement>(".queue-toolbar select").every((select) => !select.element.disabled)).toBe(true);
     expect(wrapper.findAll<HTMLButtonElement>(".record-item").every((button) => !button.element.disabled)).toBe(true);
+  });
+
+  it("renders a bounded page of long review queues and enforces page boundaries", async () => {
+    vi.spyOn(apiClient, "listDatasetReviewQueue").mockResolvedValue({ items: makeRecords(45) });
+    const wrapper = mount(DatasetReviewPage, {
+      global: { stubs: { AppIcon: true, StaticMaskEditor: EditorStub } },
+    });
+    await flushPromises();
+
+    const pagination = wrapper.get("nav[aria-label='候选列表分页']");
+    let pageButtons = pagination.findAll<HTMLButtonElement>("button");
+    expect(wrapper.findAll(".record-item")).toHaveLength(20);
+    expect(wrapper.findAll(".record-item")[0].text()).toContain("D047_figure_001");
+    expect(wrapper.findAll(".record-item")[19].text()).toContain("D047_figure_020");
+    expect(pagination.text()).toContain("第 1 / 3 页");
+    expect(pagination.text()).toContain("1-20 / 45 条");
+    expect(pageButtons[0].element.disabled).toBe(true);
+    expect(pageButtons[1].element.disabled).toBe(false);
+
+    await pageButtons[1].trigger("click");
+    expect(wrapper.findAll(".record-item")).toHaveLength(20);
+    expect(wrapper.findAll(".record-item")[0].text()).toContain("D047_figure_021");
+    expect(wrapper.get(".record-item.selected").text()).toContain("D047_figure_021");
+    expect(pagination.text()).toContain("第 2 / 3 页");
+
+    pageButtons = pagination.findAll<HTMLButtonElement>("button");
+    await pageButtons[1].trigger("click");
+    expect(wrapper.findAll(".record-item")).toHaveLength(5);
+    expect(wrapper.findAll(".record-item")[0].text()).toContain("D047_figure_041");
+    expect(pagination.text()).toContain("第 3 / 3 页");
+    expect(pagination.text()).toContain("41-45 / 45 条");
+    expect(pagination.findAll<HTMLButtonElement>("button")[1].element.disabled).toBe(true);
+  });
+
+  it("resets pagination and selection when queue filters change", async () => {
+    const d047Records = makeRecords(25);
+    const d048Records = makeRecords(25, "d048_open_clinical_bone_fluorescence", "d048");
+    vi.spyOn(apiClient, "listDatasetReviewQueue").mockResolvedValue({ items: [...d047Records, ...d048Records] });
+    const wrapper = mount(DatasetReviewPage, {
+      global: { stubs: { AppIcon: true, StaticMaskEditor: EditorStub } },
+    });
+    await flushPromises();
+
+    const pagination = wrapper.get("nav[aria-label='候选列表分页']");
+    await pagination.findAll("button")[1].trigger("click");
+    expect(pagination.text()).toContain("第 2 / 3 页");
+
+    await wrapper.findAll<HTMLSelectElement>(".queue-toolbar select")[0].setValue("d048");
+    expect(pagination.text()).toContain("第 1 / 2 页");
+    expect(pagination.text()).toContain("1-20 / 25 条");
+    expect(wrapper.findAll(".record-item")).toHaveLength(20);
+    expect(wrapper.get(".record-item.selected").text()).toContain("D048_figure_001");
+    expect(wrapper.text()).toContain("当前 1 / 25");
+  });
+
+  it("keeps relative record navigation continuous across page boundaries", async () => {
+    vi.spyOn(apiClient, "listDatasetReviewQueue").mockResolvedValue({ items: makeRecords(25) });
+    const wrapper = mount(DatasetReviewPage, {
+      global: { stubs: { AppIcon: true, StaticMaskEditor: EditorStub } },
+    });
+    await flushPromises();
+
+    await wrapper.findAll(".record-item")[19].trigger("click");
+    expect(wrapper.get(".record-item.selected").text()).toContain("D047_figure_020");
+
+    const nextRecordButton = wrapper.findAll(".record-navigation button").find((button) => button.text() === "下一条");
+    await nextRecordButton?.trigger("click");
+
+    expect(wrapper.get("nav[aria-label='候选列表分页']").text()).toContain("第 2 / 2 页");
+    expect(wrapper.findAll(".record-item")).toHaveLength(5);
+    expect(wrapper.get(".record-item.selected").text()).toContain("D047_figure_021");
+    expect(wrapper.get(".record-metadata h2").text()).toBe("D047_figure_021");
   });
 });

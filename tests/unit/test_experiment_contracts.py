@@ -23,7 +23,11 @@ def test_experiment_spec_schema_requires_contract_fields() -> None:
     )
     payload = spec.to_dict()
     assert payload["experiment_id"] == "demo_exp"
-    assert payload["model_spec"]["clinical_claim_allowed"] is False if "clinical_claim_allowed" in payload["model_spec"] else True
+    assert (
+        payload["model_spec"]["clinical_claim_allowed"] is False
+        if "clinical_claim_allowed" in payload["model_spec"]
+        else True
+    )
 
 
 def test_model_lifecycle_schemas_include_safety_boundary() -> None:
@@ -43,7 +47,9 @@ def test_model_lifecycle_schemas_include_safety_boundary() -> None:
         task_package="medical_competition_demo",
         metrics={},
     )
-    promotion = PromotionRecord(run_id="run_001", experiment_id="exp_001", model_id="fixture_default", promoted=False, gate={})
+    promotion = PromotionRecord(
+        run_id="run_001", experiment_id="exp_001", model_id="fixture_default", promoted=False, gate={}
+    )
     assert model_card.clinical_claim_allowed is False
     assert checkpoint.clinical_claim_allowed is False
     assert promotion.clinical_claim_allowed is False

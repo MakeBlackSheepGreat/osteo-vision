@@ -67,9 +67,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { apiClient } from "@/services/apiClient";
 import type { L1StaticRegistrationRequest, ThreeDEvidence } from "@/types/case";
+import { abortableDelay, isAbortError } from "@/utils/abortableDelay";
 const props = defineProps<{ caseId: string; evidence?: ThreeDEvidence | null }>();
 const emit = defineEmits<{ completed: [] }>();
 const mode = ref<"manual_metadata" | "offline_manifest">("manual_metadata"); const modelPath = ref(""); const manifestPath = ref(""); const manifestSha256 = ref("");
@@ -87,16 +88,176 @@ const panelTitle = computed(() => mode.value === "manual_metadata" ? "L0 静态�
 const panelSubtitle = computed(() => mode.value === "manual_metadata" ? "人工点对、独立 TRE、倍率和工作距离记录" : "校验和绑定的配准输入、坐标契约与安全门控");
 const actionText = computed(() => mode.value === "manual_metadata" ? "运行 L0 工程检查" : "运行 L1 证据校验");
 const boundaryText = computed(() => mode.value === "manual_metadata" ? "人工点对模式固定用于 L0 静态几何工程检查，输出保持未配准参考，不能显示 L1 就绪状态。" : "离线 manifest 需同时提交路径和 SHA256。可信医生复核、输入来源、变换、坐标契约和误差门控全部通过后，平台才可显示 L1 静态工程验证状态。");
+let pollingGeneration = 0;
+let pollingController: AbortController | null = null;
 watch(() => props.evidence?.model_path, (value) => { if (value && !modelPath.value) modelPath.value = value; }, { immediate: true });
+watch(() => props.caseId, () => {
+  invalidatePolling();
+  busy.value = false;
+  jobId.value = "";
+  statusText.value = "待运行";
+  error.value = "";
+});
+onBeforeUnmount(() => invalidatePolling());
 function loadExample() { sourceText.value = JSON.stringify([[0,0,0],[20,0,0],[0,20,0],[0,0,20]]); targetText.value = JSON.stringify([[5,-3,2],[25,-3,2],[5,17,2],[5,-3,22]]); validationSourceText.value = JSON.stringify([[10,10,10]]); validationTargetText.value = JSON.stringify([[15,7,12]]); const objects = [[-30,-20,0],[30,-20,0],[30,20,0],[-30,20,0],[-20,-10,25],[20,10,30],[0,-25,15],[0,25,20]]; const pixels = [[596.717355,316.40251],[703.015907,319.589071],[700.412639,389.202713],[594.749572,386.365798],[613.535459,332.291048],[679.197857,366.792024],[648.989669,308.578333],[645.833905,392.408567]]; cameraObjectText.value = JSON.stringify(objects.slice(0,6)); cameraImageText.value = JSON.stringify(pixels.slice(0,6)); validationCameraObjectText.value = JSON.stringify(objects.slice(6)); validationCameraImageText.value = JSON.stringify(pixels.slice(6)); cameraMatrixText.value = JSON.stringify([[920,0,640],[0,910,360],[0,0,1]]); statusText.value = "已载入工程仿体示例"; }
 function matrix(value: string, label: string, columns: number, minimumRows = 1): number[][] { const parsed = JSON.parse(value); if (!Array.isArray(parsed) || parsed.length < minimumRows || parsed.some((row) => !Array.isArray(row) || row.length !== columns || row.some((item) => !Number.isFinite(Number(item))))) throw new Error(`${label}必须是数值 Nx${columns} JSON 数组`); return parsed.map((row) => row.map(Number)); }
 function points(value: string, label: string): number[][] { return matrix(value, label, 3, 1); }
 function numbers(value: string, label: string): number[] { const parsed = JSON.parse(value); if (!Array.isArray(parsed) || parsed.some((item) => !Number.isFinite(Number(item)))) throw new Error(`${label}必须是数值 JSON 数组`); return parsed.map(Number); }
 function sha256(value: string, label: string): string { const normalized = value.trim().toLowerCase(); if (!/^[0-9a-f]{64}$/.test(normalized)) throw new Error(`${label}必须是 64 位十六进制摘要`); return normalized; }
-async function submit() { error.value = ""; busy.value = true; statusText.value = "正在提交"; try { const payload: L1StaticRegistrationRequest = mode.value === "offline_manifest" ? { case_id: props.caseId, input_mode: "offline_manifest", registration_method: registrationMethod.value, unit: "mm", doctor_review_status: reviewStatus.value, registration_manifest_path: manifestPath.value.trim(), registration_manifest_sha256: sha256(manifestSha256.value,"Manifest SHA256") } : { case_id: props.caseId, input_mode: "manual_metadata", registration_method: registrationMethod.value, unit: "mm", doctor_review_status: "review_required", model_path: modelPath.value, source_points: points(sourceText.value,"源点"), target_points: points(targetText.value,"目标点"), validation_source_points: points(validationSourceText.value,"TRE 源点"), validation_target_points: points(validationTargetText.value,"TRE 目标点"), source_space: sourceSpace.value, target_space: targetSpace.value, fre_threshold_mm: freThreshold.value, tre_threshold_mm: treThreshold.value, threshold_source: thresholdSource.value, ...(registrationMethod.value === "rigid_points_with_pnp" ? { camera_object_points: matrix(cameraObjectText.value,"相机三维点",3,4), camera_image_points: matrix(cameraImageText.value,"相机像素点",2,4), validation_camera_object_points: matrix(validationCameraObjectText.value,"独立验证三维点",3), validation_camera_image_points: matrix(validationCameraImageText.value,"独立验证像素点",2), camera_matrix: matrix(cameraMatrixText.value,"相机内参",3,3), distortion_coefficients: numbers(distortionText.value,"畸变参数"), image_size_px: [imageWidth.value,imageHeight.value] as [number,number], intrinsics_id: intrinsicsId.value, camera_space: cameraSpace.value, reprojection_threshold_px: reprojectionThreshold.value, camera_calibration_evidence: { artifact_path: calibrationArtifactPath.value.trim(), artifact_sha256: calibrationArtifactSha256.value.trim().toLowerCase() }, threshold_approval: { status: thresholdApprovalStatus.value, protocol_version: thresholdProtocolVersion.value.trim(), data_version: thresholdDataVersion.value.trim(), approved_by: thresholdApprovedBy.value.trim(), approved_at: timestampValue(thresholdApprovedAt.value), fre_threshold_mm: freThreshold.value, tre_threshold_mm: treThreshold.value, reprojection_threshold_px: reprojectionThreshold.value } } : {}), microscope_pose_evidence: { intrinsics_id: intrinsicsId.value, magnification: magnification.value, calibration_magnification_min: magnificationMin.value, calibration_magnification_max: magnificationMax.value, working_distance_mm: workingDistance.value, calibration_working_distance_min_mm: workingDistanceMin.value, calibration_working_distance_max_mm: workingDistanceMax.value, depth_source: "offline_phantom_scale", depth_status: "valid" } }; if (payload.input_mode === "offline_manifest" && !payload.registration_manifest_path) throw new Error("Manifest 路径不能为空"); const started = await apiClient.startL1RegistrationJob(payload); jobId.value = started.job_id; await poll(); } catch (cause) { error.value = cause instanceof Error ? cause.message : "静态配准任务失败"; statusText.value = "失败"; busy.value = false; } }
+async function submit() {
+  const submittedCaseId = props.caseId;
+  const polling = beginPolling(submittedCaseId);
+  error.value = "";
+  busy.value = true;
+  statusText.value = "正在提交";
+  try {
+    const payload = buildPayload(submittedCaseId);
+    const started = await apiClient.startL1RegistrationJob(payload);
+    if (!isPollingCurrent(polling)) return;
+    jobId.value = started.job_id;
+    await poll(started.job_id, polling);
+  } catch (cause) {
+    if (!isPollingCurrent(polling) || isAbortError(cause)) return;
+    error.value = cause instanceof Error ? cause.message : "静态配准任务失败";
+    statusText.value = "失败";
+    busy.value = false;
+  } finally {
+    if (pollingController === polling.controller) pollingController = null;
+  }
+}
+
+function buildPayload(caseId: string): L1StaticRegistrationRequest {
+  const payload: L1StaticRegistrationRequest = mode.value === "offline_manifest"
+    ? {
+        case_id: caseId,
+        input_mode: "offline_manifest",
+        registration_method: registrationMethod.value,
+        unit: "mm",
+        doctor_review_status: reviewStatus.value,
+        registration_manifest_path: manifestPath.value.trim(),
+        registration_manifest_sha256: sha256(manifestSha256.value, "Manifest SHA256"),
+      }
+    : {
+        case_id: caseId,
+        input_mode: "manual_metadata",
+        registration_method: registrationMethod.value,
+        unit: "mm",
+        doctor_review_status: "review_required",
+        model_path: modelPath.value,
+        source_points: points(sourceText.value, "源点"),
+        target_points: points(targetText.value, "目标点"),
+        validation_source_points: points(validationSourceText.value, "TRE 源点"),
+        validation_target_points: points(validationTargetText.value, "TRE 目标点"),
+        source_space: sourceSpace.value,
+        target_space: targetSpace.value,
+        fre_threshold_mm: freThreshold.value,
+        tre_threshold_mm: treThreshold.value,
+        threshold_source: thresholdSource.value,
+        ...(registrationMethod.value === "rigid_points_with_pnp"
+          ? {
+              camera_object_points: matrix(cameraObjectText.value, "相机三维点", 3, 4),
+              camera_image_points: matrix(cameraImageText.value, "相机像素点", 2, 4),
+              validation_camera_object_points: matrix(validationCameraObjectText.value, "独立验证三维点", 3),
+              validation_camera_image_points: matrix(validationCameraImageText.value, "独立验证像素点", 2),
+              camera_matrix: matrix(cameraMatrixText.value, "相机内参", 3, 3),
+              distortion_coefficients: numbers(distortionText.value, "畸变参数"),
+              image_size_px: [imageWidth.value, imageHeight.value] as [number, number],
+              intrinsics_id: intrinsicsId.value,
+              camera_space: cameraSpace.value,
+              reprojection_threshold_px: reprojectionThreshold.value,
+              camera_calibration_evidence: {
+                artifact_path: calibrationArtifactPath.value.trim(),
+                artifact_sha256: calibrationArtifactSha256.value.trim().toLowerCase(),
+              },
+              threshold_approval: {
+                status: thresholdApprovalStatus.value,
+                protocol_version: thresholdProtocolVersion.value.trim(),
+                data_version: thresholdDataVersion.value.trim(),
+                approved_by: thresholdApprovedBy.value.trim(),
+                approved_at: timestampValue(thresholdApprovedAt.value),
+                fre_threshold_mm: freThreshold.value,
+                tre_threshold_mm: treThreshold.value,
+                reprojection_threshold_px: reprojectionThreshold.value,
+              },
+            }
+          : {}),
+        microscope_pose_evidence: {
+          intrinsics_id: intrinsicsId.value,
+          magnification: magnification.value,
+          calibration_magnification_min: magnificationMin.value,
+          calibration_magnification_max: magnificationMax.value,
+          working_distance_mm: workingDistance.value,
+          calibration_working_distance_min_mm: workingDistanceMin.value,
+          calibration_working_distance_max_mm: workingDistanceMax.value,
+          depth_source: "offline_phantom_scale",
+          depth_status: "valid",
+        },
+      };
+  if (payload.input_mode === "offline_manifest" && !payload.registration_manifest_path) {
+    throw new Error("Manifest 路径不能为空");
+  }
+  return payload;
+}
 function timestampValue(value: string) { if (!value.trim()) return ""; const parsed = new Date(value); if (Number.isNaN(parsed.getTime())) throw new Error("批准时间格式无效"); return parsed.toISOString(); }
-async function poll() { for (let index=0; index<60; index+=1) { const job = await apiClient.getL1RegistrationJob(jobId.value); statusText.value = job.progress?.message || job.status; if (["completed","failed","canceled"].includes(job.status)) { busy.value = false; if (job.status === "completed") emit("completed"); else error.value = job.error || "L1 配准未完成"; return; } await new Promise((resolve) => setTimeout(resolve, 300)); } busy.value = false; error.value = "任务仍在运行，可稍后同步病例"; }
-async function cancel() { await apiClient.cancelL1RegistrationJob(jobId.value); busy.value = false; statusText.value = "已取消"; }
+async function poll(targetJobId: string, polling: PollingSession) {
+  for (let index = 0; index < 60; index += 1) {
+    if (!isPollingCurrent(polling)) return;
+    const job = await apiClient.getL1RegistrationJob(targetJobId, polling.controller.signal);
+    if (!isPollingCurrent(polling)) return;
+    statusText.value = job.progress?.message || job.status;
+    if (["completed", "failed", "canceled"].includes(job.status)) {
+      busy.value = false;
+      if (job.status === "completed") emit("completed");
+      else error.value = job.error || "L1 配准未完成";
+      return;
+    }
+    await abortableDelay(300, polling.controller.signal);
+  }
+  if (!isPollingCurrent(polling)) return;
+  busy.value = false;
+  error.value = "任务仍在运行，可稍后同步病例";
+}
+
+async function cancel() {
+  const targetJobId = jobId.value;
+  const submittedCaseId = props.caseId;
+  invalidatePolling();
+  try {
+    await apiClient.cancelL1RegistrationJob(targetJobId);
+    if (props.caseId !== submittedCaseId) return;
+    busy.value = false;
+    statusText.value = "已取消";
+  } catch (cause) {
+    if (props.caseId !== submittedCaseId) return;
+    busy.value = false;
+    error.value = cause instanceof Error ? cause.message : "取消 L1 配准任务失败";
+  }
+}
+
+interface PollingSession {
+  caseId: string;
+  controller: AbortController;
+  generation: number;
+}
+
+function beginPolling(caseId: string): PollingSession {
+  invalidatePolling();
+  const controller = new AbortController();
+  pollingController = controller;
+  return { caseId, controller, generation: pollingGeneration };
+}
+
+function invalidatePolling() {
+  pollingGeneration += 1;
+  pollingController?.abort();
+  pollingController = null;
+}
+
+function isPollingCurrent(polling: PollingSession): boolean {
+  return polling.generation === pollingGeneration
+    && polling.caseId === props.caseId
+    && !polling.controller.signal.aborted;
+}
 </script>
 
 <style scoped>

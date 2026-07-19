@@ -4,8 +4,8 @@ import csv
 from pathlib import Path
 from typing import Any
 
-from src.io.video_io import VIDEO_EXTENSIONS
 from src.core.paths import ensure_dir
+from src.io.video_io import VIDEO_EXTENSIONS
 
 
 class VideoLibraryService:
@@ -36,7 +36,11 @@ class VideoLibraryService:
         if candidate is None:
             raise KeyError(record_id)
         if not candidate.get("system_readable"):
-            return {**candidate, "preview_status": "unsupported_or_missing", "preview_error": "Candidate video is not locally readable."}
+            return {
+                **candidate,
+                "preview_status": "unsupported_or_missing",
+                "preview_error": "Candidate video is not locally readable.",
+            }
         if self.preview_root is None:
             return {**candidate, "preview_status": "disabled", "preview_error": "Preview root is not configured."}
 

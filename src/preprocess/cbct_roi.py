@@ -10,7 +10,6 @@ import numpy as np
 
 from src.core.paths import ensure_dir
 
-
 IMAGE_KEYS = ("image", "volume", "ct", "cbct")
 LABEL_KEYS = ("label", "mask", "segmentation", "anatomy_mask")
 SCHEMA_VERSION = "osteo-vision-cbct-anatomy-roi-v1"

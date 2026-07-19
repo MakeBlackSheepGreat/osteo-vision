@@ -30,7 +30,6 @@ from scripts.benchmark_public_cbct_segmentation_models import (
 from src.core.paths import ensure_dir
 from src.reports.writers import write_csv, write_json
 
-
 PROJECT_DATASET_ROOT = Path("research/datasets/public-candidates")
 ARCHIVE_DATASET_ROOT = Path("D:/projects/osteo-vision/research/datasets/public-candidates")
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/anatomy_highres_patch_experiment")
@@ -157,7 +156,9 @@ def d036_archive_equivalent(local_path: Path, archive_dataset_root: Path) -> Pat
 
 
 def load_d024_cases(project_dataset_root: Path) -> list[SourceCase]:
-    dataset = project_dataset_root / "d024_dentvoxel" / "derived" / "nnunet" / "nnUNet_raw" / "Dataset124_DentVoxelJawROI"
+    dataset = (
+        project_dataset_root / "d024_dentvoxel" / "derived" / "nnunet" / "nnUNet_raw" / "Dataset124_DentVoxelJawROI"
+    )
     images = dataset / "imagesTr"
     labels = dataset / "labelsTr"
     if not images.exists() or not labels.exists():
@@ -215,7 +216,9 @@ def load_d036_cases(
     return cases
 
 
-def localize_d036_cases(cases: list[SourceCase], archive_dataset_root: Path, project_dataset_root: Path, limit: int | None) -> dict[str, Any]:
+def localize_d036_cases(
+    cases: list[SourceCase], archive_dataset_root: Path, project_dataset_root: Path, limit: int | None
+) -> dict[str, Any]:
     selected = cases[:limit] if limit is not None else cases
     copied = 0
     reused = 0
@@ -228,7 +231,14 @@ def localize_d036_cases(cases: list[SourceCase], archive_dataset_root: Path, pro
         ]:
             source = source_path
             if not source.exists():
-                source = archive_dataset_root / "d036_toothfairy2" / "raw" / "Dataset112_ToothFairy2" / subdir / f"{case.case_id}{suffix}"
+                source = (
+                    archive_dataset_root
+                    / "d036_toothfairy2"
+                    / "raw"
+                    / "Dataset112_ToothFairy2"
+                    / subdir
+                    / f"{case.case_id}{suffix}"
+                )
             destination = local_root / subdir / f"{case.case_id}{suffix}"
             if safe_copy_file(source, destination, project_root):
                 copied += 1
@@ -257,7 +267,9 @@ def small_structure_labels_for_mode(label_mode: str) -> list[int]:
     raise ValueError(f"Unsupported label mode: {label_mode}")
 
 
-def load_volume_pair(case: SourceCase, *, label_mode: str = "anatomy6") -> tuple[np.ndarray, np.ndarray, tuple[float, ...]]:
+def load_volume_pair(
+    case: SourceCase, *, label_mode: str = "anatomy6"
+) -> tuple[np.ndarray, np.ndarray, tuple[float, ...]]:
     if case.image_path.suffix.lower() == ".mha" or case.image_path.name.lower().endswith(".mha"):
         import SimpleITK as sitk
 
@@ -364,7 +376,9 @@ def choose_center(
     return tuple(int(rng.integers(0, max(1, size))) for size in label.shape)
 
 
-def crop_patch(array: np.ndarray, center: tuple[int, int, int], patch_shape: tuple[int, int, int], *, fill_value: float = 0) -> tuple[np.ndarray, tuple[int, int, int]]:
+def crop_patch(
+    array: np.ndarray, center: tuple[int, int, int], patch_shape: tuple[int, int, int], *, fill_value: float = 0
+) -> tuple[np.ndarray, tuple[int, int, int]]:
     output = np.full(patch_shape, fill_value, dtype=array.dtype)
     starts = [int(c - p // 2) for c, p in zip(center, patch_shape)]
     source_slices = []
@@ -425,7 +439,9 @@ def sampling_strategy_description(strategy: str, *, label_mode: str) -> str:
     if strategy == "class_cycle":
         return "class-cycle patch centers over foreground and every target label."
     if strategy == "small_cycle":
-        return "small-structure-cycle patch centers over canal/sinus labels, plus small, foreground, and random patches."
+        return (
+            "small-structure-cycle patch centers over canal/sinus labels, plus small, foreground, and random patches."
+        )
     if strategy == "canal_focus":
         return "canal-focused patch centers oversample mandibular canal labels while retaining sinus, foreground, and random patches."
     if strategy == "small50":
@@ -787,7 +803,9 @@ def selected_models(model_ids: str) -> list[ModelCandidate]:
     return output
 
 
-def nnunet_command(project_dataset_root: Path, configuration: str = "3d_fullres", trainer: str = "nnUNetTrainerNoMirroring") -> dict[str, Any]:
+def nnunet_command(
+    project_dataset_root: Path, configuration: str = "3d_fullres", trainer: str = "nnUNetTrainerNoMirroring"
+) -> dict[str, Any]:
     nnunet_root = project_dataset_root / "d024_dentvoxel" / "derived" / "nnunet"
     return {
         "dataset_id": 124,
@@ -1115,7 +1133,9 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
             allow_archive_source=args.allow_archive_source,
         )
         if args.localize_raw and dataset_id == "D036":
-            localization.append(localize_d036_cases(cases, archive_dataset_root, project_dataset_root, args.max_source_cases))
+            localization.append(
+                localize_d036_cases(cases, archive_dataset_root, project_dataset_root, args.max_source_cases)
+            )
             cases = build_cases_for_dataset(
                 dataset_id,
                 project_dataset_root,
@@ -1190,7 +1210,13 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     }
     summary["paths"] = {
         "summary_json": str(write_json(output_dir / "anatomy_highres_patch_experiment_summary.json", summary)),
-        "results_csv": str(write_csv(output_dir / "anatomy_highres_patch_experiment_results.csv", results, list(results[0].keys()) if results else ["status"])),
+        "results_csv": str(
+            write_csv(
+                output_dir / "anatomy_highres_patch_experiment_results.csv",
+                results,
+                list(results[0].keys()) if results else ["status"],
+            )
+        ),
     }
     summary["comparison_history"] = collect_comparison_history(Path(args.output_root), summary)
     summary["reports"] = write_reports(summary, Path(args.report_dir))
@@ -1199,7 +1225,9 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run high-resolution patch experiments for public CBCT anatomy segmentation.")
+    parser = argparse.ArgumentParser(
+        description="Run high-resolution patch experiments for public CBCT anatomy segmentation."
+    )
     parser.add_argument("--datasets", default="D024,D036")
     parser.add_argument("--models", default="monai_segresnetds,monai_swinunetr_tiny")
     parser.add_argument("--project-dataset-root", default=str(PROJECT_DATASET_ROOT))

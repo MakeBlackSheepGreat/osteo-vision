@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+from PIL import Image
+
 from backend.src.services.video_keyframe_metrics import positive_float
 from src.core.config import load_yaml
 from src.core.schemas import AdapterRequest
@@ -34,6 +37,7 @@ def analyze_keyframe_segmentations(
         source_path = frame.get("evidence_path") or frame.get("path")
         if not source_path:
             continue
+        rgb = _load_rgb_image(str(source_path))
         frame_case_id = f"{case_id}_frame_{int(frame.get('order', len(outputs) + 1)):02d}"
         frame_warnings = list(model_warnings)
         payload, analysis_method, model_frame_warnings = _trainable_keyframe_payload(
@@ -41,6 +45,7 @@ def analyze_keyframe_segmentations(
             frame_case_id=frame_case_id,
             source_path=str(source_path),
             roi_hints=roi_hints,
+            rgb=rgb,
         )
         frame_warnings.extend(model_frame_warnings)
         if payload is None:
@@ -62,6 +67,7 @@ def analyze_keyframe_segmentations(
                 threshold=threshold,
                 colormap=colormap,
                 roi_hints=roi_hints,
+                rgb=rgb,
             )
             frame_warnings.append(_keyframe_fallback_warning())
         outputs.append(
@@ -72,6 +78,7 @@ def analyze_keyframe_segmentations(
                 analysis_method=analysis_method,
                 warnings=frame_warnings,
                 roi_hints=roi_hints,
+                rgb=rgb,
             )
         )
     return outputs
@@ -98,6 +105,7 @@ def _trainable_keyframe_payload(
     frame_case_id: str,
     source_path: str,
     roi_hints: list[dict[str, Any]],
+    rgb: np.ndarray,
 ) -> tuple[dict[str, Any] | None, str, list[dict[str, Any]]]:
     if model_adapter is None:
         return None, "heuristic_hotspot_fallback", []
@@ -109,7 +117,7 @@ def _trainable_keyframe_payload(
             input_type="2d_image",
             task_type="segmentation",
             modality="surgical_keyframe",
-            metadata={"roi_hints": roi_hints},
+            metadata={"roi_hints": roi_hints, "predecoded_rgb": rgb},
         )
     )
     model_payload = result.to_dict()
@@ -130,6 +138,7 @@ def _hotspot_keyframe_fallback(
     threshold: float,
     colormap: str,
     roi_hints: list[dict[str, Any]],
+    rgb: np.ndarray,
 ) -> dict[str, Any]:
     # 真实目标域数据不足时，fallback 仍要产出可复核 mask/overlay，保证 MP4 闭环不中断。
     return segment_2d_fluorescence_hotspots(
@@ -141,6 +150,7 @@ def _hotspot_keyframe_fallback(
         colormap=colormap,
         model_id="video_keyframe_hotspot_segmenter",
         roi_hints=roi_hints,
+        rgb=rgb,
     )
 
 
@@ -152,11 +162,13 @@ def _keyframe_segmentation_output(
     analysis_method: str,
     warnings: list[dict[str, Any]],
     roi_hints: list[dict[str, Any]],
+    rgb: np.ndarray,
 ) -> dict[str, Any]:
     lesion_evidence = _dict_field(payload, "lesion_evidence")
     prediction = _dict_field(payload, "prediction")
     model_quantification = _dict_field(payload, "quantification")
-    decoded_intensity = decoded_frame_fluorescence_quantification(source_path, roi_hints=roi_hints)
+    decoded_intensity = decoded_frame_fluorescence_quantification(rgb, roi_hints=roi_hints)
+    decoded_intensity["source_path"] = source_path
     quantification = {
         **model_quantification,
         "model_probability_summary": {
@@ -352,3 +364,8 @@ def _keyframe_model_mapping(config_path: str, *, model_id: str) -> dict[str, Any
 def _dict_field(payload: dict[str, Any], key: str) -> dict[str, Any]:
     value = payload.get(key)
     return value if isinstance(value, dict) else {}
+
+
+def _load_rgb_image(source_path: str) -> np.ndarray:
+    with Image.open(source_path) as image:
+        return np.asarray(image.convert("RGB"), dtype=np.uint8).copy()

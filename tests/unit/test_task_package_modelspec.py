@@ -16,4 +16,3 @@ def test_model_spec_defaults() -> None:
     payload = spec.to_dict()
     assert payload["enabled"] is True
     assert payload["clinical_claim_allowed"] is False
-

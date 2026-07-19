@@ -10,10 +10,14 @@ def _repo_root() -> Path:
 
 
 def _default_video_manifest_path(root: Path) -> Path:
-    combined = root / "research" / "literature" / "inventory" / "video_library_manifest_20260704.csv"
-    if combined.exists():
-        return combined
-    return root / "research" / "literature" / "inventory" / "video_download_manifest_20260703.csv"
+    inventory = root / "research" / "literature" / "inventory"
+    combined_manifests = sorted(inventory.glob("video_library_manifest_*.csv"), key=lambda path: path.name)
+    if combined_manifests:
+        return combined_manifests[-1]
+    download_manifests = sorted(inventory.glob("video_download_manifest_*.csv"), key=lambda path: path.name)
+    if download_manifests:
+        return download_manifests[-1]
+    return inventory / "video_library_manifest.csv"
 
 
 def _resolve_project_path(value: str | os.PathLike[str], project_root: Path) -> Path:
@@ -25,7 +29,7 @@ def _resolve_project_path(value: str | os.PathLike[str], project_root: Path) -> 
 
 @dataclass(frozen=True)
 class Settings:
-    """Runtime settings for the local V1 platform service."""
+    """Runtime settings for the Osteo Vision platform API."""
 
     project_root: Path = _repo_root()
     backend_host: str = "127.0.0.1"
@@ -80,11 +84,9 @@ def load_settings() -> Settings:
     case_store_backend = os.environ.get("OSTEO_CASE_STORE_BACKEND", "").strip().lower()
     if not case_store_backend:
         case_store_backend = "json" if case_store_path.suffix.lower() == ".json" else "sqlite"
-    video_manifest_path = Path(
-        os.environ.get(
-            "OSTEO_VIDEO_MANIFEST_PATH",
-            _default_video_manifest_path(root),
-        )
+    video_manifest_path = _resolve_project_path(
+        os.environ.get("OSTEO_VIDEO_MANIFEST_PATH", _default_video_manifest_path(root)),
+        root,
     )
     inference_config_path = _resolve_project_path(
         os.environ.get(

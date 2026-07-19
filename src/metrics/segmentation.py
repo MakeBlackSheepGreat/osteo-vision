@@ -180,4 +180,3 @@ def _surface(mask: np.ndarray) -> np.ndarray:
     structure = ndi.generate_binary_structure(mask.ndim, 1)
     eroded = ndi.binary_erosion(mask, structure=structure, border_value=0)
     return np.logical_and(mask, np.logical_not(eroded))
-

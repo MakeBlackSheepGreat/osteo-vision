@@ -118,7 +118,7 @@
 
 三项目标数据清单已通过扩展统一机器校验：15 个 manifest 共 47 条逻辑记录、138 个本地文件、5,514,559,510 字节，逐文件存在性、声明大小、SHA256 和 18 项来源字段全部通过。最新验证结果位于 `research/datasets/public-candidates/three_priority_manifest_verification_20260719_d095.json`，复核工具为 `tools/verify_three_priority_dataset_manifests.py`。全部源记录继续保持 `target_domain_flag=false`、`training_eligible=false` 和独立的数据域边界。当前公开检索仍未确认同时具备颌骨骨髓炎术中白光/ICG、患者临床变量、可信骨面及坏死/过渡/活骨像素标注的可直接下载联合目标域数据。
 
-2026-07-19 最新全量工程自测：`backend/tests` 250 项通过；核心 `tests/unit` 与 `tests/smoke` 共 535 项通过；前端 47 个测试文件、179 项通过，1 项跳过；`vue-tsc`、Vite build、全量 Ruff 及 `src backend` mypy 通过。`NavigationWorkspacePage` 路由块约 61.97 kB，三维视口作为约 709.67 kB 的异步块按需加载；Vite 仅对该独立三维块保留大块提示。桌面浏览器已载入病例 STL 完成三维视口检查，画布像素检查通过，开启自动旋转后抽样变化比例为 `0.07086`，更新后的浏览器控制台为 0 错误、0 警告；病例输入路径也已取消字符串压缩并保持完整换行显示。2026-07-18 的严格比赛配置预检已通过，主线 checkpoint、SHA256 sidecar、FFmpeg 和 FFprobe 均已核验。上述结果均为项目工程自测，不能替代赛题方评审、真实下颌仿体或目标域验证。
+当前 `v0.3.0-rc.2` 工程基线：`backend/tests` 281 项通过；核心测试 603 项通过；前端 49 个测试文件、207 项通过，1 项跳过；Playwright E2E 5 项通过；`vue-tsc`、Vite build、全量 Ruff、Black、isort、严格 mypy、Python 3.11 compileall 和严格运行预检通过。`NavigationWorkspacePage` 路由块约 63.71 kB，三维视口作为约 710.17 kB 的异步块按需加载。上述结果均为项目工程自测，赛题方评审、真实下颌仿体和目标域验证保持独立。
 
 公开真实视频 4K 工程验证已通过：使用 OFDVDnet 离体荧光手术代理视频与胫骨骨髓炎清创视频，完成来源追溯、抽帧可视化、不同帧率解码、不可读容器拒绝、4K JPEG 强制 tiling、短时内存观察和目标域声明阻断。当前 4K 单图强制 tiling 为 45 个 tile，端到端工程耗时约 3272 ms，峰值 GPU 显存约 724.8 MB；这些数值只反映本机单次工程运行。
 

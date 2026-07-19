@@ -73,8 +73,7 @@ def export_brp_geometry_manifest(
         raise ValueError("Scene manifest does not contain review_planes")
 
     plane_results = [
-        plane_intersection_result(index=index, plane=plane, triangles=triangles)
-        for index, plane in enumerate(planes)
+        plane_intersection_result(index=index, plane=plane, triangles=triangles) for index, plane in enumerate(planes)
     ]
     segment_results = segment_lengths_from_planes(plane_results)
     candidate_results = nearest_surface_points(vertices, read_candidate_points(candidate_points_path))

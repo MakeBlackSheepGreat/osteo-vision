@@ -51,6 +51,66 @@ def test_decoded_frame_intensity_uses_signal_and_background_rois() -> None:
     assert result["source"] == "decoded_keyframe_intensity"
 
 
+def test_keyframe_analysis_reuses_one_rgb_decode_for_model_and_quantification(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "frame.jpg"
+    Image.fromarray(np.full((18, 24, 3), 128, dtype=np.uint8)).save(image_path)
+    received: dict[str, np.ndarray] = {}
+
+    class Result:
+        @staticmethod
+        def to_dict() -> dict:
+            return {
+                "model_id": "predecoded_test",
+                "model_family": "test",
+                "prediction": {},
+                "segmentation_mask": {"path": "mask.png", "positive_area_px": 1},
+                "lesion_evidence": {},
+                "quantification": {"positive_area_px": 1, "mean_probability": 0.6},
+                "warnings": [],
+            }
+
+    class Adapter:
+        @staticmethod
+        def predict(request):
+            received["model"] = request.metadata["predecoded_rgb"]
+            return Result()
+
+    def quantify(image, **_kwargs):
+        received["quantification"] = image
+        return {
+            "available": True,
+            "source": "decoded_keyframe_intensity",
+            "intensity_domain": "decoded_8bit_luminance_unit_range",
+            "p95_intensity": 0.5,
+            "background_intensity": 0.5,
+        }
+
+    monkeypatch.setattr(
+        "backend.src.services.keyframe_segmentation._keyframe_model_adapter",
+        lambda *_args, **_kwargs: (Adapter(), []),
+    )
+    monkeypatch.setattr(
+        "backend.src.services.keyframe_segmentation.decoded_frame_fluorescence_quantification",
+        quantify,
+    )
+
+    outputs = analyze_keyframe_segmentations(
+        [{"order": 1, "frame_index": 0, "timestamp_sec": 0.0, "evidence_path": str(image_path)}],
+        tmp_path / "outputs",
+        case_id="case_predecoded",
+        config_path=str(tmp_path / "unused.yml"),
+        model_id="predecoded_test",
+        threshold=0.5,
+        colormap="green",
+        roi_hints=[],
+    )
+
+    assert outputs[0]["analysis_method"] == "trainable_keyframe_segmenter"
+    assert received["model"] is received["quantification"]
+    assert received["model"].shape == (18, 24, 3)
+    assert outputs[0]["quantification"]["decoded_frame_intensity"]["source_path"] == str(image_path)
+
+
 def test_time_intensity_curve_requires_real_distinct_timestamps() -> None:
     result = fluorescence_time_intensity_curve(
         [

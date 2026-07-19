@@ -38,9 +38,9 @@ platform for osteomyelitis intraoperative decision support. The page is called
 === PAGE LAYOUT (desktop, 1440×900 viewport, top to bottom) ===
 
 TOP BAR:
-- Left: small gray label "科研与竞赛平台验证" above a large bold title "颌骨骨髓炎术中辅助决策平台"
-- Right: 3 navigation pills in a row — "病例工作台" (active, blue border + light blue bg),
-  "医生复核" (inactive white), "报告导出" (inactive white).
+- Left: small gray label "研发验证版平台" above a large bold title "颌骨骨髓炎术中辅助决策平台"
+- Right: the clinical workflow navigation in this order — "数据准入", "病例档案", "病例工作台"
+  (active), "三维导航", "医生复核", "报告导出"; secondary research support follows afterward.
 
 WARNING BANNER:
 - A horizontal amber-bordered notice bar with a left thick amber accent stripe.
@@ -56,8 +56,8 @@ MAIN 3-COLUMN LAYOUT:
 LEFT SIDEBAR (~300px, white card, vertical stack of collapsible sections):
 1. Section "病例 / 建立与加载": text input "病例标题" with placeholder,
    primary blue button "新建病例", text input "病例 ID", secondary button "加载病例".
-2. Section "双通道输入 / 白光与 ICG 荧光": two text inputs for file paths,
-   secondary button "写入输入".
+2. Section "官方输入 / JPEG 与 MP4": file pickers for JPEG images and MP4 videos,
+   plus a paired white-light/fluorescence upload control for static fusion.
 3. Section "融合参数 / 伪彩与阈值": two horizontal sliders (融合透明度 0.45,
    荧光阈值 0.60), a dropdown "伪彩方案", primary blue button "运行双通道分析".
 4. Small section: secondary button "导出证据包".
@@ -210,4 +210,4 @@ Clean, medical, trustworthy. Chinese text throughout.
 3. **文字渲染**：如果模型中文渲染不佳，可以让模型生成布局后再用 Figma 手动替换文字。
 4. **风格锚点**：可以附上参考图（如 OHIF Viewer、3D Slicer、Nvidia Clara 的截图）并说
    "match this level of professional medical imaging software polish"。
-5. **多分辨率**：桌面端 1440×900 为主，也可以追加一个 768×1024 的移动端响应式版本。
+5. **工作站分辨率**：以桌面端 1440×900 及更宽的临床工作站视口为验收基线。

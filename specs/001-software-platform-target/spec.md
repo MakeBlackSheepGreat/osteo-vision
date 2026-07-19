@@ -6,7 +6,8 @@
 
 **Status**: Active implementation target; expanded 2026-07-17
 
-**Input**: User description: "Define the project target from `software_focused_realistic_platform_zh.md`."
+**Input**: User-approved platform target, current official alignment, and the
+`research/reports/planning/three_priority_capabilities_target_20260717_zh.md` goal freeze.
 
 ## Project Scope Alignment *(mandatory)*
 

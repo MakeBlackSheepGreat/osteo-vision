@@ -33,4 +33,3 @@ def image_metadata(path: str | Path) -> dict[str, Any]:
     except Exception as exc:
         meta.update({"image_probe_error": str(exc)})
     return meta
-

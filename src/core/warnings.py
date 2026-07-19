@@ -12,9 +12,7 @@ STATUS_FULL_VOLUME_REQUIRES_DETECTION = "full_volume_requires_detection"
 STATUS_LOW_CONFIDENCE = "low_confidence"
 STATUS_COMPLETED = "completed"
 
-DISCLAIMER_TEXT = (
-    "Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review."
-)
+DISCLAIMER_TEXT = "Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review."
 
 KNOWN_STATUSES = {
     STATUS_INVALID_INPUT,
@@ -47,4 +45,3 @@ def warning(code: str, message: str | None = None, blocking: bool = False, **det
         "blocking": bool(blocking),
         "details": details,
     }
-

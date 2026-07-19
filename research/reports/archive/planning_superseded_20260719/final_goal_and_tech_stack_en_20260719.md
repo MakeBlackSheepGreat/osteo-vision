@@ -6,11 +6,11 @@ Generated on: 2026-06-15
 
 This planning note is based on the following local materials:
 
-- `research/literature/inventory/competition_feasibility_report.md`
-- `research/planning/engineering_preparation.md`
-- `research/planning/data_acquisition_plan.md`
+- `research/reports/planning/official_competition_problem_alignment_20260704_zh.md`
+- `research/reports/archive/early_planning_202606/engineering_preparation.md`
+- `research/reports/archive/early_planning_202606/data_acquisition_plan.md`
 - `docs/architecture.md`
-- `docs/task_adapter_guide.md`
+- `docs/development_framework.md`
 - `configs/tasks/osteo_vision.yml`
 - `configs/inference/osteo_vision.yml`
 - `requirements.txt`
@@ -122,4 +122,3 @@ The minimum real-sample target remains 10-30 de-identified cases. Without real s
 ## 9. Current Recommendation
 
 The near-term priority should be to stabilize the engineering delivery chain: white-light/fluorescence fusion, reporting, demo, manifests, benchmarking, and model adapters. Models and datasets should continue as experiments. This keeps the project robust even if real samples, annotation formats, or model choices change later.
-

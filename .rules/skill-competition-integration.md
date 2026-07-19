@@ -188,7 +188,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/my_ct_classifier.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  
+
   models:
     - model_id: my_ct_classifier
       family: my_framework
@@ -204,7 +204,7 @@ runtime:
       enabled: true
       intended_use: competition platform workflow
       clinical_claim_allowed: false
-  
+
   tasks:
     classification:
       pipeline: classification
@@ -262,12 +262,12 @@ def generate_submission(
 ) -> str:
     """
     生成比赛提交文件
-    
+
     Args:
         predictions_path: 预测结果路径
         output_path: 输出路径
         format: 提交格式（csv, json）
-        
+
     Returns:
         提交文件路径
     """
@@ -281,11 +281,11 @@ def generate_submission(
                 "prediction": row["class_label"],
                 "probability": row["probability"],
             })
-    
+
     # 写入提交文件
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    
+
     if format == "csv":
         with open(output, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["case_id", "prediction", "probability"])
@@ -295,7 +295,7 @@ def generate_submission(
         import json
         with open(output, "w") as f:
             json.dump(predictions, f, indent=2)
-    
+
     return str(output)
 ```
 

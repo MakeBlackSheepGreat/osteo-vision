@@ -2,7 +2,27 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.src.core.settings import load_settings
+from backend.src.core.settings import _default_video_manifest_path, load_settings
+
+
+def test_default_video_manifest_selects_latest_versioned_inventory(tmp_path: Path) -> None:
+    inventory = tmp_path / "research" / "literature" / "inventory"
+    inventory.mkdir(parents=True)
+    older = inventory / "video_library_manifest_20260704.csv"
+    latest = inventory / "video_library_manifest_20260719.csv"
+    older.write_text("older\n", encoding="utf-8")
+    latest.write_text("latest\n", encoding="utf-8")
+
+    assert _default_video_manifest_path(tmp_path) == latest
+
+
+def test_default_video_manifest_falls_back_to_download_inventory(tmp_path: Path) -> None:
+    inventory = tmp_path / "research" / "literature" / "inventory"
+    inventory.mkdir(parents=True)
+    fallback = inventory / "video_download_manifest_20260719.csv"
+    fallback.write_text("fallback\n", encoding="utf-8")
+
+    assert _default_video_manifest_path(tmp_path) == fallback
 
 
 def test_inference_config_relative_path_is_resolved_from_project_root(

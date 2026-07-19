@@ -98,17 +98,17 @@ from src.core.warnings import STATUS_INVALID_INPUT, warning
 
 class MyPreprocessor:
     """自定义预处理器示例"""
-    
+
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
-    
+
     def preprocess(self, input_path: str | Path) -> dict[str, Any]:
         """
         预处理输入数据
-        
+
         Args:
             input_path: 输入文件路径
-            
+
         Returns:
             预处理结果字典，包含:
             - data: 预处理后的数据
@@ -118,38 +118,38 @@ class MyPreprocessor:
         p = Path(input_path)
         warnings: list[dict[str, Any]] = []
         metadata: dict[str, Any] = {}
-        
+
         # 1. 验证输入
         if not p.exists():
             warnings.append(warning(STATUS_INVALID_INPUT, "File not found", True))
             return {"data": None, "metadata": metadata, "warnings": warnings}
-        
+
         # 2. 读取数据
         data = self._load_data(p)
-        
+
         # 3. 执行预处理
         data = self._normalize(data)
         data = self._resize(data)
-        
+
         # 4. 收集元数据
         metadata = {
             "original_shape": data.shape,
             "dtype": str(data.dtype),
             "preprocessing_steps": ["normalize", "resize"],
         }
-        
+
         return {"data": data, "metadata": metadata, "warnings": warnings}
-    
+
     def _load_data(self, path: Path) -> Any:
         """加载数据"""
         # 实现数据加载逻辑
         raise NotImplementedError
-    
+
     def _normalize(self, data: Any) -> Any:
         """归一化"""
         # 实现归一化逻辑
         return data
-    
+
     def _resize(self, data: Any) -> Any:
         """调整尺寸"""
         # 实现尺寸调整逻辑
@@ -165,13 +165,13 @@ from src.preprocess.input_validation import validate_input
 def validate_and_preprocess(path: str | Path) -> tuple[InputSummary, dict[str, Any]]:
     # 1. 基础验证
     summary = validate_input(path)
-    
+
     # 2. 如果验证通过，执行预处理
     preprocessed = None
     if summary.accepted:
         preprocessor = MyPreprocessor()
         preprocessed = preprocessor.preprocess(path)
-    
+
     return summary, preprocessed
 ```
 

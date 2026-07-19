@@ -20,4 +20,3 @@ def result_markdown(result: dict[str, Any] | None) -> str:
         f"Risk: `{result.get('risk_level')}`\n\n"
         f"Probability: `{result.get('probability')}`"
     )
-

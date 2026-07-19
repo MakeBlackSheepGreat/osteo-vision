@@ -18,7 +18,9 @@ from src.datasets.ofdvdnet import DOMAIN_BOUNDARY, OFDVDnetRecord, read_ofdvdnet
 from src.preprocess.fluorescence import blend_pseudocolor_on_reference, enhance_fluorescence_signal
 
 DEFAULT_MANIFEST = "research/literature/inventory/ofdvdnet_video_manifest_20260704.csv"
-DEFAULT_OUTPUT_DIR = "research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/ofdvdnet/baseline_enhancement"
+DEFAULT_OUTPUT_DIR = (
+    "research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/ofdvdnet/baseline_enhancement"
+)
 DEFAULT_BASELINE_MANIFEST = "research/literature/inventory/ofdvdnet_fluorescence_baseline_manifest_20260704.csv"
 DEFAULT_REPORT_DIR = "research/reports/modeling"
 
@@ -200,7 +202,7 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
             "",
             payload["domain_boundary"],
             "",
-            "该 baseline 只用于赛点一的荧光增强、伪彩稳定性和证据展示链路验证，不能作为颌骨骨髓炎诊断模型性能。",
+            "该 baseline 只用于多模态荧光处理中的增强、伪彩稳定性和证据展示链路验证，禁止作为颌骨骨髓炎诊断模型性能。",
         ]
     else:
         lines = [

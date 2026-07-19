@@ -1,150 +1,119 @@
-# 架构概述
+# 平台系统架构
 
-本工程是一个用于颌骨骨髓炎智能化荧光诊疗项目的医学影像比赛版平台框架。它将可复用的框架能力与疾病特定配置、模型适配器分离。
+适用版本：`0.3.0-rc.2`。本文件描述当前可运行平台的组件、数据流、持久化边界和安全降级。工程约束见 [development_framework.md](development_framework.md)，目录所有权见 [project_structure.md](project_structure.md)。
 
-## 分层架构
+## 1. 架构目标
 
-框架采用分层架构，每层都有明确的职责：
+- 保持官方 JPEG/MP4 文件输入、荧光处理、AI 候选区、医生复核和证据导出闭环。
+- 将设备驱动、厂商 SDK 和私有采集接口隔离在平台软件边界之外。
+- 对目标域数据、模型晋级、患者条件、骨活性和三维配准执行失败闭合。
+- 对病例、输入、模型、参数、复核、标注和导出保留可追溯证据。
+- 对 4K 图像、视频关键帧和连续帧提供有界内存、串行背压和可核验耗时。
 
-### 核心层 (`src/core/`)
+## 2. 总体数据流
 
-- **配置管理**：配置加载、验证和管理
-- **注册表**：组件注册和发现
-- **契约**：核心接口和协议
-- **数据模式**：数据模型定义
-- **警告管理**：警告和错误管理
-
-### 数据集层 (`src/datasets/`)
-
-- **清单**：数据集清单读取和验证
-- **分割**：数据分割策略
-- **泄露检测**：数据泄露检测
-
-### 引擎层 (`src/engine/`)
-
-- **推理**：单例推理服务
-- **实验**：实验执行和管理
-- **基准测试**：基准评估
-- **训练**：模型训练编排
-
-### 模型层 (`src/models/`)
-
-- **适配器**：模型适配器接口和实现
-- **注册表**：模型注册和发现
-- **分类器**：Fixture 分类模型
-- **分割器**：Fixture 分割模型
-- **检测器**：Fixture 检测模型
-
-### 流水线层 (`src/pipelines/`)
-
-- **基础**：流水线基础上下文
-- **分类**：分类流水线
-- **分割**：分割流水线
-- **检测**：检测流水线
-- **量化**：量化流水线
-- **多任务**：多任务流水线
-
-### 预处理层 (`src/preprocess/`)
-
-- **输入验证**：输入类型检测和验证
-- **图像质量**：图像质量评估
-- **CT 预处理**：CT 特定预处理
-- **掩码后处理**：掩码后处理
-- **ROI**：感兴趣区域处理
-
-### 报告层 (`src/reports/`)
-
-- **单例**：单例报告生成
-- **基准测试**：基准报告生成
-- **写入器**：报告写入工具
-- **验证器**：报告验证
-
-### 工具层 (`src/utils/`)
-
-- **日志**：统一日志系统
-- **运行时**：运行时环境和设备管理
-
-## 数据流
-
-```text
-输入路径
-  -> 输入验证
-  -> 任务包和模型适配器选择
-  -> 选择的流水线
-  -> Fixture 或配置的模型适配器
-  -> PredictionResult
-  -> 单例报告
+```mermaid
+flowchart LR
+    A["批次准入"] --> B["病例与输入持久化"]
+    B --> C["JPEG 双通道分析"]
+    B --> D["MP4 关键帧分析"]
+    B --> E["浏览器连续帧分析"]
+    C --> F["候选区与量化证据"]
+    D --> F
+    E --> F
+    F --> G["医生复核与人工标注"]
+    G --> H["报告与病例证据包"]
+    B --> I["CBCT/STL 与离线元数据"]
+    I --> J["L0/L1/L2 三维证据"]
+    J --> G
 ```
 
-基准测试读取清单并为每一行重复相同的 `diagnose()` 调用。V2 将运行证据写入 `artifacts/runs/<run_id>/`，包括配置、清单、任务包和模型规范快照。
+官方设备技术资料确认 `3840x2160`、USB3.0 文件存储、JPEG 图片和 MP4 视频。浏览器摄像头、连续帧接口和标准化元数据属于平台软件扩展。倍率、工作距离、三路图像、标定和位姿可通过人工录入或离线 manifest 进入软件。
 
-## V3 实验流程
+## 3. 组件分层
 
-```text
-ExperimentSpec
-  -> 任务包、清单和模型规范验证
-  -> 固定分割、患者级别 k 折或外部分配
-  -> 确定性 fixture 折评分
-  -> OOF 预测和折指标
-  -> 阈值分析
-  -> 模型卡和检查点清单
-  -> 推广门控
-  -> 运行时推广草案
+### 3.1 Vue 桌面工作站
+
+`frontend/` 使用 Vue 3、TypeScript、Pinia、Vue Router 和 Three.js。主导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出和研发支持排列。
+
+病例工作台集中承载视频流输入、融合图、热图、归一化/分割结果和高频控制。三维导航使用独立路由，按需加载 Three.js 视口。组件卸载时释放媒体流、对象 URL、定时器、事件监听器以及 Three.js geometry、material 和 texture。
+
+### 3.2 FastAPI 接口层
+
+`backend/src/api/` 负责 HTTP 契约、输入验证、身份上下文、状态码、文件流和服务编排。接口层将医学处理交给应用服务，并通过 `/health`、`/ready` 和 OpenAPI 暴露运行状态。
+
+主要接口族覆盖：
+
+- 病例、临床上下文和输入登记。
+- 原始文件上传、关键帧任务和连续帧分析。
+- 医生复核、人工标注、训练准入和晋级审批。
+- 报告、结构化文件和证据包导出。
+- CBCT 建模、L1 静态配准和 L2 离线位姿回放。
+
+### 3.3 应用服务层
+
+`backend/src/services/` 负责病例工作流与证据落盘。分析服务复用 `src/` 的模型 adapter 和预处理能力；任务服务控制同病例并发，连续帧由前端等待上一请求完成后继续，避免无界请求积压。
+
+病例与标注使用 SQLite repository。任务状态和证据文件写入 `artifacts/`。路径、哈希、schema version、模型 ID、阈值、回退原因和医生复核状态随结果保存。
+
+### 3.4 核心算法层
+
+`src/` 提供可独立测试的核心能力：
+
+| 模块 | 职责 |
+|---|---|
+| `src/io/` | JPEG、MP4、DICOM、NIfTI、流输入和官方格式质控 |
+| `src/preprocess/` | 配准、荧光处理、视频抽帧、质量评估、ROI 和 mask 后处理 |
+| `src/models/` | adapter、关键帧分割、患者条件、骨活性和模型晋级 |
+| `src/datasets/` | 来源清单、患者级切分、训练准入和泄漏检查 |
+| `src/metrics/` | 分割、校准、亚组、安全和性能指标 |
+| `src/navigation/` | 坐标契约、刚体配准、相机投影和离线位姿回放 |
+| `src/engine/` | 通用推理、实验和 benchmark 编排 |
+
+## 4. 三条影像分析路径
+
+### JPEG 双通道
+
+白光与原始荧光图进入配准、背景扣除、归一化、伪彩、融合、ROI 定量和质量检查。设备叠加图仅用于显示、质控和证据核对。通道尺寸不一致时记录重采样警告，医生仍需复核几何对齐。
+
+### MP4 关键帧
+
+上传服务核验文件签名、容器、解码、分辨率、帧率和时长。关键帧分析生成 mask、probability map、伪彩、叠加图、候选区、帧明细、时间稳定性和 video segmentation manifest。4K 输入使用可配置 tiling。
+
+### 连续帧
+
+浏览器按最长边 960 生成 JPEG 帧并串行调用 live-frame API。后端复用已加载主线模型，返回唯一证据路径、处理分辨率和端到端耗时。实时路径关闭 TTA 并保留风险图、不确定性、模型身份和安全声明。
+
+## 5. 模型与晋级
+
+比赛严格配置为 `configs/inference/osteo_vision_competition_strict.yml`，当前主线为 `keyframe_residual_attention_unet_s20260715_20260715`。严格模式要求显式运行许可、checkpoint、sidecar 和 SHA256 一致，并关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。
+
+患者条件与骨活性 checkpoint 仅能生成受控工程证据。目标域替换需要患者级独立验证、概率校准、亚组审计、no-harm/效用门、可信医生复核和双签晋级证据。任一条件失败时保持影像基础结果或无法判断状态。
+
+## 6. 三维证据
+
+- `L0`：未配准三维参考，可并列检查 CBCT/STL 与影像候选区。
+- `L1`：静态仿体配准工程验证，记录坐标、单位、变换、FRE、独立 TRE、重投影误差、标定和复核。
+- `L2`：SHA256 绑定 MP4、标定表、L1 证据、逐帧位姿和独立动态误差的离线回放工程验证。
+
+来源、坐标 frame、手性、轴方向、单位、矩阵约定、标定范围、同步、误差或医生复核缺失时，空间叠加撤销并降级至 `L0/unregistered_3d_reference`。
+
+## 7. 性能与鲁棒性
+
+核心性能基准入口：
+
+```powershell
+conda run -n osteo-vision python tools/benchmark_core_hotpaths.py --repeats 3 --output artifacts/performance/core_hotpaths_current.json
 ```
 
-`scripts/promote_model.py` 从 `promotion_record.json` 写入补丁草案。它保持 `configs/inference/osteo_vision.yml` 不变，以便运行时推广保持可审查。
+当前基准覆盖连通域候选统计、4K 全分辨率质量直方图、时间有序位姿最近邻查找和任务状态缓存，并校验优化前后输出一致性。质量路径保留全分辨率统计与原始证据，显式传入 `quality_evaluation_max_side` 时才启用缩略评估。模型端性能继续通过 4K tiling、live fast-output 和完整比赛流工具验证。
 
-## 模型适配器边界
+工作区质量门覆盖 Ruff、mypy、Black、isort、pytest、Vitest、`vue-tsc`、Vite build、Playwright、严格运行预检、数据 manifest 与活动文档审计。
 
-V2 不下载或捆绑模型权重。高级模型系列表示为具有状态检查的本地适配器：
+## 8. 安全与隐私
 
-- `fixture`：测试和演示的确定性回退。
-- `timm_classifier`：2D 或 2.5D 分类主干。
-- `monai_bundle`：MONAI Bundle 或 Model Zoo 包。
-- `nnunet_v2`：分割比赛基线。
-- `medsam_like`：MedSAM、MedSAM2 或 SAM2 风格的医学分割。
-- `vista3d_like`：3D 分割基础模型接口。
-- `vlm_encoder`：BiomedCLIP、Rad-DINO、MedImageInsight 风格的编码器。
-
-## 安全边界
-
-该框架是研发验证版平台。报告包含免责声明，不将结果作为临床诊断呈现。
-
-## 契约接口
-
-框架为所有主要组件定义了契约（接口）：
-
-- **核心契约** (`src/core/contracts/`)：配置加载器、注册表、日志、生命周期
-- **数据集契约** (`src/datasets/contracts/`)：数据集加载器、分割策略、清单读取器
-- **模型契约** (`src/models/contracts/`)：模型适配器、模型注册表、检查点管理器
-- **流水线契约** (`src/pipelines/contracts/`)：流水线、流水线注册表、流水线步骤
-- **预处理契约** (`src/preprocess/contracts/`)：预处理器、输入验证器、后处理器
-- **引擎契约** (`src/engine/contracts/`)：推理服务、实验运行器、基准评估器
-- **报告契约** (`src/reports/contracts/`)：报告生成器、报告写入器、报告验证器
-
-## 技能规则库
-
-框架包含一个技能规则库，用于 AI 代理。详见 [.rules/README.md](../.rules/README.md)。
-
-## 类型安全
-
-框架使用 mypy 进行静态类型检查。配置：`mypy.ini`
-
-```bash
-# 运行类型检查
-mypy src/
-
-# 使用严格模式运行
-mypy --strict src/
-```
-
-
-## V1 Platform Boundary Update
-
-The platform target is now implemented as a split frontend/backend workbench:
-
-- `frontend/` contains the Vue 3 review surface.
-- `backend/` contains the FastAPI orchestration layer.
-- `src/` continues to host shared analysis, preprocessing, and report utilities.
-- Case workflows are local-first and evidence-oriented.
-- Exported bundles carry disclaimers and review-state context.
+- 所有输出保留研发验证、非诊断和医生复核边界。
+- 真实患者资料执行脱敏、最小保留、批次准入和用途限制。
+- 隔离文件、未复核标注、工程身份标注和未晋级模型保持独立来源与训练权重边界。
+- 原始影像、视频、checkpoint、数据库、密钥和大体积派生数据保持 Git 忽略。
+- 导出证据包含输入、模型、参数、警告、复核和产物哈希，支持事后核验。

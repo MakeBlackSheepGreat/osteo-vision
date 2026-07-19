@@ -13,7 +13,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import nibabel as nib
 import numpy as np
 
-from scripts.preprocess_d024_dentvoxel import DATASET_ROOT_IN_ZIP, DEFAULT_DATASET_DIR, build_case_pairs, load_dataset_metadata
+from scripts.preprocess_d024_dentvoxel import (
+    DATASET_ROOT_IN_ZIP,
+    DEFAULT_DATASET_DIR,
+    build_case_pairs,
+    load_dataset_metadata,
+)
 from src.datasets.d024 import build_fold_splits, build_nnunet_dataset_json, d024_task_spec, remap_label_array
 
 DEFAULT_NNUNET_ROOT = DEFAULT_DATASET_DIR / "derived" / "nnunet"

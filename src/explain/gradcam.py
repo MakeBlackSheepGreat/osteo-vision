@@ -12,4 +12,3 @@ def write_gradcam_placeholder(case_id: str, output_dir: str | Path = "artifacts/
     payload = {"case_id": case_id, "type": "gradcam_placeholder", "available": False}
     write_json(path, payload)
     return {"path": str(path), **payload}
-

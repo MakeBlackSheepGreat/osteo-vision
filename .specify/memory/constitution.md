@@ -78,8 +78,8 @@ retention creates avoidable risk.
 ### V. Evidence-Driven Delivery
 Every feature MUST define independently testable user value and SHOULD include
 unit, smoke, contract, or integration tests proportional to its risk. The
-minimum regression gate for core changes is `python check_env.py` and
-`python -m pytest tests/unit tests/smoke` unless the plan records a justified
+minimum regression gate for core changes is `python tools/check_project_readiness.py`
+and `python -m pytest tests/unit tests/smoke` unless the plan records a justified
 exception. Reports, metrics, screenshots, JSON outputs, and failure cases MUST
 be saved in the appropriate `research/reports/` or `artifacts/` location.
 

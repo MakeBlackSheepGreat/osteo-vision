@@ -6,13 +6,13 @@
 
 本次判断主要读取了以下本地资料：
 
-- `research/literature/inventory/competition_feasibility_report.md`
+- `research/reports/planning/official_competition_problem_alignment_20260704_zh.md`
 - 本地忽略 PDF：`HT-202604成都科奥达光电技术有限公司-面向颌骨骨髓炎的智能化荧光诊疗比赛方案.pdf`
 - `research/reports/planning/official_competition_problem_alignment_20260704_zh.md`
-- `research/planning/engineering_preparation.md`
-- `research/planning/data_acquisition_plan.md`
+- `research/reports/archive/early_planning_202606/engineering_preparation.md`
+- `research/reports/archive/early_planning_202606/data_acquisition_plan.md`
 - `docs/architecture.md`
-- `docs/task_adapter_guide.md`
+- `docs/development_framework.md`
 - `configs/tasks/osteo_vision.yml`
 - `configs/inference/osteo_vision.yml`
 - `requirements.txt`
@@ -91,9 +91,9 @@
 
 1. 公开数据用于解剖结构、口腔/颌骨 ROI、病灶候选和荧光增强的预训练或演示。
 2. 少量真实术中白光/ICG 样本用于证明系统形态与临床工作流匹配。
-3. 医生标注用于定义坏死骨、病灶边界、保留区和风险区，并作为赛点二强化的前提。
+3. 医生标注用于定义坏死骨、病灶边界、保留区和风险区，并作为 AI 辅助判读强化的前提。
 
-最低真实样本目标仍是 10-30 例脱敏病例。若拿不到真实样本，赛点二应定位为辅助演示和可接入能力，核心竞争力放在完整系统和可解释工作流。
+最低真实样本目标仍是 10-30 例脱敏病例。真实样本不足时，AI 辅助判读保持工程验证定位，重点展示完整系统、医生复核和可解释工作流。
 
 ## 8. 阶段验收
 

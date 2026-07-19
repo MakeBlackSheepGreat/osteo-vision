@@ -14,19 +14,28 @@ TEMPLATES = {
         "pipelines": ["classification"],
         "metrics": ["auc", "accuracy", "sensitivity", "specificity", "precision", "f1"],
         "demo_outputs": ["probability", "class_label", "risk_level", "warnings", "report_path"],
-        "recommended_models": [{"model_id": "biomedclip_zero_shot", "family": "vlm_encoder"}, {"model_id": "fixture_default", "family": "fixture"}],
+        "recommended_models": [
+            {"model_id": "biomedclip_zero_shot", "family": "vlm_encoder"},
+            {"model_id": "fixture_default", "family": "fixture"},
+        ],
     },
     "segmentation": {
         "pipelines": ["segmentation", "quantification"],
         "metrics": ["dice", "iou", "hd95"],
         "demo_outputs": ["segmentation_mask", "lesion_evidence", "quantification", "warnings", "report_path"],
-        "recommended_models": [{"model_id": "medsam2_promptable", "family": "medsam_like"}, {"model_id": "nnunet_v2_baseline", "family": "nnunet_v2"}],
+        "recommended_models": [
+            {"model_id": "medsam2_promptable", "family": "medsam_like"},
+            {"model_id": "nnunet_v2_baseline", "family": "nnunet_v2"},
+        ],
     },
     "ct_roi": {
         "pipelines": ["classification", "segmentation", "detection", "quantification", "multitask"],
         "metrics": ["auc", "sensitivity", "specificity", "f1", "dice", "candidate_recall"],
         "demo_outputs": ["risk_level", "lesion_evidence", "quantification", "warnings", "report_path"],
-        "recommended_models": [{"model_id": "vista3d_foundation", "family": "vista3d_like"}, {"model_id": "monai_bundle_baseline", "family": "monai_bundle"}],
+        "recommended_models": [
+            {"model_id": "vista3d_foundation", "family": "vista3d_like"},
+            {"model_id": "monai_bundle_baseline", "family": "monai_bundle"},
+        ],
     },
     "multitask": {
         "pipelines": ["classification", "segmentation", "detection", "quantification", "multitask"],
@@ -68,7 +77,17 @@ def create_task(task_id: str, template: str, output_dir: str | Path) -> list[str
         "input_contract": {
             "input_types": ["2d_image", "npz_roi", "dicom_series", "nifti_volume"],
             "required_manifest_columns": ["case_id", "input_path", "label", "task_type", "input_type"],
-            "optional_manifest_columns": ["patient_id", "split", "fold", "label_source", "modality", "metadata_path", "mask_path", "bbox", "model_hint"],
+            "optional_manifest_columns": [
+                "patient_id",
+                "split",
+                "fold",
+                "label_source",
+                "modality",
+                "metadata_path",
+                "mask_path",
+                "bbox",
+                "model_hint",
+            ],
         },
         "label_contract": {"type": "binary_or_missing"},
         "pipelines": spec["pipelines"],
@@ -76,13 +95,51 @@ def create_task(task_id: str, template: str, output_dir: str | Path) -> list[str
         "demo_outputs": spec["demo_outputs"],
         "benchmark_contract": {"manifest_version": "v2", "patient_level_split_recommended": True},
         "recommended_models": spec["recommended_models"],
-        "safety": {"disclaimer_required": True, "clinical_claim_allowed": False, "user_upload_policy": "transient_inference_only"},
+        "safety": {
+            "disclaimer_required": True,
+            "clinical_claim_allowed": False,
+            "user_upload_policy": "transient_inference_only",
+        },
     }
     task_path.write_text(yaml.safe_dump(task_payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
     with manifest_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["case_id", "input_path", "label", "task_type", "input_type", "patient_id", "split", "fold", "label_source", "modality", "metadata_path", "mask_path", "bbox", "model_hint"])
-        writer.writerow(["example_case", "tests/fixtures/sample_image.png", "", spec["pipelines"][0], "2d_image", "patient_001", "demo", "0", "example", "generic", "", "", "", "fixture_default"])
+        writer.writerow(
+            [
+                "case_id",
+                "input_path",
+                "label",
+                "task_type",
+                "input_type",
+                "patient_id",
+                "split",
+                "fold",
+                "label_source",
+                "modality",
+                "metadata_path",
+                "mask_path",
+                "bbox",
+                "model_hint",
+            ]
+        )
+        writer.writerow(
+            [
+                "example_case",
+                "tests/fixtures/sample_image.png",
+                "",
+                spec["pipelines"][0],
+                "2d_image",
+                "patient_001",
+                "demo",
+                "0",
+                "example",
+                "generic",
+                "",
+                "",
+                "",
+                "fixture_default",
+            ]
+        )
     runtime_payload = {
         "paths_config": "configs/paths.example.yml",
         "runtime": {
@@ -90,7 +147,15 @@ def create_task(task_id: str, template: str, output_dir: str | Path) -> list[str
             "task_package": str(task_path).replace("\\", "/"),
             "default_task_type": spec["pipelines"][0],
             "model_selection_policy": "fixture_fallback",
-            "models": [{"model_id": "fixture_default", "family": "fixture", "task_types": ["*"], "input_types": ["*"], "enabled": True}],
+            "models": [
+                {
+                    "model_id": "fixture_default",
+                    "family": "fixture",
+                    "task_types": ["*"],
+                    "input_types": ["*"],
+                    "enabled": True,
+                }
+            ],
         },
     }
     runtime_path.write_text(yaml.safe_dump(runtime_payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -107,4 +172,3 @@ def create_task(task_id: str, template: str, output_dir: str | Path) -> list[str
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

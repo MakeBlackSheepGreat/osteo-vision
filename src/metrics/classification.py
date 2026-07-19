@@ -40,4 +40,3 @@ def threshold_sweep(y_true: list[int], y_score: list[float]) -> dict[str, Any]:
         if youden > best["youden_j"]:
             best = {"threshold": threshold, "youden_j": youden}
     return {"available": True, "best": best, "rows": rows}
-

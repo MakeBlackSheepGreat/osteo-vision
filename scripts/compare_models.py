@@ -83,4 +83,3 @@ def compare_models(config_path: str, manifest_path: str, output_dir: str, model_
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

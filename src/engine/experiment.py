@@ -189,13 +189,17 @@ def _write_snapshots(spec: Any, task_package_path: str | None, manifest_path: Pa
     if task_package_path:
         task_source = Path(task_package_path)
         if task_source.exists():
-            (run_dir / "task_package_snapshot.yml").write_text(task_source.read_text(encoding="utf-8"), encoding="utf-8")
+            (run_dir / "task_package_snapshot.yml").write_text(
+                task_source.read_text(encoding="utf-8"), encoding="utf-8"
+            )
     if manifest_path.exists():
         (run_dir / "manifest_snapshot.csv").write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
     write_json(run_dir / "model_spec_snapshot.json", {"model_spec": spec.model_spec})
 
 
-def _score_fixture_rows(rows: list[dict[str, Any]], classifier: DeterministicClassifier, model_id: str, model_family: str) -> list[dict[str, Any]]:
+def _score_fixture_rows(
+    rows: list[dict[str, Any]], classifier: DeterministicClassifier, model_id: str, model_family: str
+) -> list[dict[str, Any]]:
     scored: list[dict[str, Any]] = []
     for row in rows:
         metadata = {
@@ -226,7 +230,9 @@ def _labeled_vectors(rows: list[dict[str, Any]]) -> tuple[list[int], list[float]
     return y_true, y_score
 
 
-def _finalize_oof_rows(rows: list[dict[str, Any]], threshold: float, run_id: str, experiment_id: str) -> list[dict[str, Any]]:
+def _finalize_oof_rows(
+    rows: list[dict[str, Any]], threshold: float, run_id: str, experiment_id: str
+) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     for row in rows:
         probability = float(row["_probability"])
@@ -302,7 +308,9 @@ def _leakage_report(rows: list[dict[str, Any]], split_info: dict[str, Any]) -> d
     return report
 
 
-def _experiment_warnings(leakage: dict[str, Any], y_true: list[int], manifest_info: dict[str, Any]) -> list[dict[str, Any]]:
+def _experiment_warnings(
+    leakage: dict[str, Any], y_true: list[int], manifest_info: dict[str, Any]
+) -> list[dict[str, Any]]:
     warnings: list[dict[str, Any]] = []
     if leakage.get("reason") == "patient_id column missing":
         warnings.append(warning("patient_id_missing", "patient_id is required for formal training promotion"))
@@ -315,7 +323,9 @@ def _experiment_warnings(leakage: dict[str, Any], y_true: list[int], manifest_in
     return warnings
 
 
-def _failure_summary(rows: list[dict[str, Any]], manifest_info: dict[str, Any], leakage: dict[str, Any]) -> dict[str, Any]:
+def _failure_summary(
+    rows: list[dict[str, Any]], manifest_info: dict[str, Any], leakage: dict[str, Any]
+) -> dict[str, Any]:
     labeled = sum(1 for row in rows if str(row.get("label", "")).strip() in {"0", "1"})
     task_counts: dict[str, int] = defaultdict(int)
     for row in rows:

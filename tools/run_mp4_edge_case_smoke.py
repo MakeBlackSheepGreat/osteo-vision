@@ -36,7 +36,9 @@ def main() -> None:
     if not tracemalloc.is_tracing():
         tracemalloc.start()
     args = parse_args()
-    output_dir = Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"{timestamp()}_mp4_edges"
+    output_dir = (
+        Path(args.output_dir) if args.output_dir else ROOT / "artifacts" / "platform_smoke" / f"{timestamp()}_mp4_edges"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
     os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")

@@ -33,4 +33,3 @@ def write_single_case_report(result: dict[str, Any], output_dir: str | Path) -> 
         },
     )
     return str(json_path)
-

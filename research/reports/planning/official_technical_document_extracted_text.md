@@ -1,6 +1,6 @@
 # 赛题官方技术文档文本抽取
 
-来源PDF：`C:\Users\876762330\Desktop\projects\osteo-vision\research\literature\inventory\official\competition_official_technical_document_20260527.pdf`
+来源 PDF：`research/literature/inventory/official/competition_official_technical_document_20260527.pdf`
 
 页数：2
 

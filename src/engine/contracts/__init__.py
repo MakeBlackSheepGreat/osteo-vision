@@ -13,7 +13,7 @@ from src.core.schemas import PredictionResult
 
 class IInferenceService(Protocol):
     """Interface for inference services."""
-    
+
     def diagnose(
         self,
         input_path: str | Path,
@@ -23,7 +23,7 @@ class IInferenceService(Protocol):
     ) -> PredictionResult:
         """Run inference on a single input."""
         ...
-    
+
     def model_inventory(self) -> list[dict[str, Any]]:
         """Get list of available models."""
         ...
@@ -31,11 +31,11 @@ class IInferenceService(Protocol):
 
 class IExperimentRunner(Protocol):
     """Interface for experiment runners."""
-    
+
     def run(self, spec_path: str | Path) -> dict[str, Any]:
         """Run an experiment. Returns experiment results."""
         ...
-    
+
     def validate_spec(self, spec_path: str | Path) -> list[str]:
         """Validate experiment specification. Returns list of errors."""
         ...
@@ -43,7 +43,7 @@ class IExperimentRunner(Protocol):
 
 class IBenchmarkEvaluator(Protocol):
     """Interface for benchmark evaluators."""
-    
+
     def evaluate(
         self,
         config_path: str | Path,
@@ -52,7 +52,7 @@ class IBenchmarkEvaluator(Protocol):
     ) -> dict[str, Any]:
         """Run benchmark evaluation. Returns evaluation results."""
         ...
-    
+
     def validate_config(self, config_path: str | Path) -> list[str]:
         """Validate benchmark configuration. Returns list of errors."""
         ...
@@ -60,7 +60,7 @@ class IBenchmarkEvaluator(Protocol):
 
 class ITrainer(Protocol):
     """Interface for trainers."""
-    
+
     def train(
         self,
         config: dict[str, Any],
@@ -69,7 +69,7 @@ class ITrainer(Protocol):
     ) -> dict[str, Any]:
         """Train a model. Returns training results."""
         ...
-    
+
     def validate_config(self, config: dict[str, Any]) -> list[str]:
         """Validate training configuration. Returns list of errors."""
         ...

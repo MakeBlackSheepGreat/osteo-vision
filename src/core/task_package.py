@@ -53,7 +53,9 @@ def default_task_package() -> TaskPackage:
         task_id="default_fixture_task",
         task_name="Default Fixture Task",
         modality="generic",
-        input_contract={"input_types": ["2d_image", "video_file", "video_stream", "npz_roi", "dicom_series", "nifti_volume"]},
+        input_contract={
+            "input_types": ["2d_image", "video_file", "video_stream", "npz_roi", "dicom_series", "nifti_volume"]
+        },
         label_contract={"type": "binary_or_missing"},
         pipelines=["classification", "segmentation", "detection", "quantification", "multitask"],
         metrics=["accuracy", "sensitivity", "specificity", "precision", "f1", "dice", "iou"],
@@ -62,4 +64,3 @@ def default_task_package() -> TaskPackage:
         recommended_models=[{"model_id": "fixture_default", "family": "fixture"}],
         safety={"disclaimer_required": True, "clinical_claim_allowed": False},
     )
-

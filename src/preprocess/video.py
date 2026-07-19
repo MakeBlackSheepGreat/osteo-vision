@@ -23,6 +23,7 @@ def extract_keyframes(
     evidence_jpeg_quality: int = 96,
     deduplicate_similar_frames: bool = True,
     duplicate_similarity_threshold: float = 0.985,
+    quality_evaluation_max_side: int | None = None,
 ) -> dict[str, Any]:
     """Extract deterministic preview and evidence keyframes from an MP4 file.
 
@@ -90,6 +91,7 @@ def extract_keyframes(
             min_frame_gap=min_frame_gap,
             deduplicate_similar_frames=deduplicate_similar_frames,
             duplicate_similarity_threshold=duplicate_similarity_threshold,
+            quality_evaluation_max_side=quality_evaluation_max_side,
         )
 
     keyframes: list[dict[str, Any]] = []
@@ -98,7 +100,7 @@ def extract_keyframes(
         ok, frame = capture.read()
         if not ok or frame is None:
             continue
-        quality = _frame_quality(frame)
+        quality = _frame_quality(frame, max_evaluation_side=quality_evaluation_max_side)
         trace_item = selection_trace.get(int(frame_index), {})
         evidence_path = evidence_dir / f"keyframe_{order:02d}_f{int(frame_index):06d}_evidence.jpg"
         preview = _resize_for_preview(frame, max_preview_side=max_preview_side)
@@ -139,6 +141,11 @@ def extract_keyframes(
         "max_timeline_entries": max_timeline_entries,
         "sampling": strategy,
         "sampling_strategy": strategy,
+        "quality_evaluation": _quality_evaluation_metadata(
+            source_width=width,
+            source_height=height,
+            max_evaluation_side=quality_evaluation_max_side,
+        ),
         "selection_trace": {
             "candidate_frame_count": len(selection_trace),
             "candidate_pool_size": candidate_pool_size,
@@ -257,6 +264,7 @@ def _frame_index_manifest(report: dict[str, Any]) -> dict[str, Any]:
         "keyframe_manifest_path": report.get("keyframe_manifest_path"),
         "frame_index_manifest_path": report.get("frame_index_manifest_path"),
         "selection_trace": report.get("selection_trace", {}),
+        "quality_evaluation": report.get("quality_evaluation", {}),
         "deduplication": report.get("selection_trace", {}).get("deduplication", {}),
         "candidate_frame_count": len(report.get("selection_trace", {}).get("candidates", [])),
         "candidate_frames": report.get("selection_trace", {}).get("candidates", []),
@@ -306,6 +314,7 @@ def _timeline_manifest(report: dict[str, Any]) -> dict[str, Any]:
         "frame_count": frame_count,
         "duration_sec": report.get("duration_sec"),
         "sampling_strategy": report.get("sampling_strategy"),
+        "quality_evaluation": report.get("quality_evaluation", {}),
         "keyframe_manifest_path": report.get("keyframe_manifest_path"),
         "frame_index_manifest_path": report.get("frame_index_manifest_path"),
         "timeline_manifest_path": report.get("timeline_manifest_path"),
@@ -383,6 +392,7 @@ def _select_frame_indexes(
     min_frame_gap: int | None,
     deduplicate_similar_frames: bool,
     duplicate_similarity_threshold: float,
+    quality_evaluation_max_side: int | None,
 ) -> tuple[list[int], dict[int, dict[str, Any]]]:
     if strategy == "uniform":
         indexes = _uniform_indexes(frame_count, sample_count)
@@ -400,8 +410,16 @@ def _select_frame_indexes(
         ok, frame = capture.read()
         if not ok or frame is None:
             continue
-        quality = _frame_quality(frame)
-        signature = _frame_signature(frame)
+        evaluation_frame, gray = _prepare_quality_frame(
+            frame,
+            max_evaluation_side=quality_evaluation_max_side,
+        )
+        quality = _frame_quality_from_prepared(
+            evaluation_frame,
+            gray,
+            source_shape=frame.shape,
+        )
+        signature = _frame_signature(gray)
         scored.append(
             {
                 "frame_index": int(index),
@@ -468,31 +486,95 @@ def _uniform_indexes(frame_count: int, sample_count: int) -> list[int]:
     return [round(i * (frame_count - 1) / (sample_count - 1)) for i in range(sample_count)]
 
 
-def _frame_quality(frame: Any) -> dict[str, Any]:
+def _frame_quality(frame: Any, *, max_evaluation_side: int | None = None) -> dict[str, Any]:
+    evaluation_frame, gray = _prepare_quality_frame(frame, max_evaluation_side=max_evaluation_side)
+    return _frame_quality_from_prepared(evaluation_frame, gray, source_shape=frame.shape)
+
+
+def _prepare_quality_frame(frame: Any, *, max_evaluation_side: int | None) -> tuple[Any, np.ndarray]:
     import cv2
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    channels = frame.astype("float32")
-    blue = channels[..., 0]
-    green = channels[..., 1]
-    red = channels[..., 2]
-    green_dominance = green - np.maximum(red, blue)
+    evaluation_frame = frame
+    if max_evaluation_side is not None:
+        evaluation_frame = _resize_for_preview(frame, max_preview_side=max(64, int(max_evaluation_side)))
+    gray = cv2.cvtColor(evaluation_frame, cv2.COLOR_BGR2GRAY)
+    return evaluation_frame, gray
+
+
+def _quality_evaluation_metadata(
+    *,
+    source_width: int,
+    source_height: int,
+    max_evaluation_side: int | None,
+) -> dict[str, Any]:
+    longest_side = max(source_width, source_height)
+    bounded = max_evaluation_side is not None and longest_side > max(64, int(max_evaluation_side))
     return {
-        "mean_intensity": float(gray.mean()),
-        "p95_intensity": float(np.percentile(gray, 95)),
-        "p99_green": float(np.percentile(green, 99)),
-        "green_dominance_p95": float(np.percentile(np.maximum(green_dominance, 0), 95)),
-        "high_signal_fraction": float(((gray > 200) | (green_dominance > 50)).mean()),
-        "blur_laplacian_var": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
-        "underexposed_fraction": float((gray < 8).mean()),
-        "overexposed_fraction": float((gray > 247).mean()),
+        "method": "bounded_thumbnail_v1" if bounded else "full_resolution_histogram_v1",
+        "max_side_px": max(64, int(max_evaluation_side)) if max_evaluation_side is not None else None,
+        "full_resolution_quality_metrics": not bounded,
+        "full_resolution_evidence_preserved": True,
     }
 
 
-def _frame_signature(frame: Any, *, size: int = 16) -> np.ndarray:
+def _frame_quality_from_prepared(
+    evaluation_frame: Any,
+    gray: np.ndarray,
+    *,
+    source_shape: Sequence[int],
+) -> dict[str, Any]:
     import cv2
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blue, green, red = cv2.split(evaluation_frame)
+    green_dominance = cv2.subtract(green, cv2.max(red, blue))
+    gray_histogram = _uint8_histogram(gray)
+    green_histogram = _uint8_histogram(green)
+    dominance_histogram = _uint8_histogram(green_dominance)
+    pixel_count = max(1, int(gray.size))
+    _, high_intensity = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+    _, high_green_dominance = cv2.threshold(green_dominance, 50, 255, cv2.THRESH_BINARY)
+    high_signal = cv2.bitwise_or(high_intensity, high_green_dominance)
+    source_height, source_width = int(source_shape[0]), int(source_shape[1])
+    evaluation_height, evaluation_width = int(gray.shape[0]), int(gray.shape[1])
+    return {
+        "mean_intensity": float(cv2.mean(gray)[0]),
+        "p95_intensity": _uint8_percentile(gray_histogram, 95.0, pixel_count),
+        "p99_green": _uint8_percentile(green_histogram, 99.0, pixel_count),
+        "green_dominance_p95": _uint8_percentile(dominance_histogram, 95.0, pixel_count),
+        "high_signal_fraction": float(cv2.countNonZero(high_signal) / pixel_count),
+        "blur_laplacian_var": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
+        "underexposed_fraction": float(gray_histogram[:8].sum(dtype=np.int64) / pixel_count),
+        "overexposed_fraction": float(gray_histogram[248:].sum(dtype=np.int64) / pixel_count),
+        "source_width": source_width,
+        "source_height": source_height,
+        "evaluation_width": evaluation_width,
+        "evaluation_height": evaluation_height,
+        "evaluation_scale": float(evaluation_width / source_width) if source_width else 1.0,
+        "evaluation_downsampled": evaluation_width != source_width or evaluation_height != source_height,
+    }
+
+
+def _uint8_histogram(image: np.ndarray) -> np.ndarray:
+    import cv2
+
+    return cv2.calcHist([image], [0], None, [256], [0, 256]).reshape(-1).astype(np.int64, copy=False)
+
+
+def _uint8_percentile(histogram: np.ndarray, percentile: float, pixel_count: int) -> float:
+    if pixel_count <= 0:
+        return 0.0
+    rank = (pixel_count - 1) * percentile / 100.0
+    lower_rank = int(np.floor(rank))
+    upper_rank = int(np.ceil(rank))
+    cumulative = np.cumsum(histogram, dtype=np.int64)
+    lower_value = int(np.searchsorted(cumulative, lower_rank + 1, side="left"))
+    upper_value = int(np.searchsorted(cumulative, upper_rank + 1, side="left"))
+    return float(lower_value + (upper_value - lower_value) * (rank - lower_rank))
+
+
+def _frame_signature(gray: np.ndarray, *, size: int = 16) -> np.ndarray:
+    import cv2
+
     thumbnail = cv2.resize(gray, (size, size), interpolation=cv2.INTER_AREA).astype("float32") / 255.0
     return thumbnail.reshape(-1)
 
@@ -513,7 +595,9 @@ def _visual_hash(signature: np.ndarray) -> str:
     return "".join(chunks)
 
 
-def _duplicate_match(item: dict[str, Any], selected: list[dict[str, Any]], *, threshold: float) -> dict[str, Any] | None:
+def _duplicate_match(
+    item: dict[str, Any], selected: list[dict[str, Any]], *, threshold: float
+) -> dict[str, Any] | None:
     signature = item.get("_signature")
     if not isinstance(signature, np.ndarray):
         return None

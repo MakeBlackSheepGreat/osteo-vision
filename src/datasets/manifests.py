@@ -4,9 +4,18 @@ import csv
 from pathlib import Path
 from typing import Any
 
-
 REQUIRED_MANIFEST_COLUMNS = ["case_id", "input_path", "label", "task_type", "input_type"]
-OPTIONAL_MANIFEST_COLUMNS = ["patient_id", "split", "fold", "label_source", "modality", "metadata_path", "mask_path", "bbox", "model_hint"]
+OPTIONAL_MANIFEST_COLUMNS = [
+    "patient_id",
+    "split",
+    "fold",
+    "label_source",
+    "modality",
+    "metadata_path",
+    "mask_path",
+    "bbox",
+    "model_hint",
+]
 
 
 def read_manifest(path: str | Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:

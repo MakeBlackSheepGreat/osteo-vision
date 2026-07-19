@@ -5,7 +5,6 @@ from typing import Any
 
 import numpy as np
 
-
 JAW_ROI_LABELS: dict[int, str] = {
     1: "maxilla",
     2: "mandible",
@@ -92,7 +91,9 @@ def remap_label_array(label_array: np.ndarray, original_to_target: dict[int, int
     return output
 
 
-def build_nnunet_dataset_json(spec: NnUNetTaskSpec, num_training: int, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_nnunet_dataset_json(
+    spec: NnUNetTaskSpec, num_training: int, metadata: dict[str, Any] | None = None
+) -> dict[str, Any]:
     source = metadata or {}
     return {
         "name": spec.dataset_name,

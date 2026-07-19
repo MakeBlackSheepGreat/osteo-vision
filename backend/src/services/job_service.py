@@ -48,6 +48,7 @@ class JobRegistry:
         self._jobs: dict[str, dict[str, Any]] = {}
         self._lock = Lock()
         self.storage_path = Path(storage_path) if storage_path is not None else None
+        self._storage_signature: tuple[int, int, int, int] | None = None
         self._load()
 
     def create(
@@ -226,13 +227,21 @@ class JobRegistry:
             if (kind is None or job.get("kind") == kind) and job.get("status") in ACTIVE_JOB_STATUSES
         ]
 
-    def _load(self, *, fail_running_on_restart: bool = True) -> None:
-        if self.storage_path is None or not self.storage_path.exists():
+    def _load(self, *, fail_running_on_restart: bool = True, force: bool = True) -> None:
+        if self.storage_path is None:
+            return
+        signature = _file_signature(self.storage_path)
+        if not force and signature == self._storage_signature:
+            return
+        if signature is None:
+            self._jobs = {}
+            self._storage_signature = None
             return
         try:
             payload = json.loads(self.storage_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             self._jobs = {}
+            self._storage_signature = signature
             return
         jobs = payload.get("jobs", {})
         if isinstance(jobs, dict):
@@ -244,9 +253,11 @@ class JobRegistry:
                 changed = True
         if changed:
             self._save_locked()
+        else:
+            self._storage_signature = signature
 
     def _refresh_locked(self) -> None:
-        self._load(fail_running_on_restart=False)
+        self._load(fail_running_on_restart=False, force=False)
 
     def _save_locked(self) -> None:
         if self.storage_path is None:
@@ -258,8 +269,17 @@ class JobRegistry:
         for attempt in range(5):
             try:
                 tmp_path.replace(self.storage_path)
+                self._storage_signature = _file_signature(self.storage_path)
                 break
             except PermissionError:
                 if attempt == 4:
                     raise
                 time.sleep(0.02 * (attempt + 1))
+
+
+def _file_signature(path: Path) -> tuple[int, int, int, int] | None:
+    try:
+        stat = path.stat()
+    except OSError:
+        return None
+    return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size), int(stat.st_ino)

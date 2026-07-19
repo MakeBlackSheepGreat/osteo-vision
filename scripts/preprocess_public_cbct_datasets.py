@@ -23,7 +23,6 @@ from src.core.paths import ensure_dir
 from src.datasets.manifests import read_manifest
 from src.reports.writers import write_csv, write_json
 
-
 DATASET_ROOT = Path("research/datasets/public-candidates")
 REPORT_DIR = Path("research/reports/preprocessing")
 MANIFEST_FIELDS = [
@@ -189,7 +188,9 @@ def preprocess_dolchid(dataset_dir: Path, *, preview_count: int, skip_extract: b
         {"diagnosis_group": key, "case_count": value}
         for key, value in sorted(Counter(case["diagnosis_group"] for case in cases).items())
     ]
-    diagnosis_csv_path = write_csv(manifests_dir / "d025_dolchid_diagnosis_inventory.csv", diagnosis_rows, ["diagnosis_group", "case_count"])
+    diagnosis_csv_path = write_csv(
+        manifests_dir / "d025_dolchid_diagnosis_inventory.csv", diagnosis_rows, ["diagnosis_group", "case_count"]
+    )
     previews = generate_dolchid_previews(cases[:preview_count], previews_dir)
     summary = {
         "dataset_id": "D025",
@@ -229,10 +230,18 @@ def preprocess_dolchid(dataset_dir: Path, *, preview_count: int, skip_extract: b
 
 def build_dolchid_cases(raw_dataset_dir: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     groups = {
-        "cbct_image": {dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "cbct_image").glob("*_CBCT_Image.nii.gz"))},
-        "cbct_label": {dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "cbct_label").glob("*_CBCT_Label.nii.gz"))},
-        "hist_image": {dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "hist_image").glob("*_HIST_Image.png"))},
-        "hist_label": {dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "hist_label").glob("*_HIST_Label.png"))},
+        "cbct_image": {
+            dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "cbct_image").glob("*_CBCT_Image.nii.gz"))
+        },
+        "cbct_label": {
+            dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "cbct_label").glob("*_CBCT_Label.nii.gz"))
+        },
+        "hist_image": {
+            dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "hist_image").glob("*_HIST_Image.png"))
+        },
+        "hist_label": {
+            dolchid_case_id(path): path for path in sorted((raw_dataset_dir / "hist_label").glob("*_HIST_Label.png"))
+        },
     }
     all_ids = sorted(set().union(*(set(values) for values in groups.values())))
     paired_ids = [case_id for case_id in all_ids if all(case_id in group for group in groups.values())]
@@ -251,10 +260,7 @@ def build_dolchid_cases(raw_dataset_dir: Path) -> tuple[list[dict[str, Any]], di
         "case_count_union": len(all_ids),
         "paired_count": len(cases),
         "counts_by_group": {key: len(value) for key, value in groups.items()},
-        "missing_by_group_first20": {
-            key: sorted(set(all_ids) - set(value))[:20]
-            for key, value in groups.items()
-        },
+        "missing_by_group_first20": {key: sorted(set(all_ids) - set(value))[:20] for key, value in groups.items()},
         "diagnosis_prefix_counts": dict(sorted(Counter(case_prefix(case_id) for case_id in paired_ids).items())),
     }
     return cases, pairing
@@ -409,9 +415,13 @@ def preprocess_toothfairy2(dataset_dir: Path, *, preview_count: int, skip_extrac
         {"label_name": name, "label_value": value}
         for name, value in sorted(metadata.get("labels", {}).items(), key=lambda item: int(item[1]))
     ]
-    label_inventory_path = write_csv(manifests_dir / "d036_toothfairy2_label_inventory.csv", label_inventory_rows, ["label_value", "label_name"])
+    label_inventory_path = write_csv(
+        manifests_dir / "d036_toothfairy2_label_inventory.csv", label_inventory_rows, ["label_value", "label_name"]
+    )
     quality_rows, quality_summary = analyze_toothfairy2_cases(cases)
-    quality_csv_path = write_csv(manifests_dir / "d036_toothfairy2_quality_check.csv", quality_rows, TOOTHFAIRY2_QUALITY_FIELDS)
+    quality_csv_path = write_csv(
+        manifests_dir / "d036_toothfairy2_quality_check.csv", quality_rows, TOOTHFAIRY2_QUALITY_FIELDS
+    )
     previews = generate_toothfairy2_previews(cases[:preview_count], previews_dir)
     summary = {
         "dataset_id": "D036",
@@ -462,7 +472,9 @@ def build_toothfairy2_cases(raw_dataset_dir: Path) -> tuple[list[dict[str, Any]]
     images = {toothfairy_case_id(path): path for path in sorted((raw_dataset_dir / "imagesTr").glob("*_0000.mha"))}
     labels = {toothfairy_case_id(path): path for path in sorted((raw_dataset_dir / "labelsTr").glob("*.mha"))}
     paired_ids = sorted(set(images) & set(labels))
-    cases = [{"case_id": case_id, "image_path": images[case_id], "label_path": labels[case_id]} for case_id in paired_ids]
+    cases = [
+        {"case_id": case_id, "image_path": images[case_id], "label_path": labels[case_id]} for case_id in paired_ids
+    ]
     return cases, {
         "image_count": len(images),
         "label_count": len(labels),
@@ -555,7 +567,9 @@ def generate_toothfairy2_previews(cases: list[dict[str, Any]], preview_dir: Path
         save_overlay_slice(image[image.shape[0] // 2, :, :], label[label.shape[0] // 2, :, :], axial)
         save_overlay_slice(image[:, image.shape[1] // 2, :], label[:, label.shape[1] // 2, :], coronal)
         save_overlay_slice(image[:, :, image.shape[2] // 2], label[:, :, label.shape[2] // 2], sagittal)
-        rows.append({"case_id": case["case_id"], "axial": str(axial), "coronal": str(coronal), "sagittal": str(sagittal)})
+        rows.append(
+            {"case_id": case["case_id"], "axial": str(axial), "coronal": str(coronal), "sagittal": str(sagittal)}
+        )
         del image, label
     return rows
 
@@ -666,7 +680,7 @@ def render_dolchid_report(summary: dict[str, Any], *, language: str) -> str:
 
 ## 项目用途与限制
 
-DOLCHID 是目前最接近赛点二的数据，可用于 CBCT 病灶区域分割和 ROI 先验探索。它仍不是术中 ICG 荧光数据；诊断组含义需要进一步核对数据来源文档，不能直接包装成颌骨骨髓炎临床诊断性能。
+DOLCHID 可用于 CBCT 病灶区域分割和 ROI 先验探索，属于 AI 辅助判读的非目标域代理数据。其数据不含术中 ICG 荧光，诊断组含义仍需核对来源文档，禁止包装成颌骨骨髓炎临床诊断性能。
 """
     return f"""# D025 DOLCHID Preprocessing Report
 
@@ -911,11 +925,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         d024["available"] = True
         results["datasets"]["d024"] = d024
     if "d025" in requested:
-        d025 = preprocess_dolchid(DATASET_ROOT / "d025_lesion_cbct", preview_count=args.preview_count, skip_extract=args.skip_extract)
+        d025 = preprocess_dolchid(
+            DATASET_ROOT / "d025_lesion_cbct", preview_count=args.preview_count, skip_extract=args.skip_extract
+        )
         d025["available"] = True
         results["datasets"]["d025"] = d025
     if "d036" in requested:
-        d036 = preprocess_toothfairy2(DATASET_ROOT / "d036_toothfairy2", preview_count=args.preview_count, skip_extract=args.skip_extract)
+        d036 = preprocess_toothfairy2(
+            DATASET_ROOT / "d036_toothfairy2", preview_count=args.preview_count, skip_extract=args.skip_extract
+        )
         d036["available"] = True
         results["datasets"]["d036"] = d036
     combined_reports = write_combined_reports(results, REPORT_DIR)
@@ -935,7 +953,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     results = run(parse_args())
-    print(json.dumps({"summary_json_path": results["summary_json_path"], "reports": results["reports"]}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {"summary_json_path": results["summary_json_path"], "reports": results["reports"]},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

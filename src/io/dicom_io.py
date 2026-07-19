@@ -15,4 +15,3 @@ def dicom_summary(path: str | Path) -> dict[str, Any]:
     p = Path(path)
     files = list(p.rglob("*.dcm")) if p.is_dir() else ([p] if p.suffix.lower() == ".dcm" else [])
     return {"dicom_file_count": len(files), "metadata_status": "not_loaded"}
-

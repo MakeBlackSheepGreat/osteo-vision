@@ -56,7 +56,10 @@ function admittedVideo(): CaseInputAsset {
 }
 
 describe("L2PoseReplayPanel", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   it("keeps manual timestamps and calibration in pose-only engineering mode with an explicit L0 boundary", async () => {
     const start = vi.spyOn(apiClient, "startL2PoseReplayJob").mockResolvedValue({
@@ -318,5 +321,66 @@ describe("L2PoseReplayPanel", () => {
     expect(wrapper.get("[data-testid='calibration-oscillation-summary']").text()).toBe("1 次 · 已触发失败闭合");
     expect(wrapper.get("[data-testid='temporal-failure-closure']").text()).toContain("标定选择存在歧义、出现 A/B/A 内参振荡");
     expect(wrapper.get("[data-testid='temporal-failure-closure']").text()).toContain("本次 L2 已撤销并回退 L0 未配准三维参考");
+  });
+
+  it("aborts the active replay poll and suppresses stale completion after a case switch", async () => {
+    let resolveJob: ((job: Awaited<ReturnType<typeof apiClient.getL2PoseReplayJob>>) => void) | undefined;
+    let pollSignal: AbortSignal | undefined;
+    vi.spyOn(apiClient, "startL2PoseReplayJob").mockResolvedValue({
+      job_id: "job_old_case",
+      kind: "l2_offline_pose_replay",
+      status: "queued",
+    });
+    vi.spyOn(apiClient, "getL2PoseReplayJob").mockImplementation((_jobId, signal) => {
+      pollSignal = signal;
+      return new Promise((resolve) => {
+        resolveJob = resolve;
+      });
+    });
+    const wrapper = mount(L2PoseReplayPanel, {
+      props: { caseId: "case_old", evidence: l1Evidence() },
+    });
+
+    await wrapper.get("[data-testid='run-replay']").trigger("click");
+    await flushPromises();
+    expect(pollSignal?.aborted).toBe(false);
+
+    await wrapper.setProps({ caseId: "case_new" });
+    expect(pollSignal?.aborted).toBe(true);
+    resolveJob?.({
+      job_id: "job_old_case",
+      kind: "l2_offline_pose_replay",
+      status: "completed",
+    });
+    await flushPromises();
+
+    expect(wrapper.emitted("completed")).toBeUndefined();
+    expect(wrapper.get("input[readonly]").element).toHaveProperty("value", "待运行");
+  });
+
+  it("clears the scheduled L2 poll when the panel unmounts", async () => {
+    vi.useFakeTimers();
+    let pollSignal: AbortSignal | undefined;
+    vi.spyOn(apiClient, "startL2PoseReplayJob").mockResolvedValue({
+      job_id: "job_unmount",
+      kind: "l2_offline_pose_replay",
+      status: "queued",
+    });
+    const getJob = vi.spyOn(apiClient, "getL2PoseReplayJob").mockImplementation((_jobId, signal) => {
+      pollSignal = signal;
+      return Promise.resolve({ job_id: "job_unmount", kind: "l2_offline_pose_replay", status: "running" });
+    });
+    const wrapper = mount(L2PoseReplayPanel, {
+      props: { caseId: "case_unmount", evidence: l1Evidence() },
+    });
+
+    await wrapper.get("[data-testid='run-replay']").trigger("click");
+    await flushPromises();
+    expect(getJob).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+    expect(pollSignal?.aborted).toBe(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(getJob).toHaveBeenCalledTimes(1);
   });
 });

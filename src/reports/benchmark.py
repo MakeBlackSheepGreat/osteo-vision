@@ -23,4 +23,3 @@ def write_benchmark_report(report: BenchmarkReport, output_dir: str | Path, thre
         },
     )
     return str(report_path)
-

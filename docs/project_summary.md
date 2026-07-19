@@ -1,52 +1,80 @@
-# 项目结构总览
+# 项目状态总览
+
+更新基线：`0.3.0-rc.2`，2026-07-19。
 
 ## 定位
 
-`osteo-vision` 是颌骨骨髓炎智能化荧光诊疗项目的正式开发工程。根目录直接承载源码、配置、测试、脚本、前端、后端和 Demo；历史研究资料统一归档到 `research/`。
+`osteo-vision` 是面向颌骨骨髓炎术中辅助决策的纯软件平台。软件从 JPEG、MP4、三通道图像文件及标准化元数据进入后开始工作，设备驱动与厂商私有接口不属于本仓库交付。
 
-## 当前结构
+输出范围包括荧光信号处理、AI 候选区、边界风险、不确定性、医生复核、证据导出和未配准三维参考。所有结果保留医生复核与非诊断边界。
 
-```text
-osteo-vision/
-├── app/                    # legacy Gradio Demo
-├── artifacts/              # 运行产物、报告、可视化、checkpoint 占位
-├── backend/                # FastAPI 平台后端
-├── configs/                # 路径、任务包、推理配置
-│   ├── inference/
-│   │   ├── osteo_vision.yml
-│   │   └── demo.yml
-│   └── tasks/
-│       ├── osteo_vision.yml
-│       └── *.example.yml
-├── docs/                   # 架构、快速开始、任务适配、框架说明
-├── frontend/               # Vue 3 + TypeScript 平台前端
-├── packaging/              # 打包说明
-├── research/               # 文献、数据集清单、报告、外部代码快照
-├── scripts/                # 训练、评估、Benchmark、实验脚本
-├── src/                    # 正式源码
-├── tests/                  # unit、smoke、integration 测试
-├── tools/                  # 项目级自检脚本
-├── AGENTS.md
-├── README.md
-└── pyproject.toml
-```
+## 已完成的软件闭环
 
-## 开发主入口
+- 官方 JPEG/MP4 一级输入及医院 AVI 受控转码契约。
+- 白光/ICG 双通道配准、伪彩、融合、归一化、质控和 ROI 定量。
+- MP4 播放同步关键帧分析与浏览器视频流连续帧串行推理。
+- 4K tiled keyframe 推理、实时 960 长边 fast-output 和延迟元数据。
+- 病例、临床上下文、输入、任务、复核、人工标注与版本持久化。
+- 医院批次准入、授权、脱敏、SHA256、重复项和隔离原因码。
+- 医生复核、独立身份、训练准入、目标域晋级双签与哈希链。
+- JSON、Markdown、CSV、DICOM Secondary Capture 与 ZIP 证据包。
+- CBCT/STL 导入、硬组织代理建模、对象树、L1 静态配准和 L2 离线位姿回放。
+- 严格运行预检、checkpoint sidecar、启动预热、前后端单测和桌面 E2E。
 
-- 任务配置：`configs/tasks/osteo_vision.yml`
-- 推理配置：`configs/inference/osteo_vision.yml`
-- V1 后端：`python -m backend.src.main`，默认 `http://127.0.0.1:8001/health`
-- V1 前端：`npm --prefix frontend run dev`，默认 `http://127.0.0.1:5174/`
-- legacy Gradio Demo：`python app/main.py --config configs/inference/osteo_vision.yml`
-- 自检：`python tools/check_project_readiness.py`
+## 当前严格主线
 
-## 资料归档
+- 运行配置：`configs/inference/osteo_vision_competition_strict.yml`
+- 分割模型：`keyframe_residual_attention_unet_s20260715_20260715`
+- 运行阈值：`0.4`
+- 4K tile：`512`，overlap：`64`
+- 实时帧：最长边 `960`，JPEG overlay，AMP，禁用 TTA
+- 启发式回退：比赛严格模式关闭
 
-- 文献与数据集清单：`research/literature/inventory/`
-- 数据获取与工程路线：`research/planning/`
-- 外部模型快照：`research/model-snapshots/code/`
-- 历史脚本已完成归档清理；现行工具统一位于 `scripts/` 与 `tools/`。
+代理测试指标 Dice `0.9177`、IoU `0.8483`。这些指标来自公开异域或伪标注代理数据，不能推导目标域临床性能。
 
-## 注意
+## 三项重点能力状态
 
-`configs/inference/demo.yml` 和 `configs/tasks/medical_competition_demo.yml` 保留为通用框架测试夹具；正式颌骨骨髓炎开发默认使用 `osteo_vision.yml`。
+### 患者条件分割
+
+年龄、性别、基础病、用药、血液指标、可信来源和复核状态已进入数据契约、API、持久化、前端和报告。KiTS23 代理模型已完成训练、校准、边界位移和 no-harm 评估。当前安全门失败，运行时恢复影像基础概率并清零空间差异。
+
+### 骨活性分层
+
+软件已提供医生复核骨面内的低活性候选、过渡复核区、高活性参考、无法判断区和连续评分契约。D074 PpIX 代理模型 `engineering_utility_ready=false`，空间输出保持关闭。
+
+### 三维配准与离线 AR
+
+离线 manifest 和人工元数据可录入倍率、工作距离、相机标定、坐标变换与位姿。L1/L2 软件任务可运行；真实设备、真实下颌仿体和真实术中精度未完成验证，最终状态保持 L0 未配准参考。
+
+## 当前数据事实
+
+- 15 份来源 manifest。
+- 47/47 条记录通过结构检查。
+- 138/138 个本地文件通过存在性与 SHA256 检查。
+- 本地核验体积约 5.51 GB。
+- 目标域记录：0。
+- 训练准入记录：0。
+
+公开数据覆盖荧光手术代理视频、骨感染近似场景、牙科 CBCT、解剖标签、位姿/深度、ORNJ 临床结构化变量等。来源域和用途边界均需随结果保留。
+
+## 外部验证缺口
+
+- 真实颌骨骨髓炎白光/ICG 联合病例。
+- 可信医生像素级金标准和患者级独立测试集。
+- 足量患者结构化变量与亚组样本。
+- 真实设备全倍率、全工作距离、4K 标定与同步证据。
+- 真实下颌仿体配准、漂移和离线动态 AR 物理精度。
+- 新型荧光造影剂实物、光谱、选择性、安全性和组织实验。
+
+这些项目保持显式待验证状态，不阻塞软件工程闭环、公开数据准备、性能优化和医生回灌功能。
+
+## 权威入口
+
+- 平台说明：`README_CN.md`
+- 目录职责：`docs/project_structure.md`
+- 工程架构：`docs/development_framework.md`
+- 严格运行：`configs/inference/osteo_vision_competition_strict.yml`
+- 固定目标：`research/reports/planning/three_priority_capabilities_target_20260717_zh.md`
+- 最新版本证据：`research/reports/release/`
+- 当前提交材料：`research/reports/submission/`
+- 历史材料：`research/reports/archive/` 与日期化报告

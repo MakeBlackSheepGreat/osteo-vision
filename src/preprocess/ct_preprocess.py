@@ -9,4 +9,3 @@ def ct_preprocess_summary(metadata: dict[str, Any]) -> dict[str, Any]:
         "spacing": metadata.get("spacing", "unknown"),
         "windowing": "not_performed_in_fixture",
     }
-

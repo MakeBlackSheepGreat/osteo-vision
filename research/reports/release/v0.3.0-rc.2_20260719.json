@@ -1,0 +1,359 @@
+{
+  "schema_version": "osteo-vision-release-snapshot-v1",
+  "generated_at_utc": "2026-07-19T11:06:04Z",
+  "release": {
+    "product": "osteo-vision",
+    "display_name": "颌骨骨髓炎智能化荧光诊疗研发验证版平台",
+    "status": "engineering_release_candidate",
+    "release_date": "2026-07-19",
+    "git_tag": "v0.3.0-rc.2",
+    "python_version": "0.3.0rc2",
+    "root_node_version": "0.3.0-rc.2",
+    "frontend_version": "0.3.0-rc.2",
+    "tag_type": "annotated",
+    "tag_target_resolution": "The annotated tag target is the authoritative release commit.",
+    "distribution_scope": "source_configuration_tests_formal_reports_and_controlled_evidence_metadata"
+  },
+  "git": {
+    "branch": "main",
+    "rc2_baseline_commit": "388a6d6195a5f57d751be041f037134bc52708e9",
+    "release_commit": "resolve_from_tag:v0.3.0-rc.2",
+    "clean_worktree_required": true,
+    "push_performed_at_freeze": false
+  },
+  "environment": {
+    "python": "3.11.15",
+    "python_distribution": "conda-forge",
+    "conda_environment": "osteo-vision",
+    "node": "v24.11.1",
+    "npm": "11.14.1",
+    "git": "2.55.0.windows.2",
+    "powershell": "7.6.3",
+    "windows": "10.0.28020.0",
+    "numpy": "2.4.6",
+    "opencv": "4.11.0"
+  },
+  "source_integrity": {
+    "hash_algorithm": "SHA256",
+    "hash_scope": "working_tree_bytes_at_freeze",
+    "portability_note": "core.autocrlf=true; checkout line endings can change working-tree byte hashes while Git blob and tag identities remain stable.",
+    "files": [
+      {
+        "path": "pyproject.toml",
+        "bytes": 3493,
+        "sha256": "d03c014948329ff5ba7e2df20f27aeab653918fddedd799f0f6167bdff756ec2"
+      },
+      {
+        "path": "requirements.txt",
+        "bytes": 360,
+        "sha256": "8eb85424208df3006e64a8585a070315ff6fef5f74705f2be682369a97853cbb"
+      },
+      {
+        "path": "environment.yml",
+        "bytes": 149,
+        "sha256": "3411aef8bda17c9927bdb4970141c53f08f9a591f248481237aee81763fb44b4"
+      },
+      {
+        "path": "package.json",
+        "bytes": 984,
+        "sha256": "24140ebd06b1e8fe5de9acb45ffae476bb633dd7b405e089ff59c93798ea14c6"
+      },
+      {
+        "path": "package-lock.json",
+        "bytes": 8484,
+        "sha256": "c7ffd4bd6826839de24008d1015a85c4f07e9b32b18d2c22f2fca30fa55b702c"
+      },
+      {
+        "path": "frontend/package.json",
+        "bytes": 767,
+        "sha256": "3d35a07769f9bc190dd1d8ba5ba5daca897f6072fa0d7a33543686ade4493f03"
+      },
+      {
+        "path": "frontend/package-lock.json",
+        "bytes": 120130,
+        "sha256": "85188e33c6144f2597186e3868618378a3dde4f93ee90e8c3d54e630fd51ae9a"
+      },
+      {
+        "path": "configs/tasks/osteo_vision.yml",
+        "bytes": 5439,
+        "sha256": "84e2344173c62e60fde0838f641aeb6cb09af3215b253ad69d959f01a79300f5"
+      },
+      {
+        "path": "configs/inference/osteo_vision.yml",
+        "bytes": 15808,
+        "sha256": "7bf4b3ef3f87c10e8bd36045c4aeb147aa1b3a6f434f1f313d38eeb434f75372"
+      },
+      {
+        "path": "configs/inference/osteo_vision_competition_strict.yml",
+        "bytes": 2436,
+        "sha256": "9a2247035c27ba8f142d628f721bfb61d2e9b296a1201ccef375a98fc5f5e855"
+      },
+      {
+        "path": "CHANGELOG.md",
+        "bytes": 10344,
+        "sha256": "eb490d5125cb5d4bdc9270189819c6b4d859b337af8513e36284099ca0279742"
+      }
+    ]
+  },
+  "runtime": {
+    "profile": "competition_strict",
+    "strict_startup": true,
+    "readiness_passed": true,
+    "error_count": 0,
+    "warning_count": 0,
+    "strict_config_sha256": "9a2247035c27ba8f142d628f721bfb61d2e9b296a1201ccef375a98fc5f5e855",
+    "required_tools": [
+      "ffmpeg",
+      "ffprobe"
+    ],
+    "model": {
+      "model_id": "keyframe_residual_attention_unet_s20260715_20260715",
+      "family": "residual_attention_unet_keyframe_segmenter",
+      "checkpoint_path": "artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715.pt",
+      "checkpoint_bytes": 1670546,
+      "checkpoint_sha256": "826e90c2ee3efd45d0d0d979e85a2a3e2dcd60d853d8497f6328e46a406e0d39",
+      "runtime_sidecar_path": "artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715_runtime_promotion.json",
+      "runtime_sidecar_bytes": 32369,
+      "runtime_sidecar_sha256": "00a42c2a817ea2faa64f61975793b9b5ca6a0b1c0b590f4900416a2421bcf43b",
+      "clinical_claim_allowed": false,
+      "target_domain": false,
+      "local_only": true
+    }
+  },
+  "performance": {
+    "schema_version": "osteo-vision-core-hotpath-benchmark-v1",
+    "report_path": "artifacts/performance/core_hotpaths_current.json",
+    "report_bytes": 1503,
+    "report_sha256": "6ad4b033e8d38ee6f7284b8868ccb6b4253c3448c426173ccf75e7c8ff2def01",
+    "report_distribution": "local_ignored_evidence",
+    "repeats": 5,
+    "results": {
+      "connected_components": {
+        "reference_ms": 562.991,
+        "optimized_ms": 17.644,
+        "speedup": 31.91,
+        "outputs_match": true
+      },
+      "quality_evaluation_4k": {
+        "reference_ms": 347.569,
+        "optimized_ms": 76.143,
+        "speedup": 4.56,
+        "outputs_match": true,
+        "full_resolution_quality_metrics": true,
+        "full_resolution_evidence_preserved": true
+      },
+      "nearest_pose_lookup": {
+        "reference_ms": 113.413,
+        "optimized_ms": 0.349,
+        "speedup": 324.87,
+        "outputs_match": true
+      },
+      "job_registry_cached_lookup": {
+        "reference_ms": 117.573,
+        "optimized_ms": 20.838,
+        "speedup": 5.64,
+        "outputs_match": true
+      }
+    }
+  },
+  "dataset_verification": {
+    "status": "passed",
+    "schema_version": "osteo-vision-three-priority-manifest-verification-v2",
+    "manifest_count": 15,
+    "record_count": 47,
+    "verified_record_count": 47,
+    "file_count": 138,
+    "verified_file_count": 138,
+    "total_size_bytes": 5514559510,
+    "provenance_fields_complete_for_records": 47,
+    "report_path": "artifacts/release/v0.3.0-rc.2/dataset_manifest_verification.json",
+    "report_bytes": 45006,
+    "report_sha256": "f1aaa8ec268ca994d65175ab318804fcb7ce973938fe8c93471f73a3eef60078",
+    "report_distribution": "local_ignored_evidence"
+  },
+  "priority_capability_evidence": {
+    "patient_conditioning": {
+      "evidence_path": "artifacts/patient_conditioned_kits23_proxy/training/patient_conditioned_manifest_proxy_manifest.json",
+      "evidence_sha256": "27f1fe208cea184e0ee069ae16165b1d63cc766dcf8d291ebb3602d4cff4e1e3",
+      "target_domain_promotion_ready": false,
+      "runtime_replacement_allowed": false,
+      "safe_fallback": "image_only_segmentation"
+    },
+    "bone_activity": {
+      "evidence_path": "artifacts/bone_activity_d074_proxy/training/bone_activity_multitask_d074_proxy_manifest.json",
+      "evidence_sha256": "50816b29384766fdc6b7dc23d7a04d523958343351b89ff6a1d2e7dc4f5d7a8f",
+      "engineering_utility_ready": false,
+      "runtime_replacement_allowed": false,
+      "safe_fallback": "spatial_candidates_unavailable"
+    },
+    "navigation": {
+      "evidence_path": "artifacts/navigation/d036_digital_phantom_navigation_validation_20260719/runs/20260719T0204410263800d7649/validation_summary.json",
+      "evidence_sha256": "6b865abf37733b8db0135f10af57f247094c5baf628a7bcf5d5da87134f879dd",
+      "final_navigation_level": "L0",
+      "navigation_ready": false,
+      "navigation_claim_allowed": false,
+      "fallback_mode": "unregistered_3d_reference"
+    }
+  },
+  "submission_documents": {
+    "source": {
+      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.md",
+      "bytes": 9831,
+      "sha256": "88e0423635839c81e99932ce3687abac65ff5ec7e8892d5e66d391171fea423e"
+    },
+    "docx": {
+      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.docx",
+      "bytes": 30716,
+      "sha256": "7d6f151fc3183fea03c942f5bf6caf6ba5d8623e78040e0c1bdbf8d9da37232b",
+      "validation": "passed",
+      "paragraphs": 164
+    },
+    "pdf": {
+      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.pdf",
+      "bytes": 427843,
+      "sha256": "faf896c42698ba5231c1445b42cde680f35a4d310b91ef0409aafcf7755e8ddb",
+      "pages": 10,
+      "page_size": "A4",
+      "pdf_version": "1.7",
+      "render_review": "passed"
+    }
+  },
+  "official_documents": [
+    {
+      "path": "HT-202604成都科奥达光电技术有限公司-面向颌骨骨髓炎的智能化荧光诊疗比赛方案.pdf",
+      "bytes": 237484,
+      "sha256": "b134be0c4bddd4ef7745e46b982fcbfb9df00c9e89f1385bb44ecefb30a55ddc",
+      "distribution": "local_ignored"
+    },
+    {
+      "path": "research/literature/inventory/official/competition_official_technical_document_20260527.pdf",
+      "bytes": 121814,
+      "sha256": "b8cfa6937f2f37b01e7fcf426031a779dc4f8c1a8c4573d5aaef1032f852bf12",
+      "distribution": "local_ignored"
+    }
+  ],
+  "validation": [
+    {
+      "gate": "core_pytest",
+      "result": "passed",
+      "passed": 603,
+      "command": "python -m pytest tests -q"
+    },
+    {
+      "gate": "backend_pytest",
+      "result": "passed",
+      "passed": 281,
+      "command": "python -m pytest backend/tests -q"
+    },
+    {
+      "gate": "frontend_vitest",
+      "result": "passed",
+      "passed": 207,
+      "skipped": 1,
+      "command": "npm --prefix frontend test"
+    },
+    {
+      "gate": "frontend_playwright",
+      "result": "passed",
+      "passed": 5,
+      "command": "npm --prefix frontend run test:e2e"
+    },
+    {
+      "gate": "python_quality",
+      "result": "passed",
+      "checks": {
+        "ruff": "passed:first_party_full_tree",
+        "black": "passed:first_party_full_tree",
+        "isort": "passed:first_party_full_tree",
+        "mypy": "passed:src_and_backend_strict_configuration",
+        "compileall": "passed:first_party_full_tree"
+      },
+      "preexisting_full_tree_format_debt": {
+        "black_files": 0,
+        "isort_files": 0
+      }
+    },
+    {
+      "gate": "frontend_quality",
+      "result": "passed",
+      "checks": [
+        "vue-tsc",
+        "vite_build"
+      ],
+      "largest_lazy_chunk": {
+        "name": "Anatomy3DPanel",
+        "bytes": 710170,
+        "gzip_bytes": 185790,
+        "load_strategy": "route_and_component_lazy_loaded"
+      }
+    },
+    {
+      "gate": "project_readiness",
+      "result": "passed",
+      "command": "python tools/check_project_readiness.py"
+    },
+    {
+      "gate": "strict_runtime",
+      "result": "passed",
+      "command": "python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict"
+    },
+    {
+      "gate": "dataset_manifests",
+      "result": "passed",
+      "command": "python tools/verify_three_priority_dataset_manifests.py --output artifacts/release/v0.3.0-rc.2/dataset_manifest_verification.json"
+    },
+    {
+      "gate": "active_documentation",
+      "result": "passed_after_release_tag",
+      "command": "python tools/audit_active_documentation.py"
+    }
+  ],
+  "patient_safety": {
+    "clinical_diagnosis_claim_allowed": false,
+    "autonomous_resection_claim_allowed": false,
+    "navigation_claim_allowed": false,
+    "physician_review_required": true,
+    "fail_closed_required": true,
+    "patient_conditioned_output_requires_image_baseline_and_difference_evidence": true,
+    "unregistered_3d_fallback_required": true,
+    "live_frame_stale_overlay_hidden": true
+  },
+  "known_limitations": [
+    "真实目标域白光/荧光病例和医生像素级金标准仍缺失。",
+    "患者条件分割与骨活性空间模型仍处于非目标域代理工程验证阶段。",
+    "真实设备全倍率、全工作距离和 4K 标定仍待完成。",
+    "真实下颌仿体物理精度、动态独立测量和真实术中导航性能仍待验证。",
+    "新型荧光造影剂的实物合成、光谱、选择性、安全性和组织实验仍待独立验证。",
+    "Anatomy3DPanel 异步块体积较大，已采用页面和组件双层懒加载，后续继续按交互基准优化。",
+    "部分历史公开数据清单保留生成时的本机绝对 local_path；跨机器使用应读取 relative_path 或重新生成本地清单。"
+  ],
+  "artifact_policy": {
+    "tracked": [
+      "source_code",
+      "tests",
+      "configuration",
+      "formal_reports",
+      "submission_docx_pdf",
+      "dataset_manifests",
+      "download_receipts",
+      "source_metadata",
+      "license_recorded_small_public_structured_clinical_metadata"
+    ],
+    "ignored": [
+      "unadmitted_private_or_hospital_data",
+      "raw_imaging_and_video_data",
+      "bulk_public_dataset_archives",
+      "model_input_arrays",
+      "derived_data",
+      "materialized_data",
+      "checkpoints",
+      "runtime_outputs",
+      "sqlite_databases",
+      "private_keys",
+      "videos",
+      "medical_images",
+      "three_dimensional_models",
+      "test_caches"
+    ]
+  }
+}

@@ -16,4 +16,3 @@ class FixtureDetector:
             }
         ]
         return candidates[:max_candidates]
-

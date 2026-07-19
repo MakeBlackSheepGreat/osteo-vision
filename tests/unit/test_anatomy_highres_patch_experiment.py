@@ -60,8 +60,18 @@ def test_sampling_schedule_matches_fixed_foreground_small_random_ratio() -> None
     modes = [sampling_mode_for_index(index) for index in range(8)]
 
     assert modes == ["foreground", "foreground", "small", "random", "foreground", "foreground", "small", "random"]
-    assert [sampling_mode_for_index(index, "small50") for index in range(4)] == ["small", "foreground", "small", "random"]
-    assert [sampling_mode_for_index(index, "small75") for index in range(4)] == ["small", "foreground", "small", "small"]
+    assert [sampling_mode_for_index(index, "small50") for index in range(4)] == [
+        "small",
+        "foreground",
+        "small",
+        "random",
+    ]
+    assert [sampling_mode_for_index(index, "small75") for index in range(4)] == [
+        "small",
+        "foreground",
+        "small",
+        "small",
+    ]
     assert [sampling_mode_for_index(index, "class_cycle", label_mode="coarse3") for index in range(4)] == [
         "foreground",
         "label_1",
@@ -183,7 +193,9 @@ def test_build_patch_cache_writes_manifest_and_required_npz_fields(tmp_path) -> 
     assert len(rows) == 4
     assert set(PATCH_MANIFEST_FIELDS) <= set(rows[0])
     with np.load(rows[0]["cache_path"]) as payload:
-        assert {"image", "label", "case_id", "source_shape", "spacing", "patch_origin", "label_values"} <= set(payload.files)
+        assert {"image", "label", "case_id", "source_shape", "spacing", "patch_origin", "label_values"} <= set(
+            payload.files
+        )
         assert payload["image"].shape == (8, 8, 8)
         assert payload["label"].shape == (8, 8, 8)
     info = patch_data_info(rows)

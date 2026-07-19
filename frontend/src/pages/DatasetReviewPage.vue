@@ -43,7 +43,7 @@
         </select>
       </label>
       <div class="queue-position">
-        当前 {{ selectedPositionLabel }}；筛选结果 {{ filteredRecords.length }} 条
+        当前 {{ selectedPositionLabel }}；筛选结果 {{ filteredRecords.length }} 条；列表第 {{ currentPage }} / {{ pageCount }} 页
       </div>
     </section>
 
@@ -58,7 +58,7 @@
         </div>
         <div class="record-list">
           <button
-            v-for="item in filteredRecords"
+            v-for="item in paginatedRecords"
             :key="item.record_id"
             type="button"
             class="record-item"
@@ -76,6 +76,28 @@
             <small>{{ item.license || "许可待核验" }}</small>
           </button>
         </div>
+        <nav v-if="filteredRecords.length" class="record-pagination" aria-label="候选列表分页">
+          <button
+            type="button"
+            :disabled="currentPage <= 1 || writeBusy"
+            :title="writeBusy ? writeBusyReason : currentPage <= 1 ? '当前已是第一页' : '查看上一页候选'"
+            @click="selectPage(currentPage - 1)"
+          >
+            上一页
+          </button>
+          <span aria-live="polite">
+            第 {{ currentPage }} / {{ pageCount }} 页
+            <small>{{ pageRangeLabel }}</small>
+          </span>
+          <button
+            type="button"
+            :disabled="currentPage >= pageCount || writeBusy"
+            :title="writeBusy ? writeBusyReason : currentPage >= pageCount ? '当前已是最后一页' : '查看下一页候选'"
+            @click="selectPage(currentPage + 1)"
+          >
+            下一页
+          </button>
+        </nav>
         <p v-if="!loading && !filteredRecords.length" class="empty-state">当前筛选条件下没有复核记录。</p>
       </aside>
 
@@ -196,6 +218,8 @@ const seedThreshold = ref(0.6);
 const maskRevision = ref(0);
 const seededRecordIds = ref(new Set<string>());
 const metadataExpanded = ref(false);
+const pageSize = 20;
+const currentPage = ref(1);
 const writeBusy = computed(() => saving.value || seedLoading.value || cropSaving.value);
 const writeBusyReason = computed(() => {
   if (saving.value) return "正在保存复核掩膜，请等待当前写入完成。";
@@ -214,6 +238,15 @@ const filteredRecords = computed(() =>
       );
   }),
 );
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredRecords.value.length / pageSize)));
+const pageStartIndex = computed(() => (currentPage.value - 1) * pageSize);
+const paginatedRecords = computed(() => filteredRecords.value.slice(pageStartIndex.value, pageStartIndex.value + pageSize));
+const pageRangeLabel = computed(() => {
+  if (!filteredRecords.value.length) return "0 条";
+  const start = pageStartIndex.value + 1;
+  const end = Math.min(pageStartIndex.value + pageSize, filteredRecords.value.length);
+  return `${start}-${end} / ${filteredRecords.value.length} 条`;
+});
 const selectedRecord = computed(() => records.value.find((item) => item.record_id === selectedRecordId.value) ?? null);
 const selectedFilteredIndex = computed(() => filteredRecords.value.findIndex((item) => item.record_id === selectedRecordId.value));
 const hasPrevious = computed(() => selectedFilteredIndex.value > 0);
@@ -237,9 +270,17 @@ const selectedIsAutoSeed = computed(() => {
 });
 
 watch([datasetFilter, stateFilter], () => {
-  if (filteredRecords.value.some((item) => item.record_id === selectedRecordId.value)) return;
+  currentPage.value = 1;
   selectedRecordId.value = filteredRecords.value[0]?.record_id || "";
   successMessage.value = "";
+});
+watch(pageCount, (count) => {
+  if (currentPage.value > count) currentPage.value = count;
+});
+watch(filteredRecords, (nextRecords) => {
+  if (nextRecords.some((item) => item.record_id === selectedRecordId.value)) return;
+  const firstVisible = nextRecords[(currentPage.value - 1) * pageSize] || nextRecords[0];
+  selectedRecordId.value = firstVisible?.record_id || "";
 });
 watch(selectedRecordId, () => {
   metadataExpanded.value = false;
@@ -267,9 +308,20 @@ async function loadQueue() {
 
 function selectRecord(recordId: string) {
   if (writeBusy.value) return;
+  const filteredIndex = filteredRecords.value.findIndex((item) => item.record_id === recordId);
+  if (filteredIndex >= 0) currentPage.value = Math.floor(filteredIndex / pageSize) + 1;
   selectedRecordId.value = recordId;
   error.value = "";
   successMessage.value = "";
+}
+
+function selectPage(page: number) {
+  if (writeBusy.value) return;
+  const nextPage = Math.min(Math.max(page, 1), pageCount.value);
+  if (nextPage === currentPage.value) return;
+  currentPage.value = nextPage;
+  const firstRecord = filteredRecords.value[(nextPage - 1) * pageSize];
+  if (firstRecord) selectRecord(firstRecord.record_id);
 }
 
 async function generateSeed() {
@@ -596,7 +648,7 @@ onMounted(() => {
   position: sticky;
   top: 72px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   max-height: calc(100vh - 94px);
   overflow: hidden;
 }
@@ -625,6 +677,51 @@ onMounted(() => {
   min-height: 0;
   padding: 8px;
   overflow-y: auto;
+}
+
+.record-pagination {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto minmax(72px, 1fr);
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--ov-border-subtle);
+  padding: 9px;
+  background: var(--ov-bg-elevated);
+}
+
+.record-pagination button {
+  min-height: 34px;
+  border: 1px solid var(--ov-border-strong);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.record-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.record-pagination span,
+.record-pagination small {
+  display: block;
+  color: var(--ov-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+}
+
+.record-pagination small {
+  margin-top: 2px;
+  color: var(--ov-text-muted);
+  font-size: 9px;
 }
 
 .record-item {

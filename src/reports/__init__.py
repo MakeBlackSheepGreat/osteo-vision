@@ -1,2 +1,1 @@
 """Report writing and validation."""
-

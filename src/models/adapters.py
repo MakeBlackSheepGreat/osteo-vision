@@ -418,8 +418,8 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
         boundary_warning = warning(
             "convnext2d_keyframe_proxy_non_target_domain",
             (
-                "Trainable 2D keyframe segmenter is trained on synthetic or pseudo-labeled fluorescence proxy frames; "
-                "it is not real intraoperative ICG jaw osteomyelitis clinical evidence."
+                "The trainable 2D keyframe segmenter is trained on synthetic or pseudo-labeled fluorescence proxy "
+                "frames; it is not real intraoperative ICG jaw osteomyelitis clinical evidence."
             ),
         )
         return AdapterResult(

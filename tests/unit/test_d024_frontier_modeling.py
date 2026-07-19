@@ -86,7 +86,12 @@ def test_frontier_report_renders_json_serializable_payload() -> None:
         "environment": {"device": "cpu", "torch_version": torch.__version__, "cuda_device_name": None},
         "results": [],
         "model_sources": [source.__dict__ for source in frontier_evidence_sources()],
-        "paths": {"summary_json": "summary.json", "results_csv": "results.csv", "zh_report": "zh.md", "en_report": "en.md"},
+        "paths": {
+            "summary_json": "summary.json",
+            "results_csv": "results.csv",
+            "zh_report": "zh.md",
+            "en_report": "en.md",
+        },
     }
 
     rendered = render_report(json.loads(json.dumps(payload)), language="en")

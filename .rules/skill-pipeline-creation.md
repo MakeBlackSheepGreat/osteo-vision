@@ -61,7 +61,7 @@ from src.pipelines.base import Pipeline, PipelineContext
 
 class Pipeline:
     task_type = "base"
-    
+
     def run(self, context: PipelineContext) -> dict[str, Any]:
         raise NotImplementedError
 ```
@@ -127,33 +127,33 @@ from src.pipelines.base import Pipeline, PipelineContext
 
 class MyPipeline(Pipeline):
     """自定义流水线示例"""
-    
+
     task_type = "my_task"
-    
+
     def run(self, context: PipelineContext) -> dict[str, Any]:
         """
         执行流水线
-        
+
         Args:
             context: 流水线上下文
-            
+
         Returns:
             流水线结果字典
         """
         warnings: list[dict[str, Any]] = []
         prediction: dict[str, Any] = {}
-        
+
         # 1. 验证输入
         if not context.input_summary.accepted:
             warnings.append(warning(STATUS_INVALID_INPUT, "Input validation failed", True))
             return {"prediction": prediction, "warnings": warnings}
-        
+
         # 2. 获取配置
         threshold = float(context.task_config.get("threshold", 0.5))
-        
+
         # 3. 执行预处理（可选）
         preprocessed = self._preprocess(context)
-        
+
         # 4. 执行模型推理
         if context.adapter_result:
             # 使用适配器结果
@@ -161,10 +161,10 @@ class MyPipeline(Pipeline):
         else:
             # 使用本地模型
             prediction = self._run_model(context, preprocessed)
-        
+
         # 5. 执行后处理
         prediction = self._postprocess(prediction, threshold)
-        
+
         # 6. 构建结果
         return {
             "prediction": prediction,
@@ -174,42 +174,42 @@ class MyPipeline(Pipeline):
             "risk_level": prediction.get("risk_level"),
             "warnings": warnings,
         }
-    
+
     def _preprocess(self, context: PipelineContext) -> dict[str, Any]:
         """
         预处理
-        
+
         Args:
             context: 流水线上下文
-            
+
         Returns:
             预处理结果
         """
         # 实现预处理逻辑
         return {}
-    
+
     def _run_model(self, context: PipelineContext, preprocessed: dict[str, Any]) -> dict[str, Any]:
         """
         执行模型推理
-        
+
         Args:
             context: 流水线上下文
             preprocessed: 预处理结果
-            
+
         Returns:
             模型预测结果
         """
         # 实现模型推理逻辑
         return {}
-    
+
     def _postprocess(self, prediction: dict[str, Any], threshold: float) -> dict[str, Any]:
         """
         后处理
-        
+
         Args:
             prediction: 模型预测结果
             threshold: 阈值
-            
+
         Returns:
             后处理结果
         """

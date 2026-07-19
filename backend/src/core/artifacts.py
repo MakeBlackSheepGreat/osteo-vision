@@ -32,7 +32,9 @@ def checksum_for_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
-def manifest_record(kind: str, path: str | Path, *, checksum: str | None = None, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+def manifest_record(
+    kind: str, path: str | Path, *, checksum: str | None = None, extra: dict[str, Any] | None = None
+) -> dict[str, Any]:
     p = Path(path)
     return {
         "kind": kind,

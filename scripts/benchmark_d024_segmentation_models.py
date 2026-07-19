@@ -25,7 +25,6 @@ from scripts.convert_d024_to_nnunet import DEFAULT_NNUNET_ROOT, convert_d024_to_
 from src.core.paths import ensure_dir
 from src.reports.writers import write_csv, write_json
 
-
 DEFAULT_NNUNET_DATASET = DEFAULT_NNUNET_ROOT / "nnUNet_raw" / "Dataset124_DentVoxelJawROI"
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/d024_segmentation_model_benchmark")
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")
@@ -496,7 +495,10 @@ def write_summary_reports(payload: dict[str, Any], report_dir: Path) -> dict[str
 def render_report(payload: dict[str, Any], *, language: str) -> str:
     rows = sorted(
         payload["results"],
-        key=lambda item: (-1 if item.get("foreground_mean_dice") is None else -float(item["foreground_mean_dice"]), item["model_id"]),
+        key=lambda item: (
+            -1 if item.get("foreground_mean_dice") is None else -float(item["foreground_mean_dice"]),
+            item["model_id"],
+        ),
     )
     if language == "zh":
         lines = [

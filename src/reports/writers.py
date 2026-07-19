@@ -40,4 +40,3 @@ def _format_markdown_value(value: Any) -> str:
     if isinstance(value, (dict, list)):
         return "```json\n" + json.dumps(value, ensure_ascii=False, indent=2) + "\n```"
     return str(value)
-

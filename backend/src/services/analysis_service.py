@@ -283,7 +283,7 @@ class AnalysisService:
                 )
             return self._finish_failed_run(case, run, live_warnings)
 
-        segmentation_model_id = str(parameters.get("segmentation_model_id") or "convnext2d_keyframe_proxy_segmenter")
+        segmentation_model_id = str(parameters.get("segmentation_model_id") or self._configured_segmentation_model_id())
         hotspot_outputs = _analyze_keyframe_segmentations(
             keyframes,
             output_dir / "keyframe_segmentations" / run.run_id,
@@ -499,7 +499,7 @@ class AnalysisService:
         )
         video_warnings = [*selection_warnings, *keyframe_report.get("warnings", [])]
         keyframes = keyframe_report.get("keyframes", [])
-        segmentation_model_id = str(parameters.get("segmentation_model_id") or "convnext2d_keyframe_proxy_segmenter")
+        segmentation_model_id = str(parameters.get("segmentation_model_id") or self._configured_segmentation_model_id())
         hotspot_outputs = _analyze_keyframe_segmentations(
             keyframes,
             output_dir / "keyframe_segmentations" / run.run_id,
@@ -1279,7 +1279,11 @@ class AnalysisService:
         segmentation = tasks.get("segmentation") if isinstance(tasks, dict) else None
         model_id = segmentation.get("model_id") if isinstance(segmentation, dict) else None
         resolved = str(model_id or "").strip()
-        return resolved or "convnext2d_keyframe_proxy_segmenter"
+        if resolved:
+            return resolved
+        if isinstance(runtime, dict) and bool(runtime.get("strict_startup")):
+            raise ValueError("Strict runtime requires runtime.tasks.segmentation.model_id.")
+        return "convnext2d_keyframe_proxy_segmenter"
 
     def _heuristic_keyframe_fallback_allowed(self) -> bool:
         runtime = load_yaml(self.config_path).get("runtime") or {}

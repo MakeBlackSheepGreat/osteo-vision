@@ -5,7 +5,7 @@
 **Input**: Feature specification from `/specs/001-software-platform-target/spec.md`
 
 **Note**: This plan is aligned with the project constitution and the target
-platform description in `research/reports/planning/software_focused_realistic_platform_zh.md`.
+current platform target in `research/reports/planning/osteo_vision_platform_target_zh.md`.
 
 ## Summary
 
@@ -44,10 +44,11 @@ export within the versioned acceptance limits; short sequences should remain
 interactive during ROI selection and review; safety-gate decisions should be
 available in the same API response that exposes the associated evidence
 
-**Constraints**: No live device SDKs, no hospital-system integration in v1, no
-automatic diagnosis claims, physician review required, offline or uploaded dual-
-channel inputs must be supported, and the demo path must remain usable without a
-GPU
+**Constraints**: Enterprise device SDKs, drivers, and hardware acquisition remain
+outside this software repository; HIS/PACS/EMR integration is an extension boundary;
+automatic diagnosis claims are prohibited; physician review is required; official
+JPEG/MP4 files, browser video streams, and offline dual-channel inputs must be
+supported; the workstation path must remain usable without a GPU
 
 **Scale/Scope**: Single-user or small-team case review workflow, one case at a
 time for live demo, with batch export and later multi-case expansion kept open

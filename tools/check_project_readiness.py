@@ -171,13 +171,13 @@ def main() -> int:
         "start_platform.cmd",
         "scripts/start_platform.ps1",
         "tools/check_runtime_readiness.py",
-        "research/planning/DOWNLOAD_STATUS.md",
-        "research/planning/engineering_preparation.md",
-        "research/literature/inventory/competition_feasibility_report.md",
+        "research/reports/README.md",
+        "research/reports/planning/osteo_vision_platform_target_zh.md",
+        "research/reports/planning/official_competition_problem_alignment_20260704_zh.md",
         "research/literature/inventory/literature_and_dataset_summary.md",
         "research/literature/inventory/paper_inventory.csv",
         "research/literature/inventory/dataset_inventory.csv",
-        "research/planning/requirements-platform-validation.txt",
+        "requirements.txt",
         "tools/run_platform_smoke.py",
     ]:
         core_ok = check_file(path) and core_ok

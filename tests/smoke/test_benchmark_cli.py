@@ -36,4 +36,3 @@ def test_benchmark_cli_completes(tmp_path) -> None:
     assert (run_dir / "model_specs.json").exists()
     payload = json.loads((run_dir / "benchmark_report.json").read_text(encoding="utf-8"))
     assert payload["model_version"] == "micf-fixture-v0"
-

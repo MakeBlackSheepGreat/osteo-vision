@@ -55,7 +55,7 @@ DICOM 标准输出与远程协作可作为软件平台扩展亮点和证据包�
 
 - ICG 主要反映血流灌注、血管通透性和组织活性差异，不是颌骨骨髓炎特异性探针。
 - 输出应定位为术中参考信号、风险提示和医生复核辅助，不得表述为自动确诊或替代医生判断。
-- 若缺少真实术中白光/ICG 样本和医生标注，赛点二只能作为工程验证或辅助演示，不能承诺临床级诊断性能。
+- 若缺少真实术中白光/ICG 样本和医生标注，AI 辅助判读只能作为工程验证或辅助演示，不能承诺临床级诊断性能。
 
 ## Fixed Technical Stack
 
@@ -105,6 +105,7 @@ DICOM 标准输出与远程协作可作为软件平台扩展亮点和证据包�
 - 前端必须提供面向医生的独立病灶人工标注页面，支持从病例 JPEG、MP4 关键帧和模型候选区进入，提供画笔、橡皮擦、多边形、撤销/重做、缩放、标签选择、草稿保存、提交复核和版本历史；后端必须持久化原图尺寸坐标、像素掩膜、标注类别、医生身份、机构、时间、来源输入、病例、版本、复核状态和训练准入状态。只有可信医生身份提交且完成复核的标注才能进入高权重训练清单，工程标注和未复核草稿必须保持独立来源与权重边界。
 - 当用户要求继续完善软件差距时，必须直接选择当前最高优先级的软件阻塞项进入代码实现、测试和可核验运行闭环；不得把当轮主要产出继续停留在差距分析或路线说明。
 - 当前开发目标为持续清零已识别的最高优先级软件缺口，直至比赛版平台的软件闭环、模型闭环、严格运行、性能和交付证据均通过逐项验证。后续轮次应从当前未完成项继续推进，难度不得作为降级、跳过或停止依据；只有外部依赖项可保留明确待验证状态。
+- 当用户要求全项目旧版本清理和性能优化时，必须先以当前 Git tag、官方赛题原文、官方技术文档和最新可运行代码为基线，盘点并更新过期版本号、状态、测试数量、模型主线、设备边界、报告索引、失效链接与重复入口；历史证据需保留日期和归档属性。完成宏观目录与文档整理后，再通过基准、profiling、复杂度审计和热点证据选择优化点，优先降低实际热路径的时间与空间开销、请求积压、重复 I/O、重复解码和不必要模型执行，并为每项改动补充回归测试及优化前后指标。
 - 项目进入医生合作阶段后，医生数据需求清单、采集流程和软件能力说明必须与当前可运行代码逐项核对；视频/摄像头输入、分割输出、医生复核和数据回灌等能力只有在前后端运行、测试和可见产物均通过后才能标记为已具备，未完成项应保留明确状态和验证入口。
 - 医院或医生交接的真实 JPEG/MP4 在写入平台病例、进入分析或形成训练清单前，必须经过批次准入：记录机构授权、脱敏确认、病例映射保管、用途范围、来源、接收人与时间，校验文件签名、可解码性、SHA256、重复项、通道关系和同步配对。只有 `admitted` 文件可以登记为病例输入；`quarantined` 文件仅保留原因码。所有新准入样本默认保持 `review_required`、`unlabeled` 和 `training_eligible=false`，直至医生复核及训练准入评估完成。
 - 面对分割模型数据集缺口时，必须把“真实目标域数据缺失”作为核心待解决工程问题处理，直接提出可执行的数据闭环方案，包括公开视频/荧光代理/CBCT 派生数据的分层使用、伪标注质量门控、人工复核小金标准集、医生复核反馈再训练和明确的不可声称边界；不得用“继续寻找公开数据集”替代数据闭环设计。
@@ -202,11 +203,11 @@ osteo-vision/
 
 ```powershell
 conda activate osteo-vision
-python check_env.py
-python -m pytest tests/unit tests/smoke
-python scripts/model_inventory.py --config configs/inference/osteo_vision.yml
-python app/main.py --config configs/inference/osteo_vision.yml
-python tools/check_project_readiness.py
+make docs-audit
+make check-all
+make readiness
+make performance-baseline
+make platform
 ```
 
 ## Architecture Notes
@@ -220,11 +221,11 @@ python tools/check_project_readiness.py
 
 ## Research Archive
 
-`research/` 只保存启动前资料和迁移参考：
+`research/` 保存可追溯的当前计划、工程证据、数据来源、发布材料和历史归档：
 
 - `research/literature/inventory/`：文献、数据集、可行性报告。
-- `research/planning/`：工程准备、数据获取计划、历史下载状态。
-- `research/reports/`：统一报告目录，按 planning、preprocessing、modeling 等主题归档中英双语 Markdown 报告和相关可视化资产。
+- `research/reports/archive/early_planning_202606/`：早期工程准备、数据获取计划和历史下载状态归档。
+- `research/reports/`：统一报告目录，按 planning、preprocessing、modeling、release、submission 和 archive 等主题归档中英双语 Markdown 报告和相关可视化资产。
 - `research/reports/planning/osteo_vision_platform_target_zh.md`：当前项目目标母稿。
 - `research/model-snapshots/code/`：外部模型代码快照。
 - `research/scripts/legacy/`：旧报告生成和下载脚本。

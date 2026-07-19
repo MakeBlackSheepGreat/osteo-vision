@@ -8,4 +8,3 @@ from src.reports.writers import write_json
 
 def write_overlay_placeholder(path: str | Path, payload: dict[str, Any]) -> str:
     return write_json(path, {"type": "overlay_placeholder", **payload})
-

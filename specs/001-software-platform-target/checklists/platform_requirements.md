@@ -80,7 +80,7 @@
 
 ## Non-Functional Requirements
 
-- [x] CHK029 Are local deployment assumptions, supported operating systems, and browser expectations specified for the V1 workstation workflow? [Completeness, Plan §Target Platform]
+- [x] CHK029 Are local deployment assumptions, supported operating systems, and browser expectations specified for the competition workstation workflow? [Completeness, Plan §Target Platform]
   - Evidence: plan states browser-based local workstation deployment; README and quickstart document backend and frontend ports.
 - [ ] CHK030 Are performance targets expressed as measurable limits for representative case loading, ROI interaction, and export? [Gap, Plan §Performance Goals]
   - Remaining gap: smoke timing exists, but formal limits are not set.
@@ -102,11 +102,11 @@
 - [x] CHK037 Are configuration, adapter, pipeline, manifest, and report-writer boundaries reflected in the feature requirements or plan? [Traceability, Plan §Constitution Check, Constitution §III]
   - Evidence: configs, adapters, pipelines, manifests, smoke tools, and report writers are present and tested.
 - [x] CHK038 Are temporary Gradio demo constraints clearly separated from the long-term Vue/FastAPI platform target? [Clarity, Plan §Summary, Plan §Constraints]
-  - Evidence: README and quickstart mark Gradio as legacy/temporary; V1 platform uses Vue and FastAPI.
+  - Evidence: README and quickstart retain Gradio as a compatibility entry; the platform uses Vue and FastAPI.
 
 ## Dependencies And Assumptions
 
-- [x] CHK039 Is the local single-user V1 assumption documented consistently across spec, plan, tasks, and quickstart? [Assumption, Tasks §Clarification Assumption, Plan §Scale/Scope]
+- [x] CHK039 Is the local single-user competition workstation assumption documented consistently across spec, plan, tasks, and quickstart? [Assumption, Tasks §Clarification Assumption, Plan §Scale/Scope]
   - Evidence: plan and quickstart describe local workstation deployment and small-team/single-case demo scope.
 - [x] CHK040 Are out-of-scope dependencies such as device SDKs, HIS/EMR/PACS, full patient management, and automatic diagnosis consistently excluded? [Consistency, Spec §Out of Scope, Plan §Constraints, Constitution §I]
   - Evidence: spec, plan, and AGENTS exclude these dependencies.

@@ -156,7 +156,8 @@ def discover_video_sources(args: argparse.Namespace) -> list[dict[str, Any]]:
                 "title": "OFDVDnet fluorescence-guided surgery proxy video",
                 "video_path": str(path),
                 "source_page_original_link": row.get("source_page_original_link"),
-                "view_layout": row.get("view_layout") or "top_left_overlay__top_right_fluorescence__bottom_left_reference",
+                "view_layout": row.get("view_layout")
+                or "top_left_overlay__top_right_fluorescence__bottom_left_reference",
                 "overlay_xyxy": row.get("overlay_xyxy"),
                 "fluorescence_xyxy": row.get("fluorescence_xyxy"),
                 "reference_xyxy": row.get("reference_xyxy"),
@@ -301,7 +302,9 @@ def write_keyframe_record(
         "review_state": "review_required",
         "sample_weight": 1.0 if quality_status == "accepted" else 0.25,
         "positive_area_fraction": round(positive_fraction, 8),
-        "uncertain_area_fraction": round(float(signal_paths.get("risk_summary", {}).get("uncertain_area_fraction", 0.0)), 8),
+        "uncertain_area_fraction": round(
+            float(signal_paths.get("risk_summary", {}).get("uncertain_area_fraction", 0.0)), 8
+        ),
         "width": int(width),
         "height": int(height),
         "view_layout": source.get("view_layout"),

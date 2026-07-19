@@ -16,15 +16,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from scripts.benchmark_d024_frontier_segmentation_models import frontier_model_catalog
-from scripts.benchmark_d024_segmentation_models import ModelCandidate, _primary_output, model_catalog as monai_model_catalog
+from scripts.benchmark_d024_segmentation_models import ModelCandidate, _primary_output
+from scripts.benchmark_d024_segmentation_models import model_catalog as monai_model_catalog
 from src.core.paths import ensure_dir
 from src.reports.writers import write_csv, write_json
-
 
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/public_cbct_segmentation_benchmark")
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")
@@ -61,7 +61,9 @@ DATASETS = {
         task_group="anatomy_roi",
         task_name="jaw_roi_64",
         display_name="D024 DentVoxel jaw ROI",
-        manifest_path=Path("research/datasets/public-candidates/d024_dentvoxel/derived/local_preprocessed/jaw_roi_64_manifest.csv"),
+        manifest_path=Path(
+            "research/datasets/public-candidates/d024_dentvoxel/derived/local_preprocessed/jaw_roi_64_manifest.csv"
+        ),
         metric_profile="anatomy",
         medical_boundary="Anatomical CBCT structure segmentation only; no osteomyelitis, necrotic-bone, or ICG labels.",
     ),
@@ -135,7 +137,9 @@ class SegmentationLoss(nn.Module):
         raise ValueError(f"Unsupported loss: {self.loss_name}")
 
 
-def soft_dice_loss(logits: torch.Tensor, target: torch.Tensor, labels: list[int], *, smooth: float = 1e-5) -> torch.Tensor:
+def soft_dice_loss(
+    logits: torch.Tensor, target: torch.Tensor, labels: list[int], *, smooth: float = 1e-5
+) -> torch.Tensor:
     probabilities = torch.softmax(logits, dim=1)
     losses = []
     for label in labels:
@@ -151,7 +155,9 @@ def soft_dice_loss(logits: torch.Tensor, target: torch.Tensor, labels: list[int]
     return torch.stack(losses).mean()
 
 
-def focal_loss(logits: torch.Tensor, target: torch.Tensor, *, weight: torch.Tensor | None, gamma: float = 2.0) -> torch.Tensor:
+def focal_loss(
+    logits: torch.Tensor, target: torch.Tensor, *, weight: torch.Tensor | None, gamma: float = 2.0
+) -> torch.Tensor:
     log_prob = F.log_softmax(logits, dim=1)
     log_pt = log_prob.gather(1, target.unsqueeze(1)).squeeze(1)
     pt = log_pt.exp()
@@ -692,11 +698,18 @@ def binary_dice_iou(pred: np.ndarray, target: np.ndarray) -> dict[str, Any]:
     }
 
 
-def run_forward_backward_smoke(candidate: ModelCandidate, spec: DatasetSpec, rows: list[dict[str, Any]], data_info: dict[str, Any]) -> dict[str, Any]:
+def run_forward_backward_smoke(
+    candidate: ModelCandidate, spec: DatasetSpec, rows: list[dict[str, Any]], data_info: dict[str, Any]
+) -> dict[str, Any]:
     if candidate.family == "external_nnunet":
         return {"model_id": candidate.model_id, "dataset_key": spec.dataset_key, "status": "skipped_external"}
     if not rows:
-        return {"model_id": candidate.model_id, "dataset_key": spec.dataset_key, "status": "failed_runtime", "error": "no training rows"}
+        return {
+            "model_id": candidate.model_id,
+            "dataset_key": spec.dataset_key,
+            "status": "failed_runtime",
+            "error": "no training rows",
+        }
     _set_seed(DEFAULT_SEED)
     target_shape = tuple(int(item) for item in data_info["target_shape"])
     model = candidate.constructor(target_shape, int(data_info["n_classes"]))
@@ -820,7 +833,9 @@ def build_rankings(results: list[dict[str, Any]]) -> dict[str, Any]:
         dataset_key: sorted(rows, key=lambda item: metric_sort_value(item.get("foreground_mean_dice")), reverse=True)
         for dataset_key, rows in by_dataset.items()
     }
-    anatomy_rows = [row for row in results if row.get("task_group") == "anatomy_roi" and row.get("foreground_mean_dice") is not None]
+    anatomy_rows = [
+        row for row in results if row.get("task_group") == "anatomy_roi" and row.get("foreground_mean_dice") is not None
+    ]
     anatomy_by_model: dict[str, list[float]] = {}
     for row in anatomy_rows:
         anatomy_by_model.setdefault(str(row["model_id"]), []).append(float(row["foreground_mean_dice"]))
@@ -838,7 +853,10 @@ def build_rankings(results: list[dict[str, Any]]) -> dict[str, Any]:
     )
     lesion = sorted(
         [row for row in results if row.get("task_group") == "lesion_roi"],
-        key=lambda item: (metric_sort_value(item.get("foreground_mean_dice")), metric_sort_value(item.get("lesion_sensitivity"))),
+        key=lambda item: (
+            metric_sort_value(item.get("foreground_mean_dice")),
+            metric_sort_value(item.get("lesion_sensitivity")),
+        ),
         reverse=True,
     )
     return {"by_dataset": dataset_rankings, "anatomy_aggregate": anatomy_aggregate, "lesion": lesion}
@@ -956,7 +974,10 @@ def render_report(payload: dict[str, Any], *, language: str) -> str:
                 "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
             ]
         )
-    for row in sorted(payload["results"], key=lambda item: (str(item.get("dataset_key")), -metric_sort_value(item.get("foreground_mean_dice")))):
+    for row in sorted(
+        payload["results"],
+        key=lambda item: (str(item.get("dataset_key")), -metric_sort_value(item.get("foreground_mean_dice"))),
+    ):
         lines.append(result_table_row(row))
     if language == "zh":
         lines.extend(["", "## 解剖结构综合排名", ""])
@@ -1153,7 +1174,9 @@ def _external_constructor(shape: tuple[int, int, int], n_classes: int) -> nn.Mod
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Benchmark public CBCT segmentation models on D024, D025, and D036 local caches.")
+    parser = argparse.ArgumentParser(
+        description="Benchmark public CBCT segmentation models on D024, D025, and D036 local caches."
+    )
     parser.add_argument("--task", default="all", choices=["anatomy_roi", "lesion_roi", "all"])
     parser.add_argument("--models", default=",".join(DEFAULT_TOP_MODELS))
     parser.add_argument("--max-train-batches", type=int, default=80)
@@ -1179,7 +1202,13 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.list_models:
-        print(json.dumps([model_catalog_row(candidate) for candidate in combined_model_catalog().values()], ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                [model_catalog_row(candidate) for candidate in combined_model_catalog().values()],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
     payload = run_benchmark(args)
     print(json.dumps({"run_id": payload["run_id"], "paths": payload["paths"]}, ensure_ascii=False, indent=2))

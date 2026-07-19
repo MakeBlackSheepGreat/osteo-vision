@@ -1,2 +1,1 @@
 """Demo app package."""
-

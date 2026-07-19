@@ -28,4 +28,3 @@ def artifact_dirs(config: dict[str, Any]) -> dict[str, Path]:
         "visual": ensure_dir(resolve_path(reports.get("visual_dir", "artifacts/visual_evidence"))),
         "release": ensure_dir(resolve_path("artifacts/release")),
     }
-

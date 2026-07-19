@@ -1,16 +1,17 @@
 {
   "dependencies": {
-    "docx": "^9.7.1"
+    "docx": "^9.7.1",
+    "marked": "^16.4.2"
   },
   "name": "osteo-vision",
-  "version": "1.0.0",
-  "description": "颌骨骨髓炎智能化荧光诊疗正式开发工作区。",
+  "version": "0.3.0-rc.2",
+  "private": true,
+  "description": "颌骨骨髓炎术中荧光辅助决策研发验证版平台。",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
-  "devDependencies": {},
   "scripts": {
     "frontend:build": "npm --prefix frontend run build",
     "frontend:e2e": "npm --prefix frontend run test:e2e",
@@ -23,8 +24,8 @@
     "url": "git+https://github.com/MakeBlackSheepGreat/osteo-vision.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Osteo Vision Team",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/MakeBlackSheepGreat/osteo-vision/issues"

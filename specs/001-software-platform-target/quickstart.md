@@ -8,14 +8,15 @@ Validate the target platform workflow from environment readiness to case export.
 
 - Conda environment created from the repository environment file
 - Development dependencies installed
-- At least one representative dual-channel sample or fixture case
+- At least one representative de-identified dual-channel sample
 
 ## Validation Steps
 
-1. Check the local environment.
+1. Audit active documentation and runtime readiness.
 
 ```powershell
-python check_env.py
+python tools/audit_active_documentation.py
+python tools/check_project_readiness.py
 ```
 
 2. Run the baseline regression checks.
@@ -24,7 +25,7 @@ python check_env.py
 python -m pytest tests/unit tests/smoke
 ```
 
-3. Start the V1 backend.
+3. Start the FastAPI backend.
 
 ```powershell
 python -m backend.src.main
@@ -32,7 +33,7 @@ python -m backend.src.main
 
 Default backend health check: `http://127.0.0.1:8001/health`
 
-4. Start the V1 frontend in a second terminal.
+4. Start the Vue frontend in a second terminal.
 
 ```powershell
 npm --prefix frontend run dev
@@ -49,24 +50,23 @@ Default frontend URL: `http://127.0.0.1:5174/`
 - Review states are preserved
 - Export creates a full evidence bundle
 
-6. Verify the project-level readiness checks.
+6. Record the current core hot-path benchmark.
 
 ```powershell
-python tools/check_project_readiness.py
+python tools/benchmark_core_hotpaths.py --output artifacts/performance/core_hotpaths_current.json
 ```
 
 ## Expected Outcomes
 
-- The case workflow is understandable as a software platform rather than a
-  single-model demo.
+- The case workflow presents the complete platform workflow and its model evidence.
 - Low-confidence cases remain clearly labeled.
 - Exported results include images, structured data, and review state.
 - No output reads as an automatic diagnosis.
 
 ## Target Architecture Notes
 
-- Gradio remains a temporary legacy bridge.
-- The target implementation is a Vue frontend plus Python/FastAPI backend.
+- Gradio is retained only as a compatibility check entry.
+- The production platform interface uses Vue with a Python/FastAPI backend.
 - Default local ports are frontend `5174` and backend `8001`.
 - Analysis and report generation should remain reproducible from local files and
   saved artifacts.

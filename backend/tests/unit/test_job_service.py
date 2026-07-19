@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,50 @@ def test_job_registry_persists_completed_jobs(tmp_path: Path) -> None:
     assert loaded["progress"]["phase"] == "completed"
     assert loaded["payload"]["case_id"] == "case_1"
     assert loaded["result"]["run_id"] == "run_1"
+
+
+def test_job_registry_reuses_cached_snapshot_until_file_changes(tmp_path: Path, monkeypatch) -> None:
+    store = tmp_path / "jobs.json"
+    registry = JobRegistry(store)
+    first = registry.create(kind="case_analysis", payload={"case_id": "case_cached"})
+
+    original_read_text = Path.read_text
+    read_count = 0
+
+    def counted_read_text(path: Path, *args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counted_read_text)
+    assert registry.get(first["job_id"]) is not None
+    assert registry.list_jobs()
+    assert read_count == 0
+
+    external = JobRegistry(store)
+    external.create(kind="case_analysis", payload={"case_id": "case_external"})
+    reads_after_external_write = read_count
+    assert registry.list_jobs()
+    assert read_count > reads_after_external_write
+
+
+def test_job_registry_detects_same_size_replacement_with_preserved_mtime(tmp_path: Path) -> None:
+    store = tmp_path / "jobs.json"
+    registry = JobRegistry(store)
+    job = registry.create(kind="case_analysis", payload={"case_id": "case_cache1"})
+    original_stat = store.stat()
+    replacement = store.with_suffix(".replacement")
+    replacement.write_text(
+        store.read_text(encoding="utf-8").replace("case_cache1", "case_cache2"),
+        encoding="utf-8",
+    )
+    os.utime(replacement, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+    replacement.replace(store)
+    os.utime(store, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+
+    assert store.stat().st_size == original_stat.st_size
+    assert store.stat().st_mtime_ns == original_stat.st_mtime_ns
+    assert registry.get(job["job_id"])["payload"]["case_id"] == "case_cache2"  # type: ignore[index]
 
 
 def test_job_registry_retries_transient_windows_replace_lock(tmp_path: Path, monkeypatch) -> None:

@@ -14,9 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from monai.networks import nets
 from torch import nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 from scripts.evaluate_d025_proxy_model import (

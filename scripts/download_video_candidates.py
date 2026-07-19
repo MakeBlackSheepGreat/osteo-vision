@@ -14,9 +14,10 @@ from urllib.parse import urlparse
 
 import requests
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RAW_ROOT = PROJECT_ROOT / "research" / "datasets" / "public-candidates" / "d046_fluorescence_osteomyelitis_videos" / "raw"
+RAW_ROOT = (
+    PROJECT_ROOT / "research" / "datasets" / "public-candidates" / "d046_fluorescence_osteomyelitis_videos" / "raw"
+)
 MANIFEST_PATH = PROJECT_ROOT / "research" / "literature" / "inventory" / "video_download_manifest_20260703.csv"
 
 
@@ -272,7 +273,9 @@ def download(record: VideoRecord, session: requests.Session, overwrite: bool = F
     status = "downloaded"
     error = ""
     try:
-        response = session.get(record.download_url, headers=headers, stream=True, timeout=(30, 180), allow_redirects=True)
+        response = session.get(
+            record.download_url, headers=headers, stream=True, timeout=(30, 180), allow_redirects=True
+        )
         response = _retry_after_pmc_pow(session, response, record.download_url, headers)
         with response:
             response.raise_for_status()
@@ -365,7 +368,9 @@ def _download_oa_package(url: str, session: requests.Session, headers: dict[str,
                         break
                     handle.write(chunk)
     else:
-        with session.get(package_url, headers=headers, stream=True, timeout=(30, 180), allow_redirects=True) as response:
+        with session.get(
+            package_url, headers=headers, stream=True, timeout=(30, 180), allow_redirects=True
+        ) as response:
             response.raise_for_status()
             with tmp_path.open("wb") as handle:
                 for chunk in response.iter_content(chunk_size=1024 * 1024):
@@ -464,7 +469,9 @@ def write_manifest(rows: list[dict[str, str]]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Download public fluorescence and osteomyelitis video candidates.")
-    parser.add_argument("--groups", nargs="*", default=None, help="Groups to download: osteomyelitis_pmc fluorescence_proxy")
+    parser.add_argument(
+        "--groups", nargs="*", default=None, help="Groups to download: osteomyelitis_pmc fluorescence_proxy"
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 

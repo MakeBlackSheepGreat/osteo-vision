@@ -2,10 +2,15 @@ import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { useContinuousCameraAnalysis } from "../src/composables/useContinuousCameraAnalysis";
+import {
+  isCurrentLiveFrameDisplay,
+  useContinuousCameraAnalysis,
+} from "../src/composables/useContinuousCameraAnalysis";
+import { ApiError, apiClient } from "../src/services/apiClient";
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("continuous camera analysis", () => {
@@ -215,5 +220,280 @@ describe("continuous camera analysis", () => {
     );
     controls?.stop(false);
     wrapper.unmount();
+  });
+
+  it("aborts an in-flight frame and ignores its completion after stop", async () => {
+    vi.useFakeTimers();
+    let releaseAnalysis: (() => void) | undefined;
+    let frameSignal: AbortSignal | undefined;
+    const analyzeFrame = vi.fn(
+      (_blob: Blob, context: { signal: AbortSignal }) =>
+        new Promise<void>((resolve) => {
+          frameSignal = context.signal;
+          releaseAnalysis = resolve;
+        }),
+    );
+    let controls: ReturnType<typeof useContinuousCameraAnalysis> | undefined;
+    const Harness = defineComponent({
+      setup() {
+        controls = useContinuousCameraAnalysis({
+          captureFrame: vi.fn().mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" })),
+          analyzeFrame,
+          canAnalyze: () => true,
+        });
+        return () => null;
+      },
+    });
+    const wrapper = mount(Harness);
+
+    await expect(controls?.start()).resolves.toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSignal?.aborted).toBe(false);
+
+    controls?.stop(false);
+    expect(frameSignal?.aborted).toBe(true);
+    releaseAnalysis?.();
+    await Promise.resolve();
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(controls?.completedCount.value).toBe(0);
+    expect(controls?.failedCount.value).toBe(0);
+    expect(analyzeFrame).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("does not activate or schedule frames when unmounted during preparation", async () => {
+    vi.useFakeTimers();
+    let releasePreparation: (() => void) | undefined;
+    const captureFrame = vi.fn();
+    const beforeStart = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          releasePreparation = resolve;
+        }),
+    );
+    let controls: ReturnType<typeof useContinuousCameraAnalysis> | undefined;
+    const Harness = defineComponent({
+      setup() {
+        controls = useContinuousCameraAnalysis({
+          captureFrame,
+          analyzeFrame: vi.fn(),
+          canAnalyze: () => true,
+          beforeStart,
+        });
+        return () => null;
+      },
+    });
+    const wrapper = mount(Harness);
+
+    const startPromise = controls?.start();
+    expect(controls?.starting.value).toBe(true);
+    wrapper.unmount();
+    releasePreparation?.();
+
+    await expect(startPromise).resolves.toBe(false);
+    await vi.runOnlyPendingTimersAsync();
+    expect(controls?.active.value).toBe(false);
+    expect(captureFrame).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { status: 429, retryAfterMs: 2000 },
+    { status: 503, retryAfterMs: null },
+  ])("backs off boundedly after a $status response", async ({ status, retryAfterMs }) => {
+    vi.useFakeTimers();
+    const analyzeFrame = vi.fn().mockRejectedValue(new ApiError(status, null, retryAfterMs));
+    let controls: ReturnType<typeof useContinuousCameraAnalysis> | undefined;
+    const Harness = defineComponent({
+      setup() {
+        controls = useContinuousCameraAnalysis({
+          captureFrame: vi.fn().mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" })),
+          analyzeFrame,
+          canAnalyze: () => true,
+        });
+        return () => null;
+      },
+    });
+    const wrapper = mount(Harness);
+
+    controls?.setIntervalSec(0);
+    await expect(controls?.start()).resolves.toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(analyzeFrame).toHaveBeenCalledTimes(1);
+
+    const firstDelayMs = status === 429 ? 2000 : 500;
+    await vi.advanceTimersByTimeAsync(firstDelayMs - 1);
+    expect(analyzeFrame).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(analyzeFrame).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(analyzeFrame.mock.calls.length).toBeLessThanOrEqual(status === 429 ? 7 : 6);
+    controls?.stop(false);
+    wrapper.unmount();
+  });
+
+  it("aborts a timed-out request and delays the next attempt when interval is zero", async () => {
+    vi.useFakeTimers();
+    const invalidations: string[] = [];
+    const analyzeFrame = vi.fn(
+      (_blob: Blob, context: { signal: AbortSignal }) =>
+        new Promise<void>((_resolve, reject) => {
+          context.signal.addEventListener(
+            "abort",
+            () => reject(new DOMException("request timed out", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+    let controls: ReturnType<typeof useContinuousCameraAnalysis> | undefined;
+    const Harness = defineComponent({
+      setup() {
+        controls = useContinuousCameraAnalysis({
+          captureFrame: vi.fn().mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" })),
+          analyzeFrame,
+          canAnalyze: () => true,
+          requestTimeoutMs: 250,
+          onFrameInvalidated: (reason) => invalidations.push(reason),
+        });
+        return () => null;
+      },
+    });
+    const wrapper = mount(Harness);
+
+    await expect(controls?.start()).resolves.toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(249);
+    expect(analyzeFrame).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(controls?.failedCount.value).toBe(1);
+    expect(invalidations).toContain("timed_out");
+    await vi.advanceTimersByTimeAsync(499);
+    expect(analyzeFrame).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(analyzeFrame).toHaveBeenCalledTimes(2);
+
+    controls?.stop(false);
+    wrapper.unmount();
+  });
+
+  it("clears an old overlay on failure and accepts a later successful frame", async () => {
+    vi.useFakeTimers();
+    let overlay = "old-overlay.png";
+    const analyzeFrame = vi.fn()
+      .mockRejectedValueOnce(new ApiError(503, null))
+      .mockImplementationOnce(async () => {
+        overlay = "recovered-overlay.png";
+      });
+    let controls: ReturnType<typeof useContinuousCameraAnalysis> | undefined;
+    const Harness = defineComponent({
+      setup() {
+        controls = useContinuousCameraAnalysis({
+          captureFrame: vi.fn().mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" })),
+          analyzeFrame,
+          canAnalyze: () => true,
+          onFrameInvalidated: () => {
+            overlay = "";
+          },
+        });
+        return () => null;
+      },
+    });
+    const wrapper = mount(Harness);
+
+    controls?.setIntervalSec(1);
+    await expect(controls?.start()).resolves.toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(overlay).toBe("");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(analyzeFrame).toHaveBeenCalledTimes(2);
+    expect(overlay).toBe("recovered-overlay.png");
+    expect(controls?.completedCount.value).toBe(1);
+
+    controls?.stop(false);
+    wrapper.unmount();
+  });
+
+  it("only accepts live overlays whose sequence, source, case, timestamp, and age still match", () => {
+    const identity = {
+      source: "video" as const,
+      sequence: 7,
+      sessionId: "session-1",
+      capturedAt: "2026-07-19T12:00:00.000Z",
+      capturedAtMs: Date.parse("2026-07-19T12:00:00.000Z"),
+      requestGeneration: 4,
+    };
+    const result = { case_id: "case-1", captured_at: identity.capturedAt };
+    const options = {
+      activeSource: "video" as const,
+      caseId: "case-1",
+      requestGeneration: 4,
+      nowMs: identity.capturedAtMs + 1000,
+      maxAgeMs: 15_000,
+    };
+
+    expect(isCurrentLiveFrameDisplay(result, identity, identity, options)).toBe(true);
+    expect(isCurrentLiveFrameDisplay(result, identity, { ...identity, sequence: 8 }, options)).toBe(false);
+    expect(isCurrentLiveFrameDisplay(result, identity, identity, { ...options, activeSource: "camera" })).toBe(false);
+    expect(isCurrentLiveFrameDisplay(result, identity, identity, { ...options, nowMs: identity.capturedAtMs + 15_001 })).toBe(false);
+    expect(isCurrentLiveFrameDisplay({ ...result, case_id: "case-2" }, identity, identity, options)).toBe(false);
+    expect(isCurrentLiveFrameDisplay({ ...result, captured_at: "2026-07-19T12:00:01.000Z" }, identity, identity, options)).toBe(false);
+  });
+
+  it("reads Retry-After from a live-frame capacity response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "busy" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json", "Retry-After": "2" },
+        }),
+      ),
+    );
+
+    await expect(
+      apiClient.analyzeLiveFrame("case_busy", new Blob(["jpeg"], { type: "image/jpeg" }), {
+        capturedAt: "2026-07-19T12:00:00.000Z",
+        sequence: 1,
+        threshold: 0.6,
+        colormap: "green",
+      }),
+    ).rejects.toMatchObject({ status: 429, retryAfterMs: 2000 });
+  });
+
+  it("forwards cancellation to the live-frame HTTP request", async () => {
+    const controller = new AbortController();
+    let receivedSignal: AbortSignal | null | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        receivedSignal = init?.signal;
+        return new Promise<Response>((_resolve, reject) => {
+          receivedSignal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("request canceled", "AbortError")),
+            { once: true },
+          );
+        });
+      }),
+    );
+
+    const request = apiClient.analyzeLiveFrame(
+      "case_abort",
+      new Blob(["jpeg"], { type: "image/jpeg" }),
+      {
+        capturedAt: "2026-07-19T12:00:00.000Z",
+        sequence: 1,
+        threshold: 0.6,
+        colormap: "green",
+        signal: controller.signal,
+      },
+    );
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({ name: "AbortError" });
+    expect(receivedSignal).toBe(controller.signal);
   });
 });

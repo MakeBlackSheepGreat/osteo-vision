@@ -101,7 +101,7 @@ def fluorescence_warning_markdown(report: dict[str, Any] | None) -> str:
         )
     warnings.append(
         {
-                "code": "platform_safety_boundary",
+            "code": "platform_safety_boundary",
             "message": "This fluorescence fusion output is not a clinical diagnosis and requires physician review.",
         }
     )

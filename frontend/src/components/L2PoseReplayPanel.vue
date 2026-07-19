@@ -208,10 +208,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import { apiClient } from "@/services/apiClient";
 import type { CaseInputAsset, L2PoseReplayRequest, L2ReplayMode, ThreeDEvidence } from "@/types/case";
+import { abortableDelay, isAbortError } from "@/utils/abortableDelay";
 
 const props = withDefaults(defineProps<{
   caseId: string;
@@ -254,6 +255,18 @@ const busy = ref(false);
 const jobId = ref("");
 const statusText = ref("待运行");
 const error = ref("");
+let pollingGeneration = 0;
+let pollingController: AbortController | null = null;
+
+watch(() => props.caseId, () => {
+  invalidatePolling();
+  busy.value = false;
+  jobId.value = "";
+  statusText.value = "待运行";
+  error.value = "";
+});
+
+onBeforeUnmount(() => invalidatePolling());
 
 const evidence = computed(() => props.evidence ?? undefined);
 const l1Ready = computed(() => {
@@ -428,17 +441,23 @@ async function runReplay() {
     error.value = runDisabledReason.value;
     return;
   }
+  const submittedCaseId = props.caseId;
+  const polling = beginPolling(submittedCaseId);
   try {
     busy.value = true;
     statusText.value = "正在提交";
     const payload = buildPayload();
     const started = await apiClient.startL2PoseReplayJob(payload);
+    if (!isPollingCurrent(polling)) return;
     jobId.value = started.job_id;
-    await pollReplay();
+    await pollReplay(started.job_id, polling);
   } catch (cause) {
+    if (!isPollingCurrent(polling) || isAbortError(cause)) return;
     busy.value = false;
     statusText.value = "失败";
     error.value = cause instanceof Error ? cause.message : "L2 离线回放任务失败";
+  } finally {
+    if (pollingController === polling.controller) pollingController = null;
   }
 }
 
@@ -493,9 +512,11 @@ function buildPayload(): L2PoseReplayRequest {
   return { ...common, frame_timestamps_s, poses, calibration_table, failure_injections };
 }
 
-async function pollReplay() {
+async function pollReplay(targetJobId: string, polling: PollingSession) {
   for (let index = 0; index < 60; index += 1) {
-    const job = await apiClient.getL2PoseReplayJob(jobId.value);
+    if (!isPollingCurrent(polling)) return;
+    const job = await apiClient.getL2PoseReplayJob(targetJobId, polling.controller.signal);
+    if (!isPollingCurrent(polling)) return;
     statusText.value = job.progress?.message || job.status;
     if (["completed", "failed", "canceled"].includes(job.status)) {
       busy.value = false;
@@ -503,21 +524,52 @@ async function pollReplay() {
       else error.value = job.error || "L2 离线回放未完成";
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await abortableDelay(300, polling.controller.signal);
   }
+  if (!isPollingCurrent(polling)) return;
   busy.value = false;
   error.value = "任务仍在运行，可稍后同步病例。";
 }
 
 async function cancelReplay() {
+  const targetJobId = jobId.value;
+  const submittedCaseId = props.caseId;
+  invalidatePolling();
   try {
-    await apiClient.cancelL2PoseReplayJob(jobId.value);
+    await apiClient.cancelL2PoseReplayJob(targetJobId);
+    if (props.caseId !== submittedCaseId) return;
     statusText.value = "已取消";
   } catch (cause) {
+    if (props.caseId !== submittedCaseId) return;
     error.value = cause instanceof Error ? cause.message : "取消 L2 回放任务失败";
   } finally {
-    busy.value = false;
+    if (props.caseId === submittedCaseId) busy.value = false;
   }
+}
+
+interface PollingSession {
+  caseId: string;
+  controller: AbortController;
+  generation: number;
+}
+
+function beginPolling(caseId: string): PollingSession {
+  invalidatePolling();
+  const controller = new AbortController();
+  pollingController = controller;
+  return { caseId, controller, generation: pollingGeneration };
+}
+
+function invalidatePolling() {
+  pollingGeneration += 1;
+  pollingController?.abort();
+  pollingController = null;
+}
+
+function isPollingCurrent(polling: PollingSession): boolean {
+  return polling.generation === pollingGeneration
+    && polling.caseId === props.caseId
+    && !polling.controller.signal.aborted;
 }
 
 function isAdmittedMp4(input: CaseInputAsset): boolean {

@@ -6,6 +6,7 @@ research/datasets/**/metadata/Supplementary_Information.docx
 research/literature/inventory/papers/
 DentVoxel_Dataset/
 *.pdf
+!research/reports/submission/osteo_vision_technical_solution_20260719_zh.pdf
 *.zip
 *.pt
 *.pth
@@ -32,6 +33,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.egg-info/
+/build/
+/dist/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp*/

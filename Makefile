@@ -1,151 +1,106 @@
-# Medical Imaging Competition Framework - Makefile
-# 常用命令快捷方式
+# osteo-vision platform workspace commands
 
-.PHONY: help install install-dev test test-unit test-integration test-smoke lint format type-check clean docs platform platform-backend platform-frontend
+PYTHON ?= python
 
-# 默认目标
-help: ## 显示帮助信息
-	@echo "osteo-vision"
-	@echo "============"
-	@echo ""
-	@echo "可用命令："
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+.PHONY: help install install-dev test test-core test-backend test-unit test-integration test-smoke test-frontend test-e2e lint format format-check type-check check-all validate-config model-inventory benchmark platform platform-backend platform-frontend demo-compat docs-audit readiness performance-baseline clean clean-artifacts clean-all version build
 
-# 安装相关
-install: ## 安装项目依赖
-	pip install -r requirements.txt
+help: ## 显示命令清单
+	@echo "osteo-vision platform"
+	@echo "===================="
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
-install-dev: ## 安装开发依赖
-	pip install -r requirements.txt
-	pip install -e ".[dev]"
+install: ## 安装运行依赖
+	$(PYTHON) -m pip install -r requirements.txt
+	npm --prefix frontend install
 
-install-pre-commit: ## 安装 pre-commit 钩子
-	pre-commit install
+install-dev: ## 安装项目与开发依赖
+	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -e ".[dev]"
+	npm --prefix frontend install
 
-# 测试相关
-test: ## 运行所有测试
-	pytest
+test: test-core test-backend test-frontend ## 运行核心、后端和前端测试
 
-test-unit: ## 运行单元测试
-	pytest tests/unit/ -v
+test-core: ## 运行核心完整测试
+	$(PYTHON) -m pytest tests
+
+test-backend: ## 运行后端测试
+	$(PYTHON) -m pytest backend/tests
+
+test-unit: ## 运行全部单元测试目录
+	$(PYTHON) -m pytest tests/unit backend/tests/unit
 
 test-integration: ## 运行集成测试
-	pytest tests/integration/ -v
+	$(PYTHON) -m pytest tests/integration
 
 test-smoke: ## 运行冒烟测试
-	pytest tests/smoke/ -v
+	$(PYTHON) -m pytest tests/smoke
 
-test-coverage: ## 运行测试并生成覆盖率报告
-	pytest --cov=src --cov-report=html --cov-report=term-missing
+test-frontend: ## 运行 Vue 组件测试
+	npm --prefix frontend test -- --run
 
-test-fast: ## 快速运行测试（跳过慢测试）
-	pytest -m "not slow" -x -q
+test-e2e: ## 运行桌面端 Playwright E2E
+	npm --prefix frontend run test:e2e
 
-# 代码质量相关
-lint: ## 运行代码检查
-	flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503
+lint: ## 运行 Ruff 静态检查
+	$(PYTHON) -m ruff check src backend app tests scripts tools
 
-format: ## 格式化代码
-	black src/ tests/ --line-length=120
-	isort src/ tests/ --profile black --line-length=120
+format: ## 格式化 Python 代码
+	$(PYTHON) -m black src backend app tests scripts tools --line-length=120
+	$(PYTHON) -m isort src backend app tests scripts tools --profile black --line-length=120
 
-format-check: ## 检查代码格式
-	black --check src/ tests/ --line-length=120
-	isort --check-only src/ tests/ --profile black --line-length=120
+format-check: ## 检查 Python 格式
+	$(PYTHON) -m black --check src backend app tests scripts tools --line-length=120
+	$(PYTHON) -m isort --check-only src backend app tests scripts tools --profile black --line-length=120
 
-type-check: ## 运行类型检查
-	mypy src/ --ignore-missing-imports
+type-check: ## 运行 Python 与 Vue 类型检查
+	$(PYTHON) -m mypy src backend --config-file=pyproject.toml --hide-error-context --no-error-summary
+	npm --prefix frontend run typecheck
 
-check-all: lint format-check type-check test-unit ## 运行所有检查
+check-all: lint type-check test ## 运行主要质量门
 
-# 配置相关
-validate-config: ## 验证配置文件
-	python -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
+validate-config: ## 验证主推理配置
+	$(PYTHON) -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
 
-# 模型相关
-model-inventory: ## 显示模型清单
-	python scripts/model_inventory.py --config configs/inference/osteo_vision.yml
+model-inventory: ## 输出模型清单
+	$(PYTHON) scripts/model_inventory.py --config configs/inference/osteo_vision.yml
 
-# 基准测试相关
-benchmark: ## 运行基准测试
-	python scripts/benchmark.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest.csv --output artifacts/runs
+benchmark: ## 运行通用推理基准
+	$(PYTHON) scripts/benchmark.py --config configs/inference/osteo_vision.yml --manifest tests/fixtures/benchmark_manifest.csv --output artifacts/runs
 
-# 实验相关
-new-task: ## 创建新任务（用法：make new-task TASK_ID=my_competition）
-	python scripts/new_task.py --task-id $(TASK_ID) --template classification --output-dir configs/tasks
+performance-baseline: ## 运行核心热路径性能与输出一致性基准
+	$(PYTHON) tools/benchmark_core_hotpaths.py --output artifacts/performance/core_hotpaths_current.json
 
-new-experiment: ## 创建新实验（用法：make new-experiment EXP_ID=my_experiment）
-	python scripts/new_experiment.py --experiment-id $(EXP_ID) --manifest tests/fixtures/benchmark_manifest_v2.csv
+platform: ## 启动比赛严格模式平台
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition
 
-run-experiment: ## 运行实验（用法：make run-experiment SPEC=path/to/experiment.yml）
-	python scripts/run_experiment.py --spec $(SPEC)
+platform-backend: ## 启动 FastAPI 后端
+	$(PYTHON) -m backend.src.main
 
-# Demo 相关
-platform: ## 一键启动 V1 FastAPI 后端和 Vue 前端
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1
-
-platform-backend: ## 启动 V1 FastAPI 后端（默认 http://127.0.0.1:8001）
-	python -m backend.src.main
-
-platform-frontend: ## 启动 V1 Vue 前端（默认 http://127.0.0.1:5174）
+platform-frontend: ## 启动 Vue 前端
 	npm --prefix frontend run dev
 
-demo: ## 启动 Gradio Demo
-	python app/main.py --config configs/inference/osteo_vision.yml
+demo-compat: ## 启动 Gradio 兼容性入口
+	$(PYTHON) app/main.py --config configs/inference/osteo_vision.yml
 
-demo-share: ## 启动 Gradio Demo（公共链接）
-	python app/main.py --config configs/inference/osteo_vision.yml --share
+docs-audit: ## 审计活动文档、版本和本地链接
+	$(PYTHON) tools/audit_active_documentation.py
 
-# 文档相关
-docs: ## 生成文档
-	@echo "文档生成暂未配置"
+readiness: ## 运行严格环境与模型就绪检查
+	$(PYTHON) tools/check_project_readiness.py
+	$(PYTHON) tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict
 
-# 环境检查
-check-env: ## 检查环境配置
-	python check_env.py
+clean: ## 清理缓存、临时测试目录和构建输出
+	$(PYTHON) tools/clean_workspace.py --apply
 
-check-all-python: ## 运行所有 Python 检查
-	python check_all.py
+clean-artifacts: ## 预览可清理的 E2E 和 UI 临时产物
+	$(PYTHON) tools/clean_workspace.py --include-artifacts
 
-# 清理相关
-clean: ## 清理临时文件
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	find . -type f -name "*.pyo" -delete 2>/dev/null || true
-	find . -type f -name ".coverage" -delete 2>/dev/null || true
+clean-all: ## 清理缓存与可丢弃的 E2E/UI 临时产物
+	$(PYTHON) tools/clean_workspace.py --apply --include-artifacts
 
-clean-artifacts: ## 清理生成的 artifacts
-	rm -rf artifacts/runs/*
-	rm -rf artifacts/reports/*
-	rm -rf artifacts/visual_evidence/*
-	rm -rf artifacts/experiments/*
+version: ## 显示当前 Python 包版本
+	@$(PYTHON) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
 
-clean-all: clean clean-artifacts ## 清理所有临时文件和 artifacts
-
-# Git 相关
-git-status: ## 显示 Git 状态
-	git status
-
-git-add-all: ## 添加所有更改
-	git add -A
-
-git-commit: ## 提交更改（用法：make git-commit MSG="commit message")
-	git commit -m "$(MSG)"
-
-# 版本相关
-version: ## 显示当前版本
-	@python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
-
-# 打包相关
-build: ## 构建包
-	python -m build
-
-upload-test: ## 上传到 TestPyPI
-	twine upload --repository testpypi dist/*
-
-upload: ## 上传到 PyPI
-	twine upload dist/*
+build: ## 构建 Python 包和 Vue 前端
+	$(PYTHON) -m build
+	npm --prefix frontend run build

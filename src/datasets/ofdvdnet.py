@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 DOMAIN_BOUNDARY = (
     "OFDVDnet mock chicken-thigh fluorescence-guided surgery proxy; "
     "not jaw osteomyelitis or real intraoperative target-domain data."
