@@ -525,8 +525,9 @@ def _frame_quality_from_prepared(
 ) -> dict[str, Any]:
     import cv2
 
-    blue, green, red = cv2.split(evaluation_frame)
-    green_dominance = cv2.subtract(green, cv2.max(red, blue))
+    # Only the green channel is needed independently. Avoid materializing all three 4K channels.
+    green = cv2.extractChannel(evaluation_frame, 1)
+    green_dominance = cv2.subtract(green, cv2.max(evaluation_frame[..., 2], evaluation_frame[..., 0]))
     gray_histogram = _uint8_histogram(gray)
     green_histogram = _uint8_histogram(green)
     dominance_histogram = _uint8_histogram(green_dominance)

@@ -118,14 +118,17 @@ class JobRegistry:
     def claim_next_queued(self, *, kind: str | None = None) -> dict[str, Any] | None:
         with self._lock:
             self._refresh_locked()
-            queued = [
-                job
-                for job in self._jobs.values()
-                if job.get("status") == "queued" and (kind is None or job.get("kind") == kind)
-            ]
-            if not queued:
+            job = min(
+                (
+                    candidate
+                    for candidate in self._jobs.values()
+                    if candidate.get("status") == "queued" and (kind is None or candidate.get("kind") == kind)
+                ),
+                key=lambda item: str(item.get("created_at") or ""),
+                default=None,
+            )
+            if job is None:
                 return None
-            job = sorted(queued, key=lambda item: str(item.get("created_at") or ""))[0]
             claimed = {
                 **job,
                 "status": "running",

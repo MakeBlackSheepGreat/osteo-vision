@@ -5,8 +5,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import pytest
 
-from src.preprocess.video import _frame_quality, extract_keyframes
+from src.preprocess.video import _frame_quality, _uint8_histogram, _uint8_percentile, extract_keyframes
 
 
 def _write_signal_video(path: Path, *, signal_frame: int = 8) -> None:
@@ -76,6 +77,36 @@ def test_quality_evaluation_defaults_to_full_resolution_metrics() -> None:
     assert quality["evaluation_height"] == 216
     assert quality["evaluation_scale"] == 1.0
     assert quality["evaluation_downsampled"] is False
+
+
+def test_quality_metrics_match_channel_split_reference() -> None:
+    rng = np.random.default_rng(20260720)
+    frame = rng.integers(0, 256, size=(81, 127, 3), dtype=np.uint8)
+
+    quality = _frame_quality(frame)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blue, green, red = cv2.split(frame)
+    dominance = cv2.subtract(green, cv2.max(red, blue))
+    pixel_count = int(gray.size)
+    gray_histogram = _uint8_histogram(gray)
+    green_histogram = _uint8_histogram(green)
+    dominance_histogram = _uint8_histogram(dominance)
+    _, high_intensity = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+    _, high_dominance = cv2.threshold(dominance, 50, 255, cv2.THRESH_BINARY)
+    high_signal = cv2.bitwise_or(high_intensity, high_dominance)
+    expected = {
+        "mean_intensity": float(cv2.mean(gray)[0]),
+        "p95_intensity": _uint8_percentile(gray_histogram, 95.0, pixel_count),
+        "p99_green": _uint8_percentile(green_histogram, 99.0, pixel_count),
+        "green_dominance_p95": _uint8_percentile(dominance_histogram, 95.0, pixel_count),
+        "high_signal_fraction": float(cv2.countNonZero(high_signal) / pixel_count),
+        "blur_laplacian_var": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
+        "underexposed_fraction": float(gray_histogram[:8].sum(dtype=np.int64) / pixel_count),
+        "overexposed_fraction": float(gray_histogram[248:].sum(dtype=np.int64) / pixel_count),
+    }
+
+    for key, value in expected.items():
+        assert quality[key] == pytest.approx(value)
 
 
 def test_uniform_keyframes_remain_available(tmp_path: Path) -> None:

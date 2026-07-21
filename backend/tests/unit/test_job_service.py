@@ -132,6 +132,20 @@ def test_job_registry_claims_oldest_queued_job(tmp_path: Path) -> None:
     assert registry.get(first["job_id"])["status"] == "running"  # type: ignore[index]
 
 
+def test_job_registry_claim_keeps_insertion_order_for_equal_timestamps(tmp_path: Path) -> None:
+    registry = JobRegistry(tmp_path / "jobs.json")
+    first = registry.create(kind="case_analysis", payload={"case_id": "case_1"})
+    registry.create(kind="case_analysis", payload={"case_id": "case_2"})
+    with registry._lock:
+        for job in registry._jobs.values():
+            job["created_at"] = "2026-07-20T00:00:00+00:00"
+
+    claimed = registry.claim_next_queued(kind="case_analysis")
+
+    assert claimed is not None
+    assert claimed["job_id"] == first["job_id"]
+
+
 def test_job_registry_cancel_preserves_canceled_status(tmp_path: Path) -> None:
     store = tmp_path / "jobs.json"
     registry = JobRegistry(store)
