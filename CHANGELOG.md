@@ -9,8 +9,20 @@
 
 ## [Unreleased]
 
-- 暂无已冻结变更。
 - 当前工作区运行基线：Python 3.11、Vue + FastAPI、严格配置 `configs/inference/osteo_vision_competition_strict.yml`。
+
+### 性能与稳定性收尾
+
+- 4K 质量评估只提取绿色通道，避免构造三个完整通道副本；任务领取从完整排序改为单次最小值遍历。
+- 实时视频参数增加有限范围解析与可追溯告警；关键帧上限为 `8`，浏览器重复证据路径在推理前去重。
+- L2 离线位姿回放将 CSV 写出与帧级汇总合并为一次遍历，已核验 PTS 直接复用 `ffprobe` 结果，并以临时文件原子提交 CSV 证据。
+- 二进制 STL 采用 NumPy 结构化零拷贝视图，退化三角形检查按最多 `65,536` 个三角形分块执行。
+
+### 验证
+
+- 当前完整核心测试 `604 passed`，后端测试 `288 passed`，前端 Vitest `207 passed, 1 skipped`。
+- Ruff、Black、isort、严格 mypy、Python compileall、`vue-tsc`、Vite build、pre-commit、活动文档审计和严格运行预检通过。
+- 本轮收尾审计：`research/reports/release/runtime_stability_closeout_20260721_zh.md`。
 
 ## [0.3.0-rc.2] - 2026-07-19
 

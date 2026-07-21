@@ -398,28 +398,23 @@ class OfflinePoseReplayService:
         degraded_frame_count = len(result.frames) - safe_frame_count
 
         frames_path = output_dir / "pose_replay_frames.csv"
-        _write_frames_csv(frames_path, result.frames, global_navigation_ready=navigation_ready)
-        frames_sha256 = sha256_for_path(frames_path)
-        worst_frame = max(
+        frame_summary = _write_frames_csv(
+            frames_path,
             result.frames,
-            key=lambda item: (
-                abs(item.time_offset_ms),
-                item.dynamic_target_error_mm if item.dynamic_target_error_mm is not None else math.inf,
-            ),
-            default=None,
+            global_navigation_ready=navigation_ready,
+            poses=poses,
         )
+        frames_sha256 = sha256_for_path(frames_path)
+        worst_frame = frame_summary["worst_frame"]
         pose_summary = {
             "calibration_status": (
                 "verified" if replay_mode == DYNAMIC_AR_MODE and navigation_ready else "not_navigation_validated"
             ),
             "pose_tracking_status": "tracking" if navigation_ready else "degraded",
             "time_offset_ms": abs(worst_frame.time_offset_ms) if worst_frame else None,
-            "tre_mm": max(
-                (frame.dynamic_target_error_mm for frame in result.frames if frame.dynamic_target_error_mm is not None),
-                default=None,
-            ),
+            "tre_mm": frame_summary["max_dynamic_target_error_mm"],
             "tre_threshold_mm": config.dynamic_target_error_threshold_mm,
-            "drift_mm": max((frame.drift_proxy_mm for frame in result.frames), default=None),
+            "drift_mm": frame_summary["max_drift_mm"],
             "drift_threshold_mm": config.drift_threshold_mm,
             "depth_source": "verified_l1_calibration_and_admitted_video" if replay_mode == DYNAMIC_AR_MODE else None,
             "depth_status": "verified" if navigation_ready else "not_navigation_validated",
@@ -445,28 +440,9 @@ class OfflinePoseReplayService:
                 if replay_mode == DYNAMIC_AR_MODE and calibration_table
                 else None
             ),
-            "selected_intrinsics_ids": sorted(
-                {str(frame.intrinsics_id) for frame in result.frames if frame.intrinsics_id}
-            ),
+            "selected_intrinsics_ids": frame_summary["selected_intrinsics_ids"],
             **result.calibration_transition_summary,
-            "per_frame": [
-                {
-                    "frame_index": frame.frame_index,
-                    "pose_index": frame.pose_index,
-                    "intrinsics_id": frame.intrinsics_id,
-                    "magnification": poses[frame.pose_index].get("magnification"),
-                    "working_distance_mm": poses[frame.pose_index].get("working_distance_mm"),
-                    "magnification_rate_per_s": frame.magnification_rate_per_s,
-                    "working_distance_rate_mm_per_s": frame.working_distance_rate_mm_per_s,
-                    "intrinsics_switched": frame.intrinsics_switched,
-                    "intrinsics_switch_rate_hz": frame.intrinsics_switch_rate_hz,
-                    "candidate_count": frame.calibration_candidate_count,
-                    "selection_distance": frame.calibration_selection_distance,
-                    "ambiguous": frame.calibration_selection_ambiguous,
-                    "failure_reasons": frame.failure_reasons,
-                }
-                for frame in result.frames
-            ],
+            "per_frame": frame_summary["per_frame"],
         }
         manifest = {
             "schema_version": result.schema_version,
@@ -492,10 +468,7 @@ class OfflinePoseReplayService:
                 "source_frame": (l1_coordinate_contract["source_frame"] if replay_mode == DYNAMIC_AR_MODE else None),
                 "point_count": len(projection_points or []),
                 "minimum_visible_points": config.minimum_visible_projection_points,
-                "minimum_visible_count_observed": min(
-                    (frame.visible_projected_point_count for frame in result.frames),
-                    default=0,
-                ),
+                "minimum_visible_count_observed": frame_summary["minimum_visible_projected_count"],
             },
             "thresholds": {
                 "max_time_offset_ms": config.max_time_offset_ms,
@@ -1536,35 +1509,43 @@ class OfflinePoseReplayService:
 def _decode_video(path: Path) -> dict[str, Any]:
     capture = cv2.VideoCapture(str(path))
     if not capture.isOpened():
+        capture.release()
         raise OfflinePoseReplayRequestError(
             "video_decode_failed",
             "Admitted MP4 could not be opened.",
         )
-    declared_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-    container_fps = float(capture.get(cv2.CAP_PROP_FPS) or 0.0)
-    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
-    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-    if container_fps <= 0 or width <= 0 or height <= 0:
-        capture.release()
-        raise OfflinePoseReplayRequestError(
-            "video_metadata_invalid",
-            "Admitted MP4 frame rate or dimensions are invalid.",
-        )
-    decoded_count = 0
-    timestamps: list[float] = []
-    while True:
-        ok, frame = capture.read()
-        if not ok:
-            break
-        if frame.shape[:2] != (height, width):
-            capture.release()
+    try:
+        declared_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        container_fps = float(capture.get(cv2.CAP_PROP_FPS) or 0.0)
+        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        if container_fps <= 0 or width <= 0 or height <= 0:
             raise OfflinePoseReplayRequestError(
-                "video_decode_frame_dimension_mismatch",
-                "Decoded MP4 frame dimensions do not match the declared video dimensions.",
+                "video_metadata_invalid",
+                "Admitted MP4 frame rate or dimensions are invalid.",
             )
-        decoded_count += 1
-        timestamps.append(float(capture.get(cv2.CAP_PROP_POS_MSEC) or 0.0) / 1000.0)
-    capture.release()
+        probed_timestamps, probe_failure = _ffprobe_frame_timestamps(path)
+        collect_opencv_timestamps = not (
+            probed_timestamps is not None and declared_count > 0 and len(probed_timestamps) == declared_count
+        )
+        decoded_count = 0
+        timestamps: list[float] = []
+        frame: Any | None = None
+        while True:
+            ok, frame = capture.read()
+            if not ok:
+                break
+            if frame.shape[:2] != (height, width):
+                raise OfflinePoseReplayRequestError(
+                    "video_decode_frame_dimension_mismatch",
+                    "Decoded MP4 frame dimensions do not match the declared video dimensions.",
+                )
+            decoded_count += 1
+            if collect_opencv_timestamps:
+                timestamps.append(float(capture.get(cv2.CAP_PROP_POS_MSEC) or 0.0) / 1000.0)
+        frame = None
+    finally:
+        capture.release()
     if decoded_count == 0:
         raise OfflinePoseReplayRequestError(
             "video_decode_empty",
@@ -1575,7 +1556,6 @@ def _decode_video(path: Path) -> dict[str, Any]:
             "video_decode_frame_count_mismatch",
             "Decoded frame count does not match the MP4 container metadata.",
         )
-    probed_timestamps, probe_failure = _ffprobe_frame_timestamps(path)
     timestamps_verified = bool(probed_timestamps is not None and len(probed_timestamps) == decoded_count)
     if timestamps_verified and probed_timestamps is not None:
         timestamps = probed_timestamps
@@ -2249,72 +2229,134 @@ def _write_frames_csv(
     frames: list[Any],
     *,
     global_navigation_ready: bool,
-) -> None:
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(
-            handle,
-            fieldnames=[
-                "frame_index",
-                "frame_timestamp_s",
-                "pose_index",
-                "pose_timestamp_s",
-                "time_offset_ms",
-                "intrinsics_id",
-                "magnification",
-                "working_distance_mm",
-                "magnification_rate_per_s",
-                "working_distance_rate_mm_per_s",
-                "intrinsics_switched",
-                "intrinsics_switch_rate_hz",
-                "calibration_candidate_count",
-                "calibration_selection_distance",
-                "calibration_selection_ambiguous",
-                "drift_proxy_mm",
-                "tre_proxy_mm",
-                "dynamic_target_error_mm",
-                "projected_point_count",
-                "visible_projected_point_count",
-                "navigation_ready",
-                "navigation_level",
-                "fallback_mode",
-                "failure_reasons",
-                "projected_points_json",
-                "composed_transform_json",
-            ],
-        )
-        writer.writeheader()
-        for frame in frames:
-            frame_ready = bool(frame.navigation_ready and global_navigation_ready)
-            writer.writerow(
-                {
-                    "frame_index": frame.frame_index,
-                    "frame_timestamp_s": frame.frame_timestamp_s,
-                    "pose_index": frame.pose_index,
-                    "pose_timestamp_s": frame.pose_timestamp_s,
-                    "time_offset_ms": frame.time_offset_ms,
-                    "intrinsics_id": frame.intrinsics_id,
-                    "magnification": frame.magnification,
-                    "working_distance_mm": frame.working_distance_mm,
-                    "magnification_rate_per_s": frame.magnification_rate_per_s,
-                    "working_distance_rate_mm_per_s": frame.working_distance_rate_mm_per_s,
-                    "intrinsics_switched": frame.intrinsics_switched,
-                    "intrinsics_switch_rate_hz": frame.intrinsics_switch_rate_hz,
-                    "calibration_candidate_count": frame.calibration_candidate_count,
-                    "calibration_selection_distance": frame.calibration_selection_distance,
-                    "calibration_selection_ambiguous": frame.calibration_selection_ambiguous,
-                    "drift_proxy_mm": frame.drift_proxy_mm,
-                    "tre_proxy_mm": frame.tre_proxy_mm,
-                    "dynamic_target_error_mm": frame.dynamic_target_error_mm,
-                    "projected_point_count": frame.projected_point_count,
-                    "visible_projected_point_count": frame.visible_projected_point_count,
-                    "navigation_ready": frame_ready,
-                    "navigation_level": "L2" if frame_ready else "L0",
-                    "fallback_mode": None if frame_ready else "unregistered_3d_reference",
-                    "failure_reasons": "|".join(frame.failure_reasons),
-                    "projected_points_json": json.dumps(frame.projected_points_px),
-                    "composed_transform_json": json.dumps(frame.composed_transform),
-                }
+    poses: list[Any],
+) -> dict[str, Any]:
+    temporary = path.with_suffix(path.suffix + ".part")
+    temporary.unlink(missing_ok=True)
+    worst_frame: Any | None = None
+    worst_key: tuple[float, float] | None = None
+    max_dynamic_target_error_mm: float | None = None
+    max_drift_mm: float | None = None
+    minimum_visible_projected_count: int | None = None
+    selected_intrinsics_ids: set[str] = set()
+    per_frame: list[dict[str, Any]] = []
+    try:
+        with temporary.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=[
+                    "frame_index",
+                    "frame_timestamp_s",
+                    "pose_index",
+                    "pose_timestamp_s",
+                    "time_offset_ms",
+                    "intrinsics_id",
+                    "magnification",
+                    "working_distance_mm",
+                    "magnification_rate_per_s",
+                    "working_distance_rate_mm_per_s",
+                    "intrinsics_switched",
+                    "intrinsics_switch_rate_hz",
+                    "calibration_candidate_count",
+                    "calibration_selection_distance",
+                    "calibration_selection_ambiguous",
+                    "drift_proxy_mm",
+                    "tre_proxy_mm",
+                    "dynamic_target_error_mm",
+                    "projected_point_count",
+                    "visible_projected_point_count",
+                    "navigation_ready",
+                    "navigation_level",
+                    "fallback_mode",
+                    "failure_reasons",
+                    "projected_points_json",
+                    "composed_transform_json",
+                ],
             )
+            writer.writeheader()
+            for frame in frames:
+                frame_ready = bool(frame.navigation_ready and global_navigation_ready)
+                writer.writerow(
+                    {
+                        "frame_index": frame.frame_index,
+                        "frame_timestamp_s": frame.frame_timestamp_s,
+                        "pose_index": frame.pose_index,
+                        "pose_timestamp_s": frame.pose_timestamp_s,
+                        "time_offset_ms": frame.time_offset_ms,
+                        "intrinsics_id": frame.intrinsics_id,
+                        "magnification": frame.magnification,
+                        "working_distance_mm": frame.working_distance_mm,
+                        "magnification_rate_per_s": frame.magnification_rate_per_s,
+                        "working_distance_rate_mm_per_s": frame.working_distance_rate_mm_per_s,
+                        "intrinsics_switched": frame.intrinsics_switched,
+                        "intrinsics_switch_rate_hz": frame.intrinsics_switch_rate_hz,
+                        "calibration_candidate_count": frame.calibration_candidate_count,
+                        "calibration_selection_distance": frame.calibration_selection_distance,
+                        "calibration_selection_ambiguous": frame.calibration_selection_ambiguous,
+                        "drift_proxy_mm": frame.drift_proxy_mm,
+                        "tre_proxy_mm": frame.tre_proxy_mm,
+                        "dynamic_target_error_mm": frame.dynamic_target_error_mm,
+                        "projected_point_count": frame.projected_point_count,
+                        "visible_projected_point_count": frame.visible_projected_point_count,
+                        "navigation_ready": frame_ready,
+                        "navigation_level": "L2" if frame_ready else "L0",
+                        "fallback_mode": None if frame_ready else "unregistered_3d_reference",
+                        "failure_reasons": "|".join(frame.failure_reasons),
+                        "projected_points_json": json.dumps(frame.projected_points_px),
+                        "composed_transform_json": json.dumps(frame.composed_transform),
+                    }
+                )
+                frame_key = (
+                    abs(frame.time_offset_ms),
+                    frame.dynamic_target_error_mm if frame.dynamic_target_error_mm is not None else math.inf,
+                )
+                if worst_key is None or frame_key > worst_key:
+                    worst_frame = frame
+                    worst_key = frame_key
+                dynamic_target_error_mm = frame.dynamic_target_error_mm
+                if dynamic_target_error_mm is not None and (
+                    max_dynamic_target_error_mm is None or dynamic_target_error_mm > max_dynamic_target_error_mm
+                ):
+                    max_dynamic_target_error_mm = dynamic_target_error_mm
+                if max_drift_mm is None or frame.drift_proxy_mm > max_drift_mm:
+                    max_drift_mm = frame.drift_proxy_mm
+                if (
+                    minimum_visible_projected_count is None
+                    or frame.visible_projected_point_count < minimum_visible_projected_count
+                ):
+                    minimum_visible_projected_count = frame.visible_projected_point_count
+                if frame.intrinsics_id:
+                    selected_intrinsics_ids.add(str(frame.intrinsics_id))
+                pose = poses[frame.pose_index]
+                per_frame.append(
+                    {
+                        "frame_index": frame.frame_index,
+                        "pose_index": frame.pose_index,
+                        "intrinsics_id": frame.intrinsics_id,
+                        "magnification": pose.get("magnification"),
+                        "working_distance_mm": pose.get("working_distance_mm"),
+                        "magnification_rate_per_s": frame.magnification_rate_per_s,
+                        "working_distance_rate_mm_per_s": frame.working_distance_rate_mm_per_s,
+                        "intrinsics_switched": frame.intrinsics_switched,
+                        "intrinsics_switch_rate_hz": frame.intrinsics_switch_rate_hz,
+                        "candidate_count": frame.calibration_candidate_count,
+                        "selection_distance": frame.calibration_selection_distance,
+                        "ambiguous": frame.calibration_selection_ambiguous,
+                        "failure_reasons": frame.failure_reasons,
+                    }
+                )
+        temporary.replace(path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    return {
+        "worst_frame": worst_frame,
+        "max_dynamic_target_error_mm": max_dynamic_target_error_mm,
+        "max_drift_mm": max_drift_mm,
+        "minimum_visible_projected_count": minimum_visible_projected_count or 0,
+        "selected_intrinsics_ids": sorted(selected_intrinsics_ids),
+        "per_frame": per_frame,
+    }
 
 
 def _safe_name(value: str) -> str:

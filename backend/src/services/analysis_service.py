@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from math import isfinite
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -71,6 +72,21 @@ from src.preprocess.three_channel_quality import assess_three_channel_quality
 
 _BONE_ACTIVITY_ENGINEERING_CANDIDATE_MODEL_ID = "bone_activity_multitask_d074_proxy_candidate"
 _BONE_ACTIVITY_ENGINEERING_CANDIDATE_FAMILY = "bone_activity_multitask"
+_DEFAULT_REALTIME_KEYFRAME_COUNT = 5
+_MAX_REALTIME_KEYFRAME_COUNT = 8
+_DEFAULT_LIVE_KEYFRAME_STRIDE = 15
+_MAX_LIVE_KEYFRAME_STRIDE = 300
+_DEFAULT_LIVE_QUEUE_SIZE = 8
+_MAX_LIVE_QUEUE_SIZE = 8
+_DEFAULT_LIVE_OPEN_TIMEOUT_SEC = 5.0
+_MAX_LIVE_OPEN_TIMEOUT_SEC = 10.0
+_DEFAULT_LIVE_READ_TIMEOUT_SEC = 2.0
+_MAX_LIVE_READ_TIMEOUT_SEC = 10.0
+_DEFAULT_LIVE_CAPTURE_TIMEOUT_SEC = 15.0
+_MAX_LIVE_CAPTURE_TIMEOUT_SEC = 30.0
+_DEFAULT_LIVE_JPEG_QUALITY = 92
+_DEFAULT_LIVE_MAX_FRAME_AGE_MS = 2000.0
+_MAX_LIVE_MAX_FRAME_AGE_MS = 30000.0
 
 
 class AnalysisService:
@@ -243,32 +259,42 @@ class AnalysisService:
             return updated
 
         analysis_mode = "browser_frame_keyframes" if browser_frame_paths else "realtime_stream_keyframes"
+        realtime_keyframe_count, realtime_parameter_warnings = _bounded_realtime_keyframe_count(
+            parameters.get("keyframe_count")
+        )
+        max_frame_age_ms, frame_age_warnings = _bounded_realtime_float_parameter(
+            parameters.get("live_max_frame_age_ms"),
+            parameter="live_max_frame_age_ms",
+            default=_DEFAULT_LIVE_MAX_FRAME_AGE_MS,
+            minimum=1.0,
+            maximum=_MAX_LIVE_MAX_FRAME_AGE_MS,
+        )
+        realtime_parameter_warnings.extend(frame_age_warnings)
         if browser_frame_paths:
             capture_report = _browser_frame_capture_report(
                 browser_frame_paths,
                 output_dir / "live_stream" / run.run_id / "frame_index_manifest.json",
-                max_frames=max(1, int(parameters.get("keyframe_count", 5))),
+                max_frames=realtime_keyframe_count,
                 captured_at=str(parameters.get("browser_frame_captured_at") or ""),
                 session_id=str(parameters.get("browser_camera_session_id") or ""),
                 sequence=parameters.get("browser_frame_sequence"),
                 trigger=str(parameters.get("browser_frame_trigger") or "manual"),
             )
         else:
+            capture_config, capture_parameter_warnings = _live_stream_capture_config(
+                parameters,
+                max_keyframes=realtime_keyframe_count,
+            )
+            realtime_parameter_warnings.extend(capture_parameter_warnings)
             capture_report = capture_live_keyframes(
                 source_path,
                 output_dir / "live_stream" / run.run_id,
-                config=LiveStreamCaptureConfig(
-                    max_keyframes=max(1, int(parameters.get("keyframe_count", 5))),
-                    keyframe_stride=max(1, int(parameters.get("live_keyframe_stride", 15))),
-                    queue_size=max(1, int(parameters.get("live_queue_size", 8))),
-                    open_timeout_sec=max(0.1, float(parameters.get("live_open_timeout_sec", 5.0))),
-                    read_timeout_sec=max(0.1, float(parameters.get("live_read_timeout_sec", 2.0))),
-                    capture_timeout_sec=max(0.1, float(parameters.get("live_capture_timeout_sec", 15.0))),
-                    jpeg_quality=min(100, max(1, int(parameters.get("live_jpeg_quality", 92)))),
-                ),
+                config=capture_config,
             )
+        capture_report["configured_max_keyframes"] = realtime_keyframe_count
         live_warnings = [
             *selection_warnings,
+            *realtime_parameter_warnings,
             *list(capture_report.get("warnings") or []),
         ]
         keyframes = list(capture_report.get("keyframes") or [])
@@ -318,7 +344,6 @@ class AnalysisService:
                 }
             )
             return self._finish_failed_run(case, failed_run, live_warnings)
-        max_frame_age_ms = max(1.0, float(parameters.get("live_max_frame_age_ms", 2000.0)))
         frame_age_summary = _apply_live_frame_age_gate(
             keyframes,
             hotspot_outputs,
@@ -1311,6 +1336,162 @@ def _browser_frame_paths(value: Any) -> list[str]:
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
+def _bounded_realtime_keyframe_count(value: Any) -> tuple[int, list[dict[str, Any]]]:
+    return _bounded_realtime_int_parameter(
+        value,
+        parameter="keyframe_count",
+        default=_DEFAULT_REALTIME_KEYFRAME_COUNT,
+        minimum=1,
+        maximum=_MAX_REALTIME_KEYFRAME_COUNT,
+    )
+
+
+def _live_stream_capture_config(
+    parameters: dict[str, Any],
+    *,
+    max_keyframes: int,
+) -> tuple[LiveStreamCaptureConfig, list[dict[str, Any]]]:
+    keyframe_stride, stride_warnings = _bounded_realtime_int_parameter(
+        parameters.get("live_keyframe_stride"),
+        parameter="live_keyframe_stride",
+        default=_DEFAULT_LIVE_KEYFRAME_STRIDE,
+        minimum=1,
+        maximum=_MAX_LIVE_KEYFRAME_STRIDE,
+    )
+    queue_size, queue_warnings = _bounded_realtime_int_parameter(
+        parameters.get("live_queue_size"),
+        parameter="live_queue_size",
+        default=_DEFAULT_LIVE_QUEUE_SIZE,
+        minimum=1,
+        maximum=_MAX_LIVE_QUEUE_SIZE,
+    )
+    open_timeout_sec, open_timeout_warnings = _bounded_realtime_float_parameter(
+        parameters.get("live_open_timeout_sec"),
+        parameter="live_open_timeout_sec",
+        default=_DEFAULT_LIVE_OPEN_TIMEOUT_SEC,
+        minimum=0.1,
+        maximum=_MAX_LIVE_OPEN_TIMEOUT_SEC,
+    )
+    read_timeout_sec, read_timeout_warnings = _bounded_realtime_float_parameter(
+        parameters.get("live_read_timeout_sec"),
+        parameter="live_read_timeout_sec",
+        default=_DEFAULT_LIVE_READ_TIMEOUT_SEC,
+        minimum=0.1,
+        maximum=_MAX_LIVE_READ_TIMEOUT_SEC,
+    )
+    capture_timeout_sec, capture_timeout_warnings = _bounded_realtime_float_parameter(
+        parameters.get("live_capture_timeout_sec"),
+        parameter="live_capture_timeout_sec",
+        default=_DEFAULT_LIVE_CAPTURE_TIMEOUT_SEC,
+        minimum=0.1,
+        maximum=_MAX_LIVE_CAPTURE_TIMEOUT_SEC,
+    )
+    jpeg_quality, jpeg_quality_warnings = _bounded_realtime_int_parameter(
+        parameters.get("live_jpeg_quality"),
+        parameter="live_jpeg_quality",
+        default=_DEFAULT_LIVE_JPEG_QUALITY,
+        minimum=1,
+        maximum=100,
+    )
+    return (
+        LiveStreamCaptureConfig(
+            max_keyframes=max_keyframes,
+            keyframe_stride=keyframe_stride,
+            queue_size=queue_size,
+            open_timeout_sec=open_timeout_sec,
+            read_timeout_sec=read_timeout_sec,
+            capture_timeout_sec=capture_timeout_sec,
+            jpeg_quality=jpeg_quality,
+        ),
+        [
+            *stride_warnings,
+            *queue_warnings,
+            *open_timeout_warnings,
+            *read_timeout_warnings,
+            *capture_timeout_warnings,
+            *jpeg_quality_warnings,
+        ],
+    )
+
+
+def _bounded_realtime_int_parameter(
+    value: Any,
+    *,
+    parameter: str,
+    default: int,
+    minimum: int,
+    maximum: int,
+) -> tuple[int, list[dict[str, Any]]]:
+    if value is None:
+        return default, []
+    if isinstance(value, bool):
+        return default, [_realtime_parameter_invalid_warning(parameter, default, maximum)]
+    try:
+        requested = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default, [_realtime_parameter_invalid_warning(parameter, default, maximum)]
+    bounded = min(maximum, max(minimum, requested))
+    if bounded == requested:
+        return bounded, []
+    return bounded, [_realtime_parameter_bounded_warning(parameter, requested, bounded, minimum, maximum)]
+
+
+def _bounded_realtime_float_parameter(
+    value: Any,
+    *,
+    parameter: str,
+    default: float,
+    minimum: float,
+    maximum: float,
+) -> tuple[float, list[dict[str, Any]]]:
+    if value is None:
+        return default, []
+    if isinstance(value, bool):
+        return default, [_realtime_parameter_invalid_warning(parameter, default, maximum)]
+    try:
+        requested = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default, [_realtime_parameter_invalid_warning(parameter, default, maximum)]
+    if not isfinite(requested):
+        return default, [_realtime_parameter_invalid_warning(parameter, default, maximum)]
+    bounded = min(maximum, max(minimum, requested))
+    if bounded == requested:
+        return bounded, []
+    return bounded, [_realtime_parameter_bounded_warning(parameter, requested, bounded, minimum, maximum)]
+
+
+def _realtime_parameter_invalid_warning(
+    parameter: str, applied_value: int | float, maximum: int | float
+) -> dict[str, Any]:
+    return {
+        "code": f"realtime_{parameter}_invalid",
+        "message": "A realtime capture parameter was invalid; the platform applied the safe default.",
+        "blocking": False,
+        "parameter": parameter,
+        "applied_value": applied_value,
+        "maximum": maximum,
+    }
+
+
+def _realtime_parameter_bounded_warning(
+    parameter: str,
+    requested_value: int | float,
+    applied_value: int | float,
+    minimum: int | float,
+    maximum: int | float,
+) -> dict[str, Any]:
+    return {
+        "code": f"realtime_{parameter}_bounded",
+        "message": "A realtime capture parameter was bounded to prevent capture and inference backlog.",
+        "blocking": False,
+        "parameter": parameter,
+        "requested_value": requested_value,
+        "applied_value": applied_value,
+        "minimum": minimum,
+        "maximum": maximum,
+    }
+
+
 def _validate_selected_image_pair(selected: list[CaseInputAsset]) -> dict[str, Any] | None:
     white = [asset for asset in selected if asset.channel == InputChannel.WHITE_LIGHT]
     fluor = [asset for asset in selected if asset.channel == InputChannel.FLUORESCENCE]
@@ -1383,14 +1564,26 @@ def _browser_frame_capture_report(
     trigger: str = "manual",
 ) -> dict[str, Any]:
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    max_frames, count_warnings = _bounded_realtime_keyframe_count(max_frames)
     captured_timestamp = (
         captured_at if _parse_utc_datetime(captured_at) is not None else datetime.now(timezone.utc).isoformat()
     )
     keyframes: list[dict[str, Any]] = []
-    warnings: list[dict[str, Any]] = []
-    for path_text in frame_paths[:max_frames]:
+    warnings: list[dict[str, Any]] = list(count_warnings)
+    seen_evidence_paths: set[str] = set()
+    candidate_frame_count = 0
+    for path_text in frame_paths:
+        if candidate_frame_count >= max_frames:
+            break
+        candidate_frame_count += 1
         path = Path(path_text)
-        if not path.is_file():
+        try:
+            evidence_exists = path.is_file()
+            evidence_key = str(path.resolve(strict=False)) if evidence_exists else ""
+        except (OSError, RuntimeError, ValueError):
+            evidence_exists = False
+            evidence_key = ""
+        if not evidence_exists:
             warnings.append(
                 {
                     "code": "browser_frame_missing",
@@ -1400,6 +1593,17 @@ def _browser_frame_capture_report(
                 }
             )
             continue
+        if evidence_key in seen_evidence_paths:
+            warnings.append(
+                {
+                    "code": "browser_frame_duplicate_ignored",
+                    "message": "A duplicate browser frame evidence path was ignored before inference.",
+                    "blocking": False,
+                    "path": str(path),
+                }
+            )
+            continue
+        seen_evidence_paths.add(evidence_key)
         order = len(keyframes) + 1
         keyframes.append(
             {
@@ -1426,7 +1630,9 @@ def _browser_frame_capture_report(
         "height": 0,
         "fps": 0.0,
         "frames_read": len(keyframes),
-        "frames_dropped": max(0, len(frame_paths[:max_frames]) - len(keyframes)),
+        "frames_dropped": max(0, candidate_frame_count - len(keyframes)),
+        "configured_max_keyframes": max_frames,
+        "candidate_frame_count": candidate_frame_count,
         "started_at": captured_timestamp,
         "ended_at": captured_timestamp,
         "camera_session_id": session_id or None,

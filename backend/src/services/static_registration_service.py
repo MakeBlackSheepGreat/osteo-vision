@@ -32,6 +32,14 @@ L1_POINT_ARTIFACT_SCHEMA = "osteo-vision-l1-point-correspondence-v1"
 SUPPORTED_MODEL_FORMATS = {"stl", "glb", "gltf"}
 MIN_REGISTRATION_POINTS = 4
 MIN_VALIDATION_POINTS = 3
+_STL_VALIDATION_CHUNK_TRIANGLES = 65_536
+_BINARY_STL_TRIANGLE_DTYPE = np.dtype(
+    [
+        ("normal", "<f4", (3,)),
+        ("vertices", "<f4", (3, 3)),
+        ("attribute_byte_count", "<u2"),
+    ]
+)
 
 
 class StaticRegistrationRequestError(ValueError):
@@ -1117,10 +1125,13 @@ def _parse_stl(encoded: bytes) -> dict[str, Any]:
         triangle_count = struct.unpack_from("<I", encoded, 80)[0]
         expected_length = 84 + triangle_count * 50
         if triangle_count > 0 and expected_length == len(encoded):
-            binary_vertices: list[float] = []
-            for index in range(triangle_count):
-                binary_vertices.extend(struct.unpack_from("<9f", encoded, 84 + index * 50 + 12))
-            return _validate_stl_vertices(binary_vertices, triangle_count=triangle_count, encoding="binary")
+            triangles = np.frombuffer(
+                encoded,
+                dtype=_BINARY_STL_TRIANGLE_DTYPE,
+                count=triangle_count,
+                offset=84,
+            )
+            return _validate_stl_vertices(triangles["vertices"], triangle_count=triangle_count, encoding="binary")
     try:
         text = encoded.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -1142,13 +1153,20 @@ def _parse_stl(encoded: bytes) -> dict[str, Any]:
     )
 
 
-def _validate_stl_vertices(vertices: list[float], *, triangle_count: int, encoding: str) -> dict[str, Any]:
-    points = np.asarray(vertices, dtype=np.float64).reshape(triangle_count, 3, 3)
-    if not np.isfinite(points).all():
-        raise ValueError("model_parse_stl_non_finite")
-    areas = np.linalg.norm(np.cross(points[:, 1] - points[:, 0], points[:, 2] - points[:, 0]), axis=1)
-    if np.any(areas <= 1e-12):
-        raise ValueError("model_parse_stl_degenerate_triangle")
+def _validate_stl_vertices(vertices: ArrayLike, *, triangle_count: int, encoding: str) -> dict[str, Any]:
+    points = np.asarray(vertices).reshape(triangle_count, 3, 3)
+    for start in range(0, triangle_count, _STL_VALIDATION_CHUNK_TRIANGLES):
+        chunk = points[start : start + _STL_VALIDATION_CHUNK_TRIANGLES]
+        if not np.isfinite(chunk).all():
+            raise ValueError("model_parse_stl_non_finite")
+        # Keep the prior float64 area calculation while bounding temporary arrays for large STL models.
+        numeric_chunk = np.asarray(chunk, dtype=np.float64)
+        areas = np.linalg.norm(
+            np.cross(numeric_chunk[:, 1] - numeric_chunk[:, 0], numeric_chunk[:, 2] - numeric_chunk[:, 0]),
+            axis=1,
+        )
+        if np.any(areas <= 1e-12):
+            raise ValueError("model_parse_stl_degenerate_triangle")
     return {
         "container": "stl",
         "encoding": encoding,

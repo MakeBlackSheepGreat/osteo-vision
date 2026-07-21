@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import struct
 from pathlib import Path
 
 import cv2
@@ -10,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.src.api.app import create_app
+from backend.src.services.static_registration_service import _parse_stl
 
 TOKEN = "physician-l1-review-token-001"
 MATRIX_CONVENTION = {
@@ -66,6 +69,47 @@ endsolid mandible
         encoding="utf-8",
     )
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _binary_stl(triangles: list[tuple[float, ...]]) -> bytes:
+    header = b"osteo-vision-binary-stl".ljust(80, b"\x00")
+    records = [struct.pack("<I", len(triangles))]
+    for triangle in triangles:
+        records.append(struct.pack("<12fH", 0.0, 0.0, 1.0, *triangle, 0))
+    return header + b"".join(records)
+
+
+def test_binary_stl_parser_preserves_mesh_summary() -> None:
+    encoded = _binary_stl(
+        [
+            (0.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 20.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 20.0),
+        ]
+    )
+
+    summary = _parse_stl(encoded)
+
+    assert summary == {
+        "container": "stl",
+        "encoding": "binary",
+        "triangle_count": 2,
+        "unique_vertex_count": 4,
+    }
+
+
+@pytest.mark.parametrize(
+    ("triangles", "error_code"),
+    [
+        ([(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)], "model_parse_stl_degenerate_triangle"),
+        ([(math.nan, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 20.0, 0.0)], "model_parse_stl_non_finite"),
+    ],
+)
+def test_binary_stl_parser_preserves_geometry_safety_errors(
+    triangles: list[tuple[float, ...]],
+    error_code: str,
+) -> None:
+    with pytest.raises(ValueError, match=error_code):
+        _parse_stl(_binary_stl(triangles))
 
 
 def _request(case_id: str, model_path: Path) -> dict:

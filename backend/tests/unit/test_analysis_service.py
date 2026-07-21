@@ -390,6 +390,30 @@ def test_browser_camera_frame_preserves_capture_session_metadata(tmp_path: Path)
     assert report["keyframes"][0]["camera_sequence"] == 4
 
 
+def test_browser_frame_capture_bounds_count_and_deduplicates_evidence_paths(tmp_path: Path) -> None:
+    frame_paths: list[str] = []
+    for index in range(10):
+        image_path = tmp_path / f"browser_frame_{index}.jpg"
+        Image.fromarray(np.full((16, 24, 3), 100 + index, dtype=np.uint8)).save(image_path)
+        frame_paths.append(str(image_path))
+
+    report = _browser_frame_capture_report(
+        [frame_paths[0], frame_paths[0], *frame_paths[1:]],
+        tmp_path / "frame_index_manifest.json",
+        max_frames=100,
+    )
+
+    assert report["configured_max_keyframes"] == 8
+    assert report["candidate_frame_count"] == 8
+    assert report["frames_read"] == 7
+    assert report["frames_dropped"] == 1
+    assert [frame["path"] for frame in report["keyframes"]] == [frame_paths[0], *frame_paths[1:7]]
+    assert {warning["code"] for warning in report["warnings"]} == {
+        "realtime_keyframe_count_bounded",
+        "browser_frame_duplicate_ignored",
+    }
+
+
 def test_analysis_service_runs_bounded_live_stream_keyframes(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
     image_path = tmp_path / "live_frame.jpg"
@@ -397,7 +421,21 @@ def test_analysis_service_runs_bounded_live_stream_keyframes(tmp_path: Path, mon
     frame_manifest_path = tmp_path / "frame_index_manifest.json"
     frame_manifest_path.write_text("{}", encoding="utf-8")
 
-    def fake_capture(*_args, **_kwargs):
+    capture_settings: dict[str, int | float] = {}
+
+    def fake_capture(*_args, **kwargs):
+        config = kwargs["config"]
+        capture_settings.update(
+            {
+                "max_keyframes": config.max_keyframes,
+                "keyframe_stride": config.keyframe_stride,
+                "queue_size": config.queue_size,
+                "open_timeout_sec": config.open_timeout_sec,
+                "read_timeout_sec": config.read_timeout_sec,
+                "capture_timeout_sec": config.capture_timeout_sec,
+                "jpeg_quality": config.jpeg_quality,
+            }
+        )
         return {
             "schema_version": "osteo-vision-live-stream-capture-v1",
             "source_uri": "rtsp://127.0.0.1/live",
@@ -454,7 +492,13 @@ def test_analysis_service_runs_bounded_live_stream_keyframes(tmp_path: Path, mon
             "mode": "realtime_video",
             "source_path": "rtsp://127.0.0.1/live",
             "segmentation_model_id": "fluorescence_hotspot_2d_segmenter",
-            "keyframe_count": 1,
+            "keyframe_count": 99,
+            "live_keyframe_stride": "invalid",
+            "live_queue_size": 99,
+            "live_open_timeout_sec": "nan",
+            "live_read_timeout_sec": 0,
+            "live_capture_timeout_sec": 999,
+            "live_jpeg_quality": -3,
             "live_max_frame_age_ms": 10000,
         },
         [],
@@ -467,6 +511,25 @@ def test_analysis_service_runs_bounded_live_stream_keyframes(tmp_path: Path, mon
     assert run.fused_outputs["analysis_available"] is True
     assert run.quantitative_summary["live_keyframes_captured"] == 1
     assert run.quantitative_summary["live_frame_age_gate"]["displayable_frame_count"] == 1
+    assert capture_settings == {
+        "max_keyframes": 8,
+        "keyframe_stride": 15,
+        "queue_size": 8,
+        "open_timeout_sec": 5.0,
+        "read_timeout_sec": 0.1,
+        "capture_timeout_sec": 30.0,
+        "jpeg_quality": 1,
+    }
+    assert run.fused_outputs["live_capture"]["configured_max_keyframes"] == 8
+    assert {
+        "realtime_keyframe_count_bounded",
+        "realtime_live_keyframe_stride_invalid",
+        "realtime_live_queue_size_bounded",
+        "realtime_live_open_timeout_sec_invalid",
+        "realtime_live_read_timeout_sec_bounded",
+        "realtime_live_capture_timeout_sec_bounded",
+        "realtime_live_jpeg_quality_bounded",
+    }.issubset({item["code"] for item in run.warnings})
     manifest_path = Path(run.fused_outputs["video_segmentation_manifest_path"])
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["analysis_mode"] == "realtime_stream_keyframes"
