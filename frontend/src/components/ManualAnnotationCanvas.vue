@@ -119,7 +119,6 @@
     >
       <div v-if="sourceUrl" class="annotation-content" :style="contentStyle">
         <img
-          ref="sourceImageEl"
           :src="sourceUrl"
           alt="医生人工标注来源图像"
           crossorigin="anonymous"
@@ -208,7 +207,6 @@ const emit = defineEmits<{
 }>();
 
 const viewportEl = ref<HTMLElement | null>(null);
-const sourceImageEl = ref<HTMLImageElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const draftCanvasEl = ref<HTMLCanvasElement | null>(null);
 const viewportWidth = ref(1);

@@ -50,7 +50,12 @@ class Settings:
     inference_config_path: Path = _repo_root() / "configs" / "inference" / "osteo_vision.yml"
     max_active_case_analysis_jobs: int = 1
     max_active_upload_keyframe_jobs: int = 1
-    allowed_origins: tuple[str, ...] = ("http://localhost:5174", "http://127.0.0.1:5174")
+    allowed_origins: tuple[str, ...] = (
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
+    )
     app_name: str = "Osteo Vision Platform API"
 
 
@@ -99,9 +104,13 @@ def load_settings() -> Settings:
     frontend_port = int(os.environ.get("OSTEO_FRONTEND_PORT", "5174"))
     max_active_case_analysis_jobs = int(os.environ.get("OSTEO_MAX_ACTIVE_CASE_ANALYSIS_JOBS", "1"))
     max_active_upload_keyframe_jobs = int(os.environ.get("OSTEO_MAX_ACTIVE_UPLOAD_KEYFRAME_JOBS", "1"))
+    three_d_runtime_port = int(os.environ.get("OSTEO_THREE_D_RUNTIME_PORT", "5175"))
     origins = os.environ.get(
         "OSTEO_ALLOWED_ORIGINS",
-        f"http://localhost:{frontend_port},http://127.0.0.1:{frontend_port}",
+        (
+            f"http://localhost:{frontend_port},http://127.0.0.1:{frontend_port},"
+            f"http://localhost:{three_d_runtime_port},http://127.0.0.1:{three_d_runtime_port}"
+        ),
     )
     return Settings(
         project_root=root,

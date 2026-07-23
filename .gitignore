@@ -53,6 +53,7 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/build/
+frontend/three-d-runtime/dist/
 coverage/
 frontend/coverage/
 *.tsbuildinfo
@@ -61,6 +62,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 frontend/test-results/
+/test-results/
 frontend/playwright-report/
 .playwright-cli/
 frontend/pnpm-lock.yaml

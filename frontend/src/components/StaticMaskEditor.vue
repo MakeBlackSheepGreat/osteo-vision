@@ -47,7 +47,6 @@
 
     <div class="canvas-stage" :style="stageStyle">
       <img
-        ref="sourceImageEl"
         :src="sourceUrl"
         alt="待复核荧光论文裁剪图"
         crossorigin="anonymous"
@@ -138,7 +137,6 @@ const emit = defineEmits<{
   }];
 }>();
 
-const sourceImageEl = ref<HTMLImageElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const canvasWidth = ref(1);
 const canvasHeight = ref(1);

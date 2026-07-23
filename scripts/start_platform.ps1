@@ -1,6 +1,7 @@
 param(
     [int]$BackendPort = 8001,
     [int]$FrontendPort = 5174,
+    [int]$ThreeDRuntimePort = 5175,
     [string]$HostAddress = "127.0.0.1",
     [string]$CondaEnv = "osteo-vision",
     [string]$InferenceConfig = "configs/inference/osteo_vision.yml",
@@ -8,7 +9,8 @@ param(
     [switch]$PreflightOnly,
     [switch]$NoInstall,
     [switch]$NoBrowser,
-    [switch]$Headless
+    [switch]$Headless,
+    [switch]$StartThreeDRuntime
 )
 
 $ErrorActionPreference = "Stop"
@@ -120,8 +122,14 @@ $Command
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptRoot "..")
 $frontendDir = Join-Path $repoRoot "frontend"
+$threeDRuntimeDir = Join-Path $frontendDir "three-d-runtime"
+$threeDRuntimeLauncher = Join-Path $scriptRoot "start_three_d_runtime.ps1"
 $backendEntry = Join-Path $repoRoot "backend\src\main.py"
 $runtimeCheck = Join-Path $repoRoot "tools\check_runtime_readiness.py"
+$runtimePorts = @($BackendPort, $FrontendPort, $ThreeDRuntimePort)
+if (($runtimePorts | Select-Object -Unique).Count -ne 3) {
+    throw "BackendPort, FrontendPort and ThreeDRuntimePort must use three different values."
+}
 if ($StrictCompetition) {
     $InferenceConfig = "configs/inference/osteo_vision_competition_strict.yml"
 }
@@ -170,9 +178,10 @@ if (-not $NoInstall -and -not (Test-Path -LiteralPath (Join-Path $frontendDir "n
     npm --prefix $frontendDir install
 }
 
-$allowedOrigins = "http://localhost:$FrontendPort,http://${HostAddress}:$FrontendPort"
+$allowedOrigins = "http://localhost:$FrontendPort,http://${HostAddress}:$FrontendPort,http://localhost:$ThreeDRuntimePort,http://${HostAddress}:$ThreeDRuntimePort"
 $apiUrl = "http://${HostAddress}:$BackendPort"
 $frontendUrl = "http://${HostAddress}:$FrontendPort"
+$threeDRuntimeUrl = "http://${HostAddress}:$ThreeDRuntimePort"
 $expectStrictRuntime = if ($StrictCompetition) { "true" } else { "false" }
 $competitionArtifactRoot = Join-Path $repoRoot "artifacts\platform_competition"
 $competitionCaseStore = Join-Path $competitionArtifactRoot "cases.sqlite"
@@ -284,6 +293,7 @@ else {
 `$env:OSTEO_BACKEND_PORT = '$BackendPort'
 `$env:OSTEO_FRONTEND_PORT = '$FrontendPort'
 `$env:VITE_OSTEO_API_URL = '$apiUrl'
+`$env:VITE_OSTEO_THREE_D_RUNTIME_URL = '$threeDRuntimeUrl'
 `$env:VITE_OSTEO_EXPECT_STRICT_RUNTIME = '$expectStrictRuntime'
 npm --prefix "$frontendDir" run dev -- --host $HostAddress --port $FrontendPort --strictPort
 "@
@@ -291,17 +301,59 @@ npm --prefix "$frontendDir" run dev -- --host $HostAddress --port $FrontendPort 
 }
 
 Write-Host "[wait] Waiting for frontend at $frontendUrl ..."
+$frontendReady = $false
 for ($i = 0; $i -lt 40; $i++) {
     if (Test-TcpPort -Address $HostAddress -Port $FrontendPort) {
         Write-Host "[ready] Frontend: $frontendUrl"
-        if (-not $NoBrowser) {
-            Start-Process $frontendUrl
-        }
-        exit 0
+        $frontendReady = $true
+        break
     }
     Start-Sleep -Seconds 1
 }
 
-Write-Host "[warn] Frontend did not respond within 40 seconds. Check the frontend terminal window."
-Write-Host "[info] Expected frontend URL: $frontendUrl"
-exit 1
+if (-not $frontendReady) {
+    Write-Host "[warn] Frontend did not respond within 40 seconds. Check the frontend terminal window."
+    Write-Host "[info] Expected frontend URL: $frontendUrl"
+    exit 1
+}
+
+if ($StartThreeDRuntime) {
+    Write-Host "[three-d-runtime] Starting optional independent renderer on port $ThreeDRuntimePort..."
+    try {
+        if (-not (Test-Path -LiteralPath $threeDRuntimeDir)) {
+            throw "Runtime directory is missing: $threeDRuntimeDir"
+        }
+        if (-not (Test-Path -LiteralPath $threeDRuntimeLauncher -PathType Leaf)) {
+            throw "Runtime launcher is missing: $threeDRuntimeLauncher"
+        }
+
+        $threeDRuntimeArguments = @{
+            BackendPort = $BackendPort
+            RuntimePort = $ThreeDRuntimePort
+            HostAddress = $HostAddress
+            MainAppOrigin = $frontendUrl
+            NoBrowser = $true
+        }
+        if ($NoInstall) {
+            $threeDRuntimeArguments.NoInstall = $true
+        }
+        if ($Headless) {
+            $threeDRuntimeArguments.Headless = $true
+        }
+        & $threeDRuntimeLauncher @threeDRuntimeArguments
+        $threeDRuntimeLauncherSucceeded = $?
+        $threeDRuntimeExitCode = $LASTEXITCODE
+        if (-not $threeDRuntimeLauncherSucceeded -or ($null -ne $threeDRuntimeExitCode -and $threeDRuntimeExitCode -ne 0)) {
+            throw "Three-dimensional renderer launcher returned exit code $threeDRuntimeExitCode"
+        }
+        Write-Host "[ready] Three-dimensional renderer: http://${HostAddress}:$ThreeDRuntimePort"
+    }
+    catch {
+        Write-Warning "Independent three-dimensional renderer is unavailable. The primary platform remains available at $frontendUrl. $($_.Exception.Message)"
+    }
+}
+
+if (-not $NoBrowser) {
+    Start-Process $frontendUrl
+}
+exit 0

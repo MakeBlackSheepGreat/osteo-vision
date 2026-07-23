@@ -1,0 +1,7 @@
+{
+  "runtime_id": "osteo-vision-three-d-runtime",
+  "bridge_protocol": "osteo-vision-three-d-runtime-bridge-v1",
+  "snapshot_schema_version": "osteo-vision-three-d-runtime-snapshot-v2",
+  "snapshot_integrity_protocol": "osteo-vision-three-d-runtime-integrity-v2",
+  "version": "0.3.0-rc.2"
+}

@@ -8,6 +8,7 @@
 |---|---|---|---|
 | `backend/` | 平台后端 | FastAPI、领域模型、服务、报告与后端测试 | 跟踪 |
 | `frontend/` | 平台前端 | Vue 桌面工作站、组件、类型与前端测试 | 源码跟踪，依赖和构建忽略 |
+| `frontend/three-d-runtime/` | 独立三维渲染运行时 | 独立 Vue/Vite/Three.js 包、场景测试、锁文件和静态运行时标识 | 源码与 lockfile 跟踪，`node_modules/` 与 `dist/` 忽略 |
 | `src/` | 核心库 | 推理、模型、数据、指标、I/O、导航 | 跟踪 |
 | `configs/` | 运行配置 | 任务、研发与比赛严格配置 | 公共配置跟踪，本机覆盖忽略 |
 | `scripts/` | 工程脚本 | 启动、训练、评估、实验和模型清单 | 跟踪 |
@@ -15,6 +16,9 @@
 | `tests/` | 核心测试 | unit、smoke、integration、fixtures | 跟踪，小型 fixture 例外 |
 | `docs/` | 当前文档 | 快速开始、架构、目录、导出和审批 | 跟踪，内容保持当前 |
 | `research/` | 研究证据 | 文献、来源清单、建模报告、计划和归档 | 小型证据跟踪，大文件忽略 |
+| `output/` | 界面验收输出 | 本地 Playwright 截图与页面检查图 | 忽略；仅作本机视觉验收 |
+| `outputs/` | 数据整合输出 | 受控脚本生成的数据集整合物、检查结果与派生索引 | 忽略；保留来源与用途说明 |
+| `tmp/` | 受保护临时工作区 | 文档渲染、研究整理和人工检查的中间文件 | 忽略；不进入通用清理 |
 | `artifacts/` | 运行产物 | checkpoint、报告、截图、数据库、性能结果 | `.gitkeep` 外默认忽略 |
 | `app/` | 兼容入口 | Gradio 框架兼容性检查 | 跟踪，不作为比赛主界面 |
 | `packaging/` | 打包 | 桌面与发布打包说明 | 跟踪 |
@@ -49,10 +53,18 @@
 - `.pytest_cache/`、`.pytest_tmp*/`、`.pytest-tmp*/`
 - `.mypy_cache/`、`.ruff_cache/`、`__pycache__/`
 - `.codex_tmp*`、根目录 `build/` 与 `dist/`
-- `frontend/dist/`、`frontend/coverage/`、`frontend/test-results/`
+- `frontend/dist/`、`frontend/three-d-runtime/dist/`、`frontend/coverage/`、`frontend/test-results/`
 - `artifacts/e2e/` 与 `artifacts/ui/` 中可重复生成的界面验收产物
 
 `tmp/`、`output/`、`outputs/` 可能含研究脚本、人工复核结果或数据集整合产物，不进入通用清理。`artifacts/platform*`、`artifacts/platform_smoke/`、`artifacts/performance/`、`artifacts/reports/`、`artifacts/runs/` 和 `artifacts/visual_evidence/` 保存病例状态或研发证据，同样保持受保护状态。
+
+本地目录的职责保持单向：`output/` 只放置可再现的前端或浏览器验收截图；`outputs/` 只放置受控数据整合输出；`tmp/` 只放置阶段性中间工作物；`artifacts/` 承担可追溯运行证据。生成器需要在其 manifest、日志或同级说明中给出来源、生成入口与用途边界。这样可避免把报告提交件、源码和本地运行物混放。
+
+## 挑战杯报告包
+
+挑战杯当前报告工作物集中在 `research/reports/submission/challenge_cup_report_draft_20260721/`。该目录内的 `Cap1_*.md` 至 `Cap9_*.md` 为分章源稿，`challenge_cup_*_zh.md` 为聚合稿，`assets/sources/` 保存最小公开或合成重建输入，`assets/manifest.json` 记录图包，DOCX/PDF 为可交付渲染件。目录内的 README 记录构建入口、当前推荐件和医学声明边界。
+
+`research/reports/submission/` 根目录只保留活动提交入口、构建器和提交说明。冻结或被替换的报告包应迁入 `research/reports/archive/` 并保留日期与后继入口，当前阶段不要删除任何现有报告、图片或渲染中间物。
 
 安全清理预览：
 
@@ -71,6 +83,7 @@ conda run -n osteo-vision python tools/clean_workspace.py --apply
 ## 新文件放置规则
 
 - 可复用运行代码进入 `src/` 或 `backend/src/`。
+- 独立 WebGL 场景代码、Three.js 依赖和运行时专用测试进入 `frontend/three-d-runtime/`；主平台只保留业务控制、嵌入桥接与安全降级。
 - 一次执行即可复现的工程入口进入 `scripts/` 或 `tools/`。
 - 当前使用说明进入 `docs/`。
 - 研究结论和实验记录进入 `research/reports/<topic>/` 并带日期。

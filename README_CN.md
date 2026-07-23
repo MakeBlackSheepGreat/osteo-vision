@@ -53,6 +53,7 @@
 osteo-vision/
 ├── backend/                 FastAPI API、病例、复核、导出和三维服务
 ├── frontend/                Vue 3 + TypeScript 桌面工作站
+├── frontend/three-d-runtime/ 独立 Vue/Vite/Three.js 三维渲染运行时
 ├── src/                     推理、模型、数据、指标和导航核心库
 ├── configs/                 任务、研发运行和比赛严格运行配置
 ├── scripts/                 训练、评估、实验和启动脚本
@@ -83,8 +84,20 @@ start_platform.cmd
 
 - 后端：`http://127.0.0.1:8001`
 - 前端：`http://127.0.0.1:5174/`
+- 独立三维渲染运行时：`http://127.0.0.1:5175/`
 
 详细身份、离线签名和手动启动步骤见 `docs/quickstart.md`。
+
+三维运行时可单独启动、构建和测试：
+
+```powershell
+npm --prefix frontend/three-d-runtime ci
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_runtime.ps1
+npm --prefix frontend/three-d-runtime run build
+npm --prefix frontend/three-d-runtime run test
+```
+
+主平台保持病例、CBCT/STL 建模、L1/L2、二维证据和医生复核。独立运行时读取版本化最小场景快照；WebGL、模型或运行时失败时，主平台继续保留这些可追溯路径。详见 `docs/three_d_renderer_runtime.md`。
 
 ## 质量门
 
@@ -97,6 +110,9 @@ npm --prefix frontend run typecheck
 npm --prefix frontend test -- --run
 npm --prefix frontend run build
 npm --prefix frontend run test:e2e
+npm --prefix frontend/three-d-runtime run typecheck
+npm --prefix frontend/three-d-runtime run test
+npm --prefix frontend/three-d-runtime run build
 conda run -n osteo-vision python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict
 conda run -n osteo-vision python tools/check_project_readiness.py
 conda run -n osteo-vision python tools/audit_active_documentation.py

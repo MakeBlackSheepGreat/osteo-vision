@@ -46,6 +46,7 @@ The verified local data inventory currently covers 15 manifests, 47 records, 138
 ```text
 backend/           FastAPI API and application services
 frontend/          Vue 3 and TypeScript desktop workstation
+frontend/three-d-runtime/ independent Vue/Vite/Three.js rendering runtime
 src/               inference, models, datasets, metrics, and navigation core
 configs/           task, development, and competition-strict runtime profiles
 scripts/           training, evaluation, experiment, and launch scripts
@@ -74,8 +75,20 @@ Default endpoints:
 
 - Backend: `http://127.0.0.1:8001`
 - Frontend: `http://127.0.0.1:5174/`
+- Independent 3D renderer: `http://127.0.0.1:5175/`
 
 See [docs/quickstart.md](docs/quickstart.md) for identity configuration, offline approvals, and manual startup.
+
+The 3D renderer has independent install, startup, build, and test entry points:
+
+```powershell
+npm --prefix frontend/three-d-runtime ci
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_runtime.ps1
+npm --prefix frontend/three-d-runtime run build
+npm --prefix frontend/three-d-runtime run test
+```
+
+The primary platform retains case workflows, CBCT/STL modeling, L1/L2 evidence, 2D evidence, and physician review. The isolated renderer consumes a versioned minimum scene snapshot. WebGL, model, and renderer failures leave those traceable paths available in the primary platform. See [docs/three_d_renderer_runtime.md](docs/three_d_renderer_runtime.md).
 
 ## Quality Gates
 
@@ -88,6 +101,9 @@ npm --prefix frontend run typecheck
 npm --prefix frontend test -- --run
 npm --prefix frontend run build
 npm --prefix frontend run test:e2e
+npm --prefix frontend/three-d-runtime run typecheck
+npm --prefix frontend/three-d-runtime run test
+npm --prefix frontend/three-d-runtime run build
 conda run -n osteo-vision python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict
 conda run -n osteo-vision python tools/check_project_readiness.py
 conda run -n osteo-vision python tools/audit_active_documentation.py

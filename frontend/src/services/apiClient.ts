@@ -324,9 +324,6 @@ export const apiClient = {
     if (/^https?:\/\//i.test(path)) return path;
     return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
   },
-  getUploadJob(jobId: string): Promise<BackendJob> {
-    return request<BackendJob>(`/uploads/jobs/${jobId}`);
-  },
   startAnalysisJob(
     caseId: string,
     parameters: Record<string, unknown>,

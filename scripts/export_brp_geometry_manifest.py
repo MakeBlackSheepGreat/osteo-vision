@@ -16,9 +16,10 @@ DATA_BOUNDARY = (
     "BRP-style geometry manifest derived from a surface mesh and scene manifest for research validation only. "
     "It is not a registered surgical navigation plan, not a clinical resection guide, and requires physician review."
 )
-DEFAULT_STL = Path("frontend/public/models/local/mandible_d024_0001.stl")
-DEFAULT_SCENE_MANIFEST = Path("frontend/public/models/local/mandible_d024_0001.three_d_evidence.json")
-DEFAULT_OUTPUT = Path("frontend/public/models/local/mandible_d024_0001.brp_geometry_manifest.json")
+D024_RUNTIME_REFERENCE_DIRECTORY = Path("artifacts/platform/three_d_runtime/references/d024")
+DEFAULT_STL = D024_RUNTIME_REFERENCE_DIRECTORY / "mandible_d024_0001.stl"
+DEFAULT_SCENE_MANIFEST = D024_RUNTIME_REFERENCE_DIRECTORY / "mandible_d024_0001.three_d_evidence.json"
+DEFAULT_OUTPUT = D024_RUNTIME_REFERENCE_DIRECTORY / "mandible_d024_0001.brp_geometry_manifest.json"
 
 
 def main() -> None:

@@ -12,6 +12,11 @@ from typing import Any
 from backend.src.domains.cases.schemas import CaseInputAsset
 
 SCHEMA_VERSION = "osteo-vision-three-d-evidence-v2"
+D024_RUNTIME_REFERENCE_DIRECTORY = "artifacts/platform/three_d_runtime/references/d024"
+D024_RUNTIME_REFERENCE_MODEL_PATH = f"{D024_RUNTIME_REFERENCE_DIRECTORY}/mandible_d024_0001.stl"
+D024_RUNTIME_REFERENCE_GEOMETRY_MANIFEST_PATH = (
+    f"{D024_RUNTIME_REFERENCE_DIRECTORY}/mandible_d024_0001.brp_geometry_manifest.json"
+)
 
 
 def build_three_d_evidence(
@@ -44,6 +49,9 @@ def build_three_d_evidence(
     transform_format = _string(explicit.get("transform_format") or parameters.get("three_d_transform_format")).lower()
     microscope_pose_evidence = _microscope_pose_evidence(explicit, parameters=parameters)
     coordinate_space = _string(explicit.get("coordinate_space") or parameters.get("three_d_coordinate_space"))
+    model_coordinate_space = _string(
+        explicit.get("model_coordinate_space") or parameters.get("three_d_model_coordinate_space")
+    ) or coordinate_space
     dicom_series_uid = _string(explicit.get("dicom_series_uid") or parameters.get("three_d_dicom_series_uid"))
     segmentation_source = _string(explicit.get("segmentation_source") or parameters.get("three_d_segmentation_source"))
     segmentation_review_status = _string(
@@ -114,6 +122,7 @@ def build_three_d_evidence(
             explicit.get("surface_point_count") or parameters.get("three_d_surface_point_count")
         ),
         "coordinate_space": coordinate_space or None,
+        "model_coordinate_space": model_coordinate_space or None,
         "transform_path": transform_path or None,
         "transform_sha256": transform_validation.get("sha256"),
         "transform_expected_sha256": transform_sha256 or None,
@@ -745,7 +754,7 @@ def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
     demo = _string(parameters.get("three_d_evidence_demo")).lower()
     if demo not in {"d024", "d024_mandible", "d024_mandible_surface"}:
         return {}
-    model_path = "frontend/public/models/local/mandible_d024_0001.stl"
+    model_path = D024_RUNTIME_REFERENCE_MODEL_PATH
     boundary = (
         "D024 DentVoxel public CBCT-derived mandible surface; non-target-domain anatomy reference only. "
         "It is not a real jaw osteomyelitis intraoperative ICG case, not registered to video, and not surgical navigation."
@@ -764,7 +773,7 @@ def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
         "navigation_ready": False,
         "scene_manifest": _demo_scene_manifest(),
         "scene_manifest_v2": _demo_scene_manifest_v2(),
-        "geometry_manifest_path": "frontend/public/models/local/mandible_d024_0001.brp_geometry_manifest.json",
+        "geometry_manifest_path": D024_RUNTIME_REFERENCE_GEOMETRY_MANIFEST_PATH,
         "boundary_note": boundary,
     }
 
@@ -878,7 +887,7 @@ def _demo_scene_manifest_v2() -> dict[str, Any]:
                 "type": "model",
                 "role": "cbct_derived_mandible_surface",
                 "name": "mandible_d024_0001.stl",
-                "path": "frontend/public/models/local/mandible_d024_0001.stl",
+                "path": D024_RUNTIME_REFERENCE_MODEL_PATH,
                 "format": "stl",
                 "source": "marching_cubes from mandible label",
                 "review_status": "reference_only_not_physician_reviewed",

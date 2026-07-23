@@ -243,6 +243,58 @@ class CaseRecord(BaseModel):
     disclaimer: str | None = None
 
 
+class ThreeDRuntimeModelAsset(BaseModel):
+    """A controlled model asset exposed to the isolated 3D renderer."""
+
+    asset_id: Literal["model"] = "model"
+    url: str = Field(min_length=1)
+    format: Literal["stl", "glb", "gltf"]
+    file_name: str = Field(min_length=1, max_length=255)
+    sha256: str = Field(min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")
+    size_bytes: int = Field(ge=0)
+    rendering_status: Literal["ready", "unsupported_format"] = "ready"
+    rendering_failure_reason: str | None = Field(default=None, max_length=160)
+
+
+class ThreeDRuntimeSafety(BaseModel):
+    """Safety state available to the isolated renderer without patient context."""
+
+    navigation_level: str = Field(min_length=1, max_length=32)
+    navigation_ready: bool = False
+    registration_status: str = Field(min_length=1, max_length=80)
+    doctor_review_status: str = Field(min_length=1, max_length=80)
+    fallback_mode: str = Field(min_length=1, max_length=120)
+    failure_reasons: list[str] = Field(default_factory=list)
+    boundary: str = Field(min_length=1, max_length=4000)
+
+
+class ThreeDRuntimeSpatialMapping(BaseModel):
+    """Checksum-bound coordinate contract for placing video candidates on a model."""
+
+    schema_version: Literal["osteo-vision-three-d-runtime-spatial-mapping-v1"]
+    model_coordinate_space: str | None = Field(default=None, max_length=160)
+    transform_sha256: str | None = Field(default=None, min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")
+    status: Literal["verified", "unavailable"] = "unavailable"
+    failure_reasons: list[str] = Field(default_factory=list)
+
+
+class ThreeDRuntimeSnapshot(BaseModel):
+    """Versioned minimum scene contract for the standalone 3D runtime."""
+
+    schema_version: Literal["osteo-vision-three-d-runtime-snapshot-v2"]
+    case_id: str = Field(min_length=1, max_length=160)
+    case_version: int = Field(ge=1)
+    generated_at: datetime
+    snapshot_sha256: str = Field(min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")
+    mode_label: str = Field(min_length=1, max_length=160)
+    candidate_regions: list[dict[str, Any]] = Field(default_factory=list)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    three_d_evidence: dict[str, Any] = Field(default_factory=dict)
+    model_asset: ThreeDRuntimeModelAsset | None = None
+    spatial_mapping: ThreeDRuntimeSpatialMapping
+    safety: ThreeDRuntimeSafety
+
+
 class CaseCreateRequest(BaseModel):
     title: str
     disclaimer_version: str = DISCLAIMER_VERSION

@@ -91,12 +91,22 @@ describe("NavigationWorkspacePage", () => {
       global: {
         plugins: [router],
         stubs: {
-          Anatomy3DPanel: {
-            props: ["caseId", "candidates", "metrics", "modeLabel", "threeDEvidence"],
+          ThreeDEvidenceControlPanel: {
+            props: ["caseId", "evidence"],
+            emits: ["evidencePersisted"],
+            template: `
+              <div class="three-d-evidence-control-stub">
+                {{ caseId }} / 三维证据控制
+                <button type="button" @click="$emit('evidencePersisted')">同步持久化证据</button>
+              </div>
+            `,
+          },
+          ThreeDRendererRuntimeEmbed: {
+            props: ["caseId"],
             emits: ["selectCandidateFrame"],
             template: `
-              <div class="three-d-stub">
-                {{ caseId }} / {{ candidates.length }} / {{ modeLabel }}
+              <div class="three-d-runtime-stub">
+                {{ caseId }} / 独立三维运行时
                 <button
                   type="button"
                   @click="$emit('selectCandidateFrame', { candidateId: 'candidate_001', frameKey: 'frame_8', frameIndex: 8, timestampSec: 0.8 })"
@@ -118,16 +128,20 @@ describe("NavigationWorkspacePage", () => {
     expect(wrapper.text()).toContain("配准误差 0.80 mm");
     expect(wrapper.text()).toContain("L2 · 动态 AR 验证");
     expect(wrapper.text()).toContain("0.80 mm / 阈值 1.50 mm");
-    expect(wrapper.get(".three-d-stub").text()).toContain("case_001 / 1 / MP4 候选区空间证据");
+    expect(wrapper.get(".three-d-evidence-control-stub").text()).toContain("case_001 / 三维证据控制");
+    expect(wrapper.get(".three-d-runtime-stub").text()).toContain("case_001 / 独立三维运行时");
     expect(wrapper.get(".navigation-workspace__back").attributes("href")).toContain("caseId=case_001");
 
     const pageSections = Array.from(wrapper.get("main").element.children);
     const safetyIndex = pageSections.indexOf(wrapper.get(".navigation-safety").element);
-    const anatomyIndex = pageSections.indexOf(wrapper.get(".three-d-stub").element);
+    const controlIndex = pageSections.indexOf(wrapper.get(".three-d-evidence-control-stub").element);
+    const anatomyIndex = pageSections.indexOf(wrapper.get(".three-d-runtime-stub").element);
     const evidenceHeadingIndex = pageSections.indexOf(wrapper.get(".navigation-workspace__evidence-heading").element);
     const l1Index = pageSections.indexOf(wrapper.get(".l1-panel").element);
     const l2Index = pageSections.indexOf(wrapper.get(".l2-panel").element);
     expect(safetyIndex).toBeLessThan(anatomyIndex);
+    expect(safetyIndex).toBeLessThan(controlIndex);
+    expect(controlIndex).toBeLessThan(anatomyIndex);
     expect(anatomyIndex).toBeLessThan(evidenceHeadingIndex);
     expect(evidenceHeadingIndex).toBeLessThan(l1Index);
     expect(l1Index).toBeLessThan(l2Index);
@@ -141,7 +155,7 @@ describe("NavigationWorkspacePage", () => {
     expect(wrapper.text()).toContain("导航前置条件已记录");
     expect(wrapper.text()).toContain("L1 · 静态配准验证");
 
-    await wrapper.get(".three-d-stub button").trigger("click");
+    await wrapper.get(".three-d-runtime-stub button").trigger("click");
     await flushPromises();
     expect(store.navigationFrameSelection).toMatchObject({
       caseId: "case_001",
@@ -152,6 +166,9 @@ describe("NavigationWorkspacePage", () => {
     });
     expect(router.currentRoute.value.query.frameKey).toBe("frame_8");
     expect(wrapper.get(".navigation-workspace__back").attributes("href")).toContain("frameKey=frame_8");
+
+    await wrapper.get(".three-d-evidence-control-stub button").trigger("click");
+    expect(store.loadCase).toHaveBeenCalledWith("case_001");
   });
 
   it("shows a case loading error even when no case could be loaded", async () => {
@@ -174,7 +191,7 @@ describe("NavigationWorkspacePage", () => {
       global: {
         plugins: [router],
         stubs: {
-          Anatomy3DPanel: { template: '<div data-testid="anatomy-3d-mounted" />' },
+          ThreeDRendererRuntimeEmbed: { template: '<div data-testid="three-d-runtime-mounted" />' },
           AppIcon: true,
         },
       },
@@ -198,6 +215,6 @@ describe("NavigationWorkspacePage", () => {
       expect(action.attributes("disabled")).toBeDefined();
       expect(action.attributes("title")).toBe("请先载入病例");
     }
-    expect(wrapper.find('[data-testid="anatomy-3d-mounted"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="three-d-runtime-mounted"]').exists()).toBe(false);
   });
 });

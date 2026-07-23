@@ -16,7 +16,8 @@ DEFAULT_INPUT = Path(
     "research/datasets/public-candidates/d024_dentvoxel/derived/nnunet/nnUNet_preprocessed/"
     "Dataset124_DentVoxelJawROI/gt_segmentations/d024_0001.nii.gz"
 )
-DEFAULT_OUTPUT = Path("frontend/public/models/local/mandible_d024_0001.stl")
+D024_RUNTIME_REFERENCE_DIRECTORY = Path("artifacts/platform/three_d_runtime/references/d024")
+DEFAULT_OUTPUT = D024_RUNTIME_REFERENCE_DIRECTORY / "mandible_d024_0001.stl"
 DEFAULT_LABEL_VALUE = 2
 SCHEMA_VERSION = "osteo-vision-cbct-surface-export-v1"
 THREE_D_EVIDENCE_SCHEMA = "osteo-vision-three-d-evidence-v1"

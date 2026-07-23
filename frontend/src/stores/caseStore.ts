@@ -222,7 +222,10 @@ export const useCaseStore = defineStore("case", {
 
         const resolvedCaseId = caseId || stringFrom(job.result?.case_id) || stringFrom(job.payload?.case_id);
         if (resolvedCaseId && this.currentCase?.case_id === resolvedCaseId) {
-          this.currentCase = await apiClient.getCase(resolvedCaseId);
+          const refreshedCase = await apiClient.getCase(resolvedCaseId);
+          if (this.activeAnalysisJobId === jobId && this.currentCase?.case_id === resolvedCaseId) {
+            this.currentCase = refreshedCase;
+          }
         }
         if (this.activeAnalysisJobId !== jobId) return;
         if (job.status === "failed") {

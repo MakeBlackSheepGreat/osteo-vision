@@ -339,6 +339,7 @@ export interface ThreeDEvidence {
   fiducial_count?: number | string | null;
   surface_point_count?: number | string | null;
   coordinate_space?: string | null;
+  model_coordinate_space?: string | null;
   transform_path?: string | null;
   registration_markups?: ThreeDEvidenceMarkup[] | null;
   transform_chain?: ThreeDEvidenceTransformStep[] | null;

@@ -10,6 +10,7 @@
 conda env create -f environment.yml
 conda activate osteo-vision
 npm --prefix frontend install
+npm --prefix frontend/three-d-runtime ci
 ```
 
 已有环境可更新依赖：
@@ -53,8 +54,9 @@ start_platform.cmd -NoBrowser -Headless
 - 健康检查：`http://127.0.0.1:8001/health`
 - 就绪检查：`http://127.0.0.1:8001/ready`
 - 前端：`http://127.0.0.1:5174/`
+- 独立三维渲染运行时：`http://127.0.0.1:5175/`，通过 `-StartThreeDRuntime` 作为可选独立进程启动。
 
-端口覆盖变量：`OSTEO_BACKEND_PORT`、`OSTEO_FRONTEND_PORT`、`VITE_OSTEO_API_URL`、`OSTEO_ALLOWED_ORIGINS`。
+端口覆盖变量：`OSTEO_BACKEND_PORT`、`OSTEO_FRONTEND_PORT`、`OSTEO_THREE_D_RUNTIME_PORT`、`VITE_OSTEO_API_URL`、`VITE_OSTEO_THREE_D_RUNTIME_URL`、`VITE_OSTEO_MAIN_APP_ORIGIN`、`OSTEO_ALLOWED_ORIGINS`。后端、主前端和独立三维运行时端口需使用三个不同值。
 
 ## 3. 手动启动
 
@@ -70,6 +72,20 @@ python -m backend.src.main
 ```powershell
 npm --prefix frontend run dev
 ```
+
+终端三用于独立三维渲染运行时：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_runtime.ps1
+```
+
+主平台与渲染运行时一起启动：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime
+```
+
+独立运行时通过 `/runtime-manifest.json` 确认服务身份。主平台的病例、CBCT/STL 建模、L1/L2、安全状态、二维证据和医生复核不依赖该渲染进程保持可用。
 
 Gradio 入口仅用于框架兼容性检查：
 
@@ -136,6 +152,16 @@ npm --prefix frontend run typecheck
 npm --prefix frontend test -- --run
 npm --prefix frontend run build
 npm --prefix frontend run test:e2e
+npm --prefix frontend/three-d-runtime run typecheck
+npm --prefix frontend/three-d-runtime run test
+npm --prefix frontend/three-d-runtime run build
+```
+
+发布聚合质量门：
+
+```powershell
+make release-check
+make release-build
 ```
 
 比赛流程与 4K 稳定性：

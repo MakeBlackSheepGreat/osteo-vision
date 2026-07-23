@@ -263,6 +263,11 @@ class StaticRegistrationService:
             "fre_threshold_mm": fre_threshold,
             "tre_threshold_mm": tre_threshold,
             "fiducial_count": registration.registration_count,
+            "model_coordinate_space": (
+                case.three_d_evidence.get("model_coordinate_space")
+                or case.three_d_evidence.get("coordinate_space")
+                or registration.source_space
+            ),
             "coordinate_space": (
                 registration.target_space if camera_registration is None else camera_registration.camera_space
             ),

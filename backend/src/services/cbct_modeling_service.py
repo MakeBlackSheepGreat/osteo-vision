@@ -597,6 +597,7 @@ def _cbct_label_surface_evidence(
         "registration_method": None,
         "registration_error_mm": None,
         "coordinate_space": source_info.coordinate_space,
+        "model_coordinate_space": source_info.coordinate_space,
         "transform_path": None,
         "registration_markups": [],
         "transform_chain": [
@@ -1064,6 +1065,7 @@ def _cbct_proxy_surface_evidence(
         "registration_method": None,
         "registration_error_mm": None,
         "coordinate_space": "cbct_physical_lps_mm_proxy",
+        "model_coordinate_space": "cbct_physical_lps_mm_proxy",
         "transform_path": None,
         "registration_markups": [],
         "transform_chain": [
@@ -1463,6 +1465,7 @@ def _surface_model_evidence(source: Path, *, output_dir: Path, case_id: str) -> 
         "registration_method": None,
         "registration_error_mm": None,
         "coordinate_space": "uploaded_surface_file_space",
+        "model_coordinate_space": "uploaded_surface_file_space",
         "transform_path": None,
         "registration_markups": [],
         "transform_chain": [

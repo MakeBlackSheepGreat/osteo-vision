@@ -34,9 +34,9 @@ flowchart LR
 
 ### 3.1 Vue 桌面工作站
 
-`frontend/` 使用 Vue 3、TypeScript、Pinia、Vue Router 和 Three.js。主导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出和研发支持排列。
+`frontend/` 使用 Vue 3、TypeScript、Pinia 和 Vue Router。主导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出和研发支持排列。`frontend/three-d-runtime/` 使用独立 Vue/Vite/Three.js 运行时提供 WebGL 场景。
 
-病例工作台集中承载视频流输入、融合图、热图、归一化/分割结果和高频控制。三维导航使用独立路由，按需加载 Three.js 视口。组件卸载时释放媒体流、对象 URL、定时器、事件监听器以及 Three.js geometry、material 和 texture。
+病例工作台集中承载视频流输入、融合图、热图、归一化/分割结果和高频控制。三维导航使用独立路由，主平台承载 CBCT/STL 导入、建模、对象树、L1/L2 和医生复核；iframe 仅嵌入版本化场景渲染。渲染运行时释放 WebGL geometry、material、texture、事件监听器和动画帧，主平台保留二维证据与安全状态。
 
 ### 3.2 FastAPI 接口层
 
@@ -97,6 +97,8 @@ flowchart LR
 - `L2`：SHA256 绑定 MP4、标定表、L1 证据、逐帧位姿和独立动态误差的离线回放工程验证。
 
 来源、坐标 frame、手性、轴方向、单位、矩阵约定、标定范围、同步、误差或医生复核缺失时，空间叠加撤销并降级至 `L0/unregistered_3d_reference`。
+
+场景进入独立运行时前由 `/three-d-runtime/v1/` 提供版本化最小快照与受控模型下载 URL。当前 v2 快照以跨语言字节分帧 SHA256 校验完整性，覆盖有限数值、UTF-8 键排序和嵌套证据载荷。快照过滤病例标题、临床上下文、私有路径和未授权文件，并携带坐标变换摘要、复核状态与失败原因。运行时失效、WebGL 不可用或模型校验失败时，主平台持续展示二维证据、L0/L1/L2 记录和医生复核路径。
 
 ## 7. 性能与鲁棒性
 

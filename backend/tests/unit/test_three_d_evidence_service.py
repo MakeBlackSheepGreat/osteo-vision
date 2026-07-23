@@ -269,7 +269,9 @@ def test_three_d_evidence_demo_entry_is_public_cbct_non_navigation_reference() -
         run_id="run_demo",
     )
 
-    assert evidence["model_path"] == "frontend/public/models/local/mandible_d024_0001.stl"
+    reference_directory = "artifacts/platform/three_d_runtime/references/d024"
+    assert evidence["model_path"] == f"{reference_directory}/mandible_d024_0001.stl"
+    assert evidence["geometry_manifest_path"] == f"{reference_directory}/mandible_d024_0001.brp_geometry_manifest.json"
     assert evidence["model_format"] == "stl"
     assert evidence["model_source"] == "D024 DentVoxel public CBCT derived mandible label"
     assert evidence["registration_status"] == "unregistered"
@@ -280,4 +282,5 @@ def test_three_d_evidence_demo_entry_is_public_cbct_non_navigation_reference() -
     assert evidence["scene_manifest"]["review_planes"][0]["status"] == "illustrative_unregistered"
     assert evidence["scene_manifest_v2"]["schema_version"] == "osteo-vision-three-d-scene-v2"
     assert evidence["scene_manifest_v2"]["scene"]["navigation_ready"] is False
+    assert evidence["scene_manifest_v2"]["nodes"][2]["path"] == f"{reference_directory}/mandible_d024_0001.stl"
     assert "non-target-domain" in evidence["boundary_note"]

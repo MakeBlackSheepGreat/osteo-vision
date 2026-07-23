@@ -228,6 +228,40 @@ describe("case store background jobs", () => {
     expect(store.activeAnalysisJobStatus).toBe("completed");
     expect(store.analysisJobPolling).toBe(false);
   });
+
+  it("does not let a completed job refresh overwrite a newly selected case", async () => {
+    const store = useCaseStore();
+    store.currentCase = caseRecord("case_job_first", []);
+    let resolveRefresh!: (value: CaseRecord) => void;
+    vi.spyOn(apiClient, "getCase").mockReturnValue(
+      new Promise<CaseRecord>((resolve) => {
+        resolveRefresh = resolve;
+      }),
+    );
+
+    const pending = store.pollAnalysisJob(
+      {
+        job_id: "job_first",
+        kind: "case_analysis",
+        status: "completed",
+        payload: { case_id: "case_job_first" },
+        result: { case_id: "case_job_first", run_id: "run_first" },
+        progress: { percent: 100 },
+        error: null,
+      },
+      "case_job_first",
+      0,
+    );
+    await Promise.resolve();
+
+    store.currentCase = caseRecord("case_newly_selected", []);
+    store.resetCaseScopedState();
+    resolveRefresh(caseRecord("case_job_first", [analysisRun("case_job_first", "run_first")]));
+    await pending;
+
+    expect(store.currentCase?.case_id).toBe("case_newly_selected");
+    expect(store.activeAnalysisJobId).toBe("");
+  });
 });
 
 function caseRecord(caseId: string, analysisRuns: AnalysisRun[]): CaseRecord {

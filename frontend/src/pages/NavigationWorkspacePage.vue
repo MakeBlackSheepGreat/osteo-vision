@@ -234,26 +234,17 @@
 
       <NavigationSafetyStatusPanel :evidence="threeDEvidence" />
 
-      <Suspense>
-        <Anatomy3DPanel
-          :case-id="store.currentCase.case_id"
-          :candidates="candidates"
-          :metrics="metrics"
-          :mode-label="latestRunModeLabel"
-          :three-d-evidence="threeDEvidence"
-          @select-candidate-frame="selectCandidateFrame"
-          @three-d-evidence-persisted="refreshCase"
-        />
-        <template #fallback>
-          <section class="navigation-workspace__module-loading" role="status" aria-live="polite">
-            <AppIcon name="cube" decorative />
-            <div>
-              <strong>正在载入三维检查视口</strong>
-              <span>病例证据与安全状态保持可见。</span>
-            </div>
-          </section>
-        </template>
-      </Suspense>
+      <ThreeDEvidenceControlPanel
+        :case-id="store.currentCase.case_id"
+        :evidence="threeDEvidence"
+        @evidence-persisted="refreshCase"
+      />
+
+      <ThreeDRendererRuntimeEmbed
+        :case-id="store.currentCase.case_id"
+        :scene-version="store.currentCase.version"
+        @select-candidate-frame="selectCandidateFrame"
+      />
 
       <header class="navigation-workspace__evidence-heading">
         <div><span>工程验证证据</span><strong>L1 静态配准与 L2 离线动态 AR</strong></div>
@@ -274,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, watch } from "vue";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
@@ -282,11 +273,11 @@ import AppIcon from "@/components/AppIcon.vue";
 import NavigationSafetyStatusPanel from "@/components/NavigationSafetyStatusPanel.vue";
 import L1RegistrationPanel from "@/components/L1RegistrationPanel.vue";
 import L2PoseReplayPanel from "@/components/L2PoseReplayPanel.vue";
+import ThreeDEvidenceControlPanel from "@/components/ThreeDEvidenceControlPanel.vue";
+import ThreeDRendererRuntimeEmbed from "@/components/ThreeDRendererRuntimeEmbed.vue";
 import { useCaseStore } from "@/stores/caseStore";
 import type { CandidateRegion, NavigationFrameSelection, ThreeDEvidence } from "@/types/case";
 import { isRecord, stringFrom } from "@/utils/caseDisplay";
-
-const Anatomy3DPanel = defineAsyncComponent(() => import("@/components/Anatomy3DPanel.vue"));
 
 const store = useCaseStore();
 const route = useRoute();
@@ -294,7 +285,6 @@ const router = useRouter();
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1) ?? null);
 const candidates = computed<CandidateRegion[]>(() => latestRun.value?.candidate_regions ?? []);
-const metrics = computed<Record<string, unknown>>(() => latestRun.value?.quantitative_summary ?? {});
 const threeDEvidence = computed<ThreeDEvidence | null>(() => {
   const caseEvidence = store.currentCase?.three_d_evidence;
   if (isRecord(caseEvidence) && Object.keys(caseEvidence).length) return caseEvidence as ThreeDEvidence;
@@ -405,49 +395,14 @@ function stringQuery(value: unknown): string {
 
 .navigation-workspace__header,
 .navigation-context,
-.navigation-workspace > .anatomy-3d,
-.navigation-workspace__module-loading,
+.navigation-workspace > .three-d-evidence-control,
+.navigation-workspace > .three-d-runtime-embed,
 .navigation-empty-workbench,
 .navigation-workspace__evidence-heading,
 .navigation-workspace__error {
   width: min(100%, var(--ov-content-wide));
   margin-right: auto;
   margin-left: auto;
-}
-
-.navigation-workspace__module-loading {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  min-height: 220px;
-  border: 1px solid var(--ov-border);
-  border-radius: 7px;
-  padding: 24px;
-  background-color: var(--ov-bg-panel);
-  background-image:
-    linear-gradient(var(--ov-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--ov-grid-line) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-.navigation-workspace__module-loading > .app-icon {
-  width: 34px;
-  height: 34px;
-  color: var(--ov-primary-strong);
-}
-
-.navigation-workspace__module-loading > div {
-  display: grid;
-  gap: 4px;
-}
-
-.navigation-workspace__module-loading strong {
-  font-size: 14px;
-}
-
-.navigation-workspace__module-loading span {
-  color: var(--ov-text-secondary);
-  font-size: 12px;
 }
 
 .navigation-workspace__header {

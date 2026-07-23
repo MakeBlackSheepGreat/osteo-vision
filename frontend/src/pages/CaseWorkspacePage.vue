@@ -395,7 +395,6 @@ const clinicalContextAssessment = computed(() => {
 const clinicalContextSaveStatus = ref<"idle" | "saving" | "success" | "error">("idle");
 const clinicalContextSaveError = ref("");
 const inputAssets = computed(() => store.currentCase?.inputs ?? []);
-const caseInputChannels = computed(() => inputAssets.value.map((asset) => asset.channel));
 const availableImagePairs = computed(() => caseImagePairs(inputAssets.value));
 const imagePairOptions = computed(() =>
   availableImagePairs.value.map((pair) => ({ key: pair.key, label: imagePairLabel(pair) })),

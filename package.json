@@ -17,7 +17,16 @@
     "frontend:e2e": "npm --prefix frontend run test:e2e",
     "frontend:test": "npm --prefix frontend test -- --run",
     "frontend:typecheck": "npm --prefix frontend run typecheck",
-    "test": "npm run frontend:test"
+    "platform:three-d-runtime": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime -ThreeDRuntimePort 5175",
+    "test": "npm run frontend:test",
+    "three-d-runtime:build": "npm --prefix frontend/three-d-runtime run build",
+    "three-d-runtime:check": "npm run three-d-runtime:typecheck && npm run three-d-runtime:test && npm run three-d-runtime:build",
+    "three-d-runtime:dev": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_runtime.ps1 -RuntimePort 5175",
+    "three-d-runtime:install": "npm --prefix frontend/three-d-runtime ci",
+    "three-d-runtime:preview": "npm --prefix frontend/three-d-runtime run preview -- --host 127.0.0.1 --port 5175 --strictPort",
+    "three-d-runtime:test": "npm --prefix frontend/three-d-runtime run test",
+    "three-d-runtime:typecheck": "npm --prefix frontend/three-d-runtime run typecheck",
+    "release:three-d-runtime": "npm run three-d-runtime:check"
   },
   "repository": {
     "type": "git",

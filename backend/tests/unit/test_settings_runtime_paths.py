@@ -53,3 +53,18 @@ def test_inference_config_relative_path_is_resolved_from_project_root(
     assert settings.promotion_approval_store_path == (
         tmp_path / "runtime-artifacts" / "promotion_approvals" / "approvals.sqlite"
     )
+
+
+def test_default_allowed_origins_include_the_independent_renderer(monkeypatch) -> None:
+    monkeypatch.delenv("OSTEO_ALLOWED_ORIGINS", raising=False)
+    monkeypatch.setenv("OSTEO_FRONTEND_PORT", "5274")
+    monkeypatch.setenv("OSTEO_THREE_D_RUNTIME_PORT", "5275")
+
+    settings = load_settings()
+
+    assert settings.allowed_origins == (
+        "http://localhost:5274",
+        "http://127.0.0.1:5274",
+        "http://localhost:5275",
+        "http://127.0.0.1:5275",
+    )

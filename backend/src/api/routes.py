@@ -18,6 +18,7 @@ from backend.src.api import (
     regions,
     review_events,
     three_d_modeling,
+    three_d_runtime,
     uploads,
     video_library,
 )
@@ -157,6 +158,7 @@ def build_router(settings: Settings) -> APIRouter:
         ),
         tags=["three-d-modeling"],
     )
+    router.include_router(three_d_runtime.router(settings, repo), tags=["three-d-runtime"])
     router.include_router(video_library.router(repo, input_service, video_library_service), tags=["video-library"])
     router.include_router(dataset_review.router(static_dataset_review_service), tags=["dataset-review"])
     router.include_router(hospital_intake.router(hospital_intake_service), tags=["hospital-intake"])

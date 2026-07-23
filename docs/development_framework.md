@@ -27,7 +27,7 @@ flowchart LR
 
 ### 前端层 `frontend/`
 
-Vue 3、TypeScript、Pinia、Vue Router 和 Three.js。顶部导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出、研发支持入口排列。桌面工作站为当前验收视口。
+主平台使用 Vue 3、TypeScript、Pinia 和 Vue Router。顶部导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出、研发支持入口排列。桌面工作站为当前验收视口。`frontend/three-d-runtime/` 作为独立 Vue/Vite/Three.js 运行时构建、测试和部署，通过版本化场景快照与主平台交换最小渲染数据。
 
 ### API 层 `backend/src/api/`
 

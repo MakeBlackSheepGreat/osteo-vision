@@ -1,65 +1,15 @@
-# 3D Anatomy Model Assets
+# 本地三维模型临时资产
 
-This directory is reserved for optional local 3D anatomy assets used by the
-2D-3D spatial evidence panel. Large model files are intentionally not committed
-to Git.
+此目录可放置本地主前端的开发验证资产。独立三维渲染运行时不会从 `frontend/public/models/` 读取模型，也不会把该目录的文件视为可渲染病例证据。
 
-Recommended workflow:
+独立运行时只接受后端场景快照中的受控模型资产：
 
-1. Segment a de-identified CT/CBCT case in an external tool such as 3D Slicer.
-2. Export a surface model to GLB, GLTF, or STL.
-3. If the model is exported from 3D Slicer, record the Slicer scene/source case,
-   segmentation method, exported segment name, coordinate space, and whether any
-   registration transform has been applied.
-4. Place the local file here only for local platform validation.
-5. Record source, license, de-identification status, file size, checksum,
-   registration status, registration error if measured, physician review state,
-   and intended use in a separate traceable manifest before sharing with
-   teammates.
+1. 后端从 `$OSTEO_ARTIFACT_ROOT` 或项目 `artifacts/` 下的允许目录解析 STL、GLB 或 GLTF。
+2. 场景快照提供版本、格式、文件名、字节数、SHA256 和受控下载地址。
+3. 独立运行时下载后复核字节数与 SHA256，再加载 STL 或 GLB；GLTF 保留为可追溯的安全降级资产。
 
-Recommended `three_d_evidence` fields for a case/run response:
+病例或公开参考模型应同时保留可核验 manifest，至少记录来源、许可、脱敏状态、文件大小、SHA256、模型坐标系、变换链、配准误差、医生复核状态和用途边界。空间候选 marker 还需绑定 `model_coordinate_space`、`transform_sha256` 与候选区的 `coordinate_space`、`coordinate_transform_sha256`。
 
-- `model_path`, `model_format`, `model_file_name`, `model_source`
-- `exported_from`, `dicom_series_uid`, `coordinate_space`, `transform_path`
-- `segmentation_source`, `segmentation_review_status`
-- `registration_status`, `registration_method`, `registration_error_mm`
-- `fiducial_count`, `surface_point_count`
-- `registration_markups`: optional paired landmark rows with `id`, `label`,
-  `source_label`, `target_label`, `source_point_mm`, `target_point_mm`,
-  `residual_mm`, and `status`
-- `transform_chain`: optional ordered transform steps with `name`,
-  `from_space`, `to_space`, `path`, `error_mm`, and `status`
-- `doctor_review_status`, `navigation_ready`, `boundary_note`
+公开 D024 参考资产由后端运行时数据目录管理：`$OSTEO_ARTIFACT_ROOT/three_d_runtime/references/d024/`。该参考保持 L0 未配准工程展示边界，不能用于临床导航或自动诊断表述。
 
-Only set `navigation_ready=true` after the coordinate transform, point or
-surface registration evidence, measured error, and physician review boundary
-are all traceable. Otherwise the frontend will keep the panel in reference /
-non-navigation mode.
-
-For Slicer/BoneReconstructionPlanner-derived work, keep the markups and
-transform chain close to the original planning semantics: DICOM/CBCT volume,
-mandible/fibula segmentations, mandibular curve, cut planes, fibula line,
-mandible-to-fibula transforms, exported STL/GLB models, and any point/surface
-registration residuals. The frontend may display these as a Slicer-style
-planning workbench, but it must still label incomplete or unreviewed data as
-missing/reference and avoid navigation wording.
-
-Supported local filenames, in priority order:
-
-1. `mandible.glb`
-2. `mandible.gltf`
-3. `mandible.stl`
-
-Optional local reference image:
-
-- `panoramic-reference.jpg`
-
-Do not place raw DICOM, NIfTI, patient-identifying data, or unlicensed public
-dataset models in this directory. The 3D view is a spatial reference layer for
-ICG ROI evidence and is not surgical navigation, automatic diagnosis, or a
-precise resection boundary.
-
-When no case-level 3D evidence manifest is available, the frontend must treat
-the model as an unregistered reference. Candidate regions may be shown only as
-2D-derived illustrative projections until a coordinate transform and error
-record are available.
+禁止将原始 DICOM、NIfTI、可识别患者数据或许可状态不明的模型放入前端静态目录。

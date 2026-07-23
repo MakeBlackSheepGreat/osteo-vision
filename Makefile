@@ -2,7 +2,10 @@
 
 PYTHON ?= python
 
-.PHONY: help install install-dev test test-core test-backend test-unit test-integration test-smoke test-frontend test-e2e lint format format-check type-check check-all validate-config model-inventory benchmark platform platform-backend platform-frontend demo-compat docs-audit readiness performance-baseline clean clean-artifacts clean-all version build
+THREE_D_RUNTIME_DIR ?= frontend/three-d-runtime
+THREE_D_RUNTIME_PORT ?= 5175
+
+.PHONY: help install install-dev test test-core test-backend test-unit test-integration test-smoke test-frontend test-e2e lint format format-check type-check check-all release-check validate-config model-inventory benchmark platform platform-backend platform-frontend platform-three-d-runtime three-d-runtime-install three-d-runtime-dev three-d-runtime-preview three-d-runtime-typecheck three-d-runtime-test three-d-runtime-check three-d-runtime-build demo-compat docs-audit readiness performance-baseline clean clean-artifacts clean-all version build release-build
 
 help: ## 显示命令清单
 	@echo "osteo-vision platform"
@@ -12,11 +15,13 @@ help: ## 显示命令清单
 install: ## 安装运行依赖
 	$(PYTHON) -m pip install -r requirements.txt
 	npm --prefix frontend install
+	npm --prefix $(THREE_D_RUNTIME_DIR) ci
 
 install-dev: ## 安装项目与开发依赖
 	$(PYTHON) -m pip install -r requirements.txt
 	$(PYTHON) -m pip install -e ".[dev]"
 	npm --prefix frontend install
+	npm --prefix $(THREE_D_RUNTIME_DIR) ci
 
 test: test-core test-backend test-frontend ## 运行核心、后端和前端测试
 
@@ -58,6 +63,8 @@ type-check: ## 运行 Python 与 Vue 类型检查
 
 check-all: lint type-check test ## 运行主要质量门
 
+release-check: check-all three-d-runtime-check ## 运行平台与独立三维运行时发布质量门
+
 validate-config: ## 验证主推理配置
 	$(PYTHON) -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
 
@@ -78,6 +85,29 @@ platform-backend: ## 启动 FastAPI 后端
 
 platform-frontend: ## 启动 Vue 前端
 	npm --prefix frontend run dev
+
+three-d-runtime-install: ## 安装独立三维渲染运行时依赖
+	npm --prefix $(THREE_D_RUNTIME_DIR) ci
+
+three-d-runtime-dev: ## 单独启动三维渲染运行时
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_runtime.ps1 -RuntimePort $(THREE_D_RUNTIME_PORT)
+
+three-d-runtime-preview: ## 预览独立三维渲染运行时生产静态产物
+	npm --prefix $(THREE_D_RUNTIME_DIR) run preview -- --host 127.0.0.1 --port $(THREE_D_RUNTIME_PORT) --strictPort
+
+three-d-runtime-typecheck: ## 检查独立三维渲染运行时类型
+	npm --prefix $(THREE_D_RUNTIME_DIR) run typecheck
+
+three-d-runtime-test: ## 运行独立三维渲染运行时组件测试
+	npm --prefix $(THREE_D_RUNTIME_DIR) run test
+
+three-d-runtime-check: three-d-runtime-typecheck three-d-runtime-test three-d-runtime-build ## 运行独立三维渲染运行时质量门
+
+three-d-runtime-build: ## 构建独立三维渲染运行时静态产物
+	npm --prefix $(THREE_D_RUNTIME_DIR) run build
+
+platform-three-d-runtime: ## 启动严格平台并尝试启动独立三维渲染运行时
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime -ThreeDRuntimePort $(THREE_D_RUNTIME_PORT)
 
 demo-compat: ## 启动 Gradio 兼容性入口
 	$(PYTHON) app/main.py --config configs/inference/osteo_vision.yml
@@ -104,3 +134,5 @@ version: ## 显示当前 Python 包版本
 build: ## 构建 Python 包和 Vue 前端
 	$(PYTHON) -m build
 	npm --prefix frontend run build
+
+release-build: build three-d-runtime-build ## 构建平台与独立三维运行时发布产物
