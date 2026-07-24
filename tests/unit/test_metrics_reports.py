@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 
-from src.metrics.classification import classification_metrics, threshold_sweep
-from src.reports.single_case import write_single_case_report
+from osteo_vision_core.metrics.classification import classification_metrics, threshold_sweep
+from osteo_vision_core.reports.single_case import write_single_case_report
 
 
 def test_classification_metrics_and_threshold_sweep() -> None:

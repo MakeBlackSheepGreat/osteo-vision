@@ -28,7 +28,7 @@ python -m pytest tests/unit tests/smoke
 3. Start the FastAPI backend.
 
 ```powershell
-python -m backend.src.main
+python -m backend.osteo_vision_api.main
 ```
 
 Default backend health check: `http://127.0.0.1:8001/health`

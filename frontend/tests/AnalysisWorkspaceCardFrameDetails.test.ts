@@ -116,7 +116,8 @@ describe("AnalysisWorkspaceCard frame details", () => {
         },
         liveOverlaySrc: "/files/preview?path=live_overlay.png",
         liveFrameStatus: "MP4 实时分割已更新",
-        liveInferenceLatencyMs: 62,
+        liveModelLatencyMs: 62,
+        liveEndToEndLatencyMs: 94,
         cameraOpening: false,
       },
       global: {
@@ -133,6 +134,8 @@ describe("AnalysisWorkspaceCard frame details", () => {
     expect(wrapper.find("video.camera-live-player").attributes("style")).toContain("display: none");
     expect(wrapper.find("img.live-segmentation-overlay").exists()).toBe(true);
     expect(wrapper.find(".camera-viewport").classes()).toContain("has-live-overlay");
+    expect(wrapper.text()).toContain("模型 62 ms");
+    expect(wrapper.text()).toContain("端到端 94 ms");
     expect(wrapper.find('[aria-label="术中影像与分析结果"]').classes()).not.toContain(
       "analysis-quad-grid--empty",
     );

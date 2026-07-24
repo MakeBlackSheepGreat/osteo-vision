@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.core.schemas import ModelSpec
-from src.core.task_package import load_task_package
+from osteo_vision_core.core.schemas import ModelSpec
+from osteo_vision_core.core.task_package import load_task_package
 
 
 def test_task_package_loads() -> None:

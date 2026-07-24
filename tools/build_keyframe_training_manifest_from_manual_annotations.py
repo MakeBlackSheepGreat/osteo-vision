@@ -13,8 +13,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.datasets.training_admission import (  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.datasets.training_admission import (  # noqa: E402
     MANUAL_ANNOTATION_TRAINING_FIELDS,
     admit_manual_annotation_training_rows,
 )

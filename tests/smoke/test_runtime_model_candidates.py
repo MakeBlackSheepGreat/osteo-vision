@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.core.config import load_yaml
-from src.core.schemas import AdapterRequest
-from src.models.adapters import build_adapter, model_spec_from_mapping
+from osteo_vision_core.core.config import load_yaml
+from osteo_vision_core.core.schemas import AdapterRequest
+from osteo_vision_core.models.adapters import build_adapter, model_spec_from_mapping
 
 
 def test_configured_video_signal_multimask_candidate_runs(tmp_path: Path) -> None:

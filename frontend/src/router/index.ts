@@ -13,6 +13,7 @@ export const router = createRouter({
     { path: "/review", component: () => import("@/pages/ReviewWorkspacePage.vue") },
     { path: "/annotations", component: () => import("@/pages/ManualAnnotationPage.vue") },
     { path: "/report", component: () => import("@/pages/ReportPreviewPage.vue") },
+    { path: "/showcase", component: () => import("@/pages/ChallengeCupShowcasePage.vue") },
     { path: "/:pathMatch(.*)*", redirect: "/case" },
   ],
 });

@@ -25,7 +25,7 @@ def main() -> None:
     os.environ["OSTEO_ARTIFACT_ROOT"] = str(output_dir / "artifacts")
     os.environ["OSTEO_CASE_STORE_PATH"] = str(output_dir / "cases.sqlite")
 
-    from backend.src.api.app import create_app
+    from backend.osteo_vision_api.api.app import create_app
 
     client = TestClient(create_app())
     case = client.post("/cases", json={"title": "platform smoke"}).json()

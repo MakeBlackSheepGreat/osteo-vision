@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from backend.src.domains.cases.enums import ReviewerRole, ReviewState
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole, ReviewState
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import (
     AnalysisRun,
     BoneGateMaskCreateRequest,
     CandidateRegion,
@@ -16,7 +16,7 @@ from backend.src.domains.cases.schemas import (
     ReviewActorIdentity,
     ReviewEvent,
 )
-from backend.src.services.review_service import PromptFallbackSafetyError, ReviewService
+from backend.osteo_vision_api.services.review_service import PromptFallbackSafetyError, ReviewService
 
 
 def test_review_state_transition_is_saved(tmp_path) -> None:

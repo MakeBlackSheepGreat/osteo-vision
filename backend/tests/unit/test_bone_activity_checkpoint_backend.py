@@ -10,20 +10,20 @@ from zipfile import ZipFile
 import numpy as np
 from PIL import Image
 
-from backend.src.domains.cases.enums import ArtifactKind, InputChannel
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.domains.cases.enums import ArtifactKind, InputChannel
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import (
     AnalysisRun,
     CaseRecord,
     EvidenceArtifact,
     ExportRequest,
     InputCreateRequest,
 )
-from backend.src.services import analysis_service as analysis_service_module
-from backend.src.services.analysis_service import AnalysisService
-from backend.src.services.export_service import ExportService
-from backend.src.services.input_service import InputService
-from src.core.schemas import AdapterResult, AdapterStatus
+from backend.osteo_vision_api.services import analysis_service as analysis_service_module
+from backend.osteo_vision_api.services.analysis_service import AnalysisService
+from backend.osteo_vision_api.services.export_service import ExportService
+from backend.osteo_vision_api.services.input_service import InputService
+from osteo_vision_core.core.schemas import AdapterResult, AdapterStatus
 
 
 def test_analysis_persists_proxy_checkpoint_evidence_with_spatial_fallback(

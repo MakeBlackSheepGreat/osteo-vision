@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.preprocess.roi import filter_candidates_by_roi, roi_intensity_quantification
+from osteo_vision_core.preprocess.roi import filter_candidates_by_roi, roi_intensity_quantification
 
 
 def test_roi_intensity_quantification_uses_normalized_rectangles() -> None:

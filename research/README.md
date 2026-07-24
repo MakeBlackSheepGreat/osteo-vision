@@ -1,6 +1,6 @@
 # 研究资料与证据索引
 
-`research/` 保存可追溯的文献、数据来源、工程计划、模型证据、比赛材料和历史归档。运行代码入口位于根目录 `src/`、`backend/`、`scripts/` 与 `tools/`。
+`research/` 保存可追溯的文献、数据来源、工程计划、模型证据、比赛材料和历史归档。运行代码入口位于根目录 `osteo_vision_core/`、`backend/`、`scripts/` 与 `tools/`。
 
 ## 目录
 

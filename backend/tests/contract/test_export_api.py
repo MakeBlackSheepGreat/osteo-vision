@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
+from backend.osteo_vision_api.api.app import create_app
 
 
 def test_export_api_returns_bundle_paths(tmp_path, monkeypatch) -> None:

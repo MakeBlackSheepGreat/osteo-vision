@@ -24,24 +24,24 @@ from PIL import Image, ImageDraw, ImageOps
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.src.services.keyframe_segmentation import (  # noqa: E402
+from backend.osteo_vision_api.services.keyframe_segmentation import (  # noqa: E402
     analyze_keyframe_segmentations,
     keyframe_segmentation_warnings,
 )
-from backend.src.services.video_analysis_details import build_video_frame_details  # noqa: E402
-from backend.src.services.video_keyframe_metrics import (  # noqa: E402
+from backend.osteo_vision_api.services.video_analysis_details import build_video_frame_details  # noqa: E402
+from backend.osteo_vision_api.services.video_keyframe_metrics import (  # noqa: E402
     video_fluorescence_dynamics_summary,
     video_inference_performance_summary,
     video_temporal_summary,
 )
-from backend.src.services.video_segmentation_manifest import (  # noqa: E402
+from backend.osteo_vision_api.services.video_segmentation_manifest import (  # noqa: E402
     write_video_frame_details_manifest,
     write_video_segmentation_outputs,
 )
-from src.core.config import load_yaml  # noqa: E402
-from src.core.executables import find_runtime_executable  # noqa: E402
-from src.core.paths import resolve_path  # noqa: E402
-from src.preprocess.video import extract_keyframes  # noqa: E402
+from osteo_vision_core.core.config import load_yaml  # noqa: E402
+from osteo_vision_core.core.executables import find_runtime_executable  # noqa: E402
+from osteo_vision_core.core.paths import resolve_path  # noqa: E402
+from osteo_vision_core.preprocess.video import extract_keyframes  # noqa: E402
 
 DEFAULT_SOURCE_MANIFEST = (
     ROOT / "research/datasets/public-candidates/bone_activity_gap_20260718/" "bone_activity_gap_manifest.json"

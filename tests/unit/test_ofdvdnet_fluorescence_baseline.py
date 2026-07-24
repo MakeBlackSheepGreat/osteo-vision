@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 from scripts.run_ofdvdnet_fluorescence_baseline import run_ofdvdnet_fluorescence_baseline
-from src.datasets.ofdvdnet import read_ofdvdnet_manifest, read_ofdvdnet_sample
+from osteo_vision_core.datasets.ofdvdnet import read_ofdvdnet_manifest, read_ofdvdnet_sample
 
 
 def test_ofdvdnet_manifest_reader_and_baseline_outputs(tmp_path: Path) -> None:

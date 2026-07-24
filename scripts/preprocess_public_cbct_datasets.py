@@ -19,9 +19,9 @@ import numpy as np
 from PIL import Image
 
 from scripts.preprocess_d024_dentvoxel import preprocess_d024
-from src.core.paths import ensure_dir
-from src.datasets.manifests import read_manifest
-from src.reports.writers import write_csv, write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.datasets.manifests import read_manifest
+from osteo_vision_core.reports.writers import write_csv, write_json
 
 DATASET_ROOT = Path("research/datasets/public-candidates")
 REPORT_DIR = Path("research/reports/preprocessing")

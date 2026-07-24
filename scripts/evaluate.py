@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.engine.inference import MedicalImagingInferenceService
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService
 
 
 def main() -> int:

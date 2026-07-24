@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.engine.experiment import run_experiment
+from osteo_vision_core.engine.experiment import run_experiment
 
 
 def main() -> int:

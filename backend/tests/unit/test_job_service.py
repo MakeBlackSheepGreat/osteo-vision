@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.src.services.job_service import (
+from backend.osteo_vision_api.services.job_service import (
     JobCapacityError,
     JobConflictError,
     JobRegistry,
@@ -83,7 +83,7 @@ def test_job_registry_retries_transient_windows_replace_lock(tmp_path: Path, mon
         return original_replace(path, target)
 
     monkeypatch.setattr(Path, "replace", flaky_replace)
-    monkeypatch.setattr("backend.src.services.job_service.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("backend.osteo_vision_api.services.job_service.time.sleep", lambda _seconds: None)
 
     registry = JobRegistry(tmp_path / "jobs.json")
     job = registry.create(kind="case_analysis", payload={"case_id": "case_retry"})

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.datasets.manifests import read_manifest
-from src.datasets.splits import patient_leakage_report
+from osteo_vision_core.datasets.manifests import read_manifest
+from osteo_vision_core.datasets.splits import patient_leakage_report
 
 
 def test_v2_manifest_reads_optional_columns() -> None:

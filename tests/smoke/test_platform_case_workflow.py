@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
+from backend.osteo_vision_api.api.app import create_app
 
 
 def test_platform_import_review_export_smoke(tmp_path: Path, monkeypatch) -> None:

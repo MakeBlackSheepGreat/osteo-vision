@@ -10,10 +10,10 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-import backend.src.services.hospital_intake_service as hospital_intake_module
-from backend.src.api.app import create_app
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord
+import backend.osteo_vision_api.services.hospital_intake_service as hospital_intake_module
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord
 
 
 def _jpeg_bytes(value: int = 90) -> bytes:

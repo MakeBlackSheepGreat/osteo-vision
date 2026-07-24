@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.engine.benchmark import evaluate_manifest
-from src.engine.inference import MedicalImagingInferenceService
+from osteo_vision_core.engine.benchmark import evaluate_manifest
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService
 
 
 def test_demo_and_benchmark_share_service(tmp_path, fixture_dir) -> None:

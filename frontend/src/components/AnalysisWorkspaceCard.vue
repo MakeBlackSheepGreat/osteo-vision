@@ -72,7 +72,8 @@
       :playback-seek-token="playbackSeekToken"
       :live-overlay-src="liveOverlaySrc"
       :live-frame-status="liveFrameStatus"
-      :live-inference-latency-ms="liveInferenceLatencyMs"
+      :live-model-latency-ms="liveModelLatencyMs"
+      :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
       @playback-state-change="handleInlinePlaybackState"
       @playback-started="handleInlinePlaybackStarted"
       @playback-paused="handleInlinePlaybackPaused"
@@ -434,7 +435,8 @@
         :playback-seek-token="playbackSeekToken"
         :live-overlay-src="liveOverlaySrc"
         :live-frame-status="liveFrameStatus"
-        :live-inference-latency-ms="liveInferenceLatencyMs"
+        :live-model-latency-ms="liveModelLatencyMs"
+        :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
         @playback-state-change="handleFullscreenPlaybackState"
         @playback-started="handleFullscreenPlaybackStarted"
         @playback-paused="handleFullscreenPlaybackPaused"
@@ -511,14 +513,16 @@ const props = withDefaults(
     analysisExpanded: boolean;
     liveOverlaySrc?: string;
     liveFrameStatus?: string;
-    liveInferenceLatencyMs?: number | null;
+    liveModelLatencyMs?: number | null;
+    liveEndToEndLatencyMs?: number | null;
   }>(),
   {
     activeAnalysisJobCanceling: false,
     boneGateCandidateFrameIndexes: () => [],
     liveOverlaySrc: "",
     liveFrameStatus: "",
-    liveInferenceLatencyMs: null,
+    liveModelLatencyMs: null,
+    liveEndToEndLatencyMs: null,
   },
 );
 

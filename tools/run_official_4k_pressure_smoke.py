@@ -39,7 +39,7 @@ def main() -> None:
 
     timings: list[dict[str, Any]] = []
 
-    from backend.src.api.app import create_app
+    from backend.osteo_vision_api.api.app import create_app
 
     client = TestClient(create_app())
     input_dir = output_dir / "input"

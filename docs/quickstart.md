@@ -64,7 +64,7 @@ start_platform.cmd -NoBrowser -Headless
 
 ```powershell
 conda activate osteo-vision
-python -m backend.src.main
+python -m backend.osteo_vision_api.main
 ```
 
 终端二：
@@ -144,8 +144,8 @@ conda run -n osteo-vision python tools/check_project_readiness.py
 ## 7. 测试
 
 ```powershell
-conda run -n osteo-vision python -m ruff check src backend tests scripts tools
-conda run -n osteo-vision python -m mypy src backend --hide-error-context --no-error-summary
+conda run -n osteo-vision python -m ruff check osteo_vision_core backend tests scripts tools
+conda run -n osteo-vision python -m mypy osteo_vision_core backend --hide-error-context --no-error-summary
 conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 conda run -n osteo-vision python -m pytest backend/tests
 npm --prefix frontend run typecheck
@@ -191,6 +191,6 @@ conda run -n osteo-vision python tools/audit_active_documentation.py
 conda run -n osteo-vision python tools/clean_workspace.py
 ```
 
-`clean_workspace.py` 默认只预览缓存与构建候选项。确认范围后使用 `--apply`；`--include-artifacts` 只扩展到可重复生成的 E2E/UI 产物。病例库、人工标注、smoke/性能证据、训练运行、`tmp/`、`output/`、`outputs/` 和研究数据集均受保护。
+`clean_workspace.py` 默认只预览缓存与构建候选项。确认范围后使用 `--apply`；`--include-artifacts` 只扩展到可重复生成的 E2E/UI 产物。病例库、人工标注、smoke/性能证据、训练运行、`artifacts/tmp/` 和研究数据集均受保护。
 
 目录所有权和清理范围见 [project_structure.md](project_structure.md)。

@@ -170,7 +170,8 @@
           :camera-status-label="cameraStatusLabel"
           :live-overlay-src="liveOverlaySrc"
           :live-frame-status="liveFrameStatus"
-          :live-inference-latency-ms="liveInferenceLatencyMs"
+          :live-model-latency-ms="liveModelLatencyMs"
+          :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
           :analysis-expanded="analysisExpanded"
           @export="exportCase"
           @refresh-job="refreshAnalysisJob"
@@ -236,6 +237,7 @@ import {
 import type { AppIconName } from "@/components/appIcons";
 import { useBrowserCamera } from "@/composables/useBrowserCamera";
 import {
+  isDisplayableLiveFrame,
   isCurrentLiveFrameDisplay,
   useContinuousCameraAnalysis,
   type ContinuousCameraFrameContext,
@@ -300,8 +302,6 @@ const LIVE_FRAME_MAX_AGE_MS = 15_000;
 const liveFrameExpectedIdentity = ref<LiveFrameDisplayIdentity | null>(null);
 const liveFrameDisplayIdentity = ref<LiveFrameDisplayIdentity | null>(null);
 const liveFrameStaleStatus = ref("");
-const liveFrameLastSuccessSource = ref<"camera" | "video" | "">("");
-const liveFrameLastSuccessStatus = ref("");
 let liveFrameExpiryTimer: number | null = null;
 const cameraManualAnalysisBusy = ref(false);
 const hotspotTimelineFilter = ref<HotspotTimelineFilter>("all");
@@ -564,18 +564,38 @@ const liveFrameIsCurrent = computed(() => {
     },
   );
 });
+const liveFrameIsDisplayable = computed(() =>
+  isDisplayableLiveFrame(
+    liveFrameResult.value,
+    liveFrameDisplayIdentity.value,
+    {
+      activeSource: activeLiveFrameSource.value,
+      caseId: store.currentCase?.case_id ?? "",
+      nowMs: Date.now(),
+      maxAgeMs: LIVE_FRAME_MAX_AGE_MS,
+    },
+  ),
+);
 const liveOverlaySrc = computed(() =>
-  liveFrameIsCurrent.value && liveFrameResult.value?.overlay_path
+  liveFrameIsDisplayable.value && liveFrameResult.value?.overlay_path
     ? apiClient.filePreviewUrl(liveFrameResult.value.overlay_path)
     : "",
 );
 const liveFrameStatus = computed(() => {
   const result = liveFrameResult.value;
-  if (!result || !liveFrameIsCurrent.value) return liveFrameStaleStatus.value;
+  if (!result || !liveFrameIsDisplayable.value) return liveFrameStaleStatus.value;
+  if (!liveFrameIsCurrent.value) {
+    return liveFrameStaleStatus.value || "上一帧实时结果保留，正在处理下一帧。";
+  }
   return `${liveFrameSource.value === "video" ? "MP4 实时分割" : "实时分割"}已更新 · ${result.frame_id.slice(-6)}`;
 });
-const liveInferenceLatencyMs = computed(() =>
-  liveFrameIsCurrent.value ? liveFrameResult.value?.inference_latency_ms ?? null : null,
+const liveModelLatencyMs = computed(() =>
+  liveFrameIsDisplayable.value
+    ? liveFrameResult.value?.model_inference_latency_ms ?? liveFrameResult.value?.performance?.model_ms ?? null
+    : null,
+);
+const liveEndToEndLatencyMs = computed(() =>
+  liveFrameIsDisplayable.value ? liveFrameResult.value?.inference_latency_ms ?? null : null,
 );
 const videoRealtimeAnalysisStatus = computed(() => {
   if (videoPlaybackAnalysisRunning.value) return "MP4 逐帧实时分割正在处理当前播放帧。";
@@ -788,7 +808,7 @@ function selectImagePair(pairKey: string) {
 
 const livePreviewPanels = computed<AnalysisPreviewPanel[]>(() => {
   const result = liveFrameResult.value;
-  if (!result || !liveFrameIsCurrent.value) return [];
+  if (!result || !liveFrameIsDisplayable.value) return [];
   const sourceLabel = liveFrameSource.value === "video" ? "MP4 播放帧" : "摄像头帧";
   return [
     previewPanel(
@@ -1004,23 +1024,23 @@ async function analyzeCameraFrame(
     requestGeneration,
   };
   liveFrameExpectedIdentity.value = identity;
-  markLiveFrameStale(
+  markLiveFramePending(
     context.source,
     context.trigger === "continuous"
-      ? liveFramePendingMessage(context.source)
-      : "当前实时结果已过期，正在显示原始视频。",
+      ? "上一帧实时结果保留，正在处理下一帧。"
+      : "正在处理当前帧，上一帧实时结果保留。",
   );
-  const abortAndMarkStale = () => {
+  const abortAndMarkPending = () => {
     requestController.abort();
-    markLiveFrameStale(context.source, "当前实时结果已过期，正在显示原始视频。");
+    markLiveFramePending(context.source, "当前实时请求已取消，保留最近一次已验证结果。");
   };
   if (context.signal?.aborted) {
-    abortAndMarkStale();
+    abortAndMarkPending();
   } else {
-    context.signal?.addEventListener("abort", abortAndMarkStale, { once: true });
+    context.signal?.addEventListener("abort", abortAndMarkPending, { once: true });
   }
   if (requestController.signal.aborted) {
-    context.signal?.removeEventListener("abort", abortAndMarkStale);
+    context.signal?.removeEventListener("abort", abortAndMarkPending);
     if (liveFrameRequestController === requestController) {
       liveFrameRequestController = null;
       liveFrameRequestSource = "";
@@ -1062,8 +1082,6 @@ async function analyzeCameraFrame(
     liveFrameSource.value = context.source;
     liveFrameDisplayIdentity.value = identity;
     liveFrameStaleStatus.value = "";
-    liveFrameLastSuccessSource.value = context.source;
-    liveFrameLastSuccessStatus.value = `${sourceLabel}已更新`;
     scheduleLiveFrameExpiry(identity);
     const candidateCount = countLabel(result.quantification?.component_count);
     setOperationMessage(
@@ -1071,14 +1089,14 @@ async function analyzeCameraFrame(
     );
   } catch (error) {
     if (requestController.signal.aborted || requestGeneration !== liveFrameRequestGeneration || isAbortError(error)) {
-      markLiveFrameStale(context.source, "当前实时结果已过期，正在显示原始视频。");
+      markLiveFramePending(context.source, "当前实时请求已取消，保留最近一次已验证结果。");
       return;
     }
-    markLiveFrameStale(context.source, "实时分割失败，已回退原始视频。");
+    markLiveFramePending(context.source, "实时分割失败，保留最近一次已验证结果。");
     if (context.trigger === "manual") setOperationMessage(errorMessage(error), "error");
     throw error;
   } finally {
-    context.signal?.removeEventListener("abort", abortAndMarkStale);
+    context.signal?.removeEventListener("abort", abortAndMarkPending);
     if (liveFrameRequestController === requestController) {
       liveFrameRequestController = null;
       liveFrameRequestSource = "";
@@ -1157,8 +1175,6 @@ function clearLiveFrameResult(source?: "camera" | "video") {
   liveFrameSource.value = "";
   liveFrameDisplayIdentity.value = null;
   liveFrameExpectedIdentity.value = null;
-  liveFrameLastSuccessSource.value = "";
-  liveFrameLastSuccessStatus.value = "";
 }
 
 function invalidateLiveFrameRequest(source?: "camera" | "video") {
@@ -1180,19 +1196,22 @@ function handleLiveFrameInvalidation(
   _context?: ContinuousCameraFrameContext,
 ) {
   const messages: Record<ContinuousCameraFrameInvalidationReason, string> = {
-    new_frame: liveFramePendingMessage(source),
-    failed: "实时分割失败，已回退原始视频。",
-    timed_out: "实时分割超时，已回退原始视频。",
+    new_frame: "上一帧实时结果保留，正在处理下一帧。",
+    failed: "实时分割失败，保留最近一次已验证结果。",
+    timed_out: "实时分割超时，保留最近一次已验证结果。",
     stopped: "实时分割已停止，显示原始视频。",
   };
-  markLiveFrameStale(source, messages[reason]);
+  if (reason === "stopped") {
+    markLiveFrameStale(source, messages[reason]);
+    return;
+  }
+  markLiveFramePending(source, messages[reason]);
 }
 
-function liveFramePendingMessage(source: "camera" | "video"): string {
-  if (liveFrameLastSuccessSource.value === source && liveFrameLastSuccessStatus.value) {
-    return `${liveFrameLastSuccessStatus.value}；下一帧处理中，当前显示原始视频。`;
-  }
-  return "上一帧实时结果已过期，正在显示原始视频。";
+function markLiveFramePending(source: "camera" | "video" | undefined, message: string) {
+  const currentSource = currentLiveFrameStateSource();
+  if (source && currentSource && currentSource !== source) return;
+  liveFrameStaleStatus.value = message;
 }
 
 function markLiveFrameStale(source: "camera" | "video" | undefined, message: string) {

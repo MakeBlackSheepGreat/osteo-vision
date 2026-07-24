@@ -29,27 +29,27 @@ flowchart LR
 
 主平台使用 Vue 3、TypeScript、Pinia 和 Vue Router。顶部导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出、研发支持入口排列。桌面工作站为当前验收视口。`frontend/three-d-runtime/` 作为独立 Vue/Vite/Three.js 运行时构建、测试和部署，通过版本化场景快照与主平台交换最小渲染数据。
 
-### API 层 `backend/src/api/`
+### API 层 `backend/osteo_vision_api/api/`
 
 FastAPI 路由负责输入校验、身份上下文、HTTP 状态、文件流和服务调用。路由层不承载医学算法。
 
-### 应用服务层 `backend/src/services/`
+### 应用服务层 `backend/osteo_vision_api/services/`
 
 负责病例分析、视频关键帧、实时帧、荧光融合、医生复核、人工标注、训练准入、导出、医院数据准入、CBCT 建模、静态配准和离线位姿回放。
 
-### 领域与持久化层 `backend/src/domains/`
+### 领域与持久化层 `backend/osteo_vision_api/domains/`
 
 Pydantic schema、枚举和 SQLite repository 保存病例、输入、分析任务、复核、人工标注与版本。写入采用乐观并发控制和原子替换。
 
-### 核心算法层 `src/`
+### 核心算法层 `osteo_vision_core/`
 
-- `src/models/`：模型 adapter、keyframe 分割、患者条件、骨活性、晋级门。
-- `src/preprocess/`：荧光、图像质量、CT、ROI 和 mask 后处理。
-- `src/io/`：JPEG、MP4、DICOM、NIfTI 和实时流 I/O。
-- `src/navigation/`：坐标契约、刚体配准、离线位姿回放。
-- `src/datasets/`：来源清单、分组切分、训练准入和泄漏检查。
-- `src/metrics/`：分割、分类、校准和性能指标。
-- `src/engine/`：统一推理、实验与 benchmark 入口。
+- `osteo_vision_core/models/`：模型 adapter、keyframe 分割、患者条件、骨活性、晋级门。
+- `osteo_vision_core/preprocess/`：荧光、图像质量、CT、ROI 和 mask 后处理。
+- `osteo_vision_core/io/`：JPEG、MP4、DICOM、NIfTI 和实时流 I/O。
+- `osteo_vision_core/navigation/`：坐标契约、刚体配准、离线位姿回放。
+- `osteo_vision_core/datasets/`：来源清单、分组切分、训练准入和泄漏检查。
+- `osteo_vision_core/metrics/`：分割、分类、校准和性能指标。
+- `osteo_vision_core/engine/`：统一推理、实验与 benchmark 入口。
 
 ## 配置权威
 

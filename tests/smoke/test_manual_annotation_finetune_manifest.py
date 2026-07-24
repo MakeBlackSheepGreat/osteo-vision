@@ -8,8 +8,8 @@ import numpy as np
 from PIL import Image
 
 from scripts.train_keyframe_segmentation_proxy import ManifestKeyframeDataset, load_manifest_rows
-from src.datasets.registry import sha256_file
-from src.datasets.training_admission import MANUAL_ANNOTATION_ROLE
+from osteo_vision_core.datasets.registry import sha256_file
+from osteo_vision_core.datasets.training_admission import MANUAL_ANNOTATION_ROLE
 from tools.build_keyframe_training_manifest_from_manual_annotations import (
     build_manual_annotation_training_manifest,
 )

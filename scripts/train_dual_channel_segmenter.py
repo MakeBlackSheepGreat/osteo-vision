@@ -20,11 +20,11 @@ from PIL import Image  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 
 from scripts.train_keyframe_segmentation_proxy import load_manifest_rows  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.datasets.group_splits import assert_no_group_leakage  # noqa: E402
-from src.models.dual_channel_segmenter import DUAL_CHANNEL_MODES, TinyDualChannelSegmenter2D  # noqa: E402
-from src.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
-from src.reports.writers import write_json  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.datasets.group_splits import assert_no_group_leakage  # noqa: E402
+from osteo_vision_core.models.dual_channel_segmenter import DUAL_CHANNEL_MODES, TinyDualChannelSegmenter2D  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
+from osteo_vision_core.reports.writers import write_json  # noqa: E402
 
 
 class DualChannelProxyDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):

@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import pytest
 
-import backend.src.services.offline_pose_replay_service as replay_service
+import backend.osteo_vision_api.services.offline_pose_replay_service as replay_service
 
 
 def test_decode_video_skips_opencv_timestamp_collection_when_pts_are_verified(

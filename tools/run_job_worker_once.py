@@ -7,8 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.src.core.settings import load_settings
-from backend.src.services.job_worker import LocalJobWorker
+from backend.osteo_vision_api.core.settings import load_settings
+from backend.osteo_vision_api.services.job_worker import LocalJobWorker
 
 
 def parse_args() -> argparse.Namespace:

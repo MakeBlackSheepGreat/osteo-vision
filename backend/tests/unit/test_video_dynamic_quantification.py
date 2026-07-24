@@ -8,18 +8,18 @@ import numpy as np
 import torch
 from PIL import Image
 
-from backend.src.domains.cases.enums import InputChannel
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord, InputCreateRequest
-from backend.src.services.analysis_service import AnalysisService
-from backend.src.services.input_service import InputService
-from backend.src.services.keyframe_segmentation import analyze_keyframe_segmentations
-from backend.src.services.video_keyframe_metrics import (
+from backend.osteo_vision_api.domains.cases.enums import InputChannel
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord, InputCreateRequest
+from backend.osteo_vision_api.services.analysis_service import AnalysisService
+from backend.osteo_vision_api.services.input_service import InputService
+from backend.osteo_vision_api.services.keyframe_segmentation import analyze_keyframe_segmentations
+from backend.osteo_vision_api.services.video_keyframe_metrics import (
     video_fluorescence_dynamics_summary,
     video_inference_performance_summary,
 )
-from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D
-from src.preprocess.fluorescence import (
+from osteo_vision_core.models.keyframe_segmenter import TinyKeyframeSegmenter2D
+from osteo_vision_core.preprocess.fluorescence import (
     decoded_frame_fluorescence_quantification,
     fluorescence_time_intensity_curve,
 )
@@ -86,11 +86,11 @@ def test_keyframe_analysis_reuses_one_rgb_decode_for_model_and_quantification(tm
         }
 
     monkeypatch.setattr(
-        "backend.src.services.keyframe_segmentation._keyframe_model_adapter",
+        "backend.osteo_vision_api.services.keyframe_segmentation._keyframe_model_adapter",
         lambda *_args, **_kwargs: (Adapter(), []),
     )
     monkeypatch.setattr(
-        "backend.src.services.keyframe_segmentation.decoded_frame_fluorescence_quantification",
+        "backend.osteo_vision_api.services.keyframe_segmentation.decoded_frame_fluorescence_quantification",
         quantify,
     )
 

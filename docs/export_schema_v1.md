@@ -5,8 +5,8 @@
 ## 适用范围
 
 - 入口接口：`POST /cases/{case_id}/exports`
-- 当前后端实现：`backend/src/services/export_service.py`
-- 当前响应模型：`backend/src/domains/cases/schemas.py::ExportResponse`
+- 当前后端实现：`backend/osteo_vision_api/services/export_service.py`
+- 当前响应模型：`backend/osteo_vision_api/domains/cases/schemas.py::ExportResponse`
 - 当前导出格式：本地 evidence bundle ZIP、JSON 报告、Markdown 报告、量化 CSV、DICOM Secondary Capture、manifest。
 
 ## ExportResponse
@@ -103,7 +103,7 @@ ZIP 内的 `reports/{case_id}_bundle_manifest.json` 记录 evidence bundle 的�
 
 ## JSON Report
 
-JSON 报告由 `backend/src/reports/platform_report.py` 生成，包含：
+JSON 报告由 `backend/osteo_vision_api/reports/platform_report.py` 生成，包含：
 
 - 病例快照：`case`、`case_id`、`title`、`status`、`created_at`、`updated_at`。
 - 安全边界：`disclaimer_version`、`disclaimer`、`icg_signal_limitation`。
@@ -115,7 +115,7 @@ JSON 报告由 `backend/src/reports/platform_report.py` 生成，包含：
 
 ## Quantification CSV
 
-CSV 由 `backend/src/reports/quantification_csv.py` 写出。当前每个 analysis run 生成一行，至少包含：
+CSV 由 `backend/osteo_vision_api/reports/quantification_csv.py` 写出。当前每个 analysis run 生成一行，至少包含：
 
 - `case_id`
 - `run_id`

@@ -10,7 +10,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.datasets.d036 import (
+from osteo_vision_core.datasets.d036 import (
     D036_MANIFEST_PATH,
     available_d036_cases,
     build_nnunet_dataset_json,

@@ -22,8 +22,8 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from scripts.convert_d024_to_nnunet import DEFAULT_NNUNET_ROOT, convert_d024_to_nnunet
-from src.core.paths import ensure_dir
-from src.reports.writers import write_csv, write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.reports.writers import write_csv, write_json
 
 DEFAULT_NNUNET_DATASET = DEFAULT_NNUNET_ROOT / "nnUNet_raw" / "Dataset124_DentVoxelJawROI"
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/d024_segmentation_model_benchmark")

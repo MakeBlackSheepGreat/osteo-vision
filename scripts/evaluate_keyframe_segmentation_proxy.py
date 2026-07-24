@@ -22,15 +22,15 @@ from scripts.train_keyframe_segmentation_proxy import (
     binary_dice_iou,
     load_manifest_rows,
 )
-from src.core.paths import ensure_dir, resolve_path
-from src.datasets.group_splits import assert_no_group_leakage
-from src.metrics.calibration import binary_brier_score, expected_calibration_error
-from src.models.keyframe_segmenter import (
+from osteo_vision_core.core.paths import ensure_dir, resolve_path
+from osteo_vision_core.datasets.group_splits import assert_no_group_leakage
+from osteo_vision_core.metrics.calibration import binary_brier_score, expected_calibration_error
+from osteo_vision_core.models.keyframe_segmenter import (
     checkpoint_sha256,
     load_keyframe_segmenter_checkpoint,
     select_torch_device,
 )
-from src.reports.writers import write_json
+from osteo_vision_core.reports.writers import write_json
 
 DEFAULT_CHECKPOINT = "artifacts/checkpoints/osteo_vision/keyframe_convnext2d_proxy.pt"
 DEFAULT_MANIFEST = (

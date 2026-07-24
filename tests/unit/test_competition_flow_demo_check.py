@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from src.preprocess.fluorescence import (
+from osteo_vision_core.preprocess.fluorescence import (
     register_fluorescence_to_reference,
     subtract_fluorescence_background,
 )
@@ -34,25 +34,35 @@ def test_competition_flow_defaults_to_strict_runtime(monkeypatch) -> None:
     assert args.config == "configs/inference/osteo_vision_competition_strict.yml"
 
 
-def test_bind_runtime_environment_uses_requested_config(tmp_path: Path, monkeypatch) -> None:
+def test_bind_runtime_environment_uses_requested_config(tmp_path: Path) -> None:
     config_path = tmp_path / "strict.yml"
     config_path.write_text("runtime: {}\n", encoding="utf-8")
     output_dir = tmp_path / "run"
-    for name in (
+    names = (
         "OSTEO_INFERENCE_CONFIG",
         "OSTEO_ARTIFACT_ROOT",
         "OSTEO_CASE_STORE_PATH",
         "OSTEO_JOB_STORE_PATH",
-    ):
-        monkeypatch.delenv(name, raising=False)
+        "OSTEO_JOB_EXECUTION_MODE",
+    )
+    original_environment = {name: os.environ.get(name) for name in names}
+    for name in names:
+        os.environ.pop(name, None)
 
-    resolved = bind_runtime_environment(config_path, output_dir)
+    try:
+        resolved = bind_runtime_environment(config_path, output_dir)
 
-    assert resolved == config_path.resolve()
-    assert Path(os.environ["OSTEO_INFERENCE_CONFIG"]) == config_path.resolve()
-    assert Path(os.environ["OSTEO_ARTIFACT_ROOT"]) == output_dir / "artifacts"
-    assert os.environ["OSTEO_JOB_EXECUTION_MODE"] == "background"
-    assert paths_match(os.environ["OSTEO_INFERENCE_CONFIG"], config_path)
+        assert resolved == config_path.resolve()
+        assert Path(os.environ["OSTEO_INFERENCE_CONFIG"]) == config_path.resolve()
+        assert Path(os.environ["OSTEO_ARTIFACT_ROOT"]) == output_dir / "artifacts"
+        assert os.environ["OSTEO_JOB_EXECUTION_MODE"] == "background"
+        assert paths_match(os.environ["OSTEO_INFERENCE_CONFIG"], config_path)
+    finally:
+        for name, value in original_environment.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 def test_model_gate_is_derived_from_runtime_config() -> None:

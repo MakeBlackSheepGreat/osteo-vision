@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.generate_model_checkpoint_manifest import build_model_checkpoint_manifest  # noqa: E402
-from src.models.runtime_preflight import check_runtime_readiness  # noqa: E402
+from osteo_vision_core.models.runtime_preflight import check_runtime_readiness  # noqa: E402
 
 STRICT_CONFIG = "configs/inference/osteo_vision_competition_strict.yml"
 

@@ -15,7 +15,7 @@ from scripts.train_patient_conditioned_segmenter import (
     _symmetric_boundary_hausdorff_mm,
     train_patient_conditioned,
 )
-from src.models.patient_conditioned_segmenter import (
+from osteo_vision_core.models.patient_conditioned_segmenter import (
     TinyPatientConditionedSegmenter2D,
     apply_patient_conditioning_safety_gate,
     load_patient_conditioned_checkpoint,

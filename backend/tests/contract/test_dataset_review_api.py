@@ -10,8 +10,8 @@ import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from backend.src.api.app import create_app
-from backend.src.services.static_dataset_review import (
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.services.static_dataset_review import (
     DATASET_RELATIVE_ROOTS,
     REVIEWED_MANIFEST_NAME,
     SEED_MANIFEST_NAME,

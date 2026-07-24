@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.config import load_yaml, runtime_config
+from osteo_vision_core.core.config import load_yaml, runtime_config
 
 
 def test_demo_config_loads() -> None:

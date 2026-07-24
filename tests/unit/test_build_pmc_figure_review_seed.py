@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from src.datasets.registry import record_from_row, validate_registry
+from osteo_vision_core.datasets.registry import record_from_row, validate_registry
 from tools.build_pmc_figure_review_seed import (
     apply_review_updates,
     build_review_records,

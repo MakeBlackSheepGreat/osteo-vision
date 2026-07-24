@@ -18,16 +18,16 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from starlette.requests import ClientDisconnect
 
-from backend.src.api.app import create_app
-from backend.src.api.live_frames import _await_analysis_or_disconnect
-from backend.src.services.live_frame_service import (
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.api.live_frames import _await_analysis_or_disconnect
+from backend.osteo_vision_api.services.live_frame_service import (
     LiveFrameAnalysisService,
     LiveFrameCancelledError,
     LiveFrameCapacityError,
     LiveFrameInputError,
     _commit_staging_directory,
 )
-from src.core.schemas import ModelSpec
+from osteo_vision_core.core.schemas import ModelSpec
 
 
 def test_live_frame_service_uses_runtime_segmentation_task_as_default(tmp_path: Path) -> None:
@@ -100,6 +100,7 @@ def test_live_frame_api_returns_renderable_segmentation_outputs(tmp_path, monkey
     assert payload["inference_latency_ms"] >= 0
     assert payload["performance"]["total_ms"] == payload["inference_latency_ms"]
     assert payload["performance"]["model_ms"] >= 0
+    assert payload["model_inference_latency_ms"] == payload["performance"]["model_ms"]
     assert payload["performance"]["decode_ms"] >= 0
     assert payload["performance"]["evidence_write_ms"] >= 0
     assert payload["performance"]["input_bytes"] == len(encoded.tobytes())
@@ -226,7 +227,7 @@ def test_live_frame_adapter_is_created_once_under_concurrent_first_access(tmp_pa
         sleep(0.05)
         return adapter
 
-    monkeypatch.setattr("backend.src.services.live_frame_service.build_adapter", slow_build)
+    monkeypatch.setattr("backend.osteo_vision_api.services.live_frame_service.build_adapter", slow_build)
     with ThreadPoolExecutor(max_workers=4) as executor:
         adapters = list(executor.map(service._adapter, ["concurrent_model"] * 4))
 
@@ -385,7 +386,7 @@ def test_live_frame_api_preserves_empty_and_stream_limit_validation_errors(tmp_p
     async def reject_stream(*_args, **_kwargs):
         raise HTTPException(status_code=413, detail="Request body exceeds the streaming limit")
 
-    monkeypatch.setattr("backend.src.api.live_frames._read_bounded_body", reject_stream)
+    monkeypatch.setattr("backend.osteo_vision_api.api.live_frames._read_bounded_body", reject_stream)
     oversized_stream = client.post(
         f"/cases/{case['case_id']}/live-frames",
         content=b"body with unknown declared length",
@@ -403,8 +404,8 @@ def test_live_frame_api_times_out_stalled_upload_and_releases_admission(tmp_path
         await asyncio.sleep(0.05)
         return b"unreachable"
 
-    monkeypatch.setattr("backend.src.api.live_frames.MAX_LIVE_FRAME_UPLOAD_SECONDS", 0.001)
-    monkeypatch.setattr("backend.src.api.live_frames._read_bounded_body", stalled_body)
+    monkeypatch.setattr("backend.osteo_vision_api.api.live_frames.MAX_LIVE_FRAME_UPLOAD_SECONDS", 0.001)
+    monkeypatch.setattr("backend.osteo_vision_api.api.live_frames._read_bounded_body", stalled_body)
     client = TestClient(create_app(), raise_server_exceptions=False)
     case = client.post("/cases", json={"title": "stalled upload"}).json()
 
@@ -744,7 +745,7 @@ def test_live_frame_api_rejects_capacity_before_reading_body(tmp_path, monkeypat
         return b"unused"
 
     monkeypatch.setattr(LiveFrameAnalysisService, "acquire_admission", reject_admission)
-    monkeypatch.setattr("backend.src.api.live_frames._read_bounded_body", track_body_read)
+    monkeypatch.setattr("backend.osteo_vision_api.api.live_frames._read_bounded_body", track_body_read)
     client = TestClient(create_app(), raise_server_exceptions=False)
     case = client.post("/cases", json={"title": "pre-body capacity"}).json()
     response = client.post(
@@ -799,8 +800,8 @@ def test_live_frame_directory_commit_retries_transient_windows_permission_error(
             raise PermissionError(13, "transient directory lock", str(source))
         original_replace(source, destination)
 
-    monkeypatch.setattr("backend.src.services.live_frame_service.os.replace", transient_replace)
-    monkeypatch.setattr("backend.src.services.live_frame_service.sleep", lambda _seconds: None)
+    monkeypatch.setattr("backend.osteo_vision_api.services.live_frame_service.os.replace", transient_replace)
+    monkeypatch.setattr("backend.osteo_vision_api.services.live_frame_service.sleep", lambda _seconds: None)
 
     _commit_staging_directory(staging_dir, final_dir)
 

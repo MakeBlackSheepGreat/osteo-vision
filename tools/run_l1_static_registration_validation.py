@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.navigation import (  # noqa: E402
+from osteo_vision_core.navigation import (  # noqa: E402
     apply_rigid_transform,
     export_rigid_transform,
     register_rigid_points,

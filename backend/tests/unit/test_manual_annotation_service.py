@@ -6,13 +6,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from backend.src.core.artifacts import checksum_for_file
-from backend.src.domains.annotations.enums import AnnotationReviewDecision
-from backend.src.domains.annotations.repository import AnnotationRepository
-from backend.src.domains.annotations.schemas import AnnotationCreateRequest, AnnotationGeometry, AnnotationSourceRequest
-from backend.src.domains.cases.enums import InputChannel, ReviewerRole
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.core.artifacts import checksum_for_file
+from backend.osteo_vision_api.domains.annotations.enums import AnnotationReviewDecision
+from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
+from backend.osteo_vision_api.domains.annotations.schemas import AnnotationCreateRequest, AnnotationGeometry, AnnotationSourceRequest
+from backend.osteo_vision_api.domains.cases.enums import InputChannel, ReviewerRole
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import (
     AnalysisRun,
     CandidateRegion,
     CaseInputAsset,
@@ -20,7 +20,7 @@ from backend.src.domains.cases.schemas import (
     HospitalIntakeMetadata,
     ReviewActorIdentity,
 )
-from backend.src.services.manual_annotation_service import ManualAnnotationService
+from backend.osteo_vision_api.services.manual_annotation_service import ManualAnnotationService
 
 
 def test_video_keyframe_and_model_candidate_sources_create_full_size_masks(tmp_path: Path) -> None:

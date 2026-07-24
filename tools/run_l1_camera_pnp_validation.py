@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.navigation.camera_registration import (  # noqa: E402
+from osteo_vision_core.navigation.camera_registration import (  # noqa: E402
     CameraRegistrationError,
     compose_transforms,
     export_camera_transform,

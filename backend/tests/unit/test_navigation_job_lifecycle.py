@@ -5,12 +5,12 @@ from typing import Any, Callable
 
 import pytest
 
-import backend.src.services.job_tasks as job_tasks
-from backend.src.services.job_service import JobRegistry
-from backend.src.services.offline_pose_replay_service import (
+import backend.osteo_vision_api.services.job_tasks as job_tasks
+from backend.osteo_vision_api.services.job_service import JobRegistry
+from backend.osteo_vision_api.services.offline_pose_replay_service import (
     OfflinePoseReplayRequestError,
 )
-from backend.src.services.static_registration_service import (
+from backend.osteo_vision_api.services.static_registration_service import (
     StaticRegistrationRequestError,
 )
 

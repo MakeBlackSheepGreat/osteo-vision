@@ -23,11 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.navigation.ocamcalib import (  # noqa: E402
+from osteo_vision_core.navigation.ocamcalib import (  # noqa: E402
     OCAMCALIB_POLYNOMIAL_V1,
     OcamCalibPolynomialV1,
 )
-from src.navigation.offline_pose_replay import (  # noqa: E402
+from osteo_vision_core.navigation.offline_pose_replay import (  # noqa: E402
     DYNAMIC_AR_MODE,
     OfflinePoseReplayConfig,
     replay_offline_poses,

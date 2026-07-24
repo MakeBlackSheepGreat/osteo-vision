@@ -47,18 +47,18 @@ test-e2e: ## 运行桌面端 Playwright E2E
 	npm --prefix frontend run test:e2e
 
 lint: ## 运行 Ruff 静态检查
-	$(PYTHON) -m ruff check src backend app tests scripts tools
+	$(PYTHON) -m ruff check osteo_vision_core backend app tests scripts tools
 
 format: ## 格式化 Python 代码
-	$(PYTHON) -m black src backend app tests scripts tools --line-length=120
-	$(PYTHON) -m isort src backend app tests scripts tools --profile black --line-length=120
+	$(PYTHON) -m black osteo_vision_core backend app tests scripts tools --line-length=120
+	$(PYTHON) -m isort osteo_vision_core backend app tests scripts tools --profile black --line-length=120
 
 format-check: ## 检查 Python 格式
-	$(PYTHON) -m black --check src backend app tests scripts tools --line-length=120
-	$(PYTHON) -m isort --check-only src backend app tests scripts tools --profile black --line-length=120
+	$(PYTHON) -m black --check osteo_vision_core backend app tests scripts tools --line-length=120
+	$(PYTHON) -m isort --check-only osteo_vision_core backend app tests scripts tools --profile black --line-length=120
 
 type-check: ## 运行 Python 与 Vue 类型检查
-	$(PYTHON) -m mypy src backend --config-file=pyproject.toml --hide-error-context --no-error-summary
+	$(PYTHON) -m mypy osteo_vision_core backend --config-file=pyproject.toml --hide-error-context --no-error-summary
 	npm --prefix frontend run typecheck
 
 check-all: lint type-check test ## 运行主要质量门
@@ -66,7 +66,7 @@ check-all: lint type-check test ## 运行主要质量门
 release-check: check-all three-d-runtime-check ## 运行平台与独立三维运行时发布质量门
 
 validate-config: ## 验证主推理配置
-	$(PYTHON) -c "from src.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
+	$(PYTHON) -c "from osteo_vision_core.core.config_validator import validate_config_file; print(validate_config_file('configs/inference/osteo_vision.yml'))"
 
 model-inventory: ## 输出模型清单
 	$(PYTHON) scripts/model_inventory.py --config configs/inference/osteo_vision.yml
@@ -81,7 +81,7 @@ platform: ## 启动比赛严格模式平台
 	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition
 
 platform-backend: ## 启动 FastAPI 后端
-	$(PYTHON) -m backend.src.main
+	$(PYTHON) -m backend.osteo_vision_api.main
 
 platform-frontend: ## 启动 Vue 前端
 	npm --prefix frontend run dev

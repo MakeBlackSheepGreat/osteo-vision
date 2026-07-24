@@ -40,7 +40,8 @@
         />
         <div v-if="liveFrameStatus" class="live-frame-status" aria-live="polite">
           <strong>{{ liveFrameStatus }}</strong>
-          <span v-if="liveInferenceLatencyMs !== null">推理 {{ Math.round(liveInferenceLatencyMs) }} ms</span>
+          <span v-if="liveModelLatencyMs !== null">模型 {{ Math.round(liveModelLatencyMs) }} ms</span>
+          <span v-if="liveEndToEndLatencyMs !== null">端到端 {{ Math.round(liveEndToEndLatencyMs) }} ms</span>
         </div>
         <div v-if="!streamActive" class="empty-preview-copy">
           <strong>等待视频流</strong>
@@ -119,7 +120,8 @@ const props = withDefaults(
     playbackSeekToken?: number;
     liveOverlaySrc?: string;
     liveFrameStatus?: string;
-    liveInferenceLatencyMs?: number | null;
+    liveModelLatencyMs?: number | null;
+    liveEndToEndLatencyMs?: number | null;
     fullscreen?: boolean;
   }>(),
   {
@@ -130,7 +132,8 @@ const props = withDefaults(
     fullscreen: false,
     liveOverlaySrc: "",
     liveFrameStatus: "",
-    liveInferenceLatencyMs: null,
+    liveModelLatencyMs: null,
+    liveEndToEndLatencyMs: null,
   },
 );
 
@@ -257,11 +260,11 @@ function panelIcon(title: string): AppIconName {
 <style scoped>
 .analysis-quad-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2.25fr) minmax(270px, 0.75fr);
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
   grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
-  min-height: clamp(560px, 62vh, 760px);
+  min-height: clamp(680px, 72vh, 860px);
 }
 
 .analysis-quad-card {
@@ -372,7 +375,7 @@ function panelIcon(title: string): AppIconName {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   pointer-events: none;
 }
@@ -400,7 +403,7 @@ function panelIcon(title: string): AppIconName {
 }
 
 .camera-live-player {
-  object-fit: cover;
+  object-fit: contain;
   opacity: 0;
 }
 

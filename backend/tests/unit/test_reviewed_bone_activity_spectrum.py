@@ -6,9 +6,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from backend.src.domains.cases.enums import ReviewerRole
-from backend.src.domains.cases.schemas import ReviewActorIdentity
-from backend.src.services.review_service import (
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole
+from backend.osteo_vision_api.domains.cases.schemas import ReviewActorIdentity
+from backend.osteo_vision_api.services.review_service import (
     _activity_spectrum_artifacts,
     _derive_reviewed_activity_spectrum,
 )

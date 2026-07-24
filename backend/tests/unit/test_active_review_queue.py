@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from backend.src.services.active_review_queue import (
+from backend.osteo_vision_api.services.active_review_queue import (
     ActiveReviewConfig,
     build_active_review_queue,
     build_training_manifest_patch,

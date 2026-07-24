@@ -122,6 +122,22 @@ describe("ThreeDEvidenceControlPanel", () => {
     expect(wrapper.text()).toContain("已取消");
     expect(wrapper.findAll('[data-testid="cancel-modeling-job"]')).toHaveLength(0);
   });
+
+  it("renders a single panel section for the stable three-column navigation workbench", () => {
+    const wrapper = mount(ThreeDEvidenceControlPanel, {
+      props: {
+        caseId: "case_panel",
+        presentation: "panel",
+        sections: ["imports"],
+      },
+    });
+
+    expect(wrapper.classes()).toContain("three-d-evidence-control--panel");
+    expect(wrapper.find(".three-d-evidence-control__header").exists()).toBe(false);
+    expect(wrapper.find('[aria-label="三维文件导入"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="三维对象树"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="三维建模检查"]').exists()).toBe(false);
+  });
 });
 
 async function selectFiles(wrapper: ReturnType<typeof mount>, selector: string, files: File[]) {

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord, ExportRequest
-from backend.src.services.export_service import ExportService
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord, ExportRequest
+from backend.osteo_vision_api.services.export_service import ExportService
 
 
 def test_exported_platform_report_avoids_unsupported_claims(tmp_path: Path) -> None:

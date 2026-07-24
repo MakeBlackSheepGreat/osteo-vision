@@ -12,6 +12,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   LevelFormat,
   LineRuleType,
   Packer,
@@ -38,6 +39,7 @@ const DEFAULT_OUTPUT = path.join(
   SCRIPT_DIR,
   "osteo_vision_technical_solution_20260719_zh.docx",
 );
+const REPORT_ROOT = fs.realpathSync(SCRIPT_DIR);
 
 const sourcePath = path.resolve(process.argv[2] ?? DEFAULT_SOURCE);
 const outputPath = path.resolve(process.argv[3] ?? DEFAULT_OUTPUT);
@@ -72,6 +74,8 @@ const COLORS = {
   safety: "F3F7F6",
   white: "FFFFFF",
 };
+const REPORT_IMAGE_MAX_WIDTH = 580;
+const REPORT_IMAGE_MAX_HEIGHT = 420;
 
 function fail(message) {
   process.stderr.write(`文档构建失败：${message}\n`);
@@ -80,6 +84,129 @@ function fail(message) {
 
 if (!fs.existsSync(sourcePath)) {
   fail(`找不到 Markdown 源文件：${sourcePath}`);
+}
+
+const resolvedSourcePath = fs.realpathSync(sourcePath);
+if (!isWithinDirectory(REPORT_ROOT, resolvedSourcePath)) {
+  fail(`Markdown 源文件必须位于提交报告目录：${sourcePath}`);
+}
+const sourceDirectory = path.dirname(resolvedSourcePath);
+
+function imageExtension(imagePath) {
+  const extension = path.extname(imagePath).toLowerCase();
+  if (extension === ".png") return "png";
+  if (extension === ".jpg" || extension === ".jpeg") return "jpg";
+  fail(`仅支持本地 PNG/JPEG 图片：${imagePath}`);
+}
+
+function imageDimensions(data, extension, imagePath) {
+  if (extension === "png") {
+    const pngSignature = "89504e470d0a1a0a";
+    if (data.length < 24 || data.subarray(0, 8).toString("hex") !== pngSignature) {
+      fail(`PNG 文件格式无效：${imagePath}`);
+    }
+    return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+  }
+
+  if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) {
+    fail(`JPEG 文件格式无效：${imagePath}`);
+  }
+
+  let offset = 2;
+  while (offset + 9 < data.length) {
+    while (offset < data.length && data[offset] === 0xff) offset += 1;
+    const marker = data[offset];
+    offset += 1;
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    if (offset + 1 >= data.length) break;
+    const segmentLength = data.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > data.length) break;
+    const isStartOfFrame =
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf);
+    if (isStartOfFrame) {
+      return {
+        width: data.readUInt16BE(offset + 5),
+        height: data.readUInt16BE(offset + 3),
+      };
+    }
+    offset += segmentLength;
+  }
+  fail(`无法读取 JPEG 尺寸：${imagePath}`);
+}
+
+function fitImage(width, height) {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+    fail(`图片尺寸无效：${width}x${height}`);
+  }
+  const scale = Math.min(REPORT_IMAGE_MAX_WIDTH / width, REPORT_IMAGE_MAX_HEIGHT / height, 1);
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function imageRunFromToken(token) {
+  const href = decodeURIComponent(token.href ?? "");
+  if (!href || /^https?:\/\//i.test(href) || path.isAbsolute(href)) {
+    fail(`Markdown 图片必须是相对路径的本地 PNG/JPEG：${token.href ?? ""}`);
+  }
+  const imagePath = resolveReportImagePath(href);
+  const extension = imageExtension(imagePath);
+  const data = fs.readFileSync(imagePath);
+  const dimensions = imageDimensions(data, extension, imagePath);
+  return new ImageRun({
+    type: extension,
+    data,
+    transformation: fitImage(dimensions.width, dimensions.height),
+    altText: {
+      title: token.text || path.basename(imagePath),
+      description: token.text || path.basename(imagePath),
+      name: path.basename(imagePath),
+    },
+  });
+}
+
+function resolveReportImagePath(href) {
+  const imagePath = path.resolve(sourceDirectory, href);
+  if (!isWithinDirectory(sourceDirectory, imagePath)) {
+    fail(`Markdown 图片路径超出源稿目录：${href}`);
+  }
+  if (!fs.existsSync(imagePath)) {
+    fail(`找不到 Markdown 图片：${imagePath}`);
+  }
+
+  const realImagePath = fs.realpathSync(imagePath);
+  if (!isWithinDirectory(sourceDirectory, realImagePath)) {
+    fail(`Markdown 图片路径超出源稿目录：${href}`);
+  }
+  return realImagePath;
+}
+
+function isWithinDirectory(directory, candidate) {
+  const relativePath = path.relative(directory, candidate);
+  return (
+    Boolean(relativePath) &&
+    relativePath !== ".." &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath)
+  );
+}
+
+function writeOutputAtomically(destination, data) {
+  const outputDirectory = path.dirname(destination);
+  const temporaryPath = path.join(
+    outputDirectory,
+    `.${path.basename(destination)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  try {
+    fs.writeFileSync(temporaryPath, data);
+    fs.renameSync(temporaryPath, destination);
+  } finally {
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+  }
 }
 
 function inlineRuns(tokens = [], inherited = {}) {
@@ -142,6 +269,9 @@ function inlineRuns(tokens = [], inherited = {}) {
         }
         break;
       }
+      case "image":
+        children.push(imageRunFromToken(token));
+        break;
       case "br":
         children.push(new TextRun({ text: "", break: 1 }));
         break;
@@ -317,7 +447,19 @@ function bodyBlocks(tokens) {
         break;
       }
       case "paragraph":
-        blocks.push(paragraphFromInline(token.tokens));
+        if (token.tokens?.length === 1 && token.tokens[0].type === "image") {
+          blocks.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              keepNext: true,
+              keepLines: true,
+              spacing: { before: 120, after: 120 },
+              children: [imageRunFromToken(token.tokens[0])],
+            }),
+          );
+        } else {
+          blocks.push(paragraphFromInline(token.tokens));
+        }
         break;
       case "list":
         blocks.push(...listParagraphs(token));
@@ -411,6 +553,7 @@ const markdown = fs.readFileSync(sourcePath, "utf8");
 const tokens = marked.lexer(markdown, { gfm: true });
 const titleToken = tokens.find((token) => token.type === "heading" && token.depth === 1);
 const title = titleToken?.text ?? "颌骨骨髓炎智能化荧光诊疗技术方案";
+const coverTitleSize = title.length > 18 ? 40 : 48;
 const titleIndex = titleToken ? tokens.indexOf(titleToken) : -1;
 const metadataToken = tokens
   .slice(titleIndex + 1)
@@ -435,7 +578,7 @@ const coverChildren = [
     spacing: { before: 260, after: 480 },
     alignment: AlignmentType.CENTER,
     children: [
-      new TextRun({ text: title, bold: true, color: COLORS.ink, size: 48 }),
+      new TextRun({ text: title, bold: true, color: COLORS.ink, size: coverTitleSize }),
     ],
   }),
   new Paragraph({
@@ -602,5 +745,5 @@ const doc = new Document({
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 const buffer = await Packer.toBuffer(doc);
-fs.writeFileSync(outputPath, buffer);
+writeOutputAtomically(outputPath, buffer);
 process.stdout.write(`已生成 DOCX：${outputPath}\n`);

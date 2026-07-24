@@ -6,6 +6,13 @@
 
 ## 当前材料
 
+- 挑战杯精简可行性报告源稿：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.md`
+- 挑战杯精简可行性报告 Word：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.docx`
+- 挑战杯精简可行性报告 PDF：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.pdf`
+- 挑战杯完整证据版源稿：`challenge_cup_report_draft_20260721/challenge_cup_feasibility_report_20260722_zh.md`
+- 挑战杯完整证据版 Word/PDF：同目录 `challenge_cup_feasibility_report_20260722_zh.docx` 与 `.pdf`
+- 挑战杯软件展示答辩运行单：`challenge_cup_demo_runbook_20260721_zh.md`
+- 海南现场作品对标备忘录：`challenge_cup_hainan_benchmark_memo_20260722_zh.md`
 - 技术方案源稿：`osteo_vision_technical_solution_20260719_zh.md`
 - 技术方案 Word 提交稿：`osteo_vision_technical_solution_20260719_zh.docx`
 - 技术方案 PDF 提交稿：`osteo_vision_technical_solution_20260719_zh.pdf`
@@ -13,6 +20,18 @@
 - 机器可读证据索引：`competition_evidence_index_20260719.json`
 - 中文证据索引：`competition_evidence_index_20260719_zh.md`
 - 最新工程快照：`../release/README.md`
+
+## 挑战杯报告重建
+
+精简提交版作为当前建议提交件，完整证据版保留给答辩准备、团队复核和后续内容裁剪。两份报告共用 `challenge_cup_report_draft_20260721/assets/` 图包，图像由本地 Markdown 以相对路径嵌入。图包的最小公开或合成重建输入已收敛到 `assets/sources/`，构建器不依赖被忽略的本地运行产物。
+
+```powershell
+conda run -n osteo-vision python -X utf8 tools/build_challenge_cup_figures.py
+powershell -ExecutionPolicy Bypass -File research/reports/submission/build_submission_documents.ps1 `
+  -SourceMarkdown research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.md `
+  -OutputDocx research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.docx `
+  -OutputPdf research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.pdf
+```
 
 ## 重新生成 Word 与 PDF
 

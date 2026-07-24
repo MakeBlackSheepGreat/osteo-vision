@@ -7,7 +7,8 @@ import cv2
 import numpy as np
 import pytest
 
-from src.preprocess.video import _frame_quality, _uint8_histogram, _uint8_percentile, extract_keyframes
+import osteo_vision_core.preprocess.video as video_preprocess
+from osteo_vision_core.preprocess.video import _frame_quality, _uint8_histogram, _uint8_percentile, extract_keyframes
 
 
 def _write_signal_video(path: Path, *, signal_frame: int = 8) -> None:
@@ -49,6 +50,23 @@ def test_quality_peak_keyframes_prioritize_signal_frame(tmp_path: Path) -> None:
     assert timeline_payload["schema_version"] == "osteo-vision-video-timeline-manifest-v1"
     assert timeline_payload["timeline_scope"] == "full_duration_index_with_scored_candidates"
     assert timeline_payload["coverage"]["selected_frame_count"] == 3
+
+
+def test_quality_peak_reuses_candidate_quality_for_saved_keyframes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    video = tmp_path / "quality_cache.mp4"
+    _write_signal_video(video, signal_frame=8)
+
+    def fail_if_recomputed(*_args: object, **_kwargs: object) -> dict[str, object]:
+        raise AssertionError("Quality-peak selection should reuse its candidate quality metrics.")
+
+    monkeypatch.setattr(video_preprocess, "_frame_quality", fail_if_recomputed)
+
+    report = extract_keyframes(video, tmp_path / "quality_cache", max_frames=3, sampling_strategy="quality_peak")
+
+    assert len(report["keyframes"]) == 3
+    assert all(frame["quality"]["source_width"] == 96 for frame in report["keyframes"])
 
 
 def test_quality_evaluation_uses_bounded_thumbnail_and_records_scale() -> None:

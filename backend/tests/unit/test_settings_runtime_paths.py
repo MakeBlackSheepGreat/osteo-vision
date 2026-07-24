@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.src.core.settings import _default_video_manifest_path, load_settings
+from backend.osteo_vision_api.core.settings import _default_video_manifest_path, load_settings
 
 
 def test_default_video_manifest_selects_latest_versioned_inventory(tmp_path: Path) -> None:

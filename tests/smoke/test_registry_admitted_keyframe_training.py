@@ -10,7 +10,7 @@ import torch
 from PIL import Image
 
 from scripts.train_keyframe_segmentation_proxy import train_keyframe_proxy
-from src.datasets.registry import REGISTRY_FIELDS, sha256_file
+from osteo_vision_core.datasets.registry import REGISTRY_FIELDS, sha256_file
 
 
 def test_registry_admitted_keyframe_training_smoke(tmp_path: Path) -> None:

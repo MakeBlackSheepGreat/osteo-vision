@@ -22,19 +22,19 @@ import torch.nn.functional as F  # noqa: E402
 from PIL import Image  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.datasets.group_splits import (  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.datasets.group_splits import (  # noqa: E402
     assert_no_group_leakage,
     assign_group_split,
     normalized_source_group,
 )
-from src.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
-from src.models.video_signal_multimask import (  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
+from osteo_vision_core.models.video_signal_multimask import (  # noqa: E402
     MASK_TYPE_TO_HEAD,
     VIDEO_SIGNAL_HEADS,
     VideoSignalMultiMask2D,
 )
-from src.reports.writers import write_csv, write_json  # noqa: E402
+from osteo_vision_core.reports.writers import write_csv, write_json  # noqa: E402
 
 DEFAULT_MANIFEST = (
     "research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/"

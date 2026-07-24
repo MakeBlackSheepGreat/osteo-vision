@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.models.runtime_promotion import (
+from osteo_vision_core.models.runtime_promotion import (
     build_keyframe_runtime_promotion,
     write_runtime_promotion_sidecar,
 )
@@ -184,7 +184,7 @@ def test_runtime_promotion_accepts_exact_registry_admitted_manifest_rows(tmp_pat
         }
     ]
     monkeypatch.setattr(
-        "src.models.runtime_promotion.admit_keyframe_training_rows",
+        "osteo_vision_core.models.runtime_promotion.admit_keyframe_training_rows",
         lambda *_args, **_kwargs: SimpleNamespace(rows=admitted_rows),
     )
     training_payload = json.loads(training_sidecar.read_text(encoding="utf-8"))

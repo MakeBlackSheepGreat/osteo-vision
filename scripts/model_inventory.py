@@ -9,9 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.config import load_yaml, runtime_config  # noqa: E402
-from src.core.paths import resolve_path  # noqa: E402
-from src.engine.inference import MedicalImagingInferenceService  # noqa: E402
+from osteo_vision_core.core.config import load_yaml, runtime_config  # noqa: E402
+from osteo_vision_core.core.paths import resolve_path  # noqa: E402
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService  # noqa: E402
 
 
 def main() -> int:

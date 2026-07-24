@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from PIL import Image
 
-from src.datasets.static_panel_detection import crop_quality_warnings, detect_panel_crop_suggestions
+from osteo_vision_core.datasets.static_panel_detection import crop_quality_warnings, detect_panel_crop_suggestions
 
 
 def _grid_image(

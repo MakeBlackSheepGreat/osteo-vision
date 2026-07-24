@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.models.three_priority_promotion import (  # noqa: E402
+from osteo_vision_core.models.three_priority_promotion import (  # noqa: E402
     build_three_priority_promotion_target,
     evaluate_three_priority_model_promotion,
 )

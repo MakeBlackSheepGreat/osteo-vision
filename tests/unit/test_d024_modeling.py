@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 
 from scripts.convert_d024_to_nnunet import convert_d024_to_nnunet
-from src.datasets.d024 import build_fold_splits, build_nnunet_dataset_json, d024_task_spec, remap_label_array
+from osteo_vision_core.datasets.d024 import build_fold_splits, build_nnunet_dataset_json, d024_task_spec, remap_label_array
 
 
 def test_jaw_roi_label_remap_keeps_only_selected_structures() -> None:

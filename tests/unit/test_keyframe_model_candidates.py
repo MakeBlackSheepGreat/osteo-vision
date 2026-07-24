@@ -5,12 +5,12 @@ from pathlib import Path
 import pytest
 import torch
 
-from src.models.adapters import ConvNeXt2DKeyframeSegmenterAdapter, build_adapter, model_spec_from_mapping
-from src.models.keyframe_candidates import (
+from osteo_vision_core.models.adapters import ConvNeXt2DKeyframeSegmenterAdapter, build_adapter, model_spec_from_mapping
+from osteo_vision_core.models.keyframe_candidates import (
     MultiScaleDepthwiseUNet2D,
     ResidualAttentionUNet2D,
 )
-from src.models.keyframe_segmenter import (
+from osteo_vision_core.models.keyframe_segmenter import (
     build_keyframe_segmenter,
     load_keyframe_segmenter_checkpoint,
 )

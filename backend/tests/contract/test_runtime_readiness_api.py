@@ -6,7 +6,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
+from backend.osteo_vision_api.api.app import create_app
 
 
 def test_ready_exposes_runtime_profile_and_config_hash(tmp_path: Path, monkeypatch) -> None:

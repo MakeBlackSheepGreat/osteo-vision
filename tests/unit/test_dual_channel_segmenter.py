@@ -16,7 +16,7 @@ from scripts.train_dual_channel_segmenter import (
     restore_optimizer_state,
     train_dual_channel,
 )
-from src.models.dual_channel_segmenter import DUAL_CHANNEL_MODES, TinyDualChannelSegmenter2D
+from osteo_vision_core.models.dual_channel_segmenter import DUAL_CHANNEL_MODES, TinyDualChannelSegmenter2D
 
 
 def test_dual_channel_segmenter_runs_all_ablation_modes() -> None:

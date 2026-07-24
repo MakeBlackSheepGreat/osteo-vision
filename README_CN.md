@@ -54,7 +54,7 @@ osteo-vision/
 ├── backend/                 FastAPI API、病例、复核、导出和三维服务
 ├── frontend/                Vue 3 + TypeScript 桌面工作站
 ├── frontend/three-d-runtime/ 独立 Vue/Vite/Three.js 三维渲染运行时
-├── src/                     推理、模型、数据、指标和导航核心库
+├── osteo_vision_core/                     推理、模型、数据、指标和导航核心库
 ├── configs/                 任务、研发运行和比赛严格运行配置
 ├── scripts/                 训练、评估、实验和启动脚本
 ├── tools/                   准入、核验、性能和证据生成工具
@@ -102,8 +102,8 @@ npm --prefix frontend/three-d-runtime run test
 ## 质量门
 
 ```powershell
-conda run -n osteo-vision python -m ruff check src backend tests scripts tools
-conda run -n osteo-vision python -m mypy src backend --hide-error-context --no-error-summary
+conda run -n osteo-vision python -m ruff check osteo_vision_core backend tests scripts tools
+conda run -n osteo-vision python -m mypy osteo_vision_core backend --hide-error-context --no-error-summary
 conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 conda run -n osteo-vision python -m pytest backend/tests
 npm --prefix frontend run typecheck

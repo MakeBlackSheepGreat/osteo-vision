@@ -12,7 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.datasets.registry import (  # noqa: E402
+from osteo_vision_core.datasets.registry import (  # noqa: E402
     DatasetRecord,
     sha256_file,
     validate_registry,

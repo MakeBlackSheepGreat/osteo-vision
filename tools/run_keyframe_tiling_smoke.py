@@ -24,11 +24,11 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.config import load_yaml, runtime_config  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.core.schemas import AdapterRequest  # noqa: E402
-from src.models.adapters import build_adapter, model_spec_from_mapping  # noqa: E402
-from src.reports.writers import write_json  # noqa: E402
+from osteo_vision_core.core.config import load_yaml, runtime_config  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.core.schemas import AdapterRequest  # noqa: E402
+from osteo_vision_core.models.adapters import build_adapter, model_spec_from_mapping  # noqa: E402
+from osteo_vision_core.reports.writers import write_json  # noqa: E402
 
 DEFAULT_CONFIG = "configs/inference/osteo_vision.yml"
 DEFAULT_MODEL_ID = "keyframe_residual_attention_unet_s20260715_20260715"

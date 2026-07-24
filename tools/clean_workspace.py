@@ -25,7 +25,7 @@ ROOT_TRANSIENT_DIRS = (
 )
 ROOT_TRANSIENT_GLOBS = (".codex_tmp*", ".pytest_tmp*", ".pytest-tmp*", "*.egg-info")
 RECURSIVE_CACHE_NAMES = ("__pycache__",)
-RECURSIVE_CACHE_ROOTS = ("src", "backend", "tests", "scripts", "tools", "app")
+RECURSIVE_CACHE_ROOTS = ("osteo_vision_core", "backend", "tests", "scripts", "tools", "app")
 TRANSIENT_FILES = ("artifacts_tavily_multimodal.json", ".coverage")
 TRANSIENT_ARTIFACT_BUCKETS = (
     "artifacts/e2e",

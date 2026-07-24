@@ -12,7 +12,7 @@ from scripts.preprocess_d024_dentvoxel import (
     write_manifest,
     write_reports,
 )
-from src.datasets.manifests import read_manifest
+from osteo_vision_core.datasets.manifests import read_manifest
 
 
 def test_filters_macos_resource_entries() -> None:

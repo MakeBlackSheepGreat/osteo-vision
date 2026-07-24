@@ -1,5 +1,9 @@
 <template>
-  <section class="three-d-evidence-control" aria-label="三维证据控制">
+  <section
+    class="three-d-evidence-control"
+    :class="`three-d-evidence-control--${presentation}`"
+    aria-label="三维证据控制"
+  >
     <input
       ref="cbctInput"
       class="three-d-evidence-control__file-input"
@@ -18,7 +22,7 @@
       @change="handleSurfaceSelection"
     />
 
-    <header class="three-d-evidence-control__header">
+    <header v-if="presentation !== 'panel'" class="three-d-evidence-control__header">
       <div>
         <span>三维证据控制</span>
         <h2>CBCT 与表面模型建模</h2>
@@ -31,7 +35,7 @@
     </header>
 
     <div class="three-d-evidence-control__layout">
-      <section class="three-d-evidence-control__section three-d-evidence-control__imports" aria-label="三维文件导入">
+      <section v-if="shows('imports')" class="three-d-evidence-control__section three-d-evidence-control__imports" aria-label="三维文件导入">
         <header>
           <div>
             <span>受控导入</span>
@@ -118,7 +122,7 @@
         <p v-if="errorMessage" class="three-d-evidence-control__error" role="alert">{{ errorMessage }}</p>
       </section>
 
-      <section class="three-d-evidence-control__section" aria-label="三维对象树">
+      <section v-if="shows('tree')" class="three-d-evidence-control__section" aria-label="三维对象树">
         <header>
           <div>
             <span>病例对象树</span>
@@ -138,7 +142,7 @@
         </ul>
       </section>
 
-      <section class="three-d-evidence-control__section" aria-label="三维建模检查">
+      <section v-if="shows('checks')" class="three-d-evidence-control__section" aria-label="三维建模检查">
         <header>
           <div>
             <span>建模检查</span>
@@ -157,7 +161,11 @@
         </ul>
       </section>
 
-      <section class="three-d-evidence-control__section three-d-evidence-control__safety" aria-label="三维安全边界">
+      <section
+        v-if="presentation !== 'sidebar' && shows('safety')"
+        class="three-d-evidence-control__section three-d-evidence-control__safety"
+        aria-label="三维安全边界"
+      >
         <header>
           <div>
             <span>安全边界</span>
@@ -187,6 +195,7 @@ import { abortableDelay, isAbortError } from "@/utils/abortableDelay";
 type AssetKind = "cbct" | "surface";
 type UploadStatus = "uploading" | "uploaded" | "failed";
 type ModelingStatus = "idle" | BackendJob["status"] | "segmentation_required";
+type ControlSection = "imports" | "tree" | "checks" | "safety";
 
 interface ImportedAsset {
   id: string;
@@ -219,10 +228,16 @@ interface PollingSession {
   controller: AbortController;
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   caseId: string;
   evidence?: ThreeDEvidence | null;
-}>();
+  presentation?: "standard" | "sidebar" | "panel";
+  sections?: ControlSection[];
+}>(), {
+  evidence: null,
+  presentation: "standard",
+  sections: () => [],
+});
 
 const emit = defineEmits<{
   evidencePersisted: [];
@@ -242,6 +257,10 @@ const canceling = ref(false);
 let pollingGeneration = 0;
 let pollingController: AbortController | null = null;
 let uploadGeneration = 0;
+
+function shows(section: ControlSection): boolean {
+  return props.sections.length === 0 || props.sections.includes(section);
+}
 
 const effectiveEvidence = computed(() => localEvidence.value ?? props.evidence ?? null);
 const uploading = computed(() => importedAssets.value.some((asset) => asset.uploadStatus === "uploading"));
@@ -298,8 +317,8 @@ const objectTree = computed<TreeNode[]>(() => {
     if (nodes.some((item) => item.id === id)) continue;
     nodes.push({
       id,
-      label: textValue(node.name) || textValue(node.role) || "三维证据对象",
-      detail: textValue(node.type) || "场景对象",
+      label: textValue(node.name) || sceneNodeRoleLabel(textValue(node.role)),
+      detail: sceneNodeTypeLabel(textValue(node.type)),
       status: reviewLabel(textValue(node.review_status)) || "待复核",
       tone: textValue(node.review_status) === "reviewed" ? "ready" : "guarded",
     });
@@ -349,7 +368,7 @@ const modelingChecks = computed<ModelingCheck[]>(() => {
     },
     {
       label: "坐标与配准",
-      detail: coordinateSpace ? `坐标系：${coordinateSpace}` : "坐标系待记录。",
+      detail: coordinateSpace ? `坐标系：${coordinateSpaceLabel(coordinateSpace)}` : "坐标系待记录。",
       status: registrationStatusLabel.value,
       state: navigationReady.value ? "ready" : "guarded",
     },
@@ -652,11 +671,47 @@ function reviewLabel(value: string): string {
   const labels: Record<string, string> = {
     accepted: "已接受",
     reviewed: "已复核",
+    recorded: "已记录",
     review_required: "待复核",
     not_reviewed: "未复核",
     pending: "待复核",
+    public_dataset_annotation_not_case_reviewed: "公开标注待复核",
+    public_dataset_annotation_not_case_accepted: "公开标注待接受",
   };
-  return labels[value.toLowerCase()] || value;
+  return labels[value.toLowerCase()] || "状态待确认";
+}
+
+function sceneNodeTypeLabel(value: string): string {
+  const labels: Record<string, string> = {
+    volume: "体数据",
+    model: "表面模型",
+    segmentation: "分割结果",
+    markup: "复核标注",
+    transform: "坐标变换",
+  };
+  return labels[value.toLowerCase()] || "场景对象";
+}
+
+function sceneNodeRoleLabel(value: string): string {
+  const labels: Record<string, string> = {
+    uploaded_surface_reference: "上传表面参考模型",
+    cbct_volume: "CBCT 体数据",
+    segmentation_surface: "分割表面模型",
+    review_markup: "医生复核标注",
+  };
+  return labels[value.toLowerCase()] || "三维证据对象";
+}
+
+function coordinateSpaceLabel(value: string): string {
+  const labels: Record<string, string> = {
+    uploaded_surface_file_space: "上传表面模型坐标系",
+    cbct_lps_mm: "CBCT LPS 毫米坐标系",
+    phantom_reference_mm: "仿体参考毫米坐标系",
+    three_d_reference_panel: "三维参考面板坐标系",
+    video_keyframe_reference: "视频关键帧参考坐标系",
+    camera_optical: "相机光学坐标系",
+  };
+  return labels[value.toLowerCase()] || "已记录坐标系";
 }
 
 function asBoolean(value: unknown): boolean {
@@ -684,6 +739,10 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 
 <style scoped>
 .three-d-evidence-control {
+  --three-d-title-size: 18px;
+  --three-d-section-size: 15px;
+  --three-d-body-size: 13px;
+  --three-d-meta-size: 12px;
   width: min(100%, var(--ov-content-wide));
   margin: 0 auto;
   border-top: 1px solid var(--ov-border);
@@ -719,22 +778,31 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
   min-width: 0;
 }
 
+.three-d-evidence-control__section > header > div {
+  display: grid;
+  gap: 2px;
+}
+
 .three-d-evidence-control__header span,
 .three-d-evidence-control__section header span,
 .three-d-evidence-control__section header small,
 .three-d-evidence-control__header p {
   margin: 0;
   color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: var(--three-d-meta-size);
+  line-height: 1.45;
 }
 
 .three-d-evidence-control__header h2,
 .three-d-evidence-control__section header strong {
   margin: 3px 0 4px;
   color: var(--ov-text);
-  font-size: 16px;
+  font-size: var(--three-d-section-size);
   line-height: 1.35;
+}
+
+.three-d-evidence-control__header h2 {
+  font-size: var(--three-d-title-size);
 }
 
 .three-d-evidence-control__status {
@@ -748,7 +816,7 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 
 .three-d-evidence-control__status strong {
   color: var(--ov-text);
-  font-size: 14px;
+  font-size: var(--three-d-section-size);
   line-height: 1.35;
 }
 
@@ -792,13 +860,21 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__asset-list li,
 .three-d-evidence-control__tree li,
 .three-d-evidence-control__checks li {
-  display: flex;
+  display: grid;
   gap: 8px;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   min-width: 0;
   padding: 8px 0;
   border-bottom: 1px solid var(--ov-border-subtle);
+}
+
+.three-d-evidence-control__asset-list li,
+.three-d-evidence-control__checks li {
+  grid-template-columns: minmax(0, 1fr) minmax(84px, 112px);
+}
+
+.three-d-evidence-control__tree li {
+  grid-template-columns: 10px minmax(0, 1fr) minmax(84px, 112px);
 }
 
 .three-d-evidence-control__asset-list li > div,
@@ -813,8 +889,9 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__tree strong,
 .three-d-evidence-control__checks strong {
   color: var(--ov-text);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--three-d-body-size);
+  font-weight: 700;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
@@ -824,21 +901,20 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__empty,
 .three-d-evidence-control__job-message {
   color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: var(--three-d-meta-size);
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .three-d-evidence-control__asset-list span,
 .three-d-evidence-control__tree em,
 .three-d-evidence-control__checks b {
-  flex: 0 1 auto;
   color: var(--ov-text-secondary);
-  font-size: 11px;
+  font-size: var(--three-d-meta-size);
   font-style: normal;
   font-weight: 700;
-  line-height: 1.45;
-  text-align: right;
+  line-height: 1.35;
+  text-align: end;
   overflow-wrap: anywhere;
 }
 
@@ -850,7 +926,6 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__tree li > span {
   width: 8px;
   height: 8px;
-  margin-top: 5px;
   border-radius: 50%;
   background: var(--ov-border-strong);
 }
@@ -862,7 +937,7 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
   display: grid;
   gap: 5px;
   color: var(--ov-text-secondary);
-  font-size: 12px;
+  font-size: var(--three-d-meta-size);
   font-weight: 700;
 }
 
@@ -875,6 +950,7 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
   color: var(--ov-text);
   background: var(--ov-bg-control);
   font: inherit;
+  font-size: var(--three-d-body-size);
 }
 
 .three-d-evidence-control__job-message,
@@ -913,6 +989,82 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__safety dt { color: var(--ov-text-muted); }
 .three-d-evidence-control__safety dd { color: var(--ov-text); font-weight: 700; }
 .three-d-evidence-control__safety p { color: var(--ov-warning-text); font-size: 12px; line-height: 1.62; overflow-wrap: anywhere; }
+
+.three-d-evidence-control--sidebar {
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ov-border);
+  border-radius: var(--ov-radius-surface);
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__header {
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__header h2 {
+  font-size: 17px;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__header p {
+  max-width: 38ch;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__status {
+  flex-basis: min(132px, 38%);
+  padding: 7px 8px;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__layout {
+  grid-template-columns: 1fr;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__section {
+  gap: 10px;
+  padding: 14px 16px;
+  border-right: 0;
+  border-bottom: 1px solid var(--ov-border-subtle);
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__section:last-child {
+  border-bottom: 0;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__section > header small {
+  text-align: left;
+}
+
+.three-d-evidence-control--sidebar .three-d-evidence-control__asset-list li,
+.three-d-evidence-control--sidebar .three-d-evidence-control__tree li,
+.three-d-evidence-control--sidebar .three-d-evidence-control__checks li {
+  padding: 7px 0;
+}
+
+.three-d-evidence-control--panel {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.three-d-evidence-control--panel .three-d-evidence-control__layout {
+  display: block;
+  height: 100%;
+}
+
+.three-d-evidence-control--panel .three-d-evidence-control__section {
+  height: 100%;
+  padding: 14px;
+  border: 0;
+}
+
+.three-d-evidence-control--panel .three-d-evidence-control__section > header small {
+  text-align: left;
+}
 
 @media (max-width: 1380px) {
   .three-d-evidence-control__layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }

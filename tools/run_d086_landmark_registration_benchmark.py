@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.navigation import RigidRegistrationError, register_rigid_points  # noqa: E402
+from osteo_vision_core.navigation import RigidRegistrationError, register_rigid_points  # noqa: E402
 
 DEFAULT_ZIP = (
     ROOT / "research/datasets/public-candidates/navigation_cbct_stl_audit_20260718/"

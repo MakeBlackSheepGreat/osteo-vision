@@ -7,14 +7,14 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from backend.src.domains.annotations.enums import AnnotationReviewDecision
-from backend.src.domains.annotations.repository import AnnotationRepository
-from backend.src.domains.annotations.schemas import AnnotationCreateRequest, AnnotationGeometry, AnnotationSourceRequest
-from backend.src.domains.cases.enums import ReviewerRole, ReviewState
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord, ReviewActorIdentity
-from backend.src.services.manual_annotation_service import AnnotationValidationError, ManualAnnotationService
-from backend.src.services.review_service import ReviewService
+from backend.osteo_vision_api.domains.annotations.enums import AnnotationReviewDecision
+from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
+from backend.osteo_vision_api.domains.annotations.schemas import AnnotationCreateRequest, AnnotationGeometry, AnnotationSourceRequest
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole, ReviewState
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord, ReviewActorIdentity
+from backend.osteo_vision_api.services.manual_annotation_service import AnnotationValidationError, ManualAnnotationService
+from backend.osteo_vision_api.services.review_service import ReviewService
 
 
 def _physician(actor_id: str = "doctor-ignore") -> ReviewActorIdentity:

@@ -9,10 +9,10 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.components.status_panels import result_markdown, warning_markdown
-from src.core.config import load_yaml
-from src.core.paths import artifact_dirs
-from src.engine.inference import MedicalImagingInferenceService
-from src.preprocess.fluorescence import fuse_white_light_fluorescence
+from osteo_vision_core.core.config import load_yaml
+from osteo_vision_core.core.paths import artifact_dirs
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService
+from osteo_vision_core.preprocess.fluorescence import fuse_white_light_fluorescence
 
 DEFAULT_CONFIG = "configs/inference/osteo_vision.yml"
 

@@ -9,18 +9,18 @@ import pytest
 import torch
 from PIL import Image
 
-from backend.src.domains.cases.enums import InputChannel
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord, InputCreateRequest
-from backend.src.services import analysis_service as analysis_service_module
-from backend.src.services.analysis_service import (
+from backend.osteo_vision_api.domains.cases.enums import InputChannel
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord, InputCreateRequest
+from backend.osteo_vision_api.services import analysis_service as analysis_service_module
+from backend.osteo_vision_api.services.analysis_service import (
     AnalysisService,
     _analyze_keyframe_segmentations,
     _apply_live_frame_age_gate,
     _browser_frame_capture_report,
 )
-from backend.src.services.input_service import InputService
-from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D
+from backend.osteo_vision_api.services.input_service import InputService
+from osteo_vision_core.models.keyframe_segmenter import TinyKeyframeSegmenter2D
 
 
 def _write_no_fallback_runtime_config(tmp_path: Path) -> Path:
@@ -466,7 +466,7 @@ def test_analysis_service_runs_bounded_live_stream_keyframes(tmp_path: Path, mon
             ],
         }
 
-    monkeypatch.setattr("backend.src.services.analysis_service.capture_live_keyframes", fake_capture)
+    monkeypatch.setattr("backend.osteo_vision_api.services.analysis_service.capture_live_keyframes", fake_capture)
     write_counts = {"segmentation": 0, "details": 0}
     original_segmentation_writer = analysis_service_module._write_video_segmentation_outputs
     original_details_writer = analysis_service_module._write_video_frame_details_manifest
@@ -622,7 +622,7 @@ def test_realtime_analysis_fails_when_all_results_are_stale(tmp_path: Path, monk
             ],
         }
 
-    monkeypatch.setattr("backend.src.services.analysis_service.capture_live_keyframes", fake_capture)
+    monkeypatch.setattr("backend.osteo_vision_api.services.analysis_service.capture_live_keyframes", fake_capture)
     repo = JsonCaseRepository(tmp_path / "cases.json")
     case = CaseRecord(case_id="case_stale_stream", title="stale stream")
     repo.create(case)
@@ -657,7 +657,7 @@ def test_realtime_exception_is_persisted_as_failed_run(tmp_path: Path, monkeypat
     def failed_capture(*_args, **_kwargs):
         raise OSError("capture write failed")
 
-    monkeypatch.setattr("backend.src.services.analysis_service.capture_live_keyframes", failed_capture)
+    monkeypatch.setattr("backend.osteo_vision_api.services.analysis_service.capture_live_keyframes", failed_capture)
     repo = JsonCaseRepository(tmp_path / "cases.json")
     case = CaseRecord(case_id="case_failed_stream", title="failed stream")
     repo.create(case)

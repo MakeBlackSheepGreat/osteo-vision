@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.navigation.offline_pose_replay import (
+from osteo_vision_core.navigation.offline_pose_replay import (
     DYNAMIC_AR_MODE,
     MAX_PROJECTION_POINT_COUNT,
     POSE_ONLY_MODE,

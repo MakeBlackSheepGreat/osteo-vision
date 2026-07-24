@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from scripts.evaluate_d025_proxy_model import evaluate_checkpoint
-from src.models.lesion_segmenter import TinyLesionSegmenter3D
+from osteo_vision_core.models.lesion_segmenter import TinyLesionSegmenter3D
 
 
 def test_d025_proxy_evaluation_writes_reports_and_failure_previews(tmp_path: Path) -> None:

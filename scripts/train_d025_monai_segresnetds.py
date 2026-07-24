@@ -27,9 +27,9 @@ from scripts.evaluate_d025_proxy_model import (
     _write_failure_previews,
     _write_threshold_csv,
 )
-from src.core.paths import ensure_dir, project_root, resolve_path
-from src.models.lesion_segmenter import checkpoint_sha256, load_npz_image, load_npz_label, select_torch_device
-from src.reports.writers import write_json
+from osteo_vision_core.core.paths import ensure_dir, project_root, resolve_path
+from osteo_vision_core.models.lesion_segmenter import checkpoint_sha256, load_npz_image, load_npz_label, select_torch_device
+from osteo_vision_core.reports.writers import write_json
 
 DEFAULT_MANIFEST = (
     "research/datasets/public-candidates/d025_lesion_cbct/derived/local_preprocessed/lesion_roi_64/"

@@ -40,7 +40,7 @@ flowchart LR
 
 ### 3.2 FastAPI 接口层
 
-`backend/src/api/` 负责 HTTP 契约、输入验证、身份上下文、状态码、文件流和服务编排。接口层将医学处理交给应用服务，并通过 `/health`、`/ready` 和 OpenAPI 暴露运行状态。
+`backend/osteo_vision_api/api/` 负责 HTTP 契约、输入验证、身份上下文、状态码、文件流和服务编排。接口层将医学处理交给应用服务，并通过 `/health`、`/ready` 和 OpenAPI 暴露运行状态。
 
 主要接口族覆盖：
 
@@ -52,23 +52,23 @@ flowchart LR
 
 ### 3.3 应用服务层
 
-`backend/src/services/` 负责病例工作流与证据落盘。分析服务复用 `src/` 的模型 adapter 和预处理能力；任务服务控制同病例并发，连续帧由前端等待上一请求完成后继续，避免无界请求积压。
+`backend/osteo_vision_api/services/` 负责病例工作流与证据落盘。分析服务复用 `osteo_vision_core/` 的模型 adapter 和预处理能力；任务服务控制同病例并发，连续帧由前端等待上一请求完成后继续，避免无界请求积压。
 
 病例与标注使用 SQLite repository。任务状态和证据文件写入 `artifacts/`。路径、哈希、schema version、模型 ID、阈值、回退原因和医生复核状态随结果保存。
 
 ### 3.4 核心算法层
 
-`src/` 提供可独立测试的核心能力：
+`osteo_vision_core/` 提供可独立测试的核心能力：
 
 | 模块 | 职责 |
 |---|---|
-| `src/io/` | JPEG、MP4、DICOM、NIfTI、流输入和官方格式质控 |
-| `src/preprocess/` | 配准、荧光处理、视频抽帧、质量评估、ROI 和 mask 后处理 |
-| `src/models/` | adapter、关键帧分割、患者条件、骨活性和模型晋级 |
-| `src/datasets/` | 来源清单、患者级切分、训练准入和泄漏检查 |
-| `src/metrics/` | 分割、校准、亚组、安全和性能指标 |
-| `src/navigation/` | 坐标契约、刚体配准、相机投影和离线位姿回放 |
-| `src/engine/` | 通用推理、实验和 benchmark 编排 |
+| `osteo_vision_core/io/` | JPEG、MP4、DICOM、NIfTI、流输入和官方格式质控 |
+| `osteo_vision_core/preprocess/` | 配准、荧光处理、视频抽帧、质量评估、ROI 和 mask 后处理 |
+| `osteo_vision_core/models/` | adapter、关键帧分割、患者条件、骨活性和模型晋级 |
+| `osteo_vision_core/datasets/` | 来源清单、患者级切分、训练准入和泄漏检查 |
+| `osteo_vision_core/metrics/` | 分割、校准、亚组、安全和性能指标 |
+| `osteo_vision_core/navigation/` | 坐标契约、刚体配准、相机投影和离线位姿回放 |
+| `osteo_vision_core/engine/` | 通用推理、实验和 benchmark 编排 |
 
 ## 4. 三条影像分析路径
 

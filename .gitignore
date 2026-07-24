@@ -77,13 +77,10 @@ configs/paths.local.yml
 *.private.pem
 promotion-private-keys/
 data/
-tmp/
 temp_cache/
 temp_*.txt
 *.tmp
 *.log
-output/
-outputs/
 artifacts_tavily_multimodal.json
 artifacts/runtime_logs/
 *.db

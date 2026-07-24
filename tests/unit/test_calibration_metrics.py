@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.metrics.calibration import (
+from osteo_vision_core.metrics.calibration import (
     binary_brier_score,
     expected_calibration_error,
     fit_binary_temperature,

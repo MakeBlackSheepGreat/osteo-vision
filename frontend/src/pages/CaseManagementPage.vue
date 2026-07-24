@@ -237,18 +237,22 @@ async function loadCase() {
 
 .management-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 0.75fr) minmax(0, 1.25fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 20px;
-  align-items: start;
+  min-height: clamp(660px, calc(100dvh - 220px), 860px);
+  align-items: stretch;
 }
 
 .management-card {
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 20px;
   background: var(--ov-bg-elevated);
   box-shadow: var(--ov-shadow);
+  overflow: auto;
 }
 
 .management-card :deep(.ov-section-heading) {

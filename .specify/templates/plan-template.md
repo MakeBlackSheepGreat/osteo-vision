@@ -85,7 +85,7 @@ specs/[###-feature]/
 
 ```text
 # [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
+osteo_vision_core/
 ├── models/
 ├── services/
 ├── cli/
@@ -98,14 +98,14 @@ tests/
 
 # [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
-├── src/
+├── osteo_vision_core/
 │   ├── models/
 │   ├── services/
 │   └── api/
 └── tests/
 
 frontend/
-├── src/
+├── osteo_vision_core/
 │   ├── components/
 │   ├── pages/
 │   └── services/

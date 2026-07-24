@@ -15,9 +15,9 @@ import numpy as np
 from scipy import ndimage as ndi
 
 from scripts.preprocess_public_cbct_datasets import build_dolchid_cases, build_toothfairy2_cases
-from src.core.paths import ensure_dir
-from src.datasets.manifests import read_manifest
-from src.reports.writers import write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.datasets.manifests import read_manifest
+from osteo_vision_core.reports.writers import write_json
 
 PROJECT_DATASET_ROOT = Path("research/datasets/public-candidates")
 ARCHIVE_DATASET_ROOT = Path("D:/projects/osteo-vision/research/datasets/public-candidates")

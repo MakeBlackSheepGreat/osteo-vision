@@ -27,8 +27,8 @@ from scripts.benchmark_public_cbct_segmentation_models import (
     build_segmentation_loss,
     combined_model_catalog,
 )
-from src.core.paths import ensure_dir
-from src.reports.writers import write_csv, write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.reports.writers import write_csv, write_json
 
 PROJECT_DATASET_ROOT = Path("research/datasets/public-candidates")
 ARCHIVE_DATASET_ROOT = Path("D:/projects/osteo-vision/research/datasets/public-candidates")

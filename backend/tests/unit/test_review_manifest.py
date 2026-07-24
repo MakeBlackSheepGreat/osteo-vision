@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from backend.src.domains.cases.enums import RegionSource, ReviewerRole, ReviewState
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.domains.cases.enums import RegionSource, ReviewerRole, ReviewState
+from backend.osteo_vision_api.domains.cases.schemas import (
     AnalysisRun,
     CandidateRegion,
     CaseRecord,
     RegionOfInterest,
     ReviewEvent,
 )
-from backend.src.services.review_manifest import build_review_manifest
+from backend.osteo_vision_api.services.review_manifest import build_review_manifest
 
 
 def test_review_manifest_keeps_training_feedback_fields() -> None:

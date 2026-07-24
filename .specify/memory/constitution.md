@@ -99,8 +99,8 @@ credible presentation.
 - Temporary demo layer: Gradio is allowed for rapid competition demos and
   smoke-testable platform workflows, but it is not the long-term frontend architecture.
 - Core entry boundaries: `configs/tasks/osteo_vision.yml`,
-  `configs/inference/osteo_vision.yml`, `src/models/adapters.py`,
-  `src/pipelines/`, `src/preprocess/`, and `src/reports/`.
+  `configs/inference/osteo_vision.yml`, `osteo_vision_core/models/adapters.py`,
+  `osteo_vision_core/pipelines/`, `osteo_vision_core/preprocess/`, and `osteo_vision_core/reports/`.
 - Report archive: long-lived planning, preprocessing, modeling, and experiment
   reports belong under `research/reports/`.
 
@@ -111,7 +111,7 @@ credible presentation.
 2. A feature plan MUST pass the Constitution Check before implementation begins
    and again after design work changes the scope or architecture.
 3. New preprocessing, model integration, pipeline, metric, configuration, or
-   competition work MUST read and follow the matching `.rules/skill-*.md` file.
+   competition work MUST read and follow the matching `.agents/rules/skill-*.md` file.
 4. New shared interfaces MUST include tests or a written exception in the plan.
 5. Reports generated for formal research or competition evidence SHOULD be
    bilingual Markdown files using `_zh.md` and `_en.md` suffixes when practical.
@@ -120,7 +120,7 @@ credible presentation.
 
 ## Governance
 This constitution supersedes local habits and informal project decisions when
-they conflict. `AGENTS.md`, `.rules/`, feature specs, implementation plans, and
+they conflict. `AGENTS.md`, `.agents/rules/`, feature specs, implementation plans, and
 reports MUST align with this document.
 
 Amendments require a documented change to `.specify/memory/constitution.md`, a

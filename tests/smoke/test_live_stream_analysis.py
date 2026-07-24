@@ -6,9 +6,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import CaseRecord
-from backend.src.services.analysis_service import AnalysisService
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord
+from backend.osteo_vision_api.services.analysis_service import AnalysisService
 
 
 def test_local_stream_runs_bounded_capture_and_keyframe_analysis(tmp_path: Path, monkeypatch) -> None:

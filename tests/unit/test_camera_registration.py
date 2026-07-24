@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import pytest
 
-from src.navigation.camera_registration import (
+from osteo_vision_core.navigation.camera_registration import (
     CameraRegistrationError,
     compose_transforms,
     export_camera_transform,

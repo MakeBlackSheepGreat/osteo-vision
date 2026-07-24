@@ -5,9 +5,9 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from backend.src.core.settings import Settings
-from backend.src.services import cbct_modeling_service
-from backend.src.services.cbct_modeling_service import CbctVolumeGeometry, build_cbct_surface_model
+from backend.osteo_vision_api.core.settings import Settings
+from backend.osteo_vision_api.services import cbct_modeling_service
+from backend.osteo_vision_api.services.cbct_modeling_service import CbctVolumeGeometry, build_cbct_surface_model
 
 
 def test_build_cbct_surface_model_exports_nifti_label(tmp_path: Path) -> None:

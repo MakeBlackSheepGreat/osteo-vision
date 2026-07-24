@@ -19,7 +19,7 @@ from scripts.preprocess_d024_dentvoxel import (
     build_case_pairs,
     load_dataset_metadata,
 )
-from src.datasets.d024 import build_fold_splits, build_nnunet_dataset_json, d024_task_spec, remap_label_array
+from osteo_vision_core.datasets.d024 import build_fold_splits, build_nnunet_dataset_json, d024_task_spec, remap_label_array
 
 DEFAULT_NNUNET_ROOT = DEFAULT_DATASET_DIR / "derived" / "nnunet"
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")

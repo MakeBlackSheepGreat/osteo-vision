@@ -22,10 +22,10 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.models.video_signal_masks import save_video_signal_maps  # noqa: E402
-from src.preprocess.fluorescence import enhance_fluorescence_signal  # noqa: E402
-from src.reports.writers import write_csv, write_json  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.models.video_signal_masks import save_video_signal_maps  # noqa: E402
+from osteo_vision_core.preprocess.fluorescence import enhance_fluorescence_signal  # noqa: E402
+from osteo_vision_core.reports.writers import write_csv, write_json  # noqa: E402
 
 BOUNDARY_NOTE = (
     "D046 public/proxy videos and pseudo masks are for video-signal segmentation plumbing, "

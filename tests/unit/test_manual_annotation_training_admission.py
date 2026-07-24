@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.datasets.registry import sha256_file
-from src.datasets.training_admission import (
+from osteo_vision_core.datasets.registry import sha256_file
+from osteo_vision_core.datasets.training_admission import (
     MANUAL_ANNOTATION_ROLE,
     TrainingAdmissionError,
     admit_manual_annotation_training_rows,

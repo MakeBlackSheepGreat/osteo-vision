@@ -47,7 +47,7 @@ The verified local data inventory currently covers 15 manifests, 47 records, 138
 backend/           FastAPI API and application services
 frontend/          Vue 3 and TypeScript desktop workstation
 frontend/three-d-runtime/ independent Vue/Vite/Three.js rendering runtime
-src/               inference, models, datasets, metrics, and navigation core
+osteo_vision_core/               inference, models, datasets, metrics, and navigation core
 configs/           task, development, and competition-strict runtime profiles
 scripts/           training, evaluation, experiment, and launch scripts
 tools/             admission, verification, performance, and evidence tools
@@ -93,8 +93,8 @@ The primary platform retains case workflows, CBCT/STL modeling, L1/L2 evidence, 
 ## Quality Gates
 
 ```powershell
-conda run -n osteo-vision python -m ruff check src backend tests scripts tools
-conda run -n osteo-vision python -m mypy src backend --hide-error-context --no-error-summary
+conda run -n osteo-vision python -m ruff check osteo_vision_core backend tests scripts tools
+conda run -n osteo-vision python -m mypy osteo_vision_core backend --hide-error-context --no-error-summary
 conda run -n osteo-vision python -m pytest tests/unit tests/smoke
 conda run -n osteo-vision python -m pytest backend/tests
 npm --prefix frontend run typecheck

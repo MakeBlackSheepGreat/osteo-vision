@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.datasets.domain_adaptation import (
+from osteo_vision_core.datasets.domain_adaptation import (
     augment_microscope_image,
     canonical_domain_tier,
     load_domain_adaptation_config,

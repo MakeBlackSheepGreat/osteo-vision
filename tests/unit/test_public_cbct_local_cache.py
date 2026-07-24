@@ -11,7 +11,7 @@ from scripts.build_public_cbct_local_training_cache import (
     write_cache_manifest,
     write_npz_cache,
 )
-from src.datasets.manifests import read_manifest
+from osteo_vision_core.datasets.manifests import read_manifest
 
 
 def test_parse_target_shape_accepts_common_formats() -> None:

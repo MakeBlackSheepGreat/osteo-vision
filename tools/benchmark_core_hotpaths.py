@@ -17,10 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.src.services.job_service import JobRegistry  # noqa: E402
-from src.models.hotspot_segmenter import connected_hotspot_candidates  # noqa: E402
-from src.navigation.offline_pose_replay import _nearest_sorted_indices  # noqa: E402
-from src.preprocess.video import _frame_quality  # noqa: E402
+from backend.osteo_vision_api.services.job_service import JobRegistry  # noqa: E402
+from osteo_vision_core.models.hotspot_segmenter import connected_hotspot_candidates  # noqa: E402
+from osteo_vision_core.navigation.offline_pose_replay import _nearest_sorted_indices  # noqa: E402
+from osteo_vision_core.preprocess.video import _frame_quality  # noqa: E402
 
 
 def _elapsed_ms(operation: Callable[[], Any], *, repeats: int) -> float:

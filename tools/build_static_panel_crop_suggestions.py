@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.datasets.static_panel_detection import (  # noqa: E402
+from osteo_vision_core.datasets.static_panel_detection import (  # noqa: E402
     DETECTOR_VERSION,
     crop_quality_warnings,
     detect_panel_crop_suggestions,

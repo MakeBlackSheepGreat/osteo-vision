@@ -12,17 +12,17 @@ import pytest
 import torch
 from PIL import Image
 
-from src.core.clinical_context_verification import CLINICAL_CONTEXT_VERIFICATION_VALIDITY_HOURS
-from src.core.schemas import AdapterRequest
-from src.models.adapters import BaseModelAdapter, build_adapters, select_adapter
-from src.models.clinical_feature_vector import (
+from osteo_vision_core.core.clinical_context_verification import CLINICAL_CONTEXT_VERIFICATION_VALIDITY_HOURS
+from osteo_vision_core.core.schemas import AdapterRequest
+from osteo_vision_core.models.adapters import BaseModelAdapter, build_adapters, select_adapter
+from osteo_vision_core.models.clinical_feature_vector import (
     DEFAULT_CLINICAL_FEATURE_NAMES,
     build_clinical_feature_encoder_contract,
     build_clinical_feature_vector,
     compute_clinical_context_assessment_checksum,
 )
-from src.models.patient_conditioned_runtime import PATIENT_CONDITIONING_METADATA_CONTRACT
-from src.models.patient_conditioned_segmenter import TinyPatientConditionedSegmenter2D
+from osteo_vision_core.models.patient_conditioned_runtime import PATIENT_CONDITIONING_METADATA_CONTRACT
+from osteo_vision_core.models.patient_conditioned_segmenter import TinyPatientConditionedSegmenter2D
 
 FEATURE_NAMES = [
     "age_years",

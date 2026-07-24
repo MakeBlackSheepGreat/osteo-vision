@@ -23,8 +23,8 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from scripts.benchmark_d024_frontier_segmentation_models import frontier_model_catalog
 from scripts.benchmark_d024_segmentation_models import ModelCandidate, _primary_output
 from scripts.benchmark_d024_segmentation_models import model_catalog as monai_model_catalog
-from src.core.paths import ensure_dir
-from src.reports.writers import write_csv, write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.reports.writers import write_csv, write_json
 
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/public_cbct_segmentation_benchmark")
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.datasets.group_splits import assert_no_group_leakage, assign_group_split, group_leakage_report
+from osteo_vision_core.datasets.group_splits import assert_no_group_leakage, assign_group_split, group_leakage_report
 
 
 def test_assign_group_split_keeps_frames_from_one_video_together() -> None:

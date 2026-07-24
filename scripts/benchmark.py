@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.engine.benchmark import evaluate_manifest
+from osteo_vision_core.engine.benchmark import evaluate_manifest
 
 
 def main() -> int:

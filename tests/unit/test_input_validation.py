@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from src.io.content_probe import probe_file_signature, signature_matches_upload_suffix
-from src.preprocess.input_validation import detect_input_type, validate_input
+from osteo_vision_core.io.content_probe import probe_file_signature, signature_matches_upload_suffix
+from osteo_vision_core.preprocess.input_validation import detect_input_type, validate_input
 
 
 def test_detects_supported_inputs(fixture_dir) -> None:

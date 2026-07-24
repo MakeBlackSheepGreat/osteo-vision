@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.navigation.ocamcalib import OcamCalibError, OcamCalibPolynomialV1
+from osteo_vision_core.navigation.ocamcalib import OcamCalibError, OcamCalibPolynomialV1
 
 
 def _c3vd_calibration() -> OcamCalibPolynomialV1:

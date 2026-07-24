@@ -6,8 +6,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D, predict_keyframe_image
-from src.models.video_signal_masks import risk_from_signal
+from osteo_vision_core.models.keyframe_segmenter import TinyKeyframeSegmenter2D, predict_keyframe_image
+from osteo_vision_core.models.video_signal_masks import risk_from_signal
 from tools.run_keyframe_live_fast_output_gate import (
     _latency_summary,
     _protocol_comparison,
@@ -39,6 +39,8 @@ def test_live_fast_output_keeps_renderable_masks_and_uses_jpeg_overlay(tmp_path:
     assert evidence["probability_path"] is None
     assert evidence["uncertainty_path"] is None
     assert evidence["pseudo_color_path"] is None
+    assert result["signal_masks"]["bone_activity_spectrum"]["activity_score"]["available"] is False
+    assert not list((tmp_path / "outputs").glob("*_activity_score.png"))
     assert result["quantification"]["inference"]["output_profile"] == "live_fast"
     for path in (
         result["segmentation_mask"]["path"],

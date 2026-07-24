@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from src.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
+from osteo_vision_core.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
 from tools.run_static_dual_channel_stress import run_static_dual_channel_stress
 
 

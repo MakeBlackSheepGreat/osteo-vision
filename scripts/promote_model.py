@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.experiments.promotion import write_promotion_draft
+from osteo_vision_core.experiments.promotion import write_promotion_draft
 
 
 def main() -> int:

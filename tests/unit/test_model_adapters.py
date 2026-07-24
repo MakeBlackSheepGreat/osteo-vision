@@ -6,10 +6,10 @@ import numpy as np
 import torch
 from PIL import Image
 
-from src.core.schemas import AdapterRequest
-from src.models.adapters import build_adapters, inventory_from_adapters, select_adapter
-from src.models.keyframe_segmenter import TinyKeyframeSegmenter2D
-from src.models.lesion_segmenter import TinyLesionSegmenter3D
+from osteo_vision_core.core.schemas import AdapterRequest
+from osteo_vision_core.models.adapters import build_adapters, inventory_from_adapters, select_adapter
+from osteo_vision_core.models.keyframe_segmenter import TinyKeyframeSegmenter2D
+from osteo_vision_core.models.lesion_segmenter import TinyLesionSegmenter3D
 
 
 def test_build_adapters_omits_fixture_when_runtime_disables_it() -> None:
@@ -292,7 +292,7 @@ def test_convnext2d_keyframe_segmenter_predicts_2d_image(tmp_path: Path) -> None
 
 
 def test_dual_channel_segmenter_adapter_predicts_pair(tmp_path: Path) -> None:
-    from src.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
+    from osteo_vision_core.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
 
     checkpoint_path = tmp_path / "dual.pt"
     model = TinyDualChannelSegmenter2D(base_channels=2)
@@ -338,7 +338,7 @@ def test_dual_channel_segmenter_adapter_predicts_pair(tmp_path: Path) -> None:
 
 
 def test_runtime_allowed_false_blocks_dual_channel_execution(tmp_path: Path) -> None:
-    from src.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
+    from osteo_vision_core.models.dual_channel_segmenter import TinyDualChannelSegmenter2D
 
     checkpoint_path = tmp_path / "dual.pt"
     model = TinyDualChannelSegmenter2D(base_channels=2)
@@ -419,7 +419,7 @@ def test_candidate_only_adapter_requires_explicit_selection() -> None:
 
 
 def test_video_signal_multimask_adapter_outputs_review_required_bone_gate(tmp_path: Path) -> None:
-    from src.models.video_signal_multimask import VideoSignalMultiMask2D
+    from osteo_vision_core.models.video_signal_multimask import VideoSignalMultiMask2D
 
     checkpoint_path = tmp_path / "multimask.pt"
     model = VideoSignalMultiMask2D(base_channels=2)

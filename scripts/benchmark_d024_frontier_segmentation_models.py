@@ -28,8 +28,8 @@ from scripts.benchmark_d024_segmentation_models import (
     write_results_csv,
 )
 from scripts.convert_d024_to_nnunet import DEFAULT_NNUNET_ROOT
-from src.core.paths import ensure_dir
-from src.reports.writers import write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.reports.writers import write_json
 
 DEFAULT_OUTPUT_ROOT = Path("artifacts/runs/d024_frontier_segmentation_model_benchmark")
 DEFAULT_REPORT_DIR = Path("research/reports/modeling")

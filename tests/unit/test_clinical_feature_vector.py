@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-from src.models.clinical_feature_vector import (
+from osteo_vision_core.models.clinical_feature_vector import (
     DEFAULT_CLINICAL_FEATURE_NAMES,
     SUPPORTED_CLINICAL_FEATURE_NAMES,
     attach_runtime_consumption,

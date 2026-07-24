@@ -20,13 +20,13 @@ evidence_files:
   - research/reports/modeling/bone_activity_multitask_d074_proxy_20260719.json
   - research/datasets/public-candidates/three_priority_manifest_verification_20260719_d095.json
   - research/reports/release/v0.3.0-rc.2_20260719_zh.md
-  - backend/src/services/live_frame_service.py
-  - backend/src/services/manual_annotation_service.py
-  - backend/src/services/static_registration_service.py
-  - backend/src/services/offline_pose_replay_service.py
-  - src/models/keyframe_segmenter.py
-  - src/models/patient_conditioned_runtime.py
-  - src/models/bone_activity_runtime.py
+  - backend/osteo_vision_api/services/live_frame_service.py
+  - backend/osteo_vision_api/services/manual_annotation_service.py
+  - backend/osteo_vision_api/services/static_registration_service.py
+  - backend/osteo_vision_api/services/offline_pose_replay_service.py
+  - osteo_vision_core/models/keyframe_segmenter.py
+  - osteo_vision_core/models/patient_conditioned_runtime.py
+  - osteo_vision_core/models/bone_activity_runtime.py
   - tools/run_competition_flow_demo_check.py
   - tools/verify_three_priority_dataset_manifests.py
 local_runtime_evidence:

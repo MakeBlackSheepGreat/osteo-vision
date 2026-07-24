@@ -10,9 +10,9 @@ import nibabel as nib
 import numpy as np
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
-from backend.src.core.settings import load_settings
-from backend.src.services.job_worker import LocalJobWorker
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.core.settings import load_settings
+from backend.osteo_vision_api.services.job_worker import LocalJobWorker
 
 
 def test_case_input_and_analysis_contract(tmp_path: Path, monkeypatch) -> None:

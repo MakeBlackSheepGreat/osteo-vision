@@ -13,9 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np
 from PIL import Image
 
-from src.core.paths import ensure_dir, resolve_path
-from src.datasets.ofdvdnet import DOMAIN_BOUNDARY, OFDVDnetRecord, read_ofdvdnet_manifest, read_ofdvdnet_sample
-from src.preprocess.fluorescence import blend_pseudocolor_on_reference, enhance_fluorescence_signal
+from osteo_vision_core.core.paths import ensure_dir, resolve_path
+from osteo_vision_core.datasets.ofdvdnet import DOMAIN_BOUNDARY, OFDVDnetRecord, read_ofdvdnet_manifest, read_ofdvdnet_sample
+from osteo_vision_core.preprocess.fluorescence import blend_pseudocolor_on_reference, enhance_fluorescence_signal
 
 DEFAULT_MANIFEST = "research/literature/inventory/ofdvdnet_video_manifest_20260704.csv"
 DEFAULT_OUTPUT_DIR = (

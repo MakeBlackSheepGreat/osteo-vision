@@ -8,7 +8,7 @@ from typing import Iterable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.preprocess.cbct_roi import build_cbct_anatomy_roi
+from osteo_vision_core.preprocess.cbct_roi import build_cbct_anatomy_roi
 
 
 def _parse_ints(value: str | None) -> list[int] | None:

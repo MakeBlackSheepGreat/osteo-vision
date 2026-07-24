@@ -112,58 +112,62 @@
     </template>
 
     <template v-else>
-      <div v-if="inputMode === 'offline_manifest'" class="field-grid">
-        <label class="wide-field">
-          Pose manifest 路径
-          <input v-model="manifestPath" :disabled="busy" placeholder="artifacts/navigation/pose_replay_input.json" data-testid="pose-only-manifest-path" />
-        </label>
-        <label class="wide-field">
-          Pose manifest SHA256
-          <input v-model.trim="manifestSha256" :disabled="busy" maxlength="64" placeholder="64 位 SHA256" class="hash" data-testid="pose-only-manifest-sha256" />
-        </label>
-      </div>
-      <div v-else class="json-grid">
-        <label>
-          人工视频帧时间戳 JSON（秒）
-          <textarea v-model="frameTimestampsText" :disabled="busy" rows="4" />
-        </label>
-        <label>
-          人工位姿日志 JSON
-          <textarea v-model="posesText" :disabled="busy" rows="9" />
-        </label>
-        <label>
-          人工标定表 JSON
-          <textarea v-model="calibrationText" :disabled="busy" rows="9" />
-        </label>
-        <label>
-          工程失效注入 JSON
-          <textarea v-model="failureInjectionsText" :disabled="busy" rows="4" />
-        </label>
-      </div>
+      <details class="l2-panel__advanced">
+        <summary>展开位姿链输入与工程阈值</summary>
+        <div class="l2-panel__advanced-content">
+          <div v-if="inputMode === 'offline_manifest'" class="field-grid">
+            <label class="wide-field">
+              Pose manifest 路径
+              <input v-model="manifestPath" :disabled="busy" placeholder="artifacts/navigation/pose_replay_input.json" data-testid="pose-only-manifest-path" />
+            </label>
+            <label class="wide-field">
+              Pose manifest SHA256
+              <input v-model.trim="manifestSha256" :disabled="busy" maxlength="64" placeholder="64 位 SHA256" class="hash" data-testid="pose-only-manifest-sha256" />
+            </label>
+          </div>
+          <div v-else class="json-grid">
+            <label>
+              人工视频帧时间戳 JSON（秒）
+              <textarea v-model="frameTimestampsText" :disabled="busy" rows="4" />
+            </label>
+            <label>
+              人工位姿日志 JSON
+              <textarea v-model="posesText" :disabled="busy" rows="9" />
+            </label>
+            <label>
+              人工标定表 JSON
+              <textarea v-model="calibrationText" :disabled="busy" rows="9" />
+            </label>
+            <label>
+              工程失效注入 JSON
+              <textarea v-model="failureInjectionsText" :disabled="busy" rows="4" />
+            </label>
+          </div>
+          <div class="threshold-grid">
+            <label>
+              最大时间偏移（ms）
+              <input v-model.number="maxTimeOffsetMs" :disabled="busy" type="number" min="1" step="1" />
+            </label>
+            <label>
+              跟踪漂移阈值（mm）
+              <input v-model.number="driftThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
+            </label>
+            <label>
+              TRE 代理阈值（mm）
+              <input v-model.number="treProxyThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
+            </label>
+            <label>
+              独立动态误差阈值（mm）
+              <input v-model.number="dynamicTargetErrorThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
+            </label>
+            <label>
+              每帧最少可见投影点
+              <input v-model.number="minimumVisibleProjectionPoints" :disabled="busy" type="number" min="1" step="1" />
+            </label>
+          </div>
+        </div>
+      </details>
     </template>
-
-    <div v-if="replayMode === 'pose_only_engineering'" class="threshold-grid">
-      <label>
-        最大时间偏移（ms）
-        <input v-model.number="maxTimeOffsetMs" :disabled="busy" type="number" min="1" step="1" />
-      </label>
-      <label>
-        跟踪漂移阈值（mm）
-        <input v-model.number="driftThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
-      </label>
-      <label>
-        TRE 代理阈值（mm）
-        <input v-model.number="treProxyThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
-      </label>
-      <label>
-        独立动态误差阈值（mm）
-        <input v-model.number="dynamicTargetErrorThresholdMm" :disabled="busy" type="number" min="0.01" step="0.1" />
-      </label>
-      <label>
-        每帧最少可见投影点
-        <input v-model.number="minimumVisibleProjectionPoints" :disabled="busy" type="number" min="1" step="1" />
-      </label>
-    </div>
 
     <div class="actions">
       <button type="button" :disabled="runDisabled" :title="runDisabledReason" data-testid="run-replay" @click="runReplay">
@@ -681,10 +685,223 @@ function translated(x: number): number[][] {
 </script>
 
 <style scoped>
-.l2-panel{width:min(100%,var(--ov-content-wide));margin:0 auto 16px;display:grid;gap:12px;border:1px solid var(--ov-border);border-radius:7px;padding:14px;background:var(--ov-bg-elevated)}
-header,.actions,.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}header>div,.section-heading{display:grid;gap:3px}.section-heading small,header small,.boundary{color:var(--ov-text-muted);font-size:11px}.l1-gate{border:1px solid var(--ov-warning);border-radius:999px;padding:5px 9px;color:var(--ov-warning);font-size:11px;font-weight:900}.l1-gate.ready{border-color:var(--ov-success);color:var(--ov-success)}
-.locked-evidence,.dynamic-inputs,.approval-panel,.replay-evidence{display:grid;gap:10px;border-top:1px solid var(--ov-border-subtle);padding-top:12px}
-.mode-row,.threshold-grid,.json-grid,.field-grid,.evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.mode-row{grid-template-columns:repeat(4,minmax(0,1fr))}.json-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide-field{grid-column:span 2}.evidence-grid{margin:0}.evidence-grid>div{min-width:0;border-left:2px solid var(--ov-border);padding-left:8px}.evidence-grid dt{color:var(--ov-text-muted);font-size:10px}.evidence-grid dd{margin:3px 0 0;color:var(--ov-text);font-size:11px;font-weight:800;overflow-wrap:anywhere}
-label{display:grid;gap:4px;color:var(--ov-text-secondary);font-size:11px;font-weight:800}input,select,textarea,button{min-width:0;border:1px solid var(--ov-border-strong);border-radius:5px;padding:7px;background:var(--ov-bg-elevated);color:var(--ov-text);font:inherit;overflow-wrap:anywhere}textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}button{cursor:pointer;font-weight:800}button:disabled{cursor:not-allowed;opacity:.55}button.secondary{background:transparent}.boundary,.mode-boundary,.input-warning,.manifest-lock-note,.error{margin:0;line-height:1.5;overflow-wrap:anywhere}.mode-boundary,.input-warning{border-left:3px solid var(--ov-warning);padding:7px 9px;background:var(--ov-bg-warning);color:var(--ov-text-secondary);font-size:11px}.manifest-lock-note{color:var(--ov-text-muted);font-size:11px}.error{color:var(--ov-danger);font-size:12px}code{overflow-wrap:anywhere}
-@media(max-width:1180px){.mode-row,.threshold-grid,.json-grid,.field-grid,.evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.l2-panel {
+  width: min(100%, var(--ov-content-wide));
+  display: grid;
+  gap: 14px;
+  margin: 0 auto 16px;
+  border: 1px solid var(--ov-border);
+  border-radius: var(--ov-radius-surface);
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.l2-panel > header,
+.actions,
+.section-heading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.l2-panel > header > div,
+.section-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.l2-panel > header strong {
+  color: var(--ov-text);
+  font-size: 15px;
+}
+
+.section-heading small,
+.l2-panel > header small,
+.boundary {
+  color: var(--ov-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.l1-gate {
+  border: 1px solid var(--ov-warning);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--ov-warning);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.l1-gate.ready {
+  border-color: var(--ov-success);
+  color: var(--ov-success);
+}
+
+.locked-evidence,
+.dynamic-inputs,
+.approval-panel,
+.replay-evidence {
+  display: grid;
+  gap: 11px;
+  border-top: 1px solid var(--ov-border-subtle);
+  padding-top: 14px;
+}
+
+.mode-row,
+.threshold-grid,
+.json-grid,
+.field-grid,
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mode-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.json-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
+.evidence-grid {
+  margin: 0;
+}
+
+.evidence-grid > div {
+  min-width: 0;
+  border-left: 2px solid var(--ov-border);
+  padding-left: 9px;
+}
+
+.evidence-grid dt {
+  color: var(--ov-text-muted);
+  font-size: 11px;
+}
+
+.evidence-grid dd {
+  margin: 3px 0 0;
+  color: var(--ov-text);
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  color: var(--ov-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+  border: 1px solid var(--ov-border-strong);
+  border-radius: var(--ov-radius-control);
+  padding: 8px 9px;
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.hash {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button.secondary {
+  background: transparent;
+}
+
+.l2-panel__advanced {
+  border: 1px solid var(--ov-border-subtle);
+  border-radius: var(--ov-radius-control);
+  background: var(--ov-bg-soft);
+}
+
+.l2-panel__advanced summary {
+  cursor: pointer;
+  padding: 11px 12px;
+  color: var(--ov-primary-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.l2-panel__advanced-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+.boundary,
+.mode-boundary,
+.input-warning,
+.manifest-lock-note,
+.error {
+  margin: 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.mode-boundary,
+.input-warning {
+  border-left: 3px solid var(--ov-warning);
+  padding: 8px 10px;
+  background: var(--ov-bg-warning);
+  color: var(--ov-text-secondary);
+  font-size: 12px;
+}
+
+.manifest-lock-note {
+  color: var(--ov-text-muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--ov-danger);
+  font-size: 12px;
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .mode-row,
+  .threshold-grid,
+  .json-grid,
+  .field-grid,
+  .evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>

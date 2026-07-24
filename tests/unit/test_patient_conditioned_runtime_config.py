@@ -9,9 +9,9 @@ import numpy as np
 import yaml
 from PIL import Image
 
-from src.core.schemas import AdapterRequest
-from src.models.adapters import build_adapter, build_adapters, model_spec_from_mapping, select_adapter
-from src.models.runtime_preflight import check_runtime_readiness
+from osteo_vision_core.core.schemas import AdapterRequest
+from osteo_vision_core.models.adapters import build_adapter, build_adapters, model_spec_from_mapping, select_adapter
+from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision.yml"
@@ -166,7 +166,7 @@ def test_registered_patient_candidate_runs_hash_bound_image_only_fallback(tmp_pa
 def test_competition_strict_inventory_excludes_unpromoted_patient_candidate(monkeypatch) -> None:
     strict_runtime = _runtime(STRICT_CONFIG)
     strict_model_ids = {str(item["model_id"]) for item in strict_runtime["models"]}
-    monkeypatch.setattr("src.models.runtime_preflight.find_runtime_executable", lambda name: f"C:/tools/{name}.exe")
+    monkeypatch.setattr("osteo_vision_core.models.runtime_preflight.find_runtime_executable", lambda name: f"C:/tools/{name}.exe")
 
     report = check_runtime_readiness(STRICT_CONFIG, require_strict=True)
 
@@ -179,7 +179,7 @@ def test_competition_strict_inventory_excludes_unpromoted_patient_candidate(monk
 
 
 def test_development_runtime_readiness_keeps_candidate_out_of_required_models(monkeypatch) -> None:
-    monkeypatch.setattr("src.models.runtime_preflight.find_runtime_executable", lambda name: f"C:/tools/{name}.exe")
+    monkeypatch.setattr("osteo_vision_core.models.runtime_preflight.find_runtime_executable", lambda name: f"C:/tools/{name}.exe")
 
     report = check_runtime_readiness(DEVELOPMENT_CONFIG)
 

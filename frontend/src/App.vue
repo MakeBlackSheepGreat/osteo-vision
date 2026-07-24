@@ -13,30 +13,17 @@
         <ThemeToggle class="app-top-nav__theme" />
       </div>
     </header>
-    <RuntimeStatusBanner @blocking-change="runtimeBlocked = $event" />
-    <router-view v-if="!runtimeBlocked" />
-    <main v-else class="runtime-blocked" role="alert">
-      <AppIcon name="stop" variant="badge" tone="red" />
-      <div>
-        <strong>比赛工作流已锁定</strong>
-        <p>请使用根目录严格比赛启动入口，并确认后端运行档位、模型和配置校验全部通过。</p>
-      </div>
-    </main>
+    <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-
 import AppIcon from "@/components/AppIcon.vue";
 import AppNavPills from "@/components/AppNavPills.vue";
-import RuntimeStatusBanner from "@/components/RuntimeStatusBanner.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { initializeTheme } from "@/composables/useTheme";
 
 initializeTheme();
-
-const runtimeBlocked = ref(import.meta.env.VITE_OSTEO_EXPECT_STRICT_RUNTIME === "true");
 
 const navItems = [
   { to: "/intake", label: "数据准入", icon: "upload" as const },
@@ -48,6 +35,7 @@ const navItems = [
   { to: "/report", label: "报告导出", icon: "report" as const },
   { to: "/data", label: "视频库", icon: "video" as const },
   { to: "/dataset-review", label: "静态数据复核", icon: "brush" as const },
+  { to: "/showcase", label: "工程展示", icon: "target" as const },
 ];
 </script>
 
@@ -158,41 +146,6 @@ const navItems = [
   width: 16px;
   height: 16px;
   color: var(--ov-nav-icon);
-}
-
-.runtime-blocked {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 760px);
-  min-height: 280px;
-  margin: 48px auto;
-  padding: 32px var(--ov-page-inline);
-  color: var(--ov-text);
-  text-align: left;
-}
-
-.runtime-blocked :deep(.app-icon) {
-  flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-}
-
-.runtime-blocked div {
-  display: grid;
-  gap: 6px;
-}
-
-.runtime-blocked strong {
-  font-size: 20px;
-}
-
-.runtime-blocked p {
-  max-width: 620px;
-  margin: 0;
-  color: var(--ov-text-muted);
-  line-height: 1.7;
 }
 
 @media (max-width: 1120px) {

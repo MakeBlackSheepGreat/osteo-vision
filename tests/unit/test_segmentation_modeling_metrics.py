@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.metrics.segmentation import (
+from osteo_vision_core.metrics.segmentation import (
     binary_segmentation_metrics,
     cldice_score,
     hd95,
     normalized_surface_dice,
     per_label_segmentation_metrics,
 )
-from src.models.ensembles import average_probabilities, ensemble_variance, normalize_weights, predictive_entropy
+from osteo_vision_core.models.ensembles import average_probabilities, ensemble_variance, normalize_weights, predictive_entropy
 
 
 def test_binary_metrics_perfect_overlap() -> None:

@@ -17,8 +17,8 @@ from scripts.train_video_signal_multimask_v2 import (
     restore_optimizer_state,
     train_multimask_v2,
 )
-from src.datasets.group_splits import assign_group_split
-from src.models.video_signal_multimask import VideoSignalMultiMask2D
+from osteo_vision_core.datasets.group_splits import assign_group_split
+from osteo_vision_core.models.video_signal_multimask import VideoSignalMultiMask2D
 
 
 def test_multimask_model_has_independent_heads_and_masked_loss() -> None:

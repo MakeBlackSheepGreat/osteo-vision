@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from src.models.promotion_approval import (
+from osteo_vision_core.models.promotion_approval import (
     PromotionApprovalError,
     PromotionApprovalPayload,
     PromotionTrustStore,

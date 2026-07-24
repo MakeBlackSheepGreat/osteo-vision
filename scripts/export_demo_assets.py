@@ -7,9 +7,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.core.paths import ensure_dir
-from src.core.warnings import DISCLAIMER_TEXT
-from src.utils.runtime import runtime_summary
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.core.warnings import DISCLAIMER_TEXT
+from osteo_vision_core.utils.runtime import runtime_summary
 
 
 def main() -> int:

@@ -1,0 +1,119 @@
+{
+  "schema_version": "challenge_cup_report_assets_v1",
+  "generated_by": "tools/build_challenge_cup_figures.py",
+  "data_boundary": "public_or_engineering_validation_only",
+  "source_items": [
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/d083_frame_details_manifest.json",
+      "sha256": "324b030f1330c6003e14f0045816d02baddf7fdcdd0b3f7b75a692e60ae388ed",
+      "bytes": 274335
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/d083_frame_05_raw.jpg",
+      "sha256": "24493e9f466e1092dd631198360d64ebf2259b926231af442d827dacd213c9dd",
+      "bytes": 78480
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/d083_frame_05_overlay.png",
+      "sha256": "a5ebe0239f2b99d04c39e111bb7e5fcb5e6516dd6b267e4838a733597dac511b",
+      "bytes": 555103
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/d083_frame_05_risk.png",
+      "sha256": "fb0aaca59be838749c2086ac3f99cc52811065cbe470fbb55e9b5496cfd242cb",
+      "bytes": 139018
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/d083_frame_05_uncertainty.png",
+      "sha256": "36bd34dd49b980c49993f06a7e9ff0c4317614f62b2dcd7394e539c1fce96619",
+      "bytes": 22195
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/competition_white_4k.jpg",
+      "sha256": "db40d9ff75b39cbd8084ab5d5378c599bb4d15d49bab991089a7514a93b28d8a",
+      "bytes": 689677
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/competition_icg_4k.jpg",
+      "sha256": "986aaa1b78f4c38104333312cdee22096684913612fcd036c89207dd6e7a76d8",
+      "bytes": 563413
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/bone_activity_multitask_d074_proxy_20260719.json",
+      "sha256": "50816b29384766fdc6b7dc23d7a04d523958343351b89ff6a1d2e7dc4f5d7a8f",
+      "bytes": 16192
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/challenge_cup_showcase_20260722.png",
+      "sha256": "43a7577adee1dba9e3f903812ee51feea97384f6e718798a68847f055685e2e9",
+      "bytes": 376202
+    },
+    {
+      "path": "research/reports/modeling/keyframe_residual_attention_4k_runtime_gate_20260715_zh.md",
+      "sha256": "863868bea8115251d41221a98764bbc7c26aad49e2f0c85f69493321b93de99f",
+      "bytes": 2559
+    },
+    {
+      "path": "research/reports/modeling/keyframe_residual_attention_live_fast_runtime_gate_20260715_zh.md",
+      "sha256": "a1d07cac424ead3ebaf8b70bf8ae37bcbc89c72ad1383d8562990531646daef7",
+      "bytes": 2934
+    }
+  ],
+  "items": [
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_01_boundary_review_concept.png",
+      "sha256": "17d0155e7f7e7e8d1d2ceef294443661e65ac79e44567bca32b40eec539a66b3",
+      "bytes": 196500
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_02_system_architecture.png",
+      "sha256": "44907a45c214d1a590758d962723f030503dbab81b190fca415a0c4b994ddf77",
+      "bytes": 233750
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_04_01_fusion_pipeline.png",
+      "sha256": "3a39cc2e956f6050d3a34650ebac2045dfd5ba7aef8826b9182de97e8b6ec32a",
+      "bytes": 149753
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_04_02_d083_review_layers.png",
+      "sha256": "1cafb0c6a0f617584117f66e94a771892d0a6d0982661aee66ca1263c6e1a4c5",
+      "bytes": 472801
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_05_01_ai_review_pipeline.png",
+      "sha256": "d9af0d93945868f419972f7777a41b6a65d69bb348c96e5c62a0d6fd0f9ce129",
+      "bytes": 181508
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_06_01_d083_timeline.png",
+      "sha256": "95be483a7788c8692f0b0f202b70f0f606faee88857ea68af2e9d47ced04eca0",
+      "bytes": 157995
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_06_02_4k_engineering_input.png",
+      "sha256": "3b84a0dbdb0a4172a1f3db147b3e28dd1c9a70e2d68860ea4add85012210afc9",
+      "bytes": 700023
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_06_03_d074_proxy_summary.png",
+      "sha256": "f0984ea6cc8addab618026a21a1ae1f86fb155b28aacd7f047ba40d287fc0b22",
+      "bytes": 135449
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_06_05_runtime_paths.png",
+      "sha256": "5f57f65e1b4436d1ba58f34a11d6ecebc60760eb950bebcbe15348ddc03ad9ec",
+      "bytes": 117939
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_07_02_challenge_cup_showcase.png",
+      "sha256": "43a7577adee1dba9e3f903812ee51feea97384f6e718798a68847f055685e2e9",
+      "bytes": 376202
+    },
+    {
+      "path": "research/reports/submission/challenge_cup_report_draft_20260721/assets/fig_08_01_validation_roadmap.png",
+      "sha256": "3595eb4633489ee994b54037f696d4420b45b42e59838e9d1a8a39ffb3b085f9",
+      "bytes": 191820
+    }
+  ]
+}

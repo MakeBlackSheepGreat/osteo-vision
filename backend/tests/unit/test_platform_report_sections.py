@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from backend.src.domains.cases.schemas import CaseRecord
-from backend.src.reports.platform_report import build_platform_report
-from backend.src.reports.platform_report_sections import (
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord
+from backend.osteo_vision_api.reports.platform_report import build_platform_report
+from backend.osteo_vision_api.reports.platform_report_sections import (
     artifact_markdown_lines,
     latest_quantification_from_report,
     platform_safety_lines,

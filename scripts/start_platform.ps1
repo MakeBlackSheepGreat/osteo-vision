@@ -124,7 +124,7 @@ $repoRoot = Resolve-Path (Join-Path $scriptRoot "..")
 $frontendDir = Join-Path $repoRoot "frontend"
 $threeDRuntimeDir = Join-Path $frontendDir "three-d-runtime"
 $threeDRuntimeLauncher = Join-Path $scriptRoot "start_three_d_runtime.ps1"
-$backendEntry = Join-Path $repoRoot "backend\src\main.py"
+$backendEntry = Join-Path $repoRoot "backend\osteo_vision_api\main.py"
 $runtimeCheck = Join-Path $repoRoot "tools\check_runtime_readiness.py"
 $runtimePorts = @($BackendPort, $FrontendPort, $ThreeDRuntimePort)
 if (($runtimePorts | Select-Object -Unique).Count -ne 3) {
@@ -144,7 +144,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $frontendDir "package.json"))) {
     throw "Missing frontend/package.json under $repoRoot"
 }
 if (-not (Test-Path -LiteralPath $backendEntry)) {
-    throw "Missing backend/src/main.py under $repoRoot"
+    throw "Missing backend/osteo_vision_api/main.py under $repoRoot"
 }
 if (-not (Test-Path -LiteralPath $runtimeCheck)) {
     throw "Missing tools/check_runtime_readiness.py under $repoRoot"
@@ -215,7 +215,7 @@ if ($backendRunning) {
     Write-Host "[backend] Reusing verified backend profile $($preflight.runtime_profile) on port $BackendPort."
 }
 else {
-    $backendRun = "& '$projectPython' -m backend.src.main"
+    $backendRun = "& '$projectPython' -m backend.osteo_vision_api.main"
     $backendCommand = @"
 `$env:OSTEO_BACKEND_PORT = '$BackendPort'
 `$env:OSTEO_FRONTEND_PORT = '$FrontendPort'

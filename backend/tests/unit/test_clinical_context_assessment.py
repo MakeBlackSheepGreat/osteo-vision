@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
-from backend.src.domains.cases.enums import ReviewerRole
-from backend.src.domains.cases.schemas import ClinicalContext, ClinicalLabResult, ReviewActorIdentity
-from backend.src.services.clinical_context_assessment import assess_clinical_context, clinical_context_warnings
-from src.core.clinical_context_verification import CLINICAL_CONTEXT_VERIFICATION_VALIDITY_HOURS
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole
+from backend.osteo_vision_api.domains.cases.schemas import ClinicalContext, ClinicalLabResult, ReviewActorIdentity
+from backend.osteo_vision_api.services.clinical_context_assessment import assess_clinical_context, clinical_context_warnings
+from osteo_vision_core.core.clinical_context_verification import CLINICAL_CONTEXT_VERIFICATION_VALIDITY_HOURS
 
 NOW = datetime(2026, 7, 17, 8, 0, tzinfo=timezone.utc)
 

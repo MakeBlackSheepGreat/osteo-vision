@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.models.runtime_promotion import (  # noqa: E402
+from osteo_vision_core.models.runtime_promotion import (  # noqa: E402
     build_keyframe_runtime_promotion,
     write_runtime_promotion_sidecar,
 )

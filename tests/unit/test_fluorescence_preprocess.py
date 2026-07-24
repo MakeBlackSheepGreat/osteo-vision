@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from PIL import Image
 
-from src.preprocess.fluorescence import (
+from osteo_vision_core.preprocess.fluorescence import (
     apply_fluorescence_colormap,
     fluorescence_colorbar,
     fluorescence_quantification,

@@ -12,7 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.src.services.active_review_queue import (  # noqa: E402
+from backend.osteo_vision_api.services.active_review_queue import (  # noqa: E402
     REVIEW_QUEUE_FIELDS,
     TRAINING_PATCH_FIELDS,
     ActiveReviewConfig,

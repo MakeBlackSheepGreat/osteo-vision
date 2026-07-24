@@ -15,9 +15,9 @@ sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from backend.src.api.app import create_app  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.reports.writers import write_json  # noqa: E402
+from backend.osteo_vision_api.api.app import create_app  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.reports.writers import write_json  # noqa: E402
 
 DEFAULT_MANIFEST = (
     "research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/"

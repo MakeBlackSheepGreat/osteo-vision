@@ -32,151 +32,147 @@
 
     <p v-if="store.error" class="navigation-workspace__error">{{ store.error }}</p>
 
-    <section v-if="!store.currentCase" class="navigation-empty-workbench" aria-live="polite">
+    <section
+      class="navigation-empty-workbench"
+      :data-state="store.currentCase ? 'loaded-case' : 'awaiting-case'"
+      aria-live="polite"
+    >
       <header class="navigation-empty-workbench__notice">
         <AppIcon name="cube" variant="badge" tone="cyan" />
         <div>
-          <h2>尚未载入病例</h2>
-          <p>载入病例后可写入 CBCT/STL、检查三维模型，并记录配准与医生复核证据。</p>
+          <h2>{{ workbenchNoticeTitle }}</h2>
+          <p>{{ workbenchNoticeDetail }}</p>
         </div>
-        <RouterLink to="/cases">前往病例档案</RouterLink>
+        <RouterLink :to="caseArchiveRoute">{{ store.currentCase ? '查看病例档案' : '前往病例档案' }}</RouterLink>
       </header>
 
       <div class="navigation-empty-workbench__grid">
-        <section class="navigation-empty-workbench__panel navigation-empty-workbench__imports" aria-label="CBCT 和 STL 导入">
-          <header class="navigation-empty-workbench__panel-title">
-            <AppIcon name="upload" />
-            <div>
-              <strong>CBCT / STL 导入</strong>
-              <small>文件将写入当前病例证据链</small>
+        <section
+          class="navigation-empty-workbench__panel navigation-empty-workbench__imports"
+          :class="{ 'is-populated': store.currentCase }"
+          aria-label="CBCT 和 STL 导入"
+        >
+          <ThreeDEvidenceControlPanel
+            v-if="store.currentCase"
+            presentation="panel"
+            :sections="['imports']"
+            :case-id="store.currentCase.case_id"
+            :evidence="threeDEvidence"
+            @evidence-persisted="refreshCase"
+          />
+          <template v-else>
+            <header class="navigation-empty-workbench__panel-title">
+              <AppIcon name="upload" />
+              <div>
+                <strong>CBCT / STL 导入</strong>
+                <small>文件将写入当前病例证据链</small>
+              </div>
+            </header>
+            <div class="navigation-empty-workbench__import-row">
+              <div>
+                <strong>CBCT 体数据</strong>
+                <small>DICOM、NIfTI</small>
+              </div>
+              <AppButton size="sm" icon="folder" disabled data-requires-case="true" title="请先载入病例">选择文件</AppButton>
             </div>
-          </header>
-          <div class="navigation-empty-workbench__import-row">
-            <div>
-              <strong>CBCT 体数据</strong>
-              <small>DICOM、NIfTI</small>
+            <div class="navigation-empty-workbench__import-row">
+              <div>
+                <strong>表面模型</strong>
+                <small>STL、GLB</small>
+              </div>
+              <AppButton size="sm" icon="folder" disabled data-requires-case="true" title="请先载入病例">选择文件</AppButton>
             </div>
-            <AppButton
-              size="sm"
-              icon="folder"
-              disabled
-              data-requires-case="true"
-              title="请先载入病例"
-            >
-              选择文件
-            </AppButton>
-          </div>
-          <div class="navigation-empty-workbench__import-row">
-            <div>
-              <strong>表面模型</strong>
-              <small>STL、GLB</small>
-            </div>
-            <AppButton
-              size="sm"
-              icon="folder"
-              disabled
-              data-requires-case="true"
-              title="请先载入病例"
-            >
-              选择文件
-            </AppButton>
-          </div>
-          <p>导入前需关联病例，确保来源、方向和处理记录可追溯。</p>
+            <p>导入前需关联病例，确保来源、方向和处理记录可追溯。</p>
+          </template>
         </section>
 
-        <section class="navigation-empty-workbench__panel navigation-empty-workbench__tree" aria-label="病例对象树">
-          <header class="navigation-empty-workbench__panel-title">
-            <AppIcon name="layers" />
-            <div>
-              <strong>病例对象树</strong>
-              <small>模型、分割、标注与变换</small>
-            </div>
-          </header>
-          <ul>
-            <li>
-              <span aria-hidden="true"></span>
-              <div><strong>患者空间</strong><small>等待病例坐标系</small></div>
-              <b>未载入</b>
-            </li>
-            <li>
-              <span aria-hidden="true"></span>
-              <div><strong>骨表面与分割</strong><small>等待 CBCT/STL</small></div>
-              <b>0</b>
-            </li>
-            <li>
-              <span aria-hidden="true"></span>
-              <div><strong>候选区与标注</strong><small>等待影像分析证据</small></div>
-              <b>0</b>
-            </li>
-            <li>
-              <span aria-hidden="true"></span>
-              <div><strong>坐标变换</strong><small>等待 L1/L2 验证</small></div>
-              <b>0</b>
-            </li>
-          </ul>
+        <section
+          class="navigation-empty-workbench__panel navigation-empty-workbench__tree"
+          :class="{ 'is-populated': store.currentCase }"
+          aria-label="病例对象树"
+        >
+          <ThreeDEvidenceControlPanel
+            v-if="store.currentCase"
+            presentation="panel"
+            :sections="['tree']"
+            :case-id="store.currentCase.case_id"
+            :evidence="threeDEvidence"
+          />
+          <template v-else>
+            <header class="navigation-empty-workbench__panel-title">
+              <AppIcon name="layers" />
+              <div>
+                <strong>病例对象树</strong>
+                <small>模型、分割、标注与变换</small>
+              </div>
+            </header>
+            <ul>
+              <li><span aria-hidden="true"></span><div><strong>患者空间</strong><small>等待病例坐标系</small></div><b>未载入</b></li>
+              <li><span aria-hidden="true"></span><div><strong>骨表面与分割</strong><small>等待 CBCT/STL</small></div><b>0</b></li>
+              <li><span aria-hidden="true"></span><div><strong>候选区与标注</strong><small>等待影像分析证据</small></div><b>0</b></li>
+              <li><span aria-hidden="true"></span><div><strong>坐标变换</strong><small>等待 L1/L2 验证</small></div><b>0</b></li>
+            </ul>
+          </template>
         </section>
 
         <section
           class="navigation-empty-workbench__panel navigation-empty-workbench__viewport"
-          aria-label="空三维视口"
-          data-state="awaiting-case"
+          :class="{ 'is-populated': store.currentCase }"
+          :aria-label="store.currentCase ? '主三维检查区' : '空三维视口'"
+          :data-state="store.currentCase ? 'loaded-case' : 'awaiting-case'"
         >
-          <header>
-            <div><span>主检查视口</span><strong>三维场景</strong></div>
-            <b>等待病例</b>
-          </header>
-          <div class="navigation-empty-workbench__viewport-empty">
-            <AppIcon name="cube" variant="badge" tone="slate" />
-            <strong>三维内容尚未载入</strong>
-            <p>病例载入后，此处显示 CBCT 派生表面、STL 模型、视频候选区和复核标注。</p>
-            <small>空间方向、模型来源和配准状态将在视口内持续显示。</small>
-          </div>
-          <footer>
-            <AppButton
-              size="sm"
-              icon="expand"
-              disabled
-              data-requires-case="true"
-              title="请先载入病例"
-            >
-              适应视图
-            </AppButton>
-            <AppButton
-              size="sm"
-              icon="move"
-              disabled
-              data-requires-case="true"
-              title="请先载入病例"
-            >
-              自动旋转：关
-            </AppButton>
-          </footer>
+          <ThreeDRendererRuntimeEmbed
+            v-if="store.currentCase"
+            :case-id="store.currentCase.case_id"
+            :scene-version="store.currentCase.version"
+            @select-candidate-frame="selectCandidateFrame"
+          />
+          <template v-else>
+            <header>
+              <div><span>主检查视口</span><strong>三维场景</strong></div>
+              <b>等待病例</b>
+            </header>
+            <div class="navigation-empty-workbench__viewport-empty">
+              <AppIcon name="cube" variant="badge" tone="slate" />
+              <strong>三维内容尚未载入</strong>
+              <p>病例载入后，此处显示 CBCT 派生表面、STL 模型、视频候选区和复核标注。</p>
+              <small>空间方向、模型来源和配准状态将在视口内持续显示。</small>
+            </div>
+            <footer>
+              <AppButton size="sm" icon="expand" disabled data-requires-case="true" title="请先载入病例">适应视图</AppButton>
+              <AppButton size="sm" icon="move" disabled data-requires-case="true" title="请先载入病例">自动旋转：关</AppButton>
+            </footer>
+          </template>
         </section>
 
-        <section class="navigation-empty-workbench__panel navigation-empty-workbench__checks" aria-label="建模检查">
-          <header class="navigation-empty-workbench__panel-title">
-            <AppIcon name="check" />
-            <div>
-              <strong>建模检查</strong>
-              <small>生成表面前的必要门控</small>
-            </div>
-          </header>
-          <ul>
-            <li><span>体数据方向</span><strong>待检查</strong></li>
-            <li><span>体素与物理坐标</span><strong>待检查</strong></li>
-            <li><span>分割或代理来源</span><strong>待记录</strong></li>
-            <li><span>表面连通性</span><strong>待检查</strong></li>
-          </ul>
-          <AppButton
-            size="sm"
-            icon="cube"
-            block
-            disabled
-            data-requires-case="true"
-            title="请先载入病例"
-          >
-            生成检查表面
-          </AppButton>
+        <section
+          class="navigation-empty-workbench__panel navigation-empty-workbench__checks"
+          :class="{ 'is-populated': store.currentCase }"
+          aria-label="建模检查"
+        >
+          <ThreeDEvidenceControlPanel
+            v-if="store.currentCase"
+            presentation="panel"
+            :sections="['checks']"
+            :case-id="store.currentCase.case_id"
+            :evidence="threeDEvidence"
+          />
+          <template v-else>
+            <header class="navigation-empty-workbench__panel-title">
+              <AppIcon name="check" />
+              <div>
+                <strong>建模检查</strong>
+                <small>生成表面前的必要门控</small>
+              </div>
+            </header>
+            <ul>
+              <li><span>体数据方向</span><strong>待检查</strong></li>
+              <li><span>体素与物理坐标</span><strong>待检查</strong></li>
+              <li><span>分割或代理来源</span><strong>待记录</strong></li>
+              <li><span>表面连通性</span><strong>待检查</strong></li>
+            </ul>
+            <AppButton size="sm" icon="cube" block disabled data-requires-case="true" title="请先载入病例">生成检查表面</AppButton>
+          </template>
         </section>
 
         <section class="navigation-empty-workbench__panel navigation-empty-workbench__review" aria-label="复核与导航状态">
@@ -187,80 +183,43 @@
               <small>缺失证据时保持安全降级</small>
             </div>
           </header>
-          <dl>
+          <dl v-if="store.currentCase">
+            <div><dt>医生复核</dt><dd>{{ doctorReviewLabel }}</dd></div>
+            <div><dt>空间配准</dt><dd>{{ registrationLabel }}</dd></div>
+            <div><dt>导航级别</dt><dd>{{ engineeringSummaryLabel.split(' · ')[0] }}</dd></div>
+            <div><dt>导航显示</dt><dd>{{ navigationReady ? '可检查' : '未就绪' }}</dd></div>
+          </dl>
+          <dl v-else>
             <div><dt>医生复核</dt><dd>待病例</dd></div>
             <div><dt>空间配准</dt><dd>未配准</dd></div>
             <div><dt>导航级别</dt><dd>L0 参考</dd></div>
             <div><dt>导航显示</dt><dd>禁止就绪</dd></div>
           </dl>
-          <p>完成模型来源核验、坐标配准、误差记录和医生复核后，方可提升验证级别。</p>
-          <AppButton
-            size="sm"
-            icon="check"
-            block
-            disabled
-            data-requires-case="true"
-            title="请先载入病例"
-          >
-            提交医生复核
-          </AppButton>
+          <p>{{ reviewBoundaryText }}</p>
+          <RouterLink v-if="store.currentCase" class="navigation-empty-workbench__review-link" :to="reviewRoute">进入医生复核</RouterLink>
+          <AppButton v-else size="sm" icon="check" block disabled data-requires-case="true" title="请先载入病例">提交医生复核</AppButton>
         </section>
       </div>
     </section>
 
-    <template v-else>
-      <section class="navigation-context" aria-label="三维导航数据联动状态">
-        <div>
-          <span>当前病例</span>
-          <strong>{{ store.currentCase.title }}</strong>
-          <small>{{ store.currentCase.case_id }}</small>
+    <details v-if="store.currentCase" class="navigation-engineering">
+        <summary class="navigation-workspace__evidence-heading">
+          <div><span>工程验证证据</span><strong>L1 静态配准与 L2 离线动态 AR</strong></div>
+          <small>{{ engineeringSummaryLabel }}。展开后记录标定、误差、变换链和受控回放结果。</small>
+        </summary>
+        <div class="navigation-engineering__body">
+          <L1RegistrationPanel :case-id="store.currentCase.case_id" :evidence="threeDEvidence" @completed="refreshCase" />
+          <L2PoseReplayPanel
+            :case-id="store.currentCase.case_id"
+            :evidence="threeDEvidence"
+            :video-inputs="store.currentCase.inputs"
+            :case-admission-status="store.currentCase.intake_metadata?.admission_status"
+            :case-authorization-status="store.currentCase.intake_metadata?.authorization_status"
+            :case-deidentification-confirmed="store.currentCase.intake_metadata?.deidentification_confirmed"
+            @completed="refreshCase"
+          />
         </div>
-        <div>
-          <span>视频来源</span>
-          <strong>{{ videoSourceLabel }}</strong>
-          <small>{{ latestRunModeLabel }}</small>
-        </div>
-        <div>
-          <span>候选区联动</span>
-          <strong>{{ candidates.length }} 个</strong>
-          <small>{{ selectedFrameLabel }}</small>
-        </div>
-        <div>
-          <span>空间配准</span>
-          <strong :class="{ ready: navigationReady }">{{ registrationLabel }}</strong>
-          <small>{{ registrationErrorLabel }}</small>
-        </div>
-      </section>
-
-      <NavigationSafetyStatusPanel :evidence="threeDEvidence" />
-
-      <ThreeDEvidenceControlPanel
-        :case-id="store.currentCase.case_id"
-        :evidence="threeDEvidence"
-        @evidence-persisted="refreshCase"
-      />
-
-      <ThreeDRendererRuntimeEmbed
-        :case-id="store.currentCase.case_id"
-        :scene-version="store.currentCase.version"
-        @select-candidate-frame="selectCandidateFrame"
-      />
-
-      <header class="navigation-workspace__evidence-heading">
-        <div><span>工程验证证据</span><strong>L1 静态配准与 L2 离线动态 AR</strong></div>
-        <small>主三维检查完成后，在此记录标定、误差、变换链和受控回放结果。</small>
-      </header>
-      <L1RegistrationPanel :case-id="store.currentCase.case_id" :evidence="threeDEvidence" @completed="refreshCase" />
-      <L2PoseReplayPanel
-        :case-id="store.currentCase.case_id"
-        :evidence="threeDEvidence"
-        :video-inputs="store.currentCase.inputs"
-        :case-admission-status="store.currentCase.intake_metadata?.admission_status"
-        :case-authorization-status="store.currentCase.intake_metadata?.authorization_status"
-        :case-deidentification-confirmed="store.currentCase.intake_metadata?.deidentification_confirmed"
-        @completed="refreshCase"
-      />
-    </template>
+    </details>
   </main>
 </template>
 
@@ -270,13 +229,12 @@ import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
-import NavigationSafetyStatusPanel from "@/components/NavigationSafetyStatusPanel.vue";
 import L1RegistrationPanel from "@/components/L1RegistrationPanel.vue";
 import L2PoseReplayPanel from "@/components/L2PoseReplayPanel.vue";
 import ThreeDEvidenceControlPanel from "@/components/ThreeDEvidenceControlPanel.vue";
 import ThreeDRendererRuntimeEmbed from "@/components/ThreeDRendererRuntimeEmbed.vue";
 import { useCaseStore } from "@/stores/caseStore";
-import type { CandidateRegion, NavigationFrameSelection, ThreeDEvidence } from "@/types/case";
+import type { NavigationFrameSelection, ThreeDEvidence } from "@/types/case";
 import { isRecord, stringFrom } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
@@ -284,22 +242,11 @@ const route = useRoute();
 const router = useRouter();
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1) ?? null);
-const candidates = computed<CandidateRegion[]>(() => latestRun.value?.candidate_regions ?? []);
 const threeDEvidence = computed<ThreeDEvidence | null>(() => {
   const caseEvidence = store.currentCase?.three_d_evidence;
   if (isRecord(caseEvidence) && Object.keys(caseEvidence).length) return caseEvidence as ThreeDEvidence;
   const runEvidence = latestRun.value?.fused_outputs?.three_d_evidence;
   return isRecord(runEvidence) ? (runEvidence as ThreeDEvidence) : null;
-});
-const latestRunModeLabel = computed(() => {
-  const mode = stringFrom(latestRun.value?.fused_outputs?.mode);
-  return mode === "video_file_keyframes" ? "MP4 候选区空间证据" : "白光/荧光融合证据";
-});
-const videoSourceLabel = computed(() => {
-  const videoInput = [...(store.currentCase?.inputs ?? [])].reverse().find((input) => input.channel === "video");
-  if (!videoInput?.path) return "尚未导入 MP4";
-  const normalized = videoInput.path.replace(/\\/g, "/");
-  return normalized.split("/").at(-1) || videoInput.path;
 });
 const navigationReady = computed(() => {
   const value = threeDEvidence.value?.navigation_ready;
@@ -312,21 +259,44 @@ const registrationLabel = computed(() => {
   if (status === "registered") return "配准已记录，仍需检查";
   return "未配准参考";
 });
-const registrationErrorLabel = computed(() => {
-  const value = threeDEvidence.value?.registration_error_mm;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? `配准误差 ${parsed.toFixed(2)} mm` : "配准误差未记录";
+const engineeringSummaryLabel = computed(() => {
+  const level = String(threeDEvidence.value?.navigation_level || "L0").toUpperCase();
+  const levelLabel = level === "L2" ? "L2 · 动态 AR 验证" : level === "L1" ? "L1 · 静态配准验证" : "L0 · 未配准三维参考";
+  const pose = threeDEvidence.value?.microscope_pose_evidence;
+  const tre = numberFrom(pose?.tre_mm);
+  const threshold = numberFrom(pose?.tre_threshold_mm);
+  if (tre === null || threshold === null) return levelLabel;
+  return `${levelLabel} · TRE ${tre.toFixed(2)} mm / 阈值 ${threshold.toFixed(2)} mm`;
+});
+const workbenchNoticeTitle = computed(() => (store.currentCase ? `当前病例：${store.currentCase.title}` : "尚未载入病例"));
+const workbenchNoticeDetail = computed(() => {
+  if (!store.currentCase) return "载入病例后可写入 CBCT/STL、检查三维模型，并记录配准与医生复核证据。";
+  return `${store.currentCase.case_id} 已载入。导入、对象、主三维检查和复核状态保持在同一工作台中。`;
+});
+const caseArchiveRoute = computed(() => {
+  const caseId = store.currentCase?.case_id;
+  return caseId ? { path: "/cases", query: { caseId } } : { path: "/cases" };
+});
+const reviewRoute = computed(() => ({
+  path: "/review",
+  query: store.currentCase ? { caseId: store.currentCase.case_id } : {},
+}));
+const doctorReviewLabel = computed(() => {
+  const status = stringFrom(store.currentCase?.review_summary?.status || threeDEvidence.value?.doctor_review_status).toLowerCase();
+  if (["accepted", "approved", "completed"].includes(status)) return "已完成";
+  if (["modified", "changes_requested"].includes(status)) return "待修改";
+  if (["rejected", "declined"].includes(status)) return "未通过";
+  return "待医生复核";
+});
+const reviewBoundaryText = computed(() => {
+  if (!store.currentCase) return "完成模型来源核验、坐标配准、误差记录和医生复核后，方可提升验证级别。";
+  return navigationReady.value
+    ? "当前证据可用于工程检查；医生复核结果会持续写回病例证据链。"
+    : "当前保持未配准参考，完成模型来源、坐标误差和医生复核记录后再提升验证级别。";
 });
 const selectedFrame = computed(() => {
   const selection = store.navigationFrameSelection;
   return selection?.caseId === store.currentCase?.case_id ? selection : null;
-});
-const selectedFrameLabel = computed(() => {
-  const selection = selectedFrame.value;
-  if (!selection) return "从三维候选区选择后可回到视频帧";
-  if (selection.timestampSec !== null) return `已选择 ${selection.timestampSec.toFixed(2)} s`;
-  if (selection.frameIndex !== null) return `已选择帧 ${selection.frameIndex}`;
-  return "已选择视频候选区";
 });
 const surgeryRoute = computed(() => {
   const caseId = store.currentCase?.case_id || stringQuery(route.query.caseId);
@@ -383,6 +353,12 @@ function stringQuery(value: unknown): string {
   if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : "";
   return typeof value === "string" ? value : "";
 }
+
+function numberFrom(value: unknown): number | null {
+  if (typeof value === "boolean" || value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 </script>
 
 <style scoped>
@@ -395,10 +371,9 @@ function stringQuery(value: unknown): string {
 
 .navigation-workspace__header,
 .navigation-context,
-.navigation-workspace > .three-d-evidence-control,
-.navigation-workspace > .three-d-runtime-embed,
+.navigation-workbench,
 .navigation-empty-workbench,
-.navigation-workspace__evidence-heading,
+.navigation-engineering,
 .navigation-workspace__error {
   width: min(100%, var(--ov-content-wide));
   margin-right: auto;
@@ -515,6 +490,31 @@ function stringQuery(value: unknown): string {
   color: var(--ov-success);
 }
 
+.navigation-workbench {
+  display: grid;
+  grid-template-columns: minmax(308px, 0.82fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.navigation-workbench__sidebar,
+.navigation-workbench__viewer {
+  min-width: 0;
+}
+
+.navigation-workbench__sidebar {
+  display: flex;
+}
+
+.navigation-workbench__sidebar :deep(.three-d-evidence-control) {
+  flex: 1;
+}
+
+.navigation-workbench__viewer :deep(.three-d-runtime-embed) {
+  height: 100%;
+}
+
 .navigation-empty-workbench {
   display: grid;
   gap: 14px;
@@ -560,7 +560,7 @@ function stringQuery(value: unknown): string {
   grid-template-columns: minmax(230px, 0.72fr) minmax(520px, 1.75fr) minmax(250px, 0.82fr);
   gap: 14px;
   align-items: stretch;
-  min-height: 620px;
+  min-height: 540px;
 }
 
 .navigation-empty-workbench__panel {
@@ -593,6 +593,29 @@ function stringQuery(value: unknown): string {
 
 .navigation-empty-workbench__review {
   grid-area: review;
+}
+
+.navigation-empty-workbench__imports.is-populated,
+.navigation-empty-workbench__tree.is-populated,
+.navigation-empty-workbench__checks.is-populated {
+  display: block;
+  overflow: auto;
+  padding: 0;
+}
+
+.navigation-empty-workbench__viewport.is-populated {
+  display: block;
+  min-height: 540px;
+  overflow: hidden;
+  background: var(--ov-bg-panel);
+}
+
+.navigation-empty-workbench__viewport.is-populated :deep(.three-d-runtime-embed) {
+  min-height: 540px;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .navigation-empty-workbench__panel-title {
@@ -709,7 +732,7 @@ function stringQuery(value: unknown): string {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
-  min-height: 620px;
+  min-height: 540px;
   background-color: var(--ov-bg-panel);
   background-image:
     linear-gradient(var(--ov-grid-line) 1px, transparent 1px),
@@ -847,15 +870,54 @@ function stringQuery(value: unknown): string {
   line-height: 1.5;
 }
 
+.navigation-empty-workbench__review-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ov-control-height-sm);
+  border: 1px solid var(--ov-border-strong);
+  border-radius: 5px;
+  padding: 7px 10px;
+  color: var(--ov-primary);
+  background: var(--ov-bg-elevated);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.navigation-empty-workbench__review-link:hover,
+.navigation-empty-workbench__review-link:focus-visible {
+  border-color: var(--ov-primary);
+  background: var(--ov-bg-info);
+  outline: none;
+}
+
 .navigation-workspace__evidence-heading {
   display: flex;
   gap: 18px;
   align-items: end;
   justify-content: space-between;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  margin: 2px 0 12px;
   border-top: 1px solid var(--ov-border);
   padding: 16px 4px 0;
+  cursor: pointer;
+}
+
+.navigation-workspace__evidence-heading::-webkit-details-marker {
+  color: var(--ov-primary-strong);
+}
+
+.navigation-workspace__evidence-heading::marker {
+  color: var(--ov-primary-strong);
+}
+
+.navigation-engineering[open] .navigation-workspace__evidence-heading {
+  margin-bottom: 16px;
+}
+
+.navigation-engineering__body {
+  display: grid;
+  gap: 0;
 }
 
 .navigation-workspace__evidence-heading > div {
@@ -899,12 +961,22 @@ function stringQuery(value: unknown): string {
 }
 
 @media (max-width: 1320px) {
+  .navigation-workbench {
+    grid-template-columns: minmax(286px, 0.9fr) minmax(0, 1.7fr);
+  }
+
   .navigation-empty-workbench__grid {
     grid-template-areas:
       "imports viewport"
       "tree viewport"
       "checks review";
     grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.7fr);
+  }
+}
+
+@media (max-width: 1060px) {
+  .navigation-workbench {
+    grid-template-columns: 1fr;
   }
 }
 </style>

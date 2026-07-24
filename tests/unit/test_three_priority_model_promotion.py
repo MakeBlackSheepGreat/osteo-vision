@@ -10,14 +10,14 @@ import numpy as np
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-import src.models.three_priority_promotion as promotion_module
-from backend.src.domains.cases.enums import ReviewerRole
-from backend.src.domains.cases.schemas import ReviewActorIdentity
-from backend.src.services.promotion_approval_service import (
+import osteo_vision_core.models.three_priority_promotion as promotion_module
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole
+from backend.osteo_vision_api.domains.cases.schemas import ReviewActorIdentity
+from backend.osteo_vision_api.services.promotion_approval_service import (
     PromotionApprovalRepository,
     PromotionApprovalService,
 )
-from src.models.promotion_approval import (
+from osteo_vision_core.models.promotion_approval import (
     PromotionApprovalPayload,
     PromotionTrustStore,
     SignedPromotionApproval,
@@ -25,7 +25,7 @@ from src.models.promotion_approval import (
     public_key_pem,
     sign_approval_payload,
 )
-from src.models.three_priority_promotion import (
+from osteo_vision_core.models.three_priority_promotion import (
     CAPABILITY_REQUIREMENTS,
     PREDICTION_EVIDENCE_SCHEMA_VERSION,
     _case_evidence_binding_sha256,

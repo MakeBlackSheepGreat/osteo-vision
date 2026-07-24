@@ -8,8 +8,8 @@ from typing import Any
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
-from src.models.promotion_approval import (
+from backend.osteo_vision_api.api.app import create_app
+from osteo_vision_core.models.promotion_approval import (
     PromotionApprovalPayload,
     PromotionTrustStore,
     SignedPromotionApproval,

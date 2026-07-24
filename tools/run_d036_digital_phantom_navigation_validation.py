@@ -1105,7 +1105,7 @@ def run_validation(
     calibration_artifact = write_l1_calibration(inputs_dir / "d036_camera_calibration.json", geometry)
 
     with runtime_environment(runtime_root):
-        from backend.src.api.app import create_app
+        from backend.osteo_vision_api.api.app import create_app
 
         with TestClient(create_app()) as client:
             admitted_video = upload_and_admit_video(

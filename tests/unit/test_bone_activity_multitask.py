@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from src.models.bone_activity_multitask import (
+from osteo_vision_core.models.bone_activity_multitask import (
     IGNORE_INDEX,
     BoneActivityMultiTask2D,
     apply_bone_activity_safety_gate,

@@ -20,7 +20,7 @@
 - [x] CHK005 Are the minimum required evidence artifacts for each case defined beyond broad names such as visuals, summaries, and report material? [Completeness, Spec §Evidence Artifacts, Spec §FR-006]
   - Evidence: `docs/export_schema_v1.md` defines report JSON, Markdown, CSV, DICOM Secondary Capture, bundle manifest, evidence bundle, overlay, heatmap, normalized fluorescence, colorbar, ROI mask, and keyframe artifacts.
 - [x] CHK006 Are candidate region, ROI, review state, quality flag, and analysis run entities each tied to at least one functional requirement? [Traceability, Spec §Key Entities, Spec §Functional Requirements]
-  - Evidence: `backend/src/domains/cases/schemas.py` implements those entities and export/report snapshots include them.
+  - Evidence: `backend/osteo_vision_api/domains/cases/schemas.py` implements those entities and export/report snapshots include them.
 
 ## Requirement Clarity
 
@@ -96,7 +96,7 @@
 ## Architecture And Replaceability
 
 - [x] CHK035 Are frontend, backend, analysis core, and export responsibilities separated in requirements without over-constraining implementation details? [Consistency, Plan §Project Structure, Constitution §III]
-  - Evidence: `frontend/`, `backend/`, `src/`, and report/export layers are separated.
+  - Evidence: `frontend/`, `backend/`, `osteo_vision_core/`, and report/export layers are separated.
 - [x] CHK036 Are model and dataset replaceability requirements stated at the workflow contract level rather than tied to specific model families? [Consistency, Spec §FR-008, Constitution §III]
   - Evidence: model specs, adapters, task configs, and manifests keep model families replaceable.
 - [x] CHK037 Are configuration, adapter, pipeline, manifest, and report-writer boundaries reflected in the feature requirements or plan? [Traceability, Plan §Constitution Check, Constitution §III]

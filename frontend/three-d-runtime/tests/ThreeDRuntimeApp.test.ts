@@ -110,7 +110,7 @@ describe("ThreeDRuntimeApp", () => {
     expect(runtimeClientMocks.fetchCaseSnapshot).toHaveBeenCalledWith("case_001");
     expect(wrapper.get("h1").text()).toBe("独立三维渲染运行时");
     expect(wrapper.text()).toContain("L0 参考状态");
-    expect(wrapper.text()).toContain("boundary_risk");
+    expect(wrapper.text()).toContain("边界风险");
     expect(wrapper.text()).not.toContain("clinical_context");
 
     await wrapper.get(".viewport-stub").trigger("click");

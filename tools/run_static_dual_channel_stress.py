@@ -18,12 +18,12 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 from PIL import Image  # noqa: E402
 
-from src.models.dual_channel_segmenter import (  # noqa: E402
+from osteo_vision_core.models.dual_channel_segmenter import (  # noqa: E402
     DUAL_CHANNEL_MODES,
     load_dual_channel_checkpoint,
 )
-from src.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
-from src.preprocess.fluorescence import apply_fluorescence_colormap, blend_pseudocolor_on_reference  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
+from osteo_vision_core.preprocess.fluorescence import apply_fluorescence_colormap, blend_pseudocolor_on_reference  # noqa: E402
 
 DEFAULT_MANIFEST = ROOT / "research/datasets/public-candidates/d047_d048_static_paired_preview_manifest.json"
 DEFAULT_CHECKPOINT = ROOT / "artifacts/checkpoints/osteo_vision/dual_channel_proxy_20260710.pt"

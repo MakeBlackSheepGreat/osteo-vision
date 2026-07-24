@@ -8,9 +8,9 @@ from zipfile import ZipFile
 
 import pydicom
 
-from backend.src.domains.cases.enums import RegionSource, ReviewState
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.domains.cases.enums import RegionSource, ReviewState
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import (
     AnalysisRun,
     CandidateRegion,
     CaseRecord,
@@ -18,7 +18,7 @@ from backend.src.domains.cases.schemas import (
     RegionOfInterest,
     ReviewEvent,
 )
-from backend.src.services.export_service import ExportService
+from backend.osteo_vision_api.services.export_service import ExportService
 
 
 def test_export_service_writes_reports(tmp_path: Path) -> None:

@@ -74,6 +74,27 @@ export function isCurrentLiveFrameDisplay(
   );
 }
 
+export function isDisplayableLiveFrame(
+  result: LiveFrameDisplayResultIdentity | null,
+  display: LiveFrameDisplayIdentity | null,
+  options: {
+    activeSource: "camera" | "video" | "";
+    caseId: string;
+    nowMs: number;
+    maxAgeMs: number;
+  },
+): boolean {
+  if (!result || !display) return false;
+  const ageMs = options.nowMs - display.capturedAtMs;
+  return (
+    display.source === options.activeSource &&
+    ageMs >= 0 &&
+    ageMs <= options.maxAgeMs &&
+    result.case_id === options.caseId &&
+    result.captured_at === display.capturedAt
+  );
+}
+
 const SUPPORTED_INTERVALS = [0, 1, 2, 3, 5, 10] as const;
 const DEFAULT_REQUEST_TIMEOUT_MS = 12_000;
 const MIN_REQUEST_TIMEOUT_MS = 250;

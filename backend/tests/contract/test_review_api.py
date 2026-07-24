@@ -11,9 +11,9 @@ import yaml
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from backend.src.api.app import create_app
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord
 
 
 def test_review_identity_defaults_to_engineering_reviewer(monkeypatch) -> None:

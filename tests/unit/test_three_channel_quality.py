@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from src.preprocess.three_channel_quality import assess_three_channel_quality
+from osteo_vision_core.preprocess.three_channel_quality import assess_three_channel_quality
 
 
 def _save(path: Path, array: np.ndarray) -> Path:

@@ -17,7 +17,7 @@ import nibabel as nib
 import numpy as np
 from PIL import Image
 
-from src.datasets.manifests import read_manifest
+from osteo_vision_core.datasets.manifests import read_manifest
 
 DATASET_ROOT_IN_ZIP = "DentVoxel_Dataset"
 DEFAULT_DATASET_DIR = Path("research/datasets/public-candidates/d024_dentvoxel")

@@ -753,8 +753,8 @@ def materialize(
             }
         )
         if build_proxy_surface:
-            from backend.src.core.settings import load_settings
-            from backend.src.services.cbct_modeling_service import (
+            from backend.osteo_vision_api.core.settings import load_settings
+            from backend.osteo_vision_api.services.cbct_modeling_service import (
                 build_cbct_surface_model,
             )
 

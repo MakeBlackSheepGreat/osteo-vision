@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.src.services.live_frame_service import LiveFrameAnalysisService  # noqa: E402
-from src.models.keyframe_segmenter import select_torch_device  # noqa: E402
+from backend.osteo_vision_api.services.live_frame_service import LiveFrameAnalysisService  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import select_torch_device  # noqa: E402
 
 BROWSER_MAX_LONG_SIDE = 960
 BROWSER_JPEG_QUALITY = 85
@@ -299,7 +299,7 @@ def run_live_fast_output_gate(
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "capture_protocol": capture,
         "execution_protocol": {
-            "service": "backend.src.services.live_frame_service.LiveFrameAnalysisService",
+            "service": "backend.osteo_vision_api.services.live_frame_service.LiveFrameAnalysisService",
             "transport_scope": "direct service call; HTTP, browser scheduling, and network transfer excluded",
             "timed_frames_per_model": int(timed_frames),
             "full_frame_warmup_frames_per_model": int(full_frame_warmup_frames),

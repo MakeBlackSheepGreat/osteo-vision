@@ -271,6 +271,10 @@ function numberOrNull(value: unknown): number | null {
 
 <style scoped>
 .three-d-runtime-embed {
+  --three-d-viewer-height: clamp(520px, 62vh, 680px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: calc(var(--three-d-viewer-height) + 74px);
   overflow: hidden;
   border: 1px solid var(--ov-border);
   border-radius: 7px;
@@ -338,7 +342,8 @@ function numberOrNull(value: unknown): number | null {
 
 .three-d-runtime-embed__viewport {
   position: relative;
-  min-height: 900px;
+  height: 100%;
+  min-height: var(--three-d-viewer-height);
   background-color: var(--ov-bg-subtle);
   background-image:
     linear-gradient(var(--ov-grid-line) 1px, transparent 1px),
@@ -349,7 +354,8 @@ function numberOrNull(value: unknown): number | null {
 .three-d-runtime-embed__frame {
   display: block;
   width: 100%;
-  min-height: 900px;
+  height: 100%;
+  min-height: var(--three-d-viewer-height);
   border: 0;
   background: transparent;
 }
@@ -377,10 +383,19 @@ function numberOrNull(value: unknown): number | null {
   pointer-events: none;
 }
 
+.three-d-runtime-embed[data-state="connecting"] .three-d-runtime-embed__state {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: min(440px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+}
+
 .three-d-runtime-embed__viewport.is-degraded .three-d-runtime-embed__state {
   inset: 0;
   place-content: center;
-  min-height: 900px;
+  min-height: var(--three-d-viewer-height);
   border: 0;
   padding: 28px;
   background: color-mix(in srgb, var(--ov-bg-subtle) 87%, transparent);
@@ -388,7 +403,8 @@ function numberOrNull(value: unknown): number | null {
 
 .three-d-runtime-embed__empty {
   place-content: center;
-  min-height: 900px;
+  height: 100%;
+  min-height: var(--three-d-viewer-height);
 }
 
 .three-d-runtime-embed__state strong,

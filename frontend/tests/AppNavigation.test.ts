@@ -38,14 +38,18 @@ describe("App navigation", () => {
       { label: "报告导出", to: "/report" },
       { label: "视频库", to: "/data" },
       { label: "静态数据复核", to: "/dataset-review" },
+      { label: "工程展示", to: "/showcase" },
     ]);
+
+    expect(wrapper.find(".runtime-status").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("比赛严格运行");
   });
 
   it("keeps every page lazy-loaded and recovers unknown URLs", () => {
     const routes = router.getRoutes();
     const pageRoutes = routes.filter((route) => route.path !== "/" && route.path !== "/:pathMatch(.*)*");
 
-    expect(pageRoutes).toHaveLength(9);
+    expect(pageRoutes).toHaveLength(10);
     expect(pageRoutes.every((route) => typeof route.components?.default === "function")).toBe(true);
     expect(routes.find((route) => route.path === "/:pathMatch(.*)*")?.redirect).toBe("/case");
   });

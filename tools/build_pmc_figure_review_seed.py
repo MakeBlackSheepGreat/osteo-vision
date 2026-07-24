@@ -16,8 +16,8 @@ from PIL import Image, ImageDraw, ImageOps
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.datasets.group_splits import assign_group_split  # noqa: E402
-from src.datasets.registry import sha256_file  # noqa: E402
+from osteo_vision_core.datasets.group_splits import assign_group_split  # noqa: E402
+from osteo_vision_core.datasets.registry import sha256_file  # noqa: E402
 
 DEFAULT_DATASET_DIR = ROOT / "research/datasets/public-candidates/d047_pmc_jaw_fluorescence_figures"
 TRAINING_FIELDS = [

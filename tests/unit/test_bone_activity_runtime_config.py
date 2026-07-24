@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from src.models.adapters import build_adapters, select_adapter
+from osteo_vision_core.models.adapters import build_adapters, select_adapter
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision.yml"

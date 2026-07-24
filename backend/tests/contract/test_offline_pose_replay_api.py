@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-import backend.src.services.offline_pose_replay_service as replay_service_module
-from backend.src.api.app import create_app
+import backend.osteo_vision_api.services.offline_pose_replay_service as replay_service_module
+from backend.osteo_vision_api.api.app import create_app
 
 TOKEN = "physician-pose-review-token-001"
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}

@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from backend.src.domains.cases.enums import ReviewerRole
-from backend.src.domains.cases.schemas import ReviewActorIdentity
-from backend.src.services.promotion_approval_service import (
+from backend.osteo_vision_api.domains.cases.enums import ReviewerRole
+from backend.osteo_vision_api.domains.cases.schemas import ReviewActorIdentity
+from backend.osteo_vision_api.services.promotion_approval_service import (
     PromotionApprovalRepository,
     PromotionApprovalService,
 )
-from src.models.promotion_approval import (
+from osteo_vision_core.models.promotion_approval import (
     PromotionApprovalError,
     PromotionApprovalPayload,
     PromotionTrustStore,

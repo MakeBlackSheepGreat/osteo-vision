@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from src.core.schemas import CheckpointManifest, ModelCard, PromotionRecord
-from src.experiments.promotion import evaluate_promotion_gate
-from src.experiments.spec import experiment_spec_from_mapping
-from src.experiments.splits import assign_splits
-from src.experiments.thresholds import choose_threshold
+from osteo_vision_core.core.schemas import CheckpointManifest, ModelCard, PromotionRecord
+from osteo_vision_core.experiments.promotion import evaluate_promotion_gate
+from osteo_vision_core.experiments.spec import experiment_spec_from_mapping
+from osteo_vision_core.experiments.splits import assign_splits
+from osteo_vision_core.experiments.thresholds import choose_threshold
 
 
 def test_experiment_spec_schema_requires_contract_fields() -> None:

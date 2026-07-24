@@ -20,23 +20,23 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, Sampler
 
-from src.core.paths import ensure_dir, resolve_path
-from src.datasets.domain_adaptation import (
+from osteo_vision_core.core.paths import ensure_dir, resolve_path
+from osteo_vision_core.datasets.domain_adaptation import (
     augment_microscope_image,
     augmentation_report,
     load_domain_adaptation_config,
     sampled_indices,
     sampling_report,
 )
-from src.datasets.group_splits import assert_no_group_leakage
-from src.datasets.training_admission import admit_keyframe_training_rows
-from src.metrics.calibration import fit_binary_temperature
-from src.models.keyframe_segmenter import (
+from osteo_vision_core.datasets.group_splits import assert_no_group_leakage
+from osteo_vision_core.datasets.training_admission import admit_keyframe_training_rows
+from osteo_vision_core.metrics.calibration import fit_binary_temperature
+from osteo_vision_core.models.keyframe_segmenter import (
     build_keyframe_segmenter,
     checkpoint_sha256,
     select_torch_device,
 )
-from src.reports.writers import write_json
+from osteo_vision_core.reports.writers import write_json
 
 DEFAULT_CHECKPOINT = "artifacts/checkpoints/osteo_vision/keyframe_convnext2d_proxy.pt"
 DEFAULT_REPORT_DIR = "research/reports/modeling"

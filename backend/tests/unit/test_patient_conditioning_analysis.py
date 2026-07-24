@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from backend.src.domains.annotations.enums import (
+from backend.osteo_vision_api.domains.annotations.enums import (
     AnnotationCoordinateSpace,
     AnnotationLabel,
     AnnotationOperationMode,
@@ -14,27 +14,27 @@ from backend.src.domains.annotations.enums import (
     AnnotationSourceType,
     AnnotationTool,
 )
-from backend.src.domains.annotations.repository import AnnotationRepository
-from backend.src.domains.annotations.schemas import (
+from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
+from backend.osteo_vision_api.domains.annotations.schemas import (
     AnnotationCreateRequest,
     AnnotationGeometry,
     AnnotationOperation,
     AnnotationPoint,
     AnnotationSourceRequest,
 )
-from backend.src.domains.cases.enums import InputChannel, ReviewerRole
-from backend.src.domains.cases.repository import JsonCaseRepository
-from backend.src.domains.cases.schemas import (
+from backend.osteo_vision_api.domains.cases.enums import InputChannel, ReviewerRole
+from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import (
     CaseRecord,
     InputCreateRequest,
     ReviewActorIdentity,
 )
-from backend.src.services import analysis_service as analysis_service_module
-from backend.src.services.analysis_service import AnalysisService
-from backend.src.services.input_service import InputService
-from backend.src.services.manual_annotation_service import ManualAnnotationService
-from backend.src.services.patient_conditioning_gate import resolve_trusted_reviewed_bone_gate
-from src.core.schemas import AdapterResult, AdapterStatus
+from backend.osteo_vision_api.services import analysis_service as analysis_service_module
+from backend.osteo_vision_api.services.analysis_service import AnalysisService
+from backend.osteo_vision_api.services.input_service import InputService
+from backend.osteo_vision_api.services.manual_annotation_service import ManualAnnotationService
+from backend.osteo_vision_api.services.patient_conditioning_gate import resolve_trusted_reviewed_bone_gate
+from osteo_vision_core.core.schemas import AdapterResult, AdapterStatus
 
 ROOT = Path(__file__).resolve().parents[3]
 

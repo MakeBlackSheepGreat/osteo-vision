@@ -7,7 +7,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from src.io.live_stream import LiveStreamCaptureConfig, capture_live_keyframes
+from osteo_vision_core.io.live_stream import LiveStreamCaptureConfig, capture_live_keyframes
 
 
 def _write_video(path: Path, *, frame_count: int = 12, fps: float = 10.0) -> None:

@@ -6,13 +6,13 @@ import cv2
 import nibabel as nib
 import numpy as np
 
-from backend.src.core.settings import Settings
-from backend.src.domains.cases.enums import InputChannel
-from backend.src.domains.cases.repository import build_case_repository
-from backend.src.domains.cases.schemas import CaseRecord, InputCreateRequest
-from backend.src.services.input_service import InputService
-from backend.src.services.job_service import JobRegistry
-from backend.src.services.job_worker import LocalJobWorker
+from backend.osteo_vision_api.core.settings import Settings
+from backend.osteo_vision_api.domains.cases.enums import InputChannel
+from backend.osteo_vision_api.domains.cases.repository import build_case_repository
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord, InputCreateRequest
+from backend.osteo_vision_api.services.input_service import InputService
+from backend.osteo_vision_api.services.job_service import JobRegistry
+from backend.osteo_vision_api.services.job_worker import LocalJobWorker
 
 
 def test_local_job_worker_processes_queued_case_analysis(tmp_path: Path, monkeypatch) -> None:

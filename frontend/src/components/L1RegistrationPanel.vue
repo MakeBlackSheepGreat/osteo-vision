@@ -4,58 +4,63 @@
     <div class="mode-row">
       <label>输入方式<select v-model="mode" data-testid="registration-input-mode"><option value="manual_metadata">人工点对（L0 工程检查）</option><option value="offline_manifest">离线 manifest（L1 证据校验）</option></select></label>
       <label v-if="mode === 'manual_metadata'">配准方法<select v-model="registrationMethod" data-testid="registration-method"><option value="rigid_points">三维刚性点配准</option><option value="rigid_points_with_pnp">三维点配准 + 标定 PnP</option></select></label>
-      <label v-if="mode === 'manual_metadata'">模型路径<input v-model="modelPath" placeholder="CBCT/STL 已写入路径" /></label>
+      <label v-if="mode === 'manual_metadata'">模型路径<textarea v-model="modelPath" rows="2" placeholder="CBCT/STL 已写入路径" /></label>
       <label v-if="mode === 'offline_manifest'">Manifest 路径<input v-model="manifestPath" data-testid="registration-manifest-path" placeholder="registration_manifest.json" /></label>
       <label v-if="mode === 'offline_manifest'">Manifest SHA256<input v-model="manifestSha256" data-testid="registration-manifest-sha256" maxlength="64" autocomplete="off" placeholder="64 位十六进制摘要" /></label>
     </div>
     <template v-if="mode === 'manual_metadata'">
       <div class="actions"><button type="button" @click="loadExample">载入固定仿体示例</button></div>
-      <div class="point-grid">
-        <label>CBCT/STL 配准点 JSON<textarea v-model="sourceText" rows="5" /></label>
-        <label>仿体/相机参考点 JSON<textarea v-model="targetText" rows="5" /></label>
-        <label>独立 TRE 源点 JSON<textarea v-model="validationSourceText" rows="3" /></label>
-        <label>独立 TRE 目标点 JSON<textarea v-model="validationTargetText" rows="3" /></label>
-      </div>
-      <div class="field-grid">
-        <label>源坐标系<input v-model="sourceSpace" /></label><label>目标坐标系<input v-model="targetSpace" /></label>
-        <label>FRE 阈值 mm<input v-model.number="freThreshold" type="number" min="0.01" step="0.01" /></label>
-        <label>TRE 阈值 mm<input v-model.number="treThreshold" type="number" min="0.01" step="0.01" /></label>
-        <label>阈值来源<input v-model="thresholdSource" /></label>
-        <label>复核状态<input value="待可信医生复核（固定 L0）" disabled /></label>
-      </div>
-      <div class="field-grid">
-        <label>当前倍率 ×<input v-model.number="magnification" type="number" min="0.1" step="0.1" /></label>
-        <label>倍率标定下限<input v-model.number="magnificationMin" type="number" min="0.1" step="0.1" /></label>
-        <label>倍率标定上限<input v-model.number="magnificationMax" type="number" min="0.1" step="0.1" /></label>
-        <label>工作距离 mm<input v-model.number="workingDistance" type="number" min="1" step="1" /></label>
-        <label>距离标定下限 mm<input v-model.number="workingDistanceMin" type="number" min="1" step="1" /></label>
-        <label>距离标定上限 mm<input v-model.number="workingDistanceMax" type="number" min="1" step="1" /></label>
-      </div>
-      <details v-if="registrationMethod === 'rigid_points_with_pnp'" class="pnp-panel" open>
-        <summary>显微相机 PnP 与独立重投影验证</summary>
-        <div class="point-grid">
-          <label>相机配准三维点 JSON<textarea v-model="cameraObjectText" rows="5" /></label>
-          <label>相机配准像素点 JSON<textarea v-model="cameraImageText" rows="5" /></label>
-          <label>独立验证三维点 JSON<textarea v-model="validationCameraObjectText" rows="3" /></label>
-          <label>独立验证像素点 JSON<textarea v-model="validationCameraImageText" rows="3" /></label>
-          <label>相机内参 3×3 JSON<textarea v-model="cameraMatrixText" rows="3" /></label>
-          <label>畸变参数 JSON<textarea v-model="distortionText" rows="3" /></label>
-        </div>
-        <div class="field-grid">
-          <label>内参标识<input v-model="intrinsicsId" /></label>
-          <label>相机坐标系<input v-model="cameraSpace" /></label>
-          <label>画面宽度 px<input v-model.number="imageWidth" type="number" min="1" step="1" /></label>
-          <label>画面高度 px<input v-model.number="imageHeight" type="number" min="1" step="1" /></label>
-          <label>重投影阈值 px<input v-model.number="reprojectionThreshold" type="number" min="0.01" step="0.01" /></label>
-        </div>
-        <div class="field-grid">
-          <label>标定文件路径<input v-model="calibrationArtifactPath" placeholder="artifacts/calibration/scope.json" /></label>
-          <label>标定文件 SHA256<input v-model="calibrationArtifactSha256" maxlength="64" /></label>
-          <label>阈值状态<select v-model="thresholdApprovalStatus"><option value="pending">待批准</option><option value="approved">已批准</option></select></label>
-          <label>协议版本<input v-model="thresholdProtocolVersion" /></label>
-          <label>数据版本<input v-model="thresholdDataVersion" /></label>
-          <label>批准人<input v-model="thresholdApprovedBy" /></label>
-          <label>批准时间<input v-model="thresholdApprovedAt" type="datetime-local" /></label>
+      <details class="l1-panel__advanced">
+        <summary>展开工程点对、倍率和阈值输入</summary>
+        <div class="l1-panel__advanced-content">
+          <div class="point-grid">
+            <label>CBCT/STL 配准点 JSON<textarea v-model="sourceText" rows="5" /></label>
+            <label>仿体/相机参考点 JSON<textarea v-model="targetText" rows="5" /></label>
+            <label>独立 TRE 源点 JSON<textarea v-model="validationSourceText" rows="3" /></label>
+            <label>独立 TRE 目标点 JSON<textarea v-model="validationTargetText" rows="3" /></label>
+          </div>
+          <div class="field-grid">
+            <label>源坐标系<input v-model="sourceSpace" /></label><label>目标坐标系<input v-model="targetSpace" /></label>
+            <label>FRE 阈值 mm<input v-model.number="freThreshold" type="number" min="0.01" step="0.01" /></label>
+            <label>TRE 阈值 mm<input v-model.number="treThreshold" type="number" min="0.01" step="0.01" /></label>
+            <label>阈值来源<input v-model="thresholdSource" /></label>
+            <label>复核状态<input value="待可信医生复核（固定 L0）" disabled /></label>
+          </div>
+          <div class="field-grid">
+            <label>当前倍率 ×<input v-model.number="magnification" type="number" min="0.1" step="0.1" /></label>
+            <label>倍率标定下限<input v-model.number="magnificationMin" type="number" min="0.1" step="0.1" /></label>
+            <label>倍率标定上限<input v-model.number="magnificationMax" type="number" min="0.1" step="0.1" /></label>
+            <label>工作距离 mm<input v-model.number="workingDistance" type="number" min="1" step="1" /></label>
+            <label>距离标定下限 mm<input v-model.number="workingDistanceMin" type="number" min="1" step="1" /></label>
+            <label>距离标定上限 mm<input v-model.number="workingDistanceMax" type="number" min="1" step="1" /></label>
+          </div>
+          <details v-if="registrationMethod === 'rigid_points_with_pnp'" class="pnp-panel">
+            <summary>显微相机 PnP 与独立重投影验证</summary>
+            <div class="point-grid">
+              <label>相机配准三维点 JSON<textarea v-model="cameraObjectText" rows="5" /></label>
+              <label>相机配准像素点 JSON<textarea v-model="cameraImageText" rows="5" /></label>
+              <label>独立验证三维点 JSON<textarea v-model="validationCameraObjectText" rows="3" /></label>
+              <label>独立验证像素点 JSON<textarea v-model="validationCameraImageText" rows="3" /></label>
+              <label>相机内参 3×3 JSON<textarea v-model="cameraMatrixText" rows="3" /></label>
+              <label>畸变参数 JSON<textarea v-model="distortionText" rows="3" /></label>
+            </div>
+            <div class="field-grid">
+              <label>内参标识<input v-model="intrinsicsId" /></label>
+              <label>相机坐标系<input v-model="cameraSpace" /></label>
+              <label>画面宽度 px<input v-model.number="imageWidth" type="number" min="1" step="1" /></label>
+              <label>画面高度 px<input v-model.number="imageHeight" type="number" min="1" step="1" /></label>
+              <label>重投影阈值 px<input v-model.number="reprojectionThreshold" type="number" min="0.01" step="0.01" /></label>
+            </div>
+            <div class="field-grid">
+              <label>标定文件路径<input v-model="calibrationArtifactPath" placeholder="artifacts/calibration/scope.json" /></label>
+              <label>标定文件 SHA256<input v-model="calibrationArtifactSha256" maxlength="64" /></label>
+              <label>阈值状态<select v-model="thresholdApprovalStatus"><option value="pending">待批准</option><option value="approved">已批准</option></select></label>
+              <label>协议版本<input v-model="thresholdProtocolVersion" /></label>
+              <label>数据版本<input v-model="thresholdDataVersion" /></label>
+              <label>批准人<input v-model="thresholdApprovedBy" /></label>
+              <label>批准时间<input v-model="thresholdApprovedAt" type="datetime-local" /></label>
+            </div>
+          </details>
         </div>
       </details>
     </template>
@@ -261,5 +266,178 @@ function isPollingCurrent(polling: PollingSession): boolean {
 </script>
 
 <style scoped>
-.l1-panel{width:min(100%,var(--ov-content-wide));margin:0 auto 16px;display:grid;gap:12px;border:1px solid var(--ov-border);border-radius:7px;padding:14px;background:var(--ov-bg-elevated)} header,.actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap} header>div{display:grid;gap:3px} header small,.boundary{color:var(--ov-text-muted);font-size:11px}.mode-row,.field-grid,.point-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.point-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.review-field{max-width:360px}.pnp-panel{display:grid;gap:10px;border:1px solid var(--ov-border-subtle);border-radius:6px;padding:10px}.pnp-panel summary{cursor:pointer;color:var(--ov-text);font-weight:800}.pnp-panel>.point-grid,.pnp-panel>.field-grid{margin-top:10px} label{display:grid;gap:4px;color:var(--ov-text-secondary);font-size:11px;font-weight:800} input,select,textarea,button{min-width:0;border:1px solid var(--ov-border-strong);border-radius:5px;padding:7px;background:var(--ov-bg-elevated);color:var(--ov-text);font:inherit;overflow-wrap:anywhere} input:disabled{background:var(--ov-bg-subtle);color:var(--ov-text-muted)} textarea{resize:vertical} button{cursor:pointer;font-weight:800}.boundary,.error{margin:0;line-height:1.5}.error{color:var(--ov-danger);font-size:12px}@media(max-width:1180px){.mode-row,.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.point-grid{grid-template-columns:1fr}}
+.l1-panel {
+  width: min(100%, var(--ov-content-wide));
+  display: grid;
+  gap: 14px;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  border: 1px solid var(--ov-border);
+  border-radius: var(--ov-radius-surface);
+  padding: 16px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+header,
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+header > div {
+  display: grid;
+  gap: 3px;
+}
+
+header strong {
+  color: var(--ov-text);
+  font-size: 15px;
+}
+
+header span {
+  border: 1px solid var(--ov-border-strong);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--ov-bg-soft);
+  color: var(--ov-primary-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+header small,
+.boundary {
+  color: var(--ov-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mode-row,
+.field-grid,
+.point-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mode-row {
+  border-top: 1px solid var(--ov-border-subtle);
+  padding-top: 14px;
+}
+
+.point-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.review-field {
+  max-width: 360px;
+}
+
+.l1-panel__advanced,
+.pnp-panel {
+  border: 1px solid var(--ov-border-subtle);
+  border-radius: var(--ov-radius-control);
+  background: var(--ov-bg-soft);
+}
+
+.l1-panel__advanced summary,
+.pnp-panel summary {
+  cursor: pointer;
+  padding: 11px 12px;
+  color: var(--ov-primary-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.l1-panel__advanced-content,
+.pnp-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.l1-panel__advanced-content {
+  padding: 0 12px 12px;
+}
+
+.pnp-panel {
+  padding: 0;
+  background: var(--ov-bg-elevated);
+}
+
+.pnp-panel > .point-grid,
+.pnp-panel > .field-grid {
+  margin: 0 12px 12px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  color: var(--ov-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+  border: 1px solid var(--ov-border-strong);
+  border-radius: var(--ov-radius-control);
+  padding: 8px 9px;
+  background: var(--ov-bg-control);
+  color: var(--ov-text);
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+input:disabled {
+  background: var(--ov-bg-soft);
+  color: var(--ov-text-muted);
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.boundary,
+.error {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.boundary {
+  border-left: 3px solid var(--ov-warning);
+  padding: 8px 10px;
+  background: var(--ov-bg-warning);
+}
+
+.error {
+  color: var(--ov-danger);
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .mode-row,
+  .field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .point-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

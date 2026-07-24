@@ -8,10 +8,10 @@ import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from backend.src.api.app import create_app
-from backend.src.domains.cases.enums import ReviewState
-from backend.src.domains.cases.repository import SQLiteCaseRepository
-from backend.src.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.domains.cases.enums import ReviewState
+from backend.osteo_vision_api.domains.cases.repository import SQLiteCaseRepository
+from backend.osteo_vision_api.domains.cases.schemas import AnalysisRun, CandidateRegion, CaseRecord
 
 
 def _client(tmp_path: Path, monkeypatch, *, identities: dict | None = None) -> TestClient:

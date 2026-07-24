@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from src.models.keyframe_segmenter import (
+from osteo_vision_core.models.keyframe_segmenter import (
     TinyKeyframeSegmenter2D,
     connected_probability_candidates,
     predict_keyframe_image,

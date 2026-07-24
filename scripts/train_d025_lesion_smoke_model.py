@@ -18,15 +18,15 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from src.core.paths import ensure_dir, project_root, resolve_path
-from src.models.lesion_segmenter import (
+from osteo_vision_core.core.paths import ensure_dir, project_root, resolve_path
+from osteo_vision_core.models.lesion_segmenter import (
     TinyLesionSegmenter3D,
     checkpoint_sha256,
     load_npz_image,
     load_npz_label,
     select_torch_device,
 )
-from src.reports.writers import write_json
+from osteo_vision_core.reports.writers import write_json
 
 DEFAULT_MANIFEST = (
     "research/datasets/public-candidates/d025_lesion_cbct/derived/local_preprocessed/lesion_roi_64/"

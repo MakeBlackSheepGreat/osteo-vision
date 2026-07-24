@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from src.models.runtime_preflight import check_runtime_readiness
+from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
 
 
 def _strict_config(checkpoint: Path, sidecar: Path) -> dict:
@@ -309,7 +309,7 @@ def test_runtime_preflight_checks_configured_external_tools(tmp_path: Path, monk
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        "src.models.runtime_preflight.find_runtime_executable",
+        "osteo_vision_core.models.runtime_preflight.find_runtime_executable",
         lambda name: "/tools/required_codec" if name == "required_codec" else None,
     )
 
@@ -343,7 +343,7 @@ def test_runtime_preflight_fails_when_required_external_tool_is_missing(tmp_path
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr("src.models.runtime_preflight.find_runtime_executable", lambda _name: None)
+    monkeypatch.setattr("osteo_vision_core.models.runtime_preflight.find_runtime_executable", lambda _name: None)
 
     report = check_runtime_readiness(config)
 

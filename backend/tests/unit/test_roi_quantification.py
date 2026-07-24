@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from backend.src.services.roi_service import roi_metric_summary
+from backend.osteo_vision_api.services.roi_service import roi_metric_summary
 
 
 def test_roi_metric_summary() -> None:

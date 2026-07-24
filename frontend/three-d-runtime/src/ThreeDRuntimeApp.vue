@@ -18,22 +18,6 @@
       </div>
     </header>
 
-    <section class="runtime-status" :class="`is-${statusTone}`" aria-label="三维运行时安全状态">
-      <div>
-        <span>空间状态</span>
-        <strong>{{ safetyLabel }}</strong>
-      </div>
-      <div>
-        <span>模型状态</span>
-        <strong>{{ modelLabel }}</strong>
-      </div>
-      <div>
-        <span>复核状态</span>
-        <strong>{{ reviewLabel }}</strong>
-      </div>
-      <p>{{ boundaryLabel }}</p>
-    </section>
-
     <section class="runtime-workbench">
       <ThreeDViewport
         :snapshot="snapshot"
@@ -42,8 +26,29 @@
         @state="handleViewportState"
       />
 
-      <aside class="runtime-inspector" aria-label="三维场景检查">
-        <section class="runtime-inspector__section">
+      <section class="runtime-status" :class="`is-${statusTone}`" aria-label="三维运行时安全状态">
+        <div>
+          <span>空间</span>
+          <strong>{{ safetyLabel }}</strong>
+        </div>
+        <div>
+          <span>模型</span>
+          <strong>{{ modelLabel }}</strong>
+        </div>
+        <div>
+          <span>复核</span>
+          <strong>{{ reviewLabel }}</strong>
+        </div>
+      </section>
+
+      <details class="runtime-inspector" aria-label="三维场景检查">
+        <summary>
+          <span>场景信息</span>
+          <strong>{{ inspectorSummary }}</strong>
+        </summary>
+        <div class="runtime-inspector__content">
+          <p class="runtime-inspector__boundary">{{ boundaryLabel }}</p>
+          <section class="runtime-inspector__section">
           <header>
             <span>场景快照</span>
             <strong>{{ snapshot?.schema_version || "等待快照" }}</strong>
@@ -54,9 +59,9 @@
             <div><dt>模型校验</dt><dd>{{ checksumLabel }}</dd></div>
             <div><dt>配准等级</dt><dd>{{ navigationLevelLabel }}</dd></div>
           </dl>
-        </section>
+          </section>
 
-        <section class="runtime-inspector__section">
+          <section class="runtime-inspector__section">
           <header>
             <span>显示控制</span>
             <strong>检查视图</strong>
@@ -66,9 +71,9 @@
             <span>自动旋转</span>
           </label>
           <p class="runtime-inspector__note">{{ viewportMessage }}</p>
-        </section>
+          </section>
 
-        <section class="runtime-inspector__section runtime-inspector__candidates">
+          <section class="runtime-inspector__section runtime-inspector__candidates">
           <header>
             <span>视频候选区</span>
             <strong>{{ candidates.length }} 个</strong>
@@ -83,7 +88,7 @@
               >
                 <span :class="`is-${candidateTone(candidate)}`"></span>
                 <div>
-                  <strong>{{ candidate.risk_type || "候选区" }}</strong>
+                  <strong>{{ candidateRiskLabel(candidate.risk_type) }}</strong>
                   <small>{{ candidateFrameLabel(candidate) }}</small>
                 </div>
                 <em>{{ candidateConfidence(candidate) }}</em>
@@ -91,13 +96,14 @@
             </li>
           </ol>
           <p v-else class="runtime-inspector__note">当前场景没有可联动的视频候选区。</p>
-        </section>
+          </section>
 
-        <section v-if="errorMessage" class="runtime-inspector__error" role="status">
-          <strong>运行时状态</strong>
-          <span>{{ errorMessage }}</span>
-        </section>
-      </aside>
+          <section v-if="errorMessage" class="runtime-inspector__error" role="status">
+            <strong>运行时状态</strong>
+            <span>{{ errorMessage }}</span>
+          </section>
+        </div>
+      </details>
     </section>
   </main>
 </template>
@@ -153,7 +159,7 @@ const modelLabel = computed(() => {
   if (asset.rendering_status === "unsupported_format" || asset.format === "gltf") return "安全降级";
   return viewportMessage.value.startsWith("模型校验完成") ? "已校验加载" : "待检查";
 });
-const reviewLabel = computed(() => snapshot.value?.safety?.doctor_review_status || "review_required");
+const reviewLabel = computed(() => reviewStatusLabel(snapshot.value?.safety?.doctor_review_status));
 const boundaryLabel = computed(
   () => snapshot.value?.safety?.boundary || "三维内容用于工程参考，需保留医生复核边界。",
 );
@@ -172,6 +178,11 @@ const checksumLabel = computed(() => {
   return checksum ? `${checksum.slice(0, 12)}...` : "未提供";
 });
 const navigationLevelLabel = computed(() => snapshot.value?.safety?.navigation_level || "L0");
+const inspectorSummary = computed(() => {
+  if (!snapshot.value) return "等待场景";
+  if (candidates.value.length) return `${candidates.value.length} 个候选区`;
+  return snapshot.value.model_asset ? "模型已载入" : "等待模型";
+});
 
 onMounted(() => {
   applyTheme(theme.value);
@@ -308,7 +319,29 @@ function candidateTone(candidate: RuntimeCandidate): "high" | "medium" | "low" {
 }
 
 function candidateTitle(candidate: RuntimeCandidate): string {
-  return `${candidate.risk_type || "候选区"}，${candidateFrameLabel(candidate)}`;
+  return `${candidateRiskLabel(candidate.risk_type)}，${candidateFrameLabel(candidate)}`;
+}
+
+function reviewStatusLabel(value: unknown): string {
+  const labels: Record<string, string> = {
+    accepted: "已接受",
+    reviewed: "已复核",
+    recorded: "已记录",
+    review_required: "待复核",
+    not_reviewed: "未复核",
+    pending: "待复核",
+  };
+  return labels[String(value || "review_required").trim().toLowerCase()] || "状态待确认";
+}
+
+function candidateRiskLabel(value: unknown): string {
+  const labels: Record<string, string> = {
+    boundary_risk: "边界风险",
+    fluorescence_signal: "荧光信号",
+    uncertain_region: "不确定区域",
+    low_viability: "低活性候选",
+  };
+  return labels[String(value || "").trim().toLowerCase()] || "候选区域";
 }
 
 function finiteNumber(value: unknown): number | null {

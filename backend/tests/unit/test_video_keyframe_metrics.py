@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.src.services.video_keyframe_metrics import (
+from backend.osteo_vision_api.services.video_keyframe_metrics import (
     attach_video_temporal_context,
     normalized_bbox,
     scaled_bbox,

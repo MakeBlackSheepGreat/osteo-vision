@@ -83,6 +83,7 @@ export interface LiveFrameAnalysisResult {
   captured_at: string;
   completed_at: string;
   inference_latency_ms: number;
+  model_inference_latency_ms?: number;
   model_id: string;
   model_family?: string | null;
   analysis_method?: string | null;
@@ -93,6 +94,12 @@ export interface LiveFrameAnalysisResult {
   risk_mask_path?: string | null;
   uncertain_mask_path?: string | null;
   pseudo_color_path?: string | null;
+  performance?: {
+    total_ms?: number;
+    model_ms?: number;
+    decoded_width?: number;
+    decoded_height?: number;
+  };
   signal_masks?: Record<string, unknown>;
   quantification?: Record<string, unknown>;
   warnings?: Array<Record<string, unknown>>;

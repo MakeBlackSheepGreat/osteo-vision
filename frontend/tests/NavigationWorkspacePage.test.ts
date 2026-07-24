@@ -18,6 +18,7 @@ describe("NavigationWorkspacePage", () => {
         { path: "/navigation", component: NavigationWorkspacePage },
         { path: "/case", component: { template: "<div />" } },
         { path: "/cases", component: { template: "<div />" } },
+        { path: "/review", component: { template: "<div />" } },
       ],
     });
     await router.push("/navigation?caseId=case_001");
@@ -122,29 +123,29 @@ describe("NavigationWorkspacePage", () => {
 
     expect(wrapper.get("h1").text()).toBe("病例三维导航工作台");
     expect(wrapper.text()).toContain("术中病例 001");
-    expect(wrapper.text()).toContain("case_001.mp4");
-    expect(wrapper.text()).toContain("1 个");
     expect(wrapper.text()).toContain("导航前置条件已记录");
-    expect(wrapper.text()).toContain("配准误差 0.80 mm");
     expect(wrapper.text()).toContain("L2 · 动态 AR 验证");
-    expect(wrapper.text()).toContain("0.80 mm / 阈值 1.50 mm");
+    expect(wrapper.text()).toContain("当前病例：术中病例 001");
+    expect(wrapper.findAll(".three-d-evidence-control-stub")).toHaveLength(3);
     expect(wrapper.get(".three-d-evidence-control-stub").text()).toContain("case_001 / 三维证据控制");
     expect(wrapper.get(".three-d-runtime-stub").text()).toContain("case_001 / 独立三维运行时");
     expect(wrapper.get(".navigation-workspace__back").attributes("href")).toContain("caseId=case_001");
 
     const pageSections = Array.from(wrapper.get("main").element.children);
-    const safetyIndex = pageSections.indexOf(wrapper.get(".navigation-safety").element);
-    const controlIndex = pageSections.indexOf(wrapper.get(".three-d-evidence-control-stub").element);
-    const anatomyIndex = pageSections.indexOf(wrapper.get(".three-d-runtime-stub").element);
-    const evidenceHeadingIndex = pageSections.indexOf(wrapper.get(".navigation-workspace__evidence-heading").element);
-    const l1Index = pageSections.indexOf(wrapper.get(".l1-panel").element);
-    const l2Index = pageSections.indexOf(wrapper.get(".l2-panel").element);
-    expect(safetyIndex).toBeLessThan(anatomyIndex);
-    expect(safetyIndex).toBeLessThan(controlIndex);
-    expect(controlIndex).toBeLessThan(anatomyIndex);
-    expect(anatomyIndex).toBeLessThan(evidenceHeadingIndex);
-    expect(evidenceHeadingIndex).toBeLessThan(l1Index);
-    expect(l1Index).toBeLessThan(l2Index);
+    const workbench = wrapper.get(".navigation-empty-workbench");
+    const workbenchIndex = pageSections.indexOf(workbench.element);
+    const engineering = wrapper.get(".navigation-engineering");
+    const engineeringIndex = pageSections.indexOf(engineering.element);
+    expect(workbench.attributes("data-state")).toBe("loaded-case");
+    expect(workbench.find(".navigation-empty-workbench__imports .three-d-evidence-control-stub").exists()).toBe(true);
+    expect(workbench.find(".navigation-empty-workbench__tree .three-d-evidence-control-stub").exists()).toBe(true);
+    expect(workbench.find(".navigation-empty-workbench__checks .three-d-evidence-control-stub").exists()).toBe(true);
+    expect(workbench.find(".navigation-empty-workbench__viewport .three-d-runtime-stub").exists()).toBe(true);
+    expect(engineering.attributes("open")).toBeUndefined();
+    expect(engineering.find(".navigation-workspace__evidence-heading").exists()).toBe(true);
+    expect(engineering.find(".l1-panel").exists()).toBe(true);
+    expect(engineering.find(".l2-panel").exists()).toBe(true);
+    expect(workbenchIndex).toBeLessThan(engineeringIndex);
 
     store.currentCase.three_d_evidence = {
       ...store.currentCase.three_d_evidence,
@@ -167,7 +168,7 @@ describe("NavigationWorkspacePage", () => {
     expect(router.currentRoute.value.query.frameKey).toBe("frame_8");
     expect(wrapper.get(".navigation-workspace__back").attributes("href")).toContain("frameKey=frame_8");
 
-    await wrapper.get(".three-d-evidence-control-stub button").trigger("click");
+    await wrapper.findAll(".three-d-evidence-control-stub button").at(0)?.trigger("click");
     expect(store.loadCase).toHaveBeenCalledWith("case_001");
   });
 

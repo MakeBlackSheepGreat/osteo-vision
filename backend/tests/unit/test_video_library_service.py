@@ -6,7 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from backend.src.services.video_library_service import VideoLibraryService
+from backend.osteo_vision_api.services.video_library_service import VideoLibraryService
 
 
 def test_video_library_filters_existing_mp4_candidates(tmp_path: Path) -> None:

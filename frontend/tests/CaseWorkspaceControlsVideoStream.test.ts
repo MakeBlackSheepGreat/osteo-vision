@@ -147,6 +147,26 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.text()).toContain("推理完成后立即继续");
   });
 
+  it("places live stream controls before analysis parameters", () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: baseProps,
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    const cards = wrapper.findAll(".control-card");
+    const liveStreamIndex = cards.findIndex((card) => card.classes().includes("live-stream-control-card"));
+    const analysisParameterIndex = cards.findIndex((card) => card.classes().includes("analysis-parameter-card"));
+
+    expect(liveStreamIndex).toBeGreaterThanOrEqual(0);
+    expect(analysisParameterIndex).toBeGreaterThanOrEqual(0);
+    expect(liveStreamIndex).toBeLessThan(analysisParameterIndex);
+  });
+
   it("keeps live camera actions available while an unrelated workspace task is loading", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: {

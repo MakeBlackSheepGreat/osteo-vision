@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from src.datasets.registry import DatasetRecord, sha256_file, validate_registry
+from osteo_vision_core.datasets.registry import DatasetRecord, sha256_file, validate_registry
 from tools.build_layered_dataset_registry import (
     build_records,
     canonical_split_for_group,

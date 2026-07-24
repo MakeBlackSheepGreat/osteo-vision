@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from backend.src.domains.cases.repository import (
+from backend.osteo_vision_api.domains.cases.repository import (
     CaseVersionConflictError,
     JsonCaseRepository,
     SQLiteCaseRepository,
     build_case_repository,
 )
-from backend.src.domains.cases.schemas import CaseRecord
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord
 
 
 def test_sqlite_case_repository_persists_and_exports_json(tmp_path: Path) -> None:

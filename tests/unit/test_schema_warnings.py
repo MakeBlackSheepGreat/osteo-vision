@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.core.schemas import PredictionResult
-from src.core.warnings import DISCLAIMER_TEXT, KNOWN_STATUSES, STATUS_COMPLETED, warning
+from osteo_vision_core.core.schemas import PredictionResult
+from osteo_vision_core.core.warnings import DISCLAIMER_TEXT, KNOWN_STATUSES, STATUS_COMPLETED, warning
 
 
 def test_prediction_result_has_required_fields() -> None:

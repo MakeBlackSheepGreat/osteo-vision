@@ -24,12 +24,12 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.config import load_yaml, runtime_config  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.core.schemas import AdapterRequest  # noqa: E402
-from src.models.adapters import build_adapter, model_spec_from_mapping  # noqa: E402
-from src.models.keyframe_segmenter import load_rgb_image  # noqa: E402
-from src.preprocess.video import extract_keyframes  # noqa: E402
+from osteo_vision_core.core.config import load_yaml, runtime_config  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.core.schemas import AdapterRequest  # noqa: E402
+from osteo_vision_core.models.adapters import build_adapter, model_spec_from_mapping  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import load_rgb_image  # noqa: E402
+from osteo_vision_core.preprocess.video import extract_keyframes  # noqa: E402
 
 DEFAULT_LIBRARY_MANIFEST = "research/literature/inventory/video_library_manifest_20260704.csv"
 DEFAULT_OFD_MANIFEST = "research/literature/inventory/ofdvdnet_video_manifest_20260704.csv"

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import yaml
 
-from src.core.schemas import InputSummary
-from src.engine.inference import MedicalImagingInferenceService
-from src.pipelines.base import PipelineContext
-from src.pipelines.segmentation import SegmentationPipeline
+from osteo_vision_core.core.schemas import InputSummary
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService
+from osteo_vision_core.pipelines.base import PipelineContext
+from osteo_vision_core.pipelines.segmentation import SegmentationPipeline
 
 
 def test_classification_fixture_completes(fixture_dir) -> None:

@@ -20,9 +20,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.datasets.group_splits import assign_group_split, group_leakage_report, normalized_source_group  # noqa: E402
-from src.reports.writers import write_csv, write_json  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.datasets.group_splits import assign_group_split, group_leakage_report, normalized_source_group  # noqa: E402
+from osteo_vision_core.reports.writers import write_csv, write_json  # noqa: E402
 
 BOUNDARY_NOTE = (
     "This multi-mask manifest merges public/proxy video-signal masks and prompt-assisted review masks. "

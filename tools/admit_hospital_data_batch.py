@@ -13,14 +13,14 @@ from pydantic import ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.src.core.settings import load_settings  # noqa: E402
-from backend.src.domains.cases.repository import build_case_repository  # noqa: E402
-from backend.src.domains.cases.schemas import HospitalIntakeBatchRequest  # noqa: E402
-from backend.src.services.hospital_intake_service import (  # noqa: E402
+from backend.osteo_vision_api.core.settings import load_settings  # noqa: E402
+from backend.osteo_vision_api.domains.cases.repository import build_case_repository  # noqa: E402
+from backend.osteo_vision_api.domains.cases.schemas import HospitalIntakeBatchRequest  # noqa: E402
+from backend.osteo_vision_api.services.hospital_intake_service import (  # noqa: E402
     HospitalIntakeConflictError,
     HospitalIntakeService,
 )
-from backend.src.services.input_service import InputService  # noqa: E402
+from backend.osteo_vision_api.services.input_service import InputService  # noqa: E402
 
 EXIT_OK = 0
 EXIT_INVALID_MANIFEST = 2

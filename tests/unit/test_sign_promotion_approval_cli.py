@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.models.promotion_approval import (
+from osteo_vision_core.models.promotion_approval import (
     PromotionApprovalError,
     PromotionTrustStore,
     SignedPromotionApproval,
@@ -326,7 +326,9 @@ def test_cli_rejects_private_key_paths_inside_repository(tmp_path: Path) -> None
 
 
 def test_backend_service_has_no_private_key_loader_or_private_key_setting() -> None:
-    backend_python = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "backend" / "src").rglob("*.py"))
+    backend_python = "\n".join(
+        path.read_text(encoding="utf-8") for path in (ROOT / "backend" / "osteo_vision_api").rglob("*.py")
+    )
 
     assert "load_pem_private_key" not in backend_python
     assert "Ed25519PrivateKey" not in backend_python

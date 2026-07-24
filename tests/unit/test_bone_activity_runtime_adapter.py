@@ -8,9 +8,9 @@ import numpy as np
 import torch
 from PIL import Image
 
-from src.core.schemas import AdapterRequest
-from src.models.adapters import build_adapter, model_spec_from_mapping
-from src.models.bone_activity_multitask import BONE_ACTIVITY_CLASSES, BoneActivityMultiTask2D
+from osteo_vision_core.core.schemas import AdapterRequest
+from osteo_vision_core.models.adapters import build_adapter, model_spec_from_mapping
+from osteo_vision_core.models.bone_activity_multitask import BONE_ACTIVITY_CLASSES, BoneActivityMultiTask2D
 
 
 def test_bone_activity_proxy_adapter_executes_checkpoint_and_keeps_spatial_outputs_closed(

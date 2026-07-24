@@ -17,10 +17,18 @@
 - 实时视频参数增加有限范围解析与可追溯告警；关键帧上限为 `8`，浏览器重复证据路径在推理前去重。
 - L2 离线位姿回放将 CSV 写出与帧级汇总合并为一次遍历，已核验 PTS 直接复用 `ffprobe` 结果，并以临时文件原子提交 CSV 证据。
 - 二进制 STL 采用 NumPy 结构化零拷贝视图，退化三角形检查按最多 `65,536` 个三角形分块执行。
+- 质量峰值关键帧保存阶段复用候选评分产生的质量指标，减少已选关键帧的重复全图质量扫描。
+- MP4 播放同步缓存一次分析结果的关键帧索引，以二分查找替代每次 `timeupdate` 的重复线性过滤与扫描。
+
+### 目录与交付完整性
+
+- 明确 `output/`、`outputs/`、`tmp/` 与 `artifacts/` 的单向职责，并为挑战杯报告包建立分章源稿、图包、最小重建材料和提交入口索引。
+- 挑战杯图包的公开或合成重建材料收敛到 `assets/sources/`；图包清单同步登记来源、SHA256、文件大小和版本化运行指标来源。
+- 两个 DOCX 构建入口限制 Markdown 图片与源稿目录边界；缺失图片直接失败，并以临时文件原子替换输出。
 
 ### 验证
 
-- 当前完整核心测试 `604 passed`，后端测试 `288 passed`，前端 Vitest `207 passed, 1 skipped`。
+- 当前完整核心测试 `607 passed`，后端测试 `288 passed`，前端 Vitest `211 passed, 1 skipped`。
 - Ruff、Black、isort、严格 mypy、Python compileall、`vue-tsc`、Vite build、pre-commit、活动文档审计和严格运行预检通过。
 - 本轮收尾审计：`research/reports/release/runtime_stability_closeout_20260721_zh.md`。
 

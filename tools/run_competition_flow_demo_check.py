@@ -46,8 +46,8 @@ def run_demo_check(args: argparse.Namespace) -> dict[str, Any]:
     input_dir = output_dir / "input"
     input_dir.mkdir(parents=True, exist_ok=True)
 
-    from backend.src.api.app import create_app
-    from src.engine.inference import MedicalImagingInferenceService
+    from backend.osteo_vision_api.api.app import create_app
+    from osteo_vision_core.engine.inference import MedicalImagingInferenceService
 
     client = TestClient(create_app())
     ready_payload = checked_json(client.get("/ready"))

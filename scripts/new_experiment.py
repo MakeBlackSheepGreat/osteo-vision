@@ -7,8 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.core.schemas import ExperimentSpec
-from src.experiments.spec import write_experiment_spec
+from osteo_vision_core.core.schemas import ExperimentSpec
+from osteo_vision_core.experiments.spec import write_experiment_spec
 
 
 def main() -> int:

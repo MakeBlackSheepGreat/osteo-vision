@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from backend.src.domains.cases.enums import InputChannel
-from backend.src.domains.cases.schemas import CaseRecord, InputCreateRequest
-from backend.src.services.input_service import InputService
+from backend.osteo_vision_api.domains.cases.enums import InputChannel
+from backend.osteo_vision_api.domains.cases.schemas import CaseRecord, InputCreateRequest
+from backend.osteo_vision_api.services.input_service import InputService
 
 
 def test_quality_flags_detect_dimension_mismatch(tmp_path: Path) -> None:

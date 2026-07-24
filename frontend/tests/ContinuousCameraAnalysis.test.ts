@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  isDisplayableLiveFrame,
   isCurrentLiveFrameDisplay,
   useContinuousCameraAnalysis,
 } from "../src/composables/useContinuousCameraAnalysis";
@@ -436,10 +437,16 @@ describe("continuous camera analysis", () => {
 
     expect(isCurrentLiveFrameDisplay(result, identity, identity, options)).toBe(true);
     expect(isCurrentLiveFrameDisplay(result, identity, { ...identity, sequence: 8 }, options)).toBe(false);
+    expect(isDisplayableLiveFrame(result, identity, options)).toBe(true);
+    expect(isDisplayableLiveFrame(result, identity, { ...options, nowMs: identity.capturedAtMs + 1_000 })).toBe(true);
     expect(isCurrentLiveFrameDisplay(result, identity, identity, { ...options, activeSource: "camera" })).toBe(false);
+    expect(isDisplayableLiveFrame(result, identity, { ...options, activeSource: "camera" })).toBe(false);
     expect(isCurrentLiveFrameDisplay(result, identity, identity, { ...options, nowMs: identity.capturedAtMs + 15_001 })).toBe(false);
+    expect(isDisplayableLiveFrame(result, identity, { ...options, nowMs: identity.capturedAtMs + 15_001 })).toBe(false);
     expect(isCurrentLiveFrameDisplay({ ...result, case_id: "case-2" }, identity, identity, options)).toBe(false);
+    expect(isDisplayableLiveFrame({ ...result, case_id: "case-2" }, identity, options)).toBe(false);
     expect(isCurrentLiveFrameDisplay({ ...result, captured_at: "2026-07-19T12:00:01.000Z" }, identity, identity, options)).toBe(false);
+    expect(isDisplayableLiveFrame({ ...result, captured_at: "2026-07-19T12:00:01.000Z" }, identity, options)).toBe(false);
   });
 
   it("reads Retry-After from a live-frame capacity response", async () => {

@@ -26,7 +26,7 @@ def _repo_markers(root: Path) -> None:
 
 def test_workspace_cleanup_is_bounded_and_preserves_artifact_markers(tmp_path: Path) -> None:
     _repo_markers(tmp_path)
-    cache = tmp_path / "src" / "__pycache__"
+    cache = tmp_path / "osteo_vision_core" / "__pycache__"
     cache.mkdir(parents=True)
     (cache / "module.pyc").write_bytes(b"cache")
     transient = tmp_path / ".pytest_tmp_case"
@@ -44,26 +44,28 @@ def test_workspace_cleanup_is_bounded_and_preserves_artifact_markers(tmp_path: P
     case_store = tmp_path / "artifacts" / "platform" / "cases.sqlite"
     case_store.parent.mkdir(parents=True)
     case_store.write_bytes(b"case-state")
-    derived_dataset = tmp_path / "outputs" / "reviewed_dataset" / "manifest.json"
+    derived_dataset = (
+        tmp_path / "research" / "datasets" / "public-candidates" / "reviewed_dataset" / "derived" / "manifest.json"
+    )
     derived_dataset.parent.mkdir(parents=True)
     derived_dataset.write_text("{}", encoding="utf-8")
-    research_script = tmp_path / "tmp" / "research" / "inspect.py"
+    research_script = tmp_path / "artifacts" / "tmp" / "research" / "inspect.py"
     research_script.parent.mkdir(parents=True)
     research_script.write_text("print('preserve')\n", encoding="utf-8")
-    source = tmp_path / "src" / "keep.py"
+    source = tmp_path / "osteo_vision_core" / "keep.py"
     source.write_text("value = 1\n", encoding="utf-8")
 
     candidates = collect_candidates(tmp_path, include_artifacts=True)
     candidate_paths = {item.path for item in candidates}
-    assert "src/__pycache__" in candidate_paths
+    assert "osteo_vision_core/__pycache__" in candidate_paths
     assert ".pytest_tmp_case" in candidate_paths
     assert ".codex_tmp_submission.docx" in candidate_paths
     assert ".pytest_tmp_case/nested/__pycache__" not in candidate_paths
     assert "artifacts/e2e/generated.json" in candidate_paths
     assert "artifacts/e2e/.gitkeep" not in candidate_paths
     assert "artifacts/platform/cases.sqlite" not in candidate_paths
-    assert "outputs" not in candidate_paths
-    assert "tmp" not in candidate_paths
+    assert "research/datasets/public-candidates/reviewed_dataset/derived" not in candidate_paths
+    assert "artifacts/tmp" not in candidate_paths
 
     removed = remove_candidates(tmp_path, candidates)
     assert len(removed) == len(candidates)
@@ -77,14 +79,20 @@ def test_workspace_cleanup_is_bounded_and_preserves_artifact_markers(tmp_path: P
 
 def test_workspace_cleanup_rejects_candidate_outside_transient_allowlist(tmp_path: Path) -> None:
     _repo_markers(tmp_path)
-    protected = tmp_path / "outputs" / "reviewed_dataset" / "manifest.json"
+    protected = tmp_path / "research" / "datasets" / "public-candidates" / "reviewed_dataset" / "derived" / "manifest.json"
     protected.parent.mkdir(parents=True)
     protected.write_text("{}", encoding="utf-8")
 
     with pytest.raises(ValueError, match="outside the transient allowlist"):
         remove_candidates(
             tmp_path,
-            [Candidate(path="outputs/reviewed_dataset/manifest.json", kind="file", size_bytes=2)],
+            [
+                Candidate(
+                    path="research/datasets/public-candidates/reviewed_dataset/derived/manifest.json",
+                    kind="file",
+                    size_bytes=2,
+                )
+            ],
         )
 
     assert protected.is_file()

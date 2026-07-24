@@ -4,9 +4,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from backend.src.domains.cases.enums import InputChannel
-from backend.src.domains.cases.schemas import CaseInputAsset
-from backend.src.services.three_d_evidence import build_three_d_evidence, three_d_evidence_summary
+from backend.osteo_vision_api.domains.cases.enums import InputChannel
+from backend.osteo_vision_api.domains.cases.schemas import CaseInputAsset
+from backend.osteo_vision_api.services.three_d_evidence import build_three_d_evidence, three_d_evidence_summary
 
 
 def _write_transform(path: Path, matrix: list[list[float]] | None = None) -> str:

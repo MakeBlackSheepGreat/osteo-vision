@@ -8,10 +8,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.core.paths import ensure_dir
-from src.datasets.manifests import read_manifest
-from src.engine.inference import MedicalImagingInferenceService
-from src.reports.writers import write_json
+from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.datasets.manifests import read_manifest
+from osteo_vision_core.engine.inference import MedicalImagingInferenceService
+from osteo_vision_core.reports.writers import write_json
 
 
 def main() -> int:

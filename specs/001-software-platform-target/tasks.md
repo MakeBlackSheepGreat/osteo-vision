@@ -22,16 +22,16 @@ description: "Task list for Osteo Vision software platform target"
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Establish the split frontend/backend shape while keeping the existing `src/` analysis core available.
+**Purpose**: Establish the split frontend/backend shape while keeping the existing `osteo_vision_core/` analysis core available.
 
 - [X] T001 Create frontend project skeleton directories in `frontend/src/`, `frontend/tests/`, and `frontend/public/`
-- [X] T002 Create backend service skeleton directories in `backend/src/`, `backend/tests/`, and `backend/src/api/`
+- [X] T002 Create backend service skeleton directories in `backend/osteo_vision_api/`, `backend/tests/`, and `backend/osteo_vision_api/api/`
 - [X] T003 Create frontend package metadata and scripts in `frontend/package.json`
 - [X] T004 [P] Create frontend TypeScript and Vite configuration in `frontend/tsconfig.json` and `frontend/vite.config.ts`
 - [X] T005 [P] Create frontend test configuration in `frontend/vitest.config.ts`
-- [X] T006 Create backend package markers in `backend/src/__init__.py` and `backend/tests/__init__.py`
-- [X] T007 [P] Create backend app settings module in `backend/src/core/settings.py`
-- [X] T008 [P] Create backend application factory in `backend/src/api/app.py`
+- [X] T006 Create backend package markers in `backend/osteo_vision_api/__init__.py` and `backend/tests/__init__.py`
+- [X] T007 [P] Create backend app settings module in `backend/osteo_vision_api/core/settings.py`
+- [X] T008 [P] Create backend application factory in `backend/osteo_vision_api/api/app.py`
 - [X] T009 Document the local single-user competition workstation assumption in `specs/001-software-platform-target/quickstart.md`
 
 ---
@@ -42,14 +42,14 @@ description: "Task list for Osteo Vision software platform target"
 
 **CRITICAL**: No user-story implementation should begin until this phase is complete.
 
-- [X] T010 Create case domain dataclasses or Pydantic schemas in `backend/src/domains/cases/schemas.py`
-- [X] T011 Create quality flag and review-state enums in `backend/src/domains/cases/enums.py`
-- [X] T012 Create local artifact path manager in `backend/src/core/artifacts.py`
-- [X] T013 Create platform safety-boundary disclaimer constants in `backend/src/core/disclaimers.py`
-- [X] T014 Create case repository interface for local filesystem/SQLite-backed metadata in `backend/src/domains/cases/repository.py`
-- [X] T015 Create analysis service interface that wraps existing shared `src/preprocess/` and `src/pipelines/` boundaries in `backend/src/services/analysis_service.py`
-- [X] T016 Create report/export service interface in `backend/src/services/export_service.py`
-- [X] T017 Create API router registration module in `backend/src/api/routes.py`
+- [X] T010 Create case domain dataclasses or Pydantic schemas in `backend/osteo_vision_api/domains/cases/schemas.py`
+- [X] T011 Create quality flag and review-state enums in `backend/osteo_vision_api/domains/cases/enums.py`
+- [X] T012 Create local artifact path manager in `backend/osteo_vision_api/core/artifacts.py`
+- [X] T013 Create platform safety-boundary disclaimer constants in `backend/osteo_vision_api/core/disclaimers.py`
+- [X] T014 Create case repository interface for local filesystem/SQLite-backed metadata in `backend/osteo_vision_api/domains/cases/repository.py`
+- [X] T015 Create analysis service interface that wraps existing shared `osteo_vision_core/preprocess/` and `osteo_vision_core/pipelines/` boundaries in `backend/osteo_vision_api/services/analysis_service.py`
+- [X] T016 Create report/export service interface in `backend/osteo_vision_api/services/export_service.py`
+- [X] T017 Create API router registration module in `backend/osteo_vision_api/api/routes.py`
 - [X] T018 [P] Create frontend API client shell in `frontend/src/services/apiClient.ts`
 - [X] T019 [P] Create frontend route map in `frontend/src/router/index.ts`
 - [X] T020 [P] Create frontend case store shell in `frontend/src/stores/caseStore.ts`
@@ -76,12 +76,12 @@ description: "Task list for Osteo Vision software platform target"
 
 ### Implementation for User Story 1
 
-- [X] T028 [US1] Implement case creation and retrieval endpoints in `backend/src/api/cases.py`
-- [X] T029 [US1] Implement input upload/import endpoint in `backend/src/api/inputs.py`
-- [X] T030 [US1] Implement local case metadata persistence in `backend/src/domains/cases/repository.py`
-- [X] T031 [US1] Implement input validation and quality flag mapping in `backend/src/services/input_service.py`
-- [X] T032 [US1] Implement fluorescence fusion call path using existing preprocessing logic in `backend/src/services/analysis_service.py`
-- [X] T033 [US1] Implement artifact manifest creation for overlay, heatmap, and normalized fluorescence in `backend/src/core/artifacts.py`
+- [X] T028 [US1] Implement case creation and retrieval endpoints in `backend/osteo_vision_api/api/cases.py`
+- [X] T029 [US1] Implement input upload/import endpoint in `backend/osteo_vision_api/api/inputs.py`
+- [X] T030 [US1] Implement local case metadata persistence in `backend/osteo_vision_api/domains/cases/repository.py`
+- [X] T031 [US1] Implement input validation and quality flag mapping in `backend/osteo_vision_api/services/input_service.py`
+- [X] T032 [US1] Implement fluorescence fusion call path using existing preprocessing logic in `backend/osteo_vision_api/services/analysis_service.py`
+- [X] T033 [US1] Implement artifact manifest creation for overlay, heatmap, and normalized fluorescence in `backend/osteo_vision_api/core/artifacts.py`
 - [X] T034 [US1] Implement frontend case open page in `frontend/src/pages/CaseOpenPage.vue`
 - [X] T035 [US1] Implement frontend dual-channel input panel in `frontend/src/components/CaseInputPanel.vue`
 - [X] T036 [US1] Implement frontend fusion viewer in `frontend/src/components/FusionViewer.vue`
@@ -108,12 +108,12 @@ description: "Task list for Osteo Vision software platform target"
 
 ### Implementation for User Story 2
 
-- [X] T044 [US2] Implement ROI schema and validation fields in `backend/src/domains/cases/schemas.py`
-- [X] T045 [US2] Implement ROI quantification service in `backend/src/services/roi_service.py`
-- [X] T046 [US2] Implement candidate region to ROI mapping in `backend/src/services/review_service.py`
-- [X] T047 [US2] Implement region update endpoint in `backend/src/api/regions.py`
-- [X] T048 [US2] Implement review event endpoint in `backend/src/api/review_events.py`
-- [X] T049 [US2] Persist review events and final review state in `backend/src/domains/cases/repository.py`
+- [X] T044 [US2] Implement ROI schema and validation fields in `backend/osteo_vision_api/domains/cases/schemas.py`
+- [X] T045 [US2] Implement ROI quantification service in `backend/osteo_vision_api/services/roi_service.py`
+- [X] T046 [US2] Implement candidate region to ROI mapping in `backend/osteo_vision_api/services/review_service.py`
+- [X] T047 [US2] Implement region update endpoint in `backend/osteo_vision_api/api/regions.py`
+- [X] T048 [US2] Implement review event endpoint in `backend/osteo_vision_api/api/review_events.py`
+- [X] T049 [US2] Persist review events and final review state in `backend/osteo_vision_api/domains/cases/repository.py`
 - [X] T050 [US2] Implement frontend review workspace page in `frontend/src/pages/ReviewWorkspacePage.vue`
 - [X] T051 [US2] Implement ROI drawing/selection component in `frontend/src/components/RoiCanvas.vue`
 - [X] T052 [US2] Implement candidate region list component in `frontend/src/components/CandidateRegionList.vue`
@@ -141,13 +141,13 @@ description: "Task list for Osteo Vision software platform target"
 
 ### Implementation for User Story 3
 
-- [X] T061 [US3] Implement export endpoint in `backend/src/api/exports.py`
-- [X] T062 [US3] Implement evidence bundle assembly in `backend/src/services/export_service.py`
-- [X] T063 [US3] Implement structured report JSON writer in `backend/src/reports/platform_report.py`
-- [X] T064 [US3] Implement Markdown report writer with disclaimer and review-state summary in `backend/src/reports/platform_markdown.py`
-- [X] T065 [US3] Implement quantification CSV writer in `backend/src/reports/quantification_csv.py`
-- [X] T066 [US3] Implement export artifact manifest and checksum generation in `backend/src/core/artifacts.py`
-- [X] T067 [US3] Persist export status and artifact references in `backend/src/domains/cases/repository.py`
+- [X] T061 [US3] Implement export endpoint in `backend/osteo_vision_api/api/exports.py`
+- [X] T062 [US3] Implement evidence bundle assembly in `backend/osteo_vision_api/services/export_service.py`
+- [X] T063 [US3] Implement structured report JSON writer in `backend/osteo_vision_api/reports/platform_report.py`
+- [X] T064 [US3] Implement Markdown report writer with disclaimer and review-state summary in `backend/osteo_vision_api/reports/platform_markdown.py`
+- [X] T065 [US3] Implement quantification CSV writer in `backend/osteo_vision_api/reports/quantification_csv.py`
+- [X] T066 [US3] Implement export artifact manifest and checksum generation in `backend/osteo_vision_api/core/artifacts.py`
+- [X] T067 [US3] Persist export status and artifact references in `backend/osteo_vision_api/domains/cases/repository.py`
 - [X] T068 [US3] Implement frontend export panel in `frontend/src/components/ExportPanel.vue`
 - [X] T069 [US3] Implement frontend report preview page in `frontend/src/pages/ReportPreviewPage.vue`
 - [X] T070 [US3] Wire export actions and artifact links into `frontend/src/stores/caseStore.ts`
@@ -182,15 +182,15 @@ bone-activity spectrum review, and magnification-aware 3D registration before mo
 
 - [X] T081 Freeze the three-capability target and order in `research/reports/planning/three_priority_capabilities_target_20260717_zh.md`
 - [X] T082 Record long-term safety and delivery rules in `AGENTS.md`
-- [X] T083 Require trusted identity for verified clinical context in `backend/src/api/cases.py`
+- [X] T083 Require trusted identity for verified clinical context in `backend/osteo_vision_api/api/cases.py`
 - [X] T084 Add verified clinical-context contract coverage in `backend/tests/contract/test_clinical_context_api.py`
-- [X] T085 Propagate strict runtime configuration into review and prompt-fallback paths in `backend/src/services/review_service.py`
-- [X] T086 Decouple inference configuration resolution from artifact output root in `backend/src/core/settings.py`
+- [X] T085 Propagate strict runtime configuration into review and prompt-fallback paths in `backend/osteo_vision_api/services/review_service.py`
+- [X] T086 Decouple inference configuration resolution from artifact output root in `backend/osteo_vision_api/core/settings.py`
 - [X] T087 Add strict-runtime regression coverage for temporary artifact roots in `backend/tests/unit/test_settings_runtime_paths.py`
 
 ### Patient-conditioned evidence and bone activity
 
-- [X] T088 Implement clinical-context quality assessment and safe no-spatial-effect fallback in `backend/src/services/clinical_context_assessment.py`
+- [X] T088 Implement clinical-context quality assessment and safe no-spatial-effect fallback in `backend/osteo_vision_api/services/clinical_context_assessment.py`
 - [X] T089 Implement clinical-context frontend comparison and provenance UI in `frontend/src/components/ClinicalContextPanel.vue`
 - [X] T090 Implement rule-derived bone-activity spectrum with trusted bone-gate degradation in `frontend/src/components/ViabilitySpectrumPanel.vue`
 - [X] T091 Freeze the versioned clinical-context contract, missingness policy, and acceptance protocol in `research/reports/planning/three_priority_capabilities_acceptance_v1_zh.md`
@@ -198,12 +198,12 @@ bone-activity spectrum review, and magnification-aware 3D registration before mo
 
 ### L1/L2 3D validation
 
-- [X] T093 Validate transform existence, checksum, matrix, units, direction, and coordinate-chain continuity in `backend/src/services/three_d_evidence.py`
-- [X] T094 Validate registration error, threshold source, calibration range, and physician review in `backend/src/services/three_d_evidence.py`
+- [X] T093 Validate transform existence, checksum, matrix, units, direction, and coordinate-chain continuity in `backend/osteo_vision_api/services/three_d_evidence.py`
+- [X] T094 Validate registration error, threshold source, calibration range, and physician review in `backend/osteo_vision_api/services/three_d_evidence.py`
 - [X] T095 Extend fail-closed navigation unit tests in `backend/tests/unit/test_three_d_evidence_service.py`
 - [X] T096 Update navigation reason-code presentation in `frontend/src/components/NavigationSafetyStatusPanel.vue`
-- [X] T097 Implement the L1 static registration adapter, backend job/API, frontend guide, and SERV-CT/phantom validation in `src/`, `backend/`, and `frontend/`
-- [X] T098 Implement pose-only offline pose-log composition and failure injection as a permanent L0 engineering diagnostic in `src/`
+- [X] T097 Implement the L1 static registration adapter, backend job/API, frontend guide, and SERV-CT/phantom validation in `osteo_vision_core/`, `backend/`, and `frontend/`
+- [X] T098 Implement pose-only offline pose-log composition and failure injection as a permanent L0 engineering diagnostic in `osteo_vision_core/`
 
 ### Data and final model phase
 
@@ -211,7 +211,7 @@ bone-activity spectrum review, and magnification-aware 3D registration before mo
 - [X] T100 Complete the approved starter dataset downloads and integrity/license review under `research/datasets/public-candidates/`; registered or oversized optional candidates remain tracked separately
 - [ ] T101 Train and independently validate target-domain patient-conditioned segmentation after T083-T100 pass
 - [ ] T102 Train and independently validate the target-domain bone-activity multitask model after T083-T100 pass
-- [X] T103 Run the final engineering regression and update the target report: 250 backend tests, 535 core unit/smoke tests, 179 frontend tests with 1 skipped, Vue type-check, Vite build, full Ruff, and canonical `src backend` mypy passed; the navigation route chunk is 61.97 kB and the heavyweight 3D viewport loads as a separate 709.67 kB async chunk
+- [X] T103 Run the final engineering regression and update the target report: 250 backend tests, 535 core unit/smoke tests, 179 frontend tests with 1 skipped, Vue type-check, Vite build, full Ruff, and canonical `osteo_vision_core backend` mypy passed; the navigation route chunk is 61.97 kB and the heavyweight 3D viewport loads as a separate 709.67 kB async chunk
 - [X] T104 Implement and smoke-test the patient-conditioned segmentation architecture on grouped non-target-domain proxy data without runtime promotion
 - [X] T105 Implement and smoke-test the bone-activity multitask architecture on grouped non-target-domain proxy data without runtime promotion
 - [X] T106 Implement fail-closed target-domain promotion verification with policy status, evidence hashes, split recomputation, trusted physician review, calibration, subgroup audit, and capability-specific safety metrics
@@ -347,7 +347,7 @@ Task: T060 Report safety wording test in tests/unit/test_platform_report_safety.
 ```powershell
 python tools/audit_active_documentation.py
 python -m pytest tests/unit tests/smoke
-python -m backend.src.main
+python -m backend.osteo_vision_api.main
 npm --prefix frontend run dev
 python tools/check_project_readiness.py
 python tools/benchmark_core_hotpaths.py --output artifacts/performance/core_hotpaths_current.json

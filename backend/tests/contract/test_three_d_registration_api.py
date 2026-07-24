@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.src.api.app import create_app
-from backend.src.services.static_registration_service import _parse_stl
+from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.services.static_registration_service import _parse_stl
 
 TOKEN = "physician-l1-review-token-001"
 MATRIX_CONVENTION = {

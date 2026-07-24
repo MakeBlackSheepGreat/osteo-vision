@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from backend.src.services.video_segmentation_manifest import write_video_segmentation_outputs
-from src.models.video_signal_masks import (
+from backend.osteo_vision_api.services.video_segmentation_manifest import write_video_segmentation_outputs
+from osteo_vision_core.models.video_signal_masks import (
     VIDEO_SIGNAL_MASK_TAXONOMY,
     derive_bone_activity_candidates,
     save_bone_activity_candidate_maps,

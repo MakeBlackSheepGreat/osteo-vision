@@ -22,9 +22,9 @@ import torch  # noqa: E402
 from PIL import Image  # noqa: E402
 from torch.utils.data import DataLoader, Dataset, Subset  # noqa: E402
 
-from src.core.config import config_hash, load_yaml  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.models.bone_activity_multitask import (  # noqa: E402
+from osteo_vision_core.core.config import config_hash, load_yaml  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.models.bone_activity_multitask import (  # noqa: E402
     BONE_ACTIVITY_CLASSES,
     IGNORE_INDEX,
     MODEL_OUTPUTS,
@@ -33,9 +33,9 @@ from src.models.bone_activity_multitask import (  # noqa: E402
     bone_activity_multitask_loss,
     bone_activity_probabilities,
 )
-from src.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
-from src.models.three_priority_promotion import evaluate_three_priority_model_promotion  # noqa: E402
-from src.reports.writers import write_json  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import checkpoint_sha256, select_torch_device  # noqa: E402
+from osteo_vision_core.models.three_priority_promotion import evaluate_three_priority_model_promotion  # noqa: E402
+from osteo_vision_core.reports.writers import write_json  # noqa: E402
 
 
 @dataclass(frozen=True)

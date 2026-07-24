@@ -12,11 +12,11 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.core.config import load_yaml, runtime_config  # noqa: E402
-from src.core.paths import ensure_dir, resolve_path  # noqa: E402
-from src.models.adapters import build_adapters, inventory_from_adapters  # noqa: E402
-from src.models.lesion_segmenter import checkpoint_sha256  # noqa: E402
-from src.reports.writers import write_json  # noqa: E402
+from osteo_vision_core.core.config import load_yaml, runtime_config  # noqa: E402
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.models.adapters import build_adapters, inventory_from_adapters  # noqa: E402
+from osteo_vision_core.models.lesion_segmenter import checkpoint_sha256  # noqa: E402
+from osteo_vision_core.reports.writers import write_json  # noqa: E402
 
 DEFAULT_CONFIG = "configs/inference/osteo_vision.yml"
 DEFAULT_OUTPUT_DIR = "research/reports/modeling"

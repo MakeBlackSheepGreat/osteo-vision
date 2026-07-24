@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.core.schemas import ExperimentSpec
-from src.engine.experiment import run_experiment
-from src.experiments.spec import write_experiment_spec
+from osteo_vision_core.core.schemas import ExperimentSpec
+from osteo_vision_core.engine.experiment import run_experiment
+from osteo_vision_core.experiments.spec import write_experiment_spec
 
 
 def test_v2_task_package_drives_v3_experiment_flow(tmp_path) -> None:

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from src.preprocess.cbct_roi import build_cbct_anatomy_roi
+from osteo_vision_core.preprocess.cbct_roi import build_cbct_anatomy_roi
 
 
 def _write_npz(path: Path, *, include_label: bool = True, image_nonzero: bool = True) -> None:

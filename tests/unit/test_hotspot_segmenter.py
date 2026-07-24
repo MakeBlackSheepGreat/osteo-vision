@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from PIL import Image
 
-from src.models.hotspot_segmenter import connected_hotspot_candidates, segment_2d_fluorescence_hotspots
+from osteo_vision_core.models.hotspot_segmenter import connected_hotspot_candidates, segment_2d_fluorescence_hotspots
 
 
 def test_connected_hotspot_candidates_reports_vectorized_component_statistics() -> None:

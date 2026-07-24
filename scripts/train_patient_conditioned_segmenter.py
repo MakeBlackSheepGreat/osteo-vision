@@ -23,21 +23,21 @@ import yaml  # noqa: E402
 from PIL import Image  # noqa: E402
 from torch.utils.data import DataLoader, Dataset  # noqa: E402
 
-from src.metrics.calibration import (  # noqa: E402
+from osteo_vision_core.metrics.calibration import (  # noqa: E402
     binary_brier_score,
     expected_calibration_error,
     fit_binary_temperature,
     sigmoid_with_temperature,
 )
-from src.models.clinical_feature_vector import (  # noqa: E402
+from osteo_vision_core.models.clinical_feature_vector import (  # noqa: E402
     build_clinical_feature_encoder_contract,
     unsupported_clinical_feature_names,
 )
-from src.models.patient_conditioned_segmenter import (  # noqa: E402
+from osteo_vision_core.models.patient_conditioned_segmenter import (  # noqa: E402
     TinyPatientConditionedSegmenter2D,
     apply_patient_conditioning_safety_gate,
 )
-from src.models.three_priority_promotion import evaluate_three_priority_model_promotion  # noqa: E402
+from osteo_vision_core.models.three_priority_promotion import evaluate_three_priority_model_promotion  # noqa: E402
 
 MANIFEST_REQUIRED_COLUMNS = {
     "sample_id",

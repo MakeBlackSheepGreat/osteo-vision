@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from backend.src.services.static_dataset_review import (
+from backend.osteo_vision_api.services.static_dataset_review import (
     DATASET_RELATIVE_ROOTS,
     StaticDatasetReviewService,
 )

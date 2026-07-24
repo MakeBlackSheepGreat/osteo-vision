@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from src.navigation.rigid_registration import (
+from osteo_vision_core.navigation.rigid_registration import (
     RigidRegistrationError,
     apply_rigid_transform,
     export_rigid_transform,

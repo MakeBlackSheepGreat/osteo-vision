@@ -189,39 +189,6 @@
       />
     </section>
 
-    <section class="control-card analysis-parameter-card">
-      <SectionHeading icon="target" icon-tone="cyan" title="分析参数" />
-      <label v-if="inputMode === 'images'" class="field range-field">
-        <span>融合透明度</span>
-        <div class="range-row">
-          <input :value="alpha" type="range" min="0" max="1" step="0.05" @input="emitNumber('alpha', $event)" />
-          <output>{{ alpha.toFixed(2) }}</output>
-        </div>
-      </label>
-      <label class="field range-field">
-        <span>荧光阈值</span>
-        <div class="range-row">
-          <input
-            :value="threshold"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            @input="emitNumber('threshold', $event)"
-          />
-          <output>{{ threshold.toFixed(2) }}</output>
-        </div>
-      </label>
-      <label class="field">
-        <span>伪彩方案</span>
-        <select :value="colormap" @change="emitColormap">
-          <option value="green">绿色</option>
-          <option value="amber">琥珀色</option>
-          <option value="magenta">品红色</option>
-        </select>
-      </label>
-    </section>
-
     <section class="control-card live-stream-control-card">
       <SectionHeading icon="camera" icon-tone="cyan" title="实时视频流控制" />
       <div class="camera-control-status" aria-live="polite">
@@ -324,6 +291,39 @@
         </template>
         <p v-else class="camera-control-note">连接摄像头后可抓取关键帧或启动连续实时分割。</p>
       </div>
+    </section>
+
+    <section class="control-card analysis-parameter-card">
+      <SectionHeading icon="target" icon-tone="cyan" title="分析参数" />
+      <label v-if="inputMode === 'images'" class="field range-field">
+        <span>融合透明度</span>
+        <div class="range-row">
+          <input :value="alpha" type="range" min="0" max="1" step="0.05" @input="emitNumber('alpha', $event)" />
+          <output>{{ alpha.toFixed(2) }}</output>
+        </div>
+      </label>
+      <label class="field range-field">
+        <span>荧光阈值</span>
+        <div class="range-row">
+          <input
+            :value="threshold"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            @input="emitNumber('threshold', $event)"
+          />
+          <output>{{ threshold.toFixed(2) }}</output>
+        </div>
+      </label>
+      <label class="field">
+        <span>伪彩方案</span>
+        <select :value="colormap" @change="emitColormap">
+          <option value="green">绿色</option>
+          <option value="amber">琥珀色</option>
+          <option value="magenta">品红色</option>
+        </select>
+      </label>
     </section>
   </aside>
 </template>

@@ -105,7 +105,7 @@ specs/001-software-platform-target/
 
 ```text
 frontend/
-├── src/
+├── osteo_vision_core/
 │   ├── components/
 │   ├── pages/
 │   ├── stores/
@@ -115,7 +115,7 @@ frontend/
 └── tests/
 
 backend/
-├── src/
+├── osteo_vision_core/
 │   ├── api/
 │   ├── core/
 │   ├── domains/
@@ -126,7 +126,7 @@ backend/
 │   └── models/
 └── tests/
 
-src/
+osteo_vision_core/
 ├── core/
 ├── datasets/
 ├── engine/
@@ -143,7 +143,7 @@ tests/
 ```
 
 **Structure Decision**: Keep the existing shared analysis/framework core in
-`src/`, add a Vue-based `frontend/` for case review and a Python `backend/`
+`osteo_vision_core/`, add a Vue-based `frontend/` for case review and a Python `backend/`
 service layer for orchestration and export, and keep the feature documents under
 `specs/001-software-platform-target/`.
 

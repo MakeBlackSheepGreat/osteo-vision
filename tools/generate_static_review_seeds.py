@@ -10,7 +10,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.src.services.static_dataset_review import (  # noqa: E402
+from backend.osteo_vision_api.services.static_dataset_review import (  # noqa: E402
     StaticDatasetReviewError,
     StaticDatasetReviewService,
 )

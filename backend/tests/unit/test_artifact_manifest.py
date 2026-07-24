@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.src.core.artifacts import checksum_for_file, manifest_record
+from backend.osteo_vision_api.core.artifacts import checksum_for_file, manifest_record
 
 
 def test_manifest_record_includes_checksum(tmp_path: Path) -> None:
