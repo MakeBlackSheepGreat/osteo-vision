@@ -71,13 +71,14 @@ def save_video_signal_maps(
             if activity_score_path is not None
             else out_dir / f"{safe_case}_{model_id}_activity_score.png"
         )
-    save_options = {"compress_level": max(0, min(9, int(png_compress_level)))}
-    Image.fromarray(np.clip(risk * 255.0, 0, 255).astype(np.uint8)).save(risk_path, **save_options)
-    Image.fromarray((uncertain * 255).astype(np.uint8)).save(uncertain_mask_path, **save_options)
+    compression = max(0, min(9, int(png_compress_level)))
+    _write_grayscale_png(risk_path, np.clip(risk * 255.0, 0, 255).astype(np.uint8), compression)
+    _write_grayscale_png(uncertain_mask_path, (uncertain * 255).astype(np.uint8), compression)
     if resolved_activity_score_path is not None:
-        Image.fromarray(np.clip(np.asarray(probability) * 255.0, 0, 255).astype(np.uint8)).save(
+        _write_grayscale_png(
             resolved_activity_score_path,
-            **save_options,
+            np.clip(np.asarray(probability) * 255.0, 0, 255).astype(np.uint8),
+            compression,
         )
     return {
         "risk_mask_path": str(risk_path),
@@ -92,6 +93,17 @@ def save_video_signal_maps(
             "smoothing_applied_to_mask": False,
         },
     }
+
+
+def _write_grayscale_png(path: Path, array: np.ndarray, compression: int) -> None:
+    try:
+        import cv2
+
+        if cv2.imwrite(str(path), array, [cv2.IMWRITE_PNG_COMPRESSION, int(compression)]):
+            return
+    except Exception:
+        pass
+    Image.fromarray(array).save(path, compress_level=int(compression))
 
 
 def video_signal_mask_contract(

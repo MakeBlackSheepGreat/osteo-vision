@@ -36,6 +36,7 @@ def test_ready_exposes_runtime_profile_and_config_hash(tmp_path: Path, monkeypat
     assert payload["status"] == "ok"
     assert payload["runtime_readiness"]["runtime_profile"] == "development_test"
     assert payload["runtime_readiness"]["config_sha256"]
+    assert payload["task2_fusion_warmup"]["requested"] is False
     assert payload["inference_config"] == str(config.resolve())
     assert payload["promotion_approval_store"] == str(
         tmp_path / "artifacts" / "promotion_approvals" / "approvals.sqlite"

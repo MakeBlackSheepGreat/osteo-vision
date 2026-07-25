@@ -704,7 +704,7 @@ def test_live_frame_service_validates_configured_concurrency(tmp_path) -> None:
 
     invalid_retention_config = _write_live_config(
         tmp_path / "invalid_retention",
-        runtime_lines=["  live_frames:", "    max_retained_frames_per_case: 1001"],
+        runtime_lines=["  live_frames:", "    max_retained_frames_per_case: 5001"],
     )
     with pytest.raises(ValueError, match="max_retained_frames_per_case"):
         LiveFrameAnalysisService(invalid_retention_config)

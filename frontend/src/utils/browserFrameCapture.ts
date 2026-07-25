@@ -1,5 +1,5 @@
 export const LIVE_FRAME_JPEG_QUALITY = 0.85;
-export const LIVE_FRAME_MAX_LONG_SIDE = 960;
+export const LIVE_FRAME_MAX_LONG_SIDE = 512;
 
 export async function captureVideoFrameAsJpeg(
   video: HTMLVideoElement,

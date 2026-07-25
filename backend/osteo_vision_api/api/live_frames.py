@@ -133,8 +133,9 @@ def router(repo: CaseRepository, service: LiveFrameAnalysisService) -> APIRouter
         if not isinstance(payload, dict):
             payload = {}
         model_id = str(payload.get("model_id") or "").strip() or None
+        case_id = str(payload.get("case_id") or "").strip() or None
         try:
-            return await asyncio.to_thread(service.warmup, model_id)
+            return await asyncio.to_thread(service.warmup, model_id, case_id=case_id)
         except LiveFrameCapacityError as exc:
             raise HTTPException(
                 status_code=503,

@@ -86,11 +86,13 @@
           <span>运行分析后显示</span>
         </div>
       </div>
-      <details v-if="panel.path" class="preview-path-details">
-        <summary :title="panel.path">文件：{{ fileName(panel.path) }}</summary>
-        <code>{{ panel.path }}</code>
-      </details>
-      <p v-else>{{ panel.tag }} / {{ panel.label }} / {{ panel.scale }}</p>
+      <div class="preview-panel-meta">
+        <p>{{ panel.tag }} / {{ panel.label }} / {{ panel.scale }}</p>
+        <details v-if="panel.path" class="preview-path-details">
+          <summary :title="panel.path">文件：{{ fileName(panel.path) }}</summary>
+          <code>{{ panel.path }}</code>
+        </details>
+      </div>
     </article>
   </div>
 </template>
@@ -508,6 +510,10 @@ function panelIcon(title: string): AppIconName {
   overflow-wrap: anywhere;
 }
 
+.preview-panel-meta {
+  min-width: 0;
+}
+
 .preview-path-details {
   min-width: 0;
   margin-top: 5px;
@@ -563,11 +569,11 @@ function panelIcon(title: string): AppIconName {
   min-height: 0;
 }
 
-.analysis-quad-grid--fullscreen .analysis-quad-card p {
+.analysis-quad-grid--fullscreen .preview-panel-meta {
   display: none;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 960px) {
   .analysis-quad-grid:not(.analysis-quad-grid--fullscreen) {
     grid-template-columns: 1fr;
     grid-template-rows: auto;

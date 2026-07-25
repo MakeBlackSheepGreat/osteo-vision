@@ -111,6 +111,7 @@ export interface LiveFrameWarmupResult {
   model_family: string;
   available: boolean;
   warnings?: Array<Record<string, unknown>>;
+  case_preparation?: Record<string, unknown> | null;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -461,10 +462,13 @@ export const apiClient = {
     }
     return response.json() as Promise<LiveFrameAnalysisResult>;
   },
-  warmupLiveFrameModel(modelId?: string): Promise<LiveFrameWarmupResult> {
+  warmupLiveFrameModel(modelId?: string, caseId?: string): Promise<LiveFrameWarmupResult> {
     return request<LiveFrameWarmupResult>("/live-frames/warmup", {
       method: "POST",
-      body: JSON.stringify(modelId ? { model_id: modelId } : {}),
+      body: JSON.stringify({
+        ...(modelId ? { model_id: modelId } : {}),
+        ...(caseId ? { case_id: caseId } : {}),
+      }),
     });
   },
   async uploadThreeDAsset(file: File): Promise<UploadResponse> {

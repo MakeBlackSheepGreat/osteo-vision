@@ -40,7 +40,9 @@ from backend.osteo_vision_api.services.promotion_approval_service import (
 from backend.osteo_vision_api.services.review_service import ReviewService
 from backend.osteo_vision_api.services.static_dataset_review import StaticDatasetReviewService
 from backend.osteo_vision_api.services.video_library_service import VideoLibraryService
+from osteo_vision_core.core.config import load_yaml
 from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
+from osteo_vision_core.preprocess.accelerated_fusion import warmup_fusion_accelerator
 
 
 def build_router(settings: Settings) -> APIRouter:
@@ -55,6 +57,11 @@ def build_router(settings: Settings) -> APIRouter:
             "Strict runtime readiness failed: "
             + ", ".join(str(item.get("code") or "unknown") for item in runtime_readiness["errors"])
         )
+    runtime_value = load_yaml(settings.inference_config_path).get("runtime")
+    runtime = dict(runtime_value) if isinstance(runtime_value, dict) else {}
+    task2_fusion_warmup = {"requested": False, "gpu_ready": False, "cached": False}
+    if runtime.get("warmup_task2_fusion") is True:
+        task2_fusion_warmup = warmup_fusion_accelerator(prefer_gpu=True)
     annotation_repository = AnnotationRepository(settings.annotation_store_path)
     analysis_service = AnalysisService(
         repo,
@@ -113,6 +120,7 @@ def build_router(settings: Settings) -> APIRouter:
             "promotion_trusted_keys": str(settings.promotion_trusted_keys_path),
             "inference_config": str(settings.inference_config_path),
             "runtime_readiness": runtime_readiness,
+            "task2_fusion_warmup": task2_fusion_warmup,
         }
 
     router.include_router(cases.router(repo), tags=["cases"])

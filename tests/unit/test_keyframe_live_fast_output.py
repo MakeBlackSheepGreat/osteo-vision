@@ -79,8 +79,8 @@ def test_browser_profile_and_same_protocol_comparison(tmp_path: Path) -> None:
         "tile_count": 1,
         "tile_batch_size": 1,
         "max_whole_pixels": 1048576,
-        "input_width": 960,
-        "input_height": 540,
+        "input_width": 512,
+        "input_height": 288,
         "tta_enabled": False,
         "use_amp": True,
         "output_profile": "live_fast",
@@ -88,7 +88,7 @@ def test_browser_profile_and_same_protocol_comparison(tmp_path: Path) -> None:
     candidate = {"timed_frame_count": 5, "protocol": shared_protocol}
     mainline = {"timed_frame_count": 5, "protocol": dict(shared_protocol)}
 
-    assert capture["prepared_width"] == 960
-    assert capture["prepared_height"] == 540
+    assert capture["prepared_width"] == 512
+    assert capture["prepared_height"] == 288
     assert all(_protocol_comparison(candidate, mainline).values())
     assert _latency_summary([10.0, 20.0, 30.0, 40.0, 50.0])["p95"] == 48.0

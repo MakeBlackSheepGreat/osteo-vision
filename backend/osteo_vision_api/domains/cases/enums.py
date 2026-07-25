@@ -58,6 +58,8 @@ class ArtifactKind(StrEnum):
     VIDEO_OVERLAY = "video_overlay"
     VIDEO_MASK = "video_mask"
     VIDEO_SEGMENTATION_MANIFEST = "video_segmentation_manifest"
+    TASK2_SEQUENCE_MANIFEST = "task2_sequence_manifest"
+    TASK2_SEQUENCE_OVERLAY = "task2_sequence_overlay"
     PROBABILITY_MAP = "probability_map"
     HEATMAP = "heatmap"
     NORMALIZED_FLUORESCENCE = "normalized_fluorescence"

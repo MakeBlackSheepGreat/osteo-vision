@@ -76,11 +76,17 @@ def test_registered_bone_activity_candidate_requires_explicit_selection() -> Non
     assert explicit_statuses[-1].available is True
 
 
-def test_strict_runtime_excludes_unpromoted_bone_activity_candidate() -> None:
+def test_strict_runtime_keeps_unpromoted_bone_activity_candidate_out_of_mainline() -> None:
     strict_runtime = _runtime(STRICT_CONFIG)
     strict_model_ids = {str(item["model_id"]) for item in strict_runtime["models"]}
 
-    assert MODEL_ID not in strict_model_ids
+    assert MODEL_ID in strict_model_ids
+    candidate = next(item for item in strict_runtime["models"] if item["model_id"] == MODEL_ID)
+    assert MODEL_ID not in set(strict_runtime.get("required_model_ids") or [])
+    assert candidate["clinical_claim_allowed"] is False
+    assert candidate["extra"]["candidate_only"] is True
+    assert candidate["extra"]["mainline_replacement_allowed"] is False
+    assert candidate["extra"]["runtime_replacement_allowed"] is False
     assert MODEL_ID not in strict_runtime["required_model_ids"]
     assert strict_runtime["required_model_ids"] == [MAINLINE_MODEL_ID]
     assert strict_runtime["tasks"]["segmentation"]["model_id"] == MAINLINE_MODEL_ID

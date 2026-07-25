@@ -1,19 +1,17 @@
 <template>
-  <main class="dataset-review-page">
+  <AppPageShell class="dataset-review-page" width="wide">
     <header class="page-header">
-      <div>
-        <h1>静态荧光数据复核</h1>
-        <p>对 D047/D048 论文原图完成面板裁剪、双通道配对和像素级复核，保留来源、许可、身份和训练准入边界。</p>
+      <div class="ov-title-lead">
+        <AppIcon name="database" variant="badge" tone="green" />
+        <div>
+          <h1>静态荧光数据复核</h1>
+          <p>对 D047/D048 论文原图完成面板裁剪、双通道配对和像素级复核，保留来源、许可、身份和训练准入边界。</p>
+        </div>
       </div>
-      <div class="summary-strip" aria-label="复核队列概览">
-        <div><span>总记录</span><strong>{{ records.length }}</strong></div>
-        <div><span>待裁剪</span><strong>{{ cropRequiredCount }}</strong></div>
-        <div><span>已复核</span><strong>{{ reviewedCount }}</strong></div>
-        <div><span>训练准入</span><strong>{{ trainingEligibleCount }}</strong></div>
-      </div>
+      <AppMetricStrip class="summary-strip" :items="summaryItems" aria-label="复核队列概览" />
     </header>
 
-    <section class="queue-toolbar" aria-label="复核队列筛选">
+    <AppToolbar class="queue-toolbar" aria-label="复核队列筛选">
       <button
         type="button"
         :disabled="loading || writeBusy"
@@ -45,10 +43,10 @@
       <div class="queue-position">
         当前 {{ selectedPositionLabel }}；筛选结果 {{ filteredRecords.length }} 条；列表第 {{ currentPage }} / {{ pageCount }} 页
       </div>
-    </section>
+    </AppToolbar>
 
-    <section v-if="error" class="page-alert" role="alert">{{ error }}</section>
-    <section v-if="successMessage" class="page-success" role="status">{{ successMessage }}</section>
+    <AppFeedbackBanner v-if="error" class="page-alert" tone="error" :message="error" />
+    <AppFeedbackBanner v-if="successMessage" class="page-success" tone="success" :message="successMessage" />
 
     <section class="review-workspace" aria-label="静态数据复核工作区">
       <aside class="record-sidebar">
@@ -83,6 +81,7 @@
             :title="writeBusy ? writeBusyReason : currentPage <= 1 ? '当前已是第一页' : '查看上一页候选'"
             @click="selectPage(currentPage - 1)"
           >
+            <AppIcon name="arrowLeft" />
             上一页
           </button>
           <span aria-live="polite">
@@ -96,6 +95,7 @@
             @click="selectPage(currentPage + 1)"
           >
             下一页
+            <AppIcon name="arrowRight" />
           </button>
         </nav>
         <p v-if="!loading && !filteredRecords.length" class="empty-state">当前筛选条件下没有复核记录。</p>
@@ -110,9 +110,16 @@
                 <h2>{{ selectedRecord.source_record_id || selectedRecord.record_id }}</h2>
               </div>
               <div class="record-navigation">
-                <button type="button" :disabled="!hasPrevious || writeBusy" :title="writeBusy ? writeBusyReason : '上一条'" @click="selectRelative(-1)">上一条</button>
-                <button type="button" :disabled="!hasNext || writeBusy" :title="writeBusy ? writeBusyReason : '下一条'" @click="selectRelative(1)">下一条</button>
+                <button type="button" :disabled="!hasPrevious || writeBusy" :title="writeBusy ? writeBusyReason : '上一条'" @click="selectRelative(-1)">
+                  <AppIcon name="arrowLeft" />
+                  上一条
+                </button>
+                <button type="button" :disabled="!hasNext || writeBusy" :title="writeBusy ? writeBusyReason : '下一条'" @click="selectRelative(1)">
+                  下一条
+                  <AppIcon name="arrowRight" />
+                </button>
                 <button type="button" :aria-expanded="metadataExpanded" @click="metadataExpanded = !metadataExpanded">
+                  <AppIcon name="info" />
                   {{ metadataExpanded ? "收起元数据" : "展开元数据" }}
                 </button>
               </div>
@@ -185,13 +192,17 @@
         </div>
       </div>
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 
+import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppMetricStrip from "@/components/AppMetricStrip.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
+import AppToolbar from "@/components/AppToolbar.vue";
 import StaticCropEditor from "@/components/StaticCropEditor.vue";
 import StaticMaskEditor from "@/components/StaticMaskEditor.vue";
 import { apiClient } from "@/services/apiClient";
@@ -258,6 +269,12 @@ const selectedPositionLabel = computed(() => {
 const reviewedCount = computed(() => records.value.filter((item) => item.review_state !== "review_required").length);
 const cropRequiredCount = computed(() => records.value.filter((item) => item.crop_required === true).length);
 const trainingEligibleCount = computed(() => records.value.filter((item) => item.training_eligible === true).length);
+const summaryItems = computed(() => [
+  { label: "总记录", value: records.value.length, icon: "database" as const },
+  { label: "待裁剪", value: cropRequiredCount.value, icon: "expand" as const, tone: "warning" as const },
+  { label: "已复核", value: reviewedCount.value, icon: "review" as const, tone: "success" as const },
+  { label: "训练准入", value: trainingEligibleCount.value, icon: "check" as const, tone: "info" as const },
+]);
 const selectedIsAutoSeed = computed(() => {
   const item = selectedRecord.value;
   if (!item) return false;
@@ -690,6 +707,10 @@ onMounted(() => {
 }
 
 .record-pagination button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
   min-height: 34px;
   border: 1px solid var(--ov-border-strong);
   border-radius: 5px;
@@ -962,5 +983,12 @@ onMounted(() => {
   color: var(--ov-text-secondary);
   font-size: 13px;
   font-weight: 900;
+}
+
+@media (max-width: 1180px) {
+  .page-header,
+  .review-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

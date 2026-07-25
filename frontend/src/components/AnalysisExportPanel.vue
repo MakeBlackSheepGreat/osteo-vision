@@ -23,16 +23,14 @@
         <dd>{{ item.value }}</dd>
       </div>
     </dl>
-    <div v-if="artifactEntries.length" class="export-artifact-list">
-      <strong>证据文件</strong>
-      <ul>
-        <li v-for="entry in artifactEntries.slice(0, 8)" :key="`${entry.kind}-${entry.path}`">
-          <span>{{ artifactKindLabel(entry.kind) }}</span>
-          <small>{{ formatBytes(entry.size_bytes) }}</small>
-        </li>
-      </ul>
+    <div v-if="artifactEntries.length" class="export-artifact-summary">
+      <div>
+        <strong>证据文件共 {{ artifactEntries.length }} 项</strong>
+        <span>{{ artifactTypeSummary }}</span>
+      </div>
+      <a class="export-report-link" href="/report">查看完整文件清单</a>
     </div>
-    <p class="export-path export-path--inline">{{ exportPath }}</p>
+    <p class="export-path export-path--inline ov-breakable">{{ exportPath }}</p>
   </div>
 </template>
 
@@ -40,6 +38,7 @@
 import { computed } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
+import { artifactKindLabel, formatArtifactBytes } from "@/utils/artifactDisplay";
 
 const props = defineProps<{
   exportPath: string;
@@ -56,7 +55,7 @@ const exportSummaryItems = computed(() => {
     ["候选区", summary.candidate_region_count],
     ["证据文件", summary.total_artifact_count],
     ["量化行", summary.quantification_row_count],
-    ["ZIP 大小", formatBytes(summary.bundle_size_bytes)],
+    ["ZIP 大小", formatArtifactBytes(summary.bundle_size_bytes)],
     ["DICOM", summary.dicom_included === true ? "已包含" : "未包含"],
   ];
   return items
@@ -64,32 +63,9 @@ const exportSummaryItems = computed(() => {
     .map(([label, value]) => ({ label: String(label), value: String(value) }));
 });
 
-function artifactKindLabel(kind: string): string {
-  const labels: Record<string, string> = {
-    report_json: "JSON 报告",
-    report_md: "Markdown 报告",
-    dicom_secondary_capture: "DICOM 二次捕获",
-    quantification_csv: "量化 CSV",
-    evidence_bundle: "证据包 ZIP",
-    bundle_manifest: "证据包清单",
-    overlay: "融合图",
-    video_overlay: "分割叠加视频",
-    video_mask: "分割掩膜视频",
-    video_segmentation_manifest: "MP4 分割清单",
-    probability_map: "概率图",
-    heatmap: "热图",
-    colorbar: "荧光色标",
-    roi_mask: "ROI 掩膜",
-  };
-  return labels[kind] ?? kind;
-}
-
-function formatBytes(value: unknown): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "暂无";
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(2)} MB`;
-}
+const artifactTypeSummary = computed(() =>
+  Array.from(new Set(props.artifactEntries.map((entry) => artifactKindLabel(entry.kind)))).join("、"),
+);
 </script>
 
 <style scoped>
@@ -176,47 +152,44 @@ function formatBytes(value: unknown): string {
   font-weight: 900;
 }
 
-.export-artifact-list {
-  display: grid;
-  gap: 5px;
-}
-
-.export-artifact-list > strong {
-  color: var(--ov-primary);
-  font-size: 12px;
-}
-
-.export-artifact-list ul {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.export-artifact-list li {
+.export-artifact-summary {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
   justify-content: space-between;
   min-width: 0;
   border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
-  padding: 5px 7px;
+  padding: 8px 9px;
   background: var(--ov-bg-elevated);
 }
 
-.export-artifact-list span,
-.export-artifact-list small {
+.export-artifact-summary > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.export-artifact-summary strong,
+.export-artifact-summary span {
   min-width: 0;
   color: var(--ov-text-secondary);
-  font-size: 11px;
-  overflow-wrap: anywhere;
+  font-size: 12px;
+  overflow-wrap: break-word;
   white-space: normal;
 }
 
-.export-artifact-list span {
+.export-artifact-summary strong {
+  color: var(--ov-text);
   font-weight: 800;
+}
+
+.export-report-link {
+  color: var(--ov-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .export-path {

@@ -14,7 +14,7 @@ describe("browser frame capture", () => {
     const toBlob = vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(blob));
 
     await expect(captureVideoFrameAsJpeg(video)).resolves.toBe(blob);
-    expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 480);
+    expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 512, 384);
 
     getContext.mockRestore();
     toBlob.mockRestore();
@@ -36,7 +36,7 @@ describe("browser frame capture", () => {
     const toBlob = vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(blob));
 
     await expect(captureVideoFrameAsJpeg(video)).resolves.toBe(blob);
-    expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 960, 540);
+    expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 512, 288);
 
     getContext.mockRestore();
     toBlob.mockRestore();

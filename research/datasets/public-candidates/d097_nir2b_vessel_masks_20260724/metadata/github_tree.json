@@ -1,0 +1,387 @@
+{
+  "sha": "e5f3e95e9d72f222b98eead220e567484f2cdc72",
+  "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/e5f3e95e9d72f222b98eead220e567484f2cdc72",
+  "tree": [
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eaf91e2ac647df635a09f01b8a2a254252aae8d7",
+      "size": 50,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/eaf91e2ac647df635a09f01b8a2a254252aae8d7"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2328808d116318c698907a22bf9e15f509e69a4c",
+      "size": 1202,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/2328808d116318c698907a22bf9e15f509e69a4c"
+    },
+    {
+      "path": "apply.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ef39d4371536893c99a4921bd3aca83d9f1ec307",
+      "size": 1786,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/ef39d4371536893c99a4921bd3aca83d9f1ec307"
+    },
+    {
+      "path": "dataset.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "956181737830c3822e12f2fd74c20078cc3a4cec",
+      "size": 1010,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/956181737830c3822e12f2fd74c20078cc3a4cec"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "1c0f9f5c0d05bc3a829311de31486cbd7a587e12",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/1c0f9f5c0d05bc3a829311de31486cbd7a587e12"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/01.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a701de2ad39abd90d5faa89d24cbc5a6a0c7067",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/4a701de2ad39abd90d5faa89d24cbc5a6a0c7067"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/02.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "14cc070b86409bb42c1f96e720967b61ae35936e",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/14cc070b86409bb42c1f96e720967b61ae35936e"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/03.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c431e910a27c5f7d4c4f39018d12fea3d2993c29",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/c431e910a27c5f7d4c4f39018d12fea3d2993c29"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/04.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f2466409c583f0e0f2bd9e55a4f9371b46ae9d6",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/6f2466409c583f0e0f2bd9e55a4f9371b46ae9d6"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/05.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67b9ca50c9d370500c0bbf2cf09308c7c8ca03b4",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/67b9ca50c9d370500c0bbf2cf09308c7c8ca03b4"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/06.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba33a98def7e065dd4ac446872211003d4099964",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/ba33a98def7e065dd4ac446872211003d4099964"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/07.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8d10312181366257178f5d822e908e87389e06f",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/c8d10312181366257178f5d822e908e87389e06f"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/08.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea790403789b9450a70d3e6cfd2238f29d70b646",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/ea790403789b9450a70d3e6cfd2238f29d70b646"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/09.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee77a81e598e7bf65c38fde7f223355955fb5d0e",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/ee77a81e598e7bf65c38fde7f223355955fb5d0e"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/10.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6d3226caa5a071d2cd493622d101b1a2bede4528",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/6d3226caa5a071d2cd493622d101b1a2bede4528"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/11.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "749f6e5e4f638efd0e1df79b7c58d91eb4826355",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/749f6e5e4f638efd0e1df79b7c58d91eb4826355"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/12.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57bc4c229439d90159232b48898656571dd05fea",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/57bc4c229439d90159232b48898656571dd05fea"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/13.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c4855539a2f9e79c4f60053955924d70174628e8",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/c4855539a2f9e79c4f60053955924d70174628e8"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/14.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03e9a6942f3751245c4b608baa044d788aaec9ab",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/03e9a6942f3751245c4b608baa044d788aaec9ab"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/15.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d71c7ab9969b2ab5efe0b91dd649d764b510b78a",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/d71c7ab9969b2ab5efe0b91dd649d764b510b78a"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_train/16.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c621236146481c54ee313de1e116a6add354df9",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/6c621236146481c54ee313de1e116a6add354df9"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_val",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "28e3279f4709103d02edb566844622f480774c7a",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/28e3279f4709103d02edb566844622f480774c7a"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_val/17.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e761b4c9ead4d3badd230bb8784fb7e0ee5f652b",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/e761b4c9ead4d3badd230bb8784fb7e0ee5f652b"
+    },
+    {
+      "path": "gut (closed + opened belly)_images_val/18.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "36cce4ad4aca59e214d92d6f4d89b041a833cc26",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/36cce4ad4aca59e214d92d6f4d89b041a833cc26"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "5fca2ca301f221f6a4781c9e987dd0f27b80a365",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/5fca2ca301f221f6a4781c9e987dd0f27b80a365"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/01.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b5cab90228625f40c29f40d8ef7b835da5d61eb2",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/b5cab90228625f40c29f40d8ef7b835da5d61eb2"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/02.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "25a7bcac344c37d44f62dc1bbf7063545e503fca",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/25a7bcac344c37d44f62dc1bbf7063545e503fca"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/03.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "38f40056c7f8c249430d575b471301f7d7badbbd",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/38f40056c7f8c249430d575b471301f7d7badbbd"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/04.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9d94743e51dba778cbcd247a05b7deff12ece3d5",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/9d94743e51dba778cbcd247a05b7deff12ece3d5"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/05.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8225cf02afc17e7234ed1b57511863bc3d1ef42",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/c8225cf02afc17e7234ed1b57511863bc3d1ef42"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/06.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6260baf24002429ad04bb97855e4e1f13f3388c",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/f6260baf24002429ad04bb97855e4e1f13f3388c"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/07.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fa4041d5283f252d6f1fd7cf1a300302f5139923",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/fa4041d5283f252d6f1fd7cf1a300302f5139923"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/08.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c7af0759b23237da494a5aeb74360f6d1eaa88e7",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/c7af0759b23237da494a5aeb74360f6d1eaa88e7"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/09.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "409e909d5f22aac08b3ec01278f52d251c00a33b",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/409e909d5f22aac08b3ec01278f52d251c00a33b"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/10.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e40f0b0ff51ac31e9ca00bfc0563894a4104884",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/5e40f0b0ff51ac31e9ca00bfc0563894a4104884"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/11.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "afc5a19601efa5b39431e6260ee362f9c172ce03",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/afc5a19601efa5b39431e6260ee362f9c172ce03"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/12.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "51f39e6cc37c217f58b284b148b581b3dc714414",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/51f39e6cc37c217f58b284b148b581b3dc714414"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/13.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8eaf49bab6005124ff74a0c13e9bcaa87a136d7",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/a8eaf49bab6005124ff74a0c13e9bcaa87a136d7"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/14.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "62d530778957ffd555f4654e0726d564106f171d",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/62d530778957ffd555f4654e0726d564106f171d"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/15.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9f75420436f797cfc1e0d95c6fc15a5a25212130",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/9f75420436f797cfc1e0d95c6fc15a5a25212130"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_train/16.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "16aa9a4040712fd8be5617be5e93ed9788875d13",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/16aa9a4040712fd8be5617be5e93ed9788875d13"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_val",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "717ad435cccc086ff7a4922b73be0c464c6369a2",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/717ad435cccc086ff7a4922b73be0c464c6369a2"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_val/17.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2971251843f19329a2329c7e880a84ff3d3be1a8",
+      "size": 230548,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/2971251843f19329a2329c7e880a84ff3d3be1a8"
+    },
+    {
+      "path": "gut (closed + opened belly)_masks_val/18.tif",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "934520cf3bf5a06db7a3c540e588b3e17b6d2a9b",
+      "size": 327828,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/934520cf3bf5a06db7a3c540e588b3e17b6d2a9b"
+    },
+    {
+      "path": "model.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "29c9dc901b26ed8fe75d446c04ad6260fd5381d1",
+      "size": 2796,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/29c9dc901b26ed8fe75d446c04ad6260fd5381d1"
+    },
+    {
+      "path": "requirements.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0f2d3481e630255eeb3a785974bf090cb8c01de6",
+      "size": 85,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/0f2d3481e630255eeb3a785974bf090cb8c01de6"
+    },
+    {
+      "path": "train.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a1a8e1b7a72b2dc598a27ee93ceec72ad681b8a1",
+      "size": 3735,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/a1a8e1b7a72b2dc598a27ee93ceec72ad681b8a1"
+    },
+    {
+      "path": "utils.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a78d4ae59a69db78cc1d282c30ae68975cdf3bf7",
+      "size": 3535,
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/blobs/a78d4ae59a69db78cc1d282c30ae68975cdf3bf7"
+    }
+  ],
+  "truncated": false
+}

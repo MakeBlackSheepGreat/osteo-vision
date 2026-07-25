@@ -413,6 +413,10 @@ class ConvNeXt2DKeyframeSegmenterAdapter(BaseModelAdapter):
             overlay_format=str(self.spec.extra.get("overlay_format", "png")),
             overlay_jpeg_quality=int(self.spec.extra.get("overlay_jpeg_quality", 85)),
             use_amp=bool(self.spec.extra.get("use_amp", False)),
+            evidence_png_compression=int(self.spec.extra.get("evidence_png_compression", 3)),
+            candidate_min_component_area=int(self.spec.extra.get("candidate_min_component_area", 16)),
+            candidate_min_area_fraction=float(self.spec.extra.get("candidate_min_area_fraction", 0.0)),
+            candidate_max_count=_optional_int(self.spec.extra.get("candidate_max_count")),
             rgb=request.metadata.get("predecoded_rgb"),
         )
         boundary_warning = warning(
@@ -788,7 +792,11 @@ class BoneActivityMultiTaskAdapter(BaseModelAdapter):
         if self.spec.clinical_claim_allowed:
             reasons.append("bone-activity adapter cannot allow clinical claims")
         if runtime is not None and runtime.proxy_checkpoint:
-            if not runtime.engineering_ready:
+            candidate_execution_allowed = bool(
+                self.spec.extra.get("candidate_only") is True
+                and self.spec.extra.get("engineering_candidate_execution_allowed") is True
+            )
+            if not runtime.engineering_ready and not candidate_execution_allowed:
                 reasons.append("proxy bone-activity checkpoint lacks engineering readiness")
             if self.spec.extra.get("candidate_only") is not True:
                 reasons.append("proxy bone-activity checkpoint must remain candidate-only")

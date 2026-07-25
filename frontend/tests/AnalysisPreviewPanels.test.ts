@@ -4,6 +4,7 @@ import {
   candidateOverlaysFromRegions,
   filterHotspotTimelineItems,
   fusionEvidenceSummaryFromRun,
+  fusedImageAiPreviewPanelsFromRun,
   hotspotFrameDetailsFromRun,
   hotspotOutputsFromRun,
   selectedHotspotFrameDetailFromRun,
@@ -14,6 +15,43 @@ import {
 } from "../src/components/analysisPreview";
 
 describe("analysis preview panels", () => {
+  it("shows Task 3 fused-image boundary evidence for JPEG analysis", () => {
+    const panels = fusedImageAiPreviewPanelsFromRun(
+      {
+        fused_outputs: {
+          fused_image_ai: {
+            execution_state: "completed",
+            spatial_interpretation_allowed: false,
+            lesion_evidence: {
+              overlay_path: "task3-overlay.png",
+              risk_mask_path: "task3-risk.png",
+              uncertain_mask_path: "task3-uncertain.png",
+            },
+            boundary_assessment: {
+              candidate_count: 7,
+              evaluated_candidate_count: 19,
+              suppressed_candidate_count: 12,
+              boundary_type_counts: {
+                high_risk_transition_boundary: 2,
+                uncertain_boundary: 3,
+              },
+            },
+          },
+        },
+      },
+      (path) => `/preview?path=${path}`,
+    );
+
+    expect(panels.map((panel) => panel.title)).toEqual(["AI 候选叠加", "边界风险", "边界不确定性"]);
+    expect(panels.map((panel) => panel.tag)).toEqual([
+      "保留 7 / 评估 19",
+      "2 个高风险边界",
+      "3 个不确定边界",
+    ]);
+    expect(panels[0].label).toBe("融合输入空间解释关闭；抑制 12 个低优先级碎片");
+    expect(panels[0].previewSrc).toBe("/preview?path=task3-overlay.png");
+  });
+
   it("prioritizes MP4 segmentation overlay and mask outputs over plain keyframes", () => {
     const run = {
       fused_outputs: {

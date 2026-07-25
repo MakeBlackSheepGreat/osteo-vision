@@ -1,27 +1,36 @@
 <template>
-  <main class="case-workspace">
+  <AppPageShell class="case-workspace" width="wide" density="compact">
     <header class="workspace-header">
-      <div class="workspace-title">
-        <p>术中影像工作台</p>
-        <h1>颌骨骨髓炎术中辅助决策平台</h1>
+      <div class="workspace-title ov-title-lead">
+        <AppIcon name="target" variant="badge" tone="cyan" />
+        <div>
+          <p>术中影像工作台</p>
+          <h1>颌骨骨髓炎术中辅助决策平台</h1>
+        </div>
       </div>
       <div class="workspace-header-actions">
-        <div class="workspace-context" aria-label="当前工作区状态">
-          <span>{{ store.currentCase?.title || "未载入病例" }}</span>
-          <strong :class="analysisStatusClass">{{ latestRunStatusLabel }}</strong>
-        </div>
-        <RouterLink
-          v-if="store.currentCase"
-          class="navigation-workspace-link"
-          :to="navigationWorkspaceRoute"
-          title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
+        <AppCaseContext
+          class="workspace-context"
+          :title="store.currentCase?.title"
+          :case-id="store.currentCase?.case_id"
+          :status="latestRunStatusLabel"
+          :tone="analysisStatusTone"
         >
-          <AppIcon name="cube" />
-          <span>
-            <strong>三维导航</strong>
-            <small>{{ threeDWorkspaceStatus }}</small>
-          </span>
-        </RouterLink>
+          <template #actions>
+            <RouterLink
+              v-if="store.currentCase"
+              class="navigation-workspace-link"
+              :to="navigationWorkspaceRoute"
+              title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
+            >
+              <AppIcon name="cube" />
+              <span>
+                <strong>三维导航</strong>
+                <small>{{ threeDWorkspaceStatus }}</small>
+              </span>
+            </RouterLink>
+          </template>
+        </AppCaseContext>
       </div>
     </header>
 
@@ -117,25 +126,6 @@
       </aside>
 
       <section class="analysis-column" aria-label="分析结果">
-        <ThreeChannelQualityPanel
-          :quality="threeChannelQuality"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <PatientConditioningEvidencePanel
-          :evidence="patientConditioningEvidence"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <BoneActivityCheckpointEvidencePanel
-          :evidence="boneActivityCheckpointEvidence"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <ViabilitySpectrumPanel
-          :spectrum="boneActivitySpectrum"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
         <AnalysisWorkspaceCard
           ref="analysisWorkspaceCardRef"
           :loading="store.loading"
@@ -189,6 +179,34 @@
           @close-fullscreen="closeAnalysisFullscreen"
         />
 
+        <details class="evidence-disclosure">
+          <summary>
+            <span>质量、患者条件与骨活性证据</span>
+            <strong>展开复核证据</strong>
+          </summary>
+          <div class="evidence-stack">
+            <ThreeChannelQualityPanel
+              :quality="threeChannelQuality"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <PatientConditioningEvidencePanel
+              :evidence="patientConditioningEvidence"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <BoneActivityCheckpointEvidencePanel
+              :evidence="boneActivityCheckpointEvidence"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <ViabilitySpectrumPanel
+              :spectrum="boneActivitySpectrum"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+          </div>
+        </details>
+
         <details v-if="showDebugPanel" class="debug-panel">
           <summary>开发调试数据</summary>
           <pre>{{ store.currentCase }}</pre>
@@ -197,7 +215,7 @@
 
     </section>
 
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -206,6 +224,8 @@ import { useRoute } from "vue-router";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
+import AppCaseContext from "@/components/AppCaseContext.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import BoneActivityCheckpointEvidencePanel from "@/components/BoneActivityCheckpointEvidencePanel.vue";
 import CaseWorkspaceControls from "@/components/CaseWorkspaceControls.vue";
 import ClinicalContextPanel from "@/components/ClinicalContextPanel.vue";
@@ -221,6 +241,7 @@ import {
   filterHotspotTimelineItems,
   candidateOverlaysFromRegions,
   fusionEvidenceSummaryFromRun,
+  fusedImageAiPreviewPanelsFromRun,
   hotspotFrameDetailsFromRun,
   hotspotTimelineFromRun,
   roiOverlaysFromRegions,
@@ -464,6 +485,12 @@ const analysisStatusClass = computed(() => {
   if (latestRun.value?.status === "completed") return "completed";
   return "idle";
 });
+const analysisStatusTone = computed(() => {
+  if (analysisStatusClass.value === "running") return "warning";
+  if (analysisStatusClass.value === "completed") return "success";
+  if (analysisStatusClass.value === "failed") return "danger";
+  return "neutral";
+});
 
 const kpiItems = computed<Array<{ label: string; value: string; icon: AppIconName }>>(() => [
   { label: "分析任务", value: latestMode.value === "video_file_keyframes" ? "MP4 视频分析" : "JPEG 图像融合", icon: "clipboard" },
@@ -482,6 +509,13 @@ const previewPanels = computed<AnalysisPreviewPanel[]>(() => {
     selectedHotspotTimelineKey.value,
   );
   if (videoPanels.length) return videoPanels.slice(0, 3).map((panel) => ({ ...panel, overlays }));
+  const fusedImageAiPanels = fusedImageAiPreviewPanelsFromRun(latestRun.value, apiClient.filePreviewUrl);
+  if (fusedImageAiPanels.length) {
+    return [
+      previewPanel("融合图", `融合透明度: ${alpha.value.toFixed(2)}`, `伪彩方案: ${colormapLabel(colormap.value)}`, "白光 + ICG", stringFrom(outputPaths.value.overlay_path)),
+      ...fusedImageAiPanels,
+    ].map((panel) => ({ ...panel, overlays }));
+  }
   return [
     previewPanel("融合图", `融合透明度: ${alpha.value.toFixed(2)}`, `伪彩方案: ${colormapLabel(colormap.value)}`, "白光 + ICG", stringFrom(outputPaths.value.overlay_path)),
     previewPanel("热图", `当前阈值: ${threshold.value.toFixed(2)}`, "色标范围: 0 - 1", "0        1.0", stringFrom(outputPaths.value.heatmap_path)),
@@ -1279,7 +1313,7 @@ async function warmupLiveFrameModel() {
   if (liveModelWarmupPromise.value) return liveModelWarmupPromise.value;
   const task = (async () => {
     setOperationMessage("摄像头已连接，正在预热实时分割模型...");
-    const warmup = await apiClient.warmupLiveFrameModel();
+    const warmup = await apiClient.warmupLiveFrameModel(undefined, store.currentCase?.case_id);
     if (!warmup.available) {
       throw new Error("实时分割模型不可用。");
     }
@@ -1713,6 +1747,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-header {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--ov-space-5);
   align-items: end;
   justify-content: space-between;
@@ -1720,6 +1755,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .workspace-title {
+  flex: 1 1 440px;
   min-width: 0;
 }
 
@@ -1741,6 +1777,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-context {
   display: flex;
+  flex: 1 1 300px;
   gap: var(--ov-space-3);
   align-items: center;
   justify-content: flex-end;
@@ -1775,6 +1812,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-header-actions {
   display: flex;
+  flex: 1 1 300px;
   flex-wrap: wrap;
   gap: var(--ov-space-3);
   align-items: center;
@@ -1904,7 +1942,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(304px, 326px) minmax(0, 1fr);
+  grid-template-columns: minmax(296px, 316px) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -1975,6 +2013,65 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.evidence-disclosure {
+  min-width: 0;
+  border: 1px solid var(--ov-border);
+  border-radius: 7px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.evidence-disclosure > summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 11px 14px;
+  color: var(--ov-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.evidence-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-disclosure > summary span {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.evidence-disclosure > summary strong {
+  color: var(--ov-primary-strong);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.evidence-disclosure > summary strong::after {
+  margin-left: 8px;
+  content: "+";
+}
+
+.evidence-disclosure[open] > summary {
+  border-bottom: 1px solid var(--ov-border-subtle);
+}
+
+.evidence-disclosure[open] > summary strong::after {
+  content: "-";
+}
+
+.evidence-stack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
 }
 
 .result-card,
@@ -2153,10 +2250,11 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .case-workspace :deep(.empty-preview-copy) {
-  border-color: var(--ov-border);
-  background: var(--ov-bg-elevated);
+  border: 0;
+  padding: 8px 12px;
+  background: transparent;
   color: var(--ov-text-secondary);
-  box-shadow: var(--ov-shadow);
+  box-shadow: none;
 }
 
 .case-workspace :deep(.empty-preview-copy strong) {
@@ -2257,25 +2355,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   background: transparent;
 }
 
-/* Desktop clinical workstation polish: matte surfaces, fewer nested frames, clearer hierarchy. */
-.result-card,
-.debug-panel,
-.case-workspace :deep(.control-card),
-.case-workspace :deep(.analysis-card),
-.case-workspace :deep(.summary-card),
-.case-workspace :deep(.analysis-quad-card),
-.case-workspace :deep(.fusion-evidence-panel),
-.case-workspace :deep(.hotspot-timeline),
-.case-workspace :deep(.export-panel),
-.case-workspace :deep(.job-panel),
-.case-workspace :deep(.hotspot-frame-detail),
-.case-workspace :deep(.hotspot-frame-drawer),
-.case-workspace :deep(.timeline-manifest-panel) {
-  border-color: var(--ov-border);
-  background: var(--ov-bg-elevated);
-  box-shadow: var(--ov-shadow);
-}
-
 .case-workspace :deep(.analysis-card) {
   padding: 20px;
 }
@@ -2288,43 +2367,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .case-workspace :deep(.analysis-quad-viewport) {
   border-color: var(--ov-border-strong);
-}
-
-.case-workspace :deep(.empty-preview-copy) {
-  border: 0;
-  padding: 8px 12px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.case-workspace :deep(.empty-preview-copy strong) {
-  color: var(--ov-text);
-}
-
-.case-workspace :deep(.empty-preview-copy span) {
-  color: var(--ov-text-muted);
-}
-
-.case-workspace :deep(input),
-.case-workspace :deep(textarea),
-.case-workspace :deep(select),
-.case-workspace :deep(output) {
-  border-color: var(--ov-border-strong);
-  background: var(--ov-bg-control);
-  color: var(--ov-text);
-}
-
-.case-workspace :deep(.app-button) {
-  border-color: var(--ov-border-strong);
-  background: var(--ov-bg-control);
-  color: var(--ov-primary);
-  box-shadow: none;
-}
-
-.case-workspace :deep(.app-button--primary) {
-  border-color: var(--ov-border-accent);
-  background: var(--ov-button-primary-bg);
-  color: var(--ov-text-on-primary);
 }
 
 .case-workspace :deep(.summary-chip),
@@ -2364,7 +2406,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 @media (max-width: 1359px) {
   .workspace-grid {
-    grid-template-columns: minmax(286px, 304px) minmax(0, 1fr);
+    grid-template-columns: minmax(276px, 296px) minmax(0, 1fr);
   }
 }
 
@@ -2374,7 +2416,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   }
 
   .workspace-sidebar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
     align-items: start;
   }
 

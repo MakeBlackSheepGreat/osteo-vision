@@ -149,6 +149,10 @@ def predict_keyframe_image(
     overlay_format: str = "png",
     overlay_jpeg_quality: int = 85,
     use_amp: bool = False,
+    evidence_png_compression: int = 3,
+    candidate_min_component_area: int = 16,
+    candidate_min_area_fraction: float = 0.0,
+    candidate_max_count: int | None = None,
     rgb: np.ndarray | None = None,
 ) -> dict[str, Any]:
     rgb = load_rgb_image(input_path) if rgb is None else _validate_rgb_array(rgb)
@@ -190,12 +194,18 @@ def predict_keyframe_image(
     overlay_path = out_dir / f"{safe_case}_{model_id}_overlay{overlay_suffix}"
     pseudo_path = None if fast_output else out_dir / f"{safe_case}_{model_id}_pseudo_color.png"
     uncertainty_started = time.perf_counter()
-    entropy = predictive_entropy(probability)
     threshold_uncertainty = uncertainty_from_probability(probability, threshold=float(threshold))
-    variance_uncertainty = np.clip(np.sqrt(np.maximum(technical_variance, 0.0)) * 4.0, 0.0, 1.0)
-    uncertainty = np.maximum.reduce([entropy, threshold_uncertainty * 0.5, variance_uncertainty]).astype(np.float32)
+    if fast_output:
+        uncertainty = threshold_uncertainty.astype(np.float32, copy=False)
+        uncertainty_method = "distance_to_threshold_live_fast"
+    else:
+        entropy = predictive_entropy(probability)
+        variance_uncertainty = np.clip(np.sqrt(np.maximum(technical_variance, 0.0)) * 4.0, 0.0, 1.0)
+        uncertainty = np.maximum.reduce([entropy, threshold_uncertainty * 0.5, variance_uncertainty]).astype(np.float32)
+        uncertainty_method = "predictive_entropy_plus_tta_variance" if tta_enabled else "predictive_entropy_calibrated"
     uncertainty_ms = (time.perf_counter() - uncertainty_started) * 1000.0
     signal_maps_started = time.perf_counter()
+    evidence_compression = max(0, min(9, int(evidence_png_compression)))
     signal_paths = save_video_signal_maps(
         probability=probability,
         mask=mask,
@@ -206,7 +216,7 @@ def predict_keyframe_image(
         threshold=float(threshold),
         activity_score_path=probability_path,
         write_activity_score=not fast_output,
-        png_compress_level=1 if fast_output else 6,
+        png_compress_level=0 if fast_output else evidence_compression,
     )
     signal_maps_ms = (time.perf_counter() - signal_maps_started) * 1000.0
     visualization_started = time.perf_counter()
@@ -214,29 +224,43 @@ def predict_keyframe_image(
     overlay = blend_pseudocolor_on_reference(rgb, pseudo, alpha=0.45)
     visualization_ms = (time.perf_counter() - visualization_started) * 1000.0
     evidence_encoding_started = time.perf_counter()
-    png_save_options = {"compress_level": 1 if fast_output else 6}
-    Image.fromarray((mask * 255).astype(np.uint8)).save(mask_path, **png_save_options)
+    png_compression = 0 if fast_output else evidence_compression
+    _write_png(mask_path, (mask * 255).astype(np.uint8), compression=png_compression)
     if uncertainty_path is not None:
-        Image.fromarray(np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8)).save(
+        _write_png(
             uncertainty_path,
-            **png_save_options,
+            np.clip(uncertainty * 255.0, 0, 255).astype(np.uint8),
+            compression=png_compression,
         )
     if pseudo_path is not None:
-        Image.fromarray(pseudo).save(pseudo_path, **png_save_options)
-    overlay_image = Image.fromarray(overlay)
+        _write_png(pseudo_path, pseudo, compression=png_compression, rgb=True)
     if normalized_overlay_format == "jpeg":
-        overlay_image.save(overlay_path, quality=max(30, min(95, int(overlay_jpeg_quality))), optimize=False)
+        _write_jpeg(overlay_path, overlay, quality=max(30, min(95, int(overlay_jpeg_quality))))
     else:
-        overlay_image.save(overlay_path)
+        _write_png(overlay_path, overlay, compression=png_compression, rgb=True)
     evidence_encoding_ms = (time.perf_counter() - evidence_encoding_started) * 1000.0
     candidate_stats_started = time.perf_counter()
-    candidates = connected_probability_candidates(mask, probability, min_component_area=16, model_id=model_id)
+    min_area_fraction = max(0.0, float(candidate_min_area_fraction))
+    effective_min_component_area = max(
+        1,
+        int(candidate_min_component_area),
+        int(np.ceil(mask.size * min_area_fraction)),
+    )
+    candidates, candidate_extraction = connected_probability_candidates_with_summary(
+        mask,
+        probability,
+        min_component_area=effective_min_component_area,
+        model_id=model_id,
+        max_candidates=candidate_max_count,
+    )
+    candidate_extraction["configured_min_component_area_px"] = int(candidate_min_component_area)
+    candidate_extraction["configured_min_area_fraction"] = min_area_fraction
     positive_area = int(mask.sum())
     total_area = int(mask.size)
     uncertainty_summary = uncertainty_stats(
         uncertainty,
         mask,
-        method="predictive_entropy_plus_tta_variance" if tta_enabled else "predictive_entropy_calibrated",
+        method=uncertainty_method,
         technical_variance=technical_variance,
     )
     review_priority = keyframe_review_priority(
@@ -254,6 +278,8 @@ def predict_keyframe_image(
         "candidate_statistics_ms": round(candidate_stats_ms, 3),
         "total_ms": round((time.perf_counter() - postprocess_started) * 1000.0, 3),
         "probability_activity_score_shared": probability_path is not None,
+        "evidence_png_compression": png_compression,
+        "candidate_extraction": candidate_extraction,
     }
     quantification = {
         "available": True,
@@ -265,6 +291,7 @@ def predict_keyframe_image(
         "mean_probability": float(probability.mean()),
         "max_probability": float(probability.max()),
         "component_count": len(candidates),
+        "candidate_extraction": candidate_extraction,
         "uncertainty": uncertainty_summary,
         "review_priority": review_priority,
         "target_domain_flag": bool(target_domain),
@@ -328,6 +355,7 @@ def predict_keyframe_image(
             "pseudo_color_path": str(pseudo_path) if pseudo_path is not None else None,
             "overlay_path": str(overlay_path),
             "candidates": candidates,
+            "candidate_extraction": candidate_extraction,
             "signal_masks": signal_masks,
             "video_signal_segmentation": signal_masks,
             "input_domain": input_domain,
@@ -730,7 +758,27 @@ def connected_probability_candidates(
     *,
     min_component_area: int,
     model_id: str,
+    max_candidates: int | None = None,
 ) -> list[dict[str, Any]]:
+    candidates, _summary = connected_probability_candidates_with_summary(
+        mask,
+        probability,
+        min_component_area=min_component_area,
+        model_id=model_id,
+        max_candidates=max_candidates,
+    )
+    return candidates
+
+
+def connected_probability_candidates_with_summary(
+    mask: np.ndarray,
+    probability: np.ndarray,
+    *,
+    min_component_area: int,
+    model_id: str,
+    max_candidates: int | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    safe_min_area = max(1, int(min_component_area))
     try:
         import cv2
 
@@ -738,7 +786,17 @@ def connected_probability_candidates(
             mask.astype(np.uint8), connectivity=8
         )
     except Exception:
-        return _single_candidate(mask, probability, min_component_area=min_component_area, model_id=model_id)
+        fallback = _single_candidate(mask, probability, min_component_area=safe_min_area, model_id=model_id)
+        return fallback, {
+            "method": "single_candidate_fallback",
+            "total_component_count": len(fallback),
+            "eligible_component_count": len(fallback),
+            "retained_candidate_count": len(fallback),
+            "suppressed_small_component_count": 0,
+            "suppressed_limit_count": 0,
+            "min_component_area_px": safe_min_area,
+            "max_candidates": max_candidates,
+        }
     flat_labels = np.asarray(labels, dtype=np.int32).ravel()
     flat_probability = probability.astype(np.float32, copy=False).ravel()
     component_count = int(component_count)
@@ -746,22 +804,48 @@ def connected_probability_candidates(
     component_max = np.full(component_count, -np.inf, dtype=np.float32)
     np.maximum.at(component_max, flat_labels, flat_probability)
     candidates: list[dict[str, Any]] = []
+    suppressed_small = 0
     for label in range(1, component_count):
         x, y, width, height, area = [int(value) for value in stats[label]]
-        if area < min_component_area:
+        if area < safe_min_area:
+            suppressed_small += 1
             continue
+        score = float(component_sums[label] / area) if area else 0.0
+        ranking_score = score * float(np.sqrt(max(1, area)))
         candidates.append(
             {
                 "candidate_id": f"{model_id}_component_{label}",
                 "bbox_xyxy": [x, y, x + width, y + height],
                 "area_px": area,
-                "score": float(component_sums[label] / area) if area else 0.0,
+                "score": score,
                 "confidence": float(component_max[label]) if area else 0.0,
+                "ranking_score": round(ranking_score, 6),
                 "source": model_id,
             }
         )
-    candidates.sort(key=lambda item: (float(item["score"]), int(item["area_px"])), reverse=True)
-    return candidates
+    candidates.sort(
+        key=lambda item: (
+            float(item["ranking_score"]),
+            float(item["score"]),
+            int(item["area_px"]),
+        ),
+        reverse=True,
+    )
+    eligible_count = len(candidates)
+    safe_limit = max(1, int(max_candidates)) if max_candidates is not None else None
+    if safe_limit is not None:
+        candidates = candidates[:safe_limit]
+    return candidates, {
+        "method": "scale_aware_connected_components_v2",
+        "total_component_count": max(0, component_count - 1),
+        "eligible_component_count": eligible_count,
+        "retained_candidate_count": len(candidates),
+        "suppressed_small_component_count": suppressed_small,
+        "suppressed_limit_count": max(0, eligible_count - len(candidates)),
+        "min_component_area_px": safe_min_area,
+        "max_candidates": safe_limit,
+        "ranking": "mean_probability_times_sqrt_area",
+    }
 
 
 def checkpoint_sha256(path: str | Path) -> str:
@@ -808,6 +892,30 @@ def _validate_rgb_array(rgb: np.ndarray) -> np.ndarray:
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError("Predecoded keyframe image must be an RGB uint8 array.")
     return np.ascontiguousarray(rgb)
+
+
+def _write_png(path: Path, array: np.ndarray, *, compression: int, rgb: bool = False) -> None:
+    try:
+        import cv2
+
+        value = cv2.cvtColor(array, cv2.COLOR_RGB2BGR) if rgb else array
+        if cv2.imwrite(str(path), value, [cv2.IMWRITE_PNG_COMPRESSION, int(compression)]):
+            return
+    except Exception:
+        pass
+    Image.fromarray(array).save(path, compress_level=int(compression))
+
+
+def _write_jpeg(path: Path, rgb: np.ndarray, *, quality: int) -> None:
+    try:
+        import cv2
+
+        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        if cv2.imwrite(str(path), bgr, [cv2.IMWRITE_JPEG_QUALITY, int(quality), cv2.IMWRITE_JPEG_OPTIMIZE, 0]):
+            return
+    except Exception:
+        pass
+    Image.fromarray(rgb).save(path, quality=int(quality), optimize=False)
 
 
 def _safe_name(value: str) -> str:

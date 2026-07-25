@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, Callable, NoReturn
 from uuid import uuid4
 
 import numpy as np
@@ -17,7 +17,13 @@ from backend.osteo_vision_api.core.artifacts import checksum_for_file
 from backend.osteo_vision_api.domains.annotations.enums import AnnotationLabel, AnnotationSourceType, AnnotationStatus
 from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
 from backend.osteo_vision_api.domains.annotations.schemas import ManualAnnotationRecord
-from backend.osteo_vision_api.domains.cases.enums import ArtifactKind, CaseStatus, RegionSource, ReviewerRole, ReviewState
+from backend.osteo_vision_api.domains.cases.enums import (
+    ArtifactKind,
+    CaseStatus,
+    RegionSource,
+    ReviewerRole,
+    ReviewState,
+)
 from backend.osteo_vision_api.domains.cases.repository import CaseRepository
 from backend.osteo_vision_api.domains.cases.schemas import (
     BoneGateMaskCreateRequest,
@@ -31,7 +37,11 @@ from backend.osteo_vision_api.domains.cases.schemas import (
     ReviewEvent,
     ReviewEventCreateRequest,
 )
-from backend.osteo_vision_api.services.review_geometry import bbox_xyxy_from_geometry, candidate_geometry, normalized_rect_geometry
+from backend.osteo_vision_api.services.review_geometry import (
+    bbox_xyxy_from_geometry,
+    candidate_geometry,
+    normalized_rect_geometry,
+)
 from osteo_vision_core.core.config import load_yaml
 from osteo_vision_core.core.paths import ensure_dir, resolve_path
 from osteo_vision_core.core.schemas import AdapterRequest
@@ -1743,30 +1753,21 @@ def _validate_video_segmentation_manifest_target(
 
 
 def _count_bone_gate_frames_from_fused_outputs(fused_outputs: dict[str, Any]) -> int:
-    keys: set[str] = set()
-    for list_key in ("frame_details", "hotspot_outputs"):
-        items = fused_outputs.get(list_key)
-        if not isinstance(items, list):
-            continue
-        for index, item in enumerate(items):
-            if not _frame_has_bone_gate(item):
-                continue
-            keys.add(
-                str(
-                    item.get("frame_order") or item.get("frame_index") or item.get("frame_key") or f"{list_key}:{index}"
-                )
-            )
-    return len(keys)
+    return _count_distinct_signal_frames(fused_outputs, _frame_has_bone_gate)
 
 
 def _count_activity_frames_from_fused_outputs(fused_outputs: dict[str, Any]) -> int:
+    return _count_distinct_signal_frames(fused_outputs, _frame_has_activity_spectrum)
+
+
+def _count_distinct_signal_frames(fused_outputs: dict[str, Any], predicate: Callable[[Any], bool]) -> int:
     keys: set[str] = set()
     for list_key in ("frame_details", "hotspot_outputs"):
         items = fused_outputs.get(list_key)
         if not isinstance(items, list):
             continue
         for index, item in enumerate(items):
-            if not _frame_has_activity_spectrum(item):
+            if not predicate(item):
                 continue
             keys.add(
                 str(

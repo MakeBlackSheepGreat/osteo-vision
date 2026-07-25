@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import numpy as np
@@ -10,6 +11,10 @@ from PIL import Image
 
 from osteo_vision_core.core.paths import ensure_dir
 from osteo_vision_core.core.warnings import DISCLAIMER_TEXT
+from osteo_vision_core.preprocess.accelerated_fusion import (
+    accelerated_normalize_pseudocolor_blend,
+    register_adaptive_multiscale,
+)
 from osteo_vision_core.preprocess.roi import normalized_rects_from_hints, roi_intensity_quantification
 
 
@@ -23,8 +28,9 @@ def fuse_white_light_fluorescence(
     threshold: float = 0.6,
     colormap: str = "green",
     roi_hints: list[dict[str, Any]] | None = None,
-    registration: str = "phase_correlation_translation",
+    registration: str = "adaptive_multiscale",
     background_percentile: float = 5.0,
+    prefer_gpu: bool = True,
 ) -> dict[str, Any]:
     """Create pseudo-color fluorescence evidence for the local competition platform."""
     white_path = Path(white_light_path)
@@ -35,7 +41,9 @@ def fuse_white_light_fluorescence(
     threshold = _clamp(threshold, 0.0, 1.0)
     background_percentile = _clamp(background_percentile, 0.0, 50.0)
 
+    total_started = perf_counter()
     with Image.open(white_path) as white_image, Image.open(fluor_path) as fluorescence_image:
+        decode_started = perf_counter()
         white_rgb = white_image.convert("RGB")
         fluorescence_gray = fluorescence_image.convert("L")
         original_fluorescence_size = fluorescence_gray.size
@@ -43,21 +51,33 @@ def fuse_white_light_fluorescence(
         if resized:
             fluorescence_gray = fluorescence_gray.resize(white_rgb.size, _bilinear_resampling())
 
-        white_array = np.asarray(white_rgb, dtype=np.float32)
+        white_array = np.asarray(white_rgb, dtype=np.uint8)
         fluorescence_array = np.asarray(fluorescence_gray, dtype=np.float32)
+        decode_ms = (perf_counter() - decode_started) * 1000.0
+        preprocess_started = perf_counter()
         corrected, background_report = subtract_fluorescence_background(
             fluorescence_array, percentile=background_percentile
         )
+        preprocess_ms = (perf_counter() - preprocess_started) * 1000.0
+        registration_started = perf_counter()
         registered, registration_report = register_fluorescence_to_reference(
-            white_array, corrected, method=registration
+            white_array,
+            corrected,
+            method=registration,
+            prefer_gpu=prefer_gpu,
         )
-        normalized = normalize_fluorescence(registered)
-        pseudo_color = apply_fluorescence_colormap(normalized, colormap)
-        overlay = np.clip((1.0 - alpha) * white_array + alpha * pseudo_color.astype(np.float32), 0, 255).astype(
-            np.uint8
+        registration_ms = (perf_counter() - registration_started) * 1000.0
+        fusion_started = perf_counter()
+        normalized, pseudo_color, overlay, acceleration_report = accelerated_normalize_pseudocolor_blend(
+            white_array,
+            registered,
+            alpha=alpha,
+            colormap=colormap,
+            prefer_gpu=prefer_gpu,
         )
         gray_uint8 = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
         colorbar = fluorescence_colorbar(colormap=colormap, threshold=threshold)
+        fusion_ms = (perf_counter() - fusion_started) * 1000.0
 
     overlay_path = root / f"{safe_case_id}_fluorescence_overlay.png"
     heatmap_path = root / f"{safe_case_id}_fluorescence_heatmap.png"
@@ -66,10 +86,12 @@ def fuse_white_light_fluorescence(
     report_path = root / f"{safe_case_id}_fluorescence_fusion.json"
     markdown_report_path = root / f"{safe_case_id}_fluorescence_fusion.md"
 
-    Image.fromarray(overlay).save(overlay_path)
-    Image.fromarray(pseudo_color).save(heatmap_path)
-    Image.fromarray(gray_uint8).save(normalized_path)
-    Image.fromarray(colorbar).save(colorbar_path)
+    encoding_started = perf_counter()
+    Image.fromarray(overlay).save(overlay_path, compress_level=1)
+    Image.fromarray(pseudo_color).save(heatmap_path, compress_level=1)
+    Image.fromarray(gray_uint8).save(normalized_path, compress_level=1)
+    Image.fromarray(colorbar).save(colorbar_path, compress_level=1)
+    encoding_ms = (perf_counter() - encoding_started) * 1000.0
 
     quantification = fluorescence_quantification(normalized, threshold=threshold)
     roi_quantification = roi_intensity_quantification(normalized, roi_hints, threshold=threshold)
@@ -96,6 +118,16 @@ def fuse_white_light_fluorescence(
             "registration": registration_report["method"],
             "registration_details": registration_report,
             "background_correction": background_report,
+            "acceleration": acceleration_report,
+            "performance": {
+                "decode_resize_ms": round(decode_ms, 3),
+                "background_correction_ms": round(preprocess_ms, 3),
+                "registration_ms": round(registration_ms, 3),
+                "normalization_pseudocolor_blend_ms": round(fusion_ms, 3),
+                "evidence_encoding_ms": round(encoding_ms, 3),
+                "total_ms": round((perf_counter() - total_started) * 1000.0, 3),
+                "source_size": [int(white_array.shape[1]), int(white_array.shape[0])],
+            },
             "colorbar": {"path": str(colorbar_path), "threshold_marker": threshold, "range": [0.0, 1.0]},
         },
         "quantification": {**quantification, **roi_quantification},
@@ -174,11 +206,25 @@ def register_fluorescence_to_reference(
     method: str = "phase_correlation_translation",
     min_response: float = 0.08,
     max_translation_fraction: float = 0.15,
+    prefer_gpu: bool = True,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Estimate a small translation between white-light and fluorescence frames."""
 
     normalized_method = method.lower().strip()
     moving = np.asarray(fluorescence_gray, dtype=np.float32)
+    if normalized_method in {
+        "adaptive_multiscale",
+        "adaptive_multiscale_registration_v1",
+        "adaptive_multiscale_registration_v2",
+    }:
+        return register_adaptive_multiscale(
+            reference_rgb,
+            moving,
+            min_response=min_response,
+            max_translation_fraction=max_translation_fraction,
+            prefer_gpu=prefer_gpu,
+            return_device_tensor=prefer_gpu,
+        )
     if normalized_method in {"none", "disabled", "resize_only"}:
         return moving, {
             "method": "disabled",

@@ -1,0 +1,143 @@
+"""Run mainline keyframe segmenter on user-requested images and produce
+white-light / fluorescence / segmentation / heatmap / boundary maps."""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from osteo_vision_core.core.paths import ensure_dir, resolve_path  # noqa: E402
+from osteo_vision_core.models.keyframe_segmenter import (  # noqa: E402
+    load_keyframe_segmenter_checkpoint,
+    predict_keyframe_image,
+    select_torch_device,
+)
+
+CHECKPOINT_PATH = "artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715.pt"
+OUTPUT_BASE = "artifacts/visual_evidence/osteo_vision/demo_keyframe_inference_20260724"
+
+INPUTS = [
+    {
+        "case_id": "d083_frame_05_fluorescence",
+        "input_path": "frontend/public/showcase/d083_frame_05_raw.jpg",
+        "role": "fluorescence_frame",
+    },
+    {
+        "case_id": "pmc7666678_fig2_panel_b_white_light",
+        "input_path": "research/datasets/public-candidates/d048_open_clinical_bone_fluorescence/derived/suggested_panel_previews/review_PMC7666678_fig_2_panel_b_58cae23a.png",
+        "role": "white_light",
+    },
+    {
+        "case_id": "pmc7666678_fig2_panel_c_fluorescence",
+        "input_path": "research/datasets/public-candidates/d048_open_clinical_bone_fluorescence/derived/suggested_panel_previews/review_PMC7666678_fig_2_panel_c_bd6fe79f.png",
+        "role": "fluorescence",
+    },
+]
+
+THRESHOLD = 0.4
+TEMPERATURE = 1.4138116836547852
+TILE_SIZE = 512
+TILE_OVERLAP = 64
+TILE_BATCH_SIZE = 4
+TTA_ENABLED = True
+MAX_WHOLE_PIXELS = 1048576
+
+
+def main() -> int:
+    print("--- osteo-vision mainline keyframe demo inference ---")
+    device = select_torch_device("auto")
+    print(f"  device = {device}")
+
+    checkpoint_path = resolve_path(CHECKPOINT_PATH)
+    print(f"  loading checkpoint: {checkpoint_path}")
+    model, metadata = load_keyframe_segmenter_checkpoint(checkpoint_path, device=device)
+    print(f"  checkpoint metadata keys: {list(metadata.keys())}")
+    architecture = metadata.get("model_config", {}).get("architecture", "unknown")
+    print(f"  architecture = {architecture}")
+
+    output_base = ensure_dir(OUTPUT_BASE)
+    results = []
+
+    for item in INPUTS:
+        input_path = resolve_path(item["input_path"])
+        case_id = item["case_id"]
+        print(f"\n  running {case_id}")
+        print(f"    input: {input_path}")
+
+        output_dir = output_base / case_id
+        payload = predict_keyframe_image(
+            model,
+            input_path,
+            device=device,
+            output_dir=output_dir,
+            case_id=case_id,
+            threshold=THRESHOLD,
+            model_id="keyframe_residual_attention_unet_s20260715",
+            tile_size=TILE_SIZE,
+            tile_overlap=TILE_OVERLAP,
+            tile_batch_size=TILE_BATCH_SIZE,
+            max_whole_pixels=MAX_WHOLE_PIXELS,
+            temperature=TEMPERATURE,
+            tta_enabled=TTA_ENABLED,
+            fast_output=False,
+            overlay_format="png",
+            input_domain="public_non_target_domain_demo",
+            data_boundary="engineering_validation_non_target_domain",
+            target_domain=False,
+        )
+
+        quant = payload.get("quantification", {})
+        inf_meta = quant.get("inference", {})
+        elapsed = inf_meta.get("elapsed_ms", 0)
+        positive_pct = quant.get("positive_area_fraction", 0) * 100
+        print(f"    elapsed: {elapsed:.1f} ms, positive area: {positive_pct:.1f}%")
+
+        seg = payload.get("segmentation_mask", {})
+        results.append(
+            {
+                "case_id": case_id,
+                "role": item["role"],
+                "input_path": str(input_path),
+                "mask_path": seg.get("path", ""),
+                "overlay_path": payload.get("signal_masks", {}).get("overlay_path", ""),
+                "risk_mask_path": seg.get("risk_mask_path", ""),
+                "uncertain_mask_path": seg.get("uncertain_mask_path", ""),
+                "probability_path": payload.get("signal_masks", {}).get("probability_path"),
+                "activity_score_path": payload.get("signal_masks", {}).get("activity_score_path"),
+                "uncertainty_path": seg.get("uncertainty_path", ""),
+                "elaspsed_ms": elapsed,
+                "positive_area_pct": round(positive_pct, 2),
+                "review_priority": seg.get("review_priority", ""),
+                "peak_gpu_memory_mb": inf_meta.get("peak_gpu_memory_mb"),
+            }
+        )
+
+    summary_path = output_base / "demo_inference_summary.json"
+    summary = {
+        "checkpoint": str(checkpoint_path),
+        "architecture": architecture,
+        "device": str(device),
+        "threshold": THRESHOLD,
+        "temperature": TEMPERATURE,
+        "tta_enabled": TTA_ENABLED,
+        "medical_boundary": (
+            "These segmentation outputs are generated by a model trained on public non-target-domain proxy data. "
+            "They are NOT clinical diagnostic results and MUST be reviewed by a physician. "
+            "The model produces fluorescence signal segmentation, risk prompt, and uncertainty estimates "
+            "for engineering validation only."
+        ),
+        "results": results,
+    }
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
+
+    print(f"\n  summary written to {summary_path}")
+    print("--- done ---")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -15,3 +15,7 @@
 ## 许可与医学边界
 
 数据与来源元数据继续受各自上游许可约束，不随本仓库代码许可重新授权。所有公开数据均按清单记录的 `target_domain_flag`、`training_eligible` 和 `review_state` 执行准入；公开异域、代理或近似数据不能作为颌骨骨髓炎术中临床性能证据。任何真实医院数据、患者上传、病例数据库和医生标注均不得写入本目录或提交到 Git。
+
+## NIR-II 分割候选
+
+2026-07-24 的 NIR-II/SWIR 多模态分割检索记录见 `research/reports/planning/nir2_multimodal_lesion_segmentation_dataset_search_20260724_zh.md`，机器可读清单见 `research/literature/inventory/nir2_multimodal_segmentation_candidates_20260724.csv`。小型 D097 TIFF-mask starter 已落盘并完成 SHA256 登记；其上游仓库未声明许可证，正式训练准入保持关闭。

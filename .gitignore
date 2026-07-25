@@ -67,6 +67,7 @@ frontend/playwright-report/
 .playwright-cli/
 frontend/pnpm-lock.yaml
 frontend/pnpm-workspace.yaml
+output/
 
 # .NET / document generator build outputs
 **/bin/

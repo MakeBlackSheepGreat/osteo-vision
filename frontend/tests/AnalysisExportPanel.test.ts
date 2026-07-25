@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import AnalysisExportPanel from "../src/components/AnalysisExportPanel.vue";
 
 describe("AnalysisExportPanel", () => {
-  it("renders export links, summary, and artifact labels", () => {
+  it("renders export links, summary, and a compact artifact handoff", () => {
     const wrapper = mount(AnalysisExportPanel, {
       props: {
         exportPath: "artifacts/platform/case/export.zip",
@@ -42,6 +42,8 @@ describe("AnalysisExportPanel", () => {
     expect(wrapper.text()).toContain("1.5 KB");
     expect(wrapper.text()).toContain("MP4 分割清单");
     expect(wrapper.text()).toContain("unknown_kind");
+    expect(wrapper.text()).toContain("证据文件共 2 项");
+    expect(wrapper.find("a.export-report-link").attributes("href")).toBe("/report");
     expect(wrapper.text()).toContain("artifacts/platform/case/export.zip");
   });
 });

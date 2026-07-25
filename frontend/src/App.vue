@@ -9,7 +9,7 @@
             <small>术中荧光辅助平台</small>
           </span>
         </RouterLink>
-        <AppNavPills class="app-top-nav__pills" :items="navItems" aria-label="顶部导航" />
+        <AppNavPills class="app-top-nav__pills" :items="navigationItems" aria-label="顶部导航" />
         <ThemeToggle class="app-top-nav__theme" />
       </div>
     </header>
@@ -22,21 +22,9 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppNavPills from "@/components/AppNavPills.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { initializeTheme } from "@/composables/useTheme";
+import { navigationItems } from "@/router/navigation";
 
 initializeTheme();
-
-const navItems = [
-  { to: "/intake", label: "数据准入", icon: "upload" as const },
-  { to: "/cases", label: "病例档案", icon: "case" as const },
-  { to: "/case", label: "病例工作台", icon: "target" as const },
-  { to: "/navigation", label: "三维导航", icon: "cube" as const },
-  { to: "/review", label: "医生复核", icon: "review" as const },
-  { to: "/annotations", label: "人工标注", icon: "brush" as const },
-  { to: "/report", label: "报告导出", icon: "report" as const },
-  { to: "/data", label: "视频库", icon: "video" as const },
-  { to: "/dataset-review", label: "静态数据复核", icon: "brush" as const },
-  { to: "/showcase", label: "工程展示", icon: "target" as const },
-];
 </script>
 
 <style scoped>
@@ -60,9 +48,8 @@ const navItems = [
 
 .app-top-nav__inner {
   display: flex;
-  gap: 18px;
+  gap: 14px;
   align-items: center;
-  justify-content: flex-end;
   width: min(100%, var(--ov-content-wide));
   margin: 0 auto;
   padding: 0 var(--ov-page-inline);
@@ -70,23 +57,25 @@ const navItems = [
 
 .app-top-nav__pills {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   justify-content: flex-end;
+  min-width: 0;
   pointer-events: auto;
 }
 
 .app-top-nav__theme {
+  flex: 0 0 auto;
   align-self: center;
 }
 
 .app-top-nav__pills :deep(.ov-nav-pill) {
-  gap: 7px;
-  min-width: 102px;
+  gap: 6px;
   min-height: 36px;
   border-color: transparent;
   border-radius: 6px;
-  padding: 7px 10px;
+  padding: 7px 8px;
   background: transparent;
   color: var(--ov-nav-text);
   font-size: 13px;
@@ -96,9 +85,9 @@ const navItems = [
 
 .app-brand {
   display: inline-flex;
-  gap: 11px;
+  flex: 0 0 auto;
+  gap: 10px;
   align-items: center;
-  margin-right: auto;
   color: var(--ov-text);
   text-decoration: none;
 }
@@ -149,32 +138,25 @@ const navItems = [
 }
 
 @media (max-width: 1120px) {
-  .app-top-nav {
-    padding-top: 10px;
-  }
-
   .app-top-nav__inner {
     flex-wrap: wrap;
-    padding: 0 12px;
+    gap: 8px 12px;
   }
 
   .app-top-nav__pills {
+    order: 3;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(146px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     width: 100%;
   }
 
+  .app-top-nav__pills :deep(.ov-nav-pill) {
+    justify-content: center;
+    min-width: 0;
+  }
 
   .app-top-nav__theme {
-    justify-self: end;
-  }
-
-  .app-top-nav__pills :deep(.ov-nav-pill) {
-    min-height: 42px;
-    padding: 9px 10px;
-    font-size: 14px;
+    margin-left: auto;
   }
 }
-
 </style>

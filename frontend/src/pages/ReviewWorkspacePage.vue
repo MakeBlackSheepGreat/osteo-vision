@@ -1,19 +1,16 @@
 <template>
-  <main class="review-shell">
-    <AppPageHeader title="候选区域与 ROI 判读" class="page-header" />
+  <AppPageShell class="review-shell" width="standard">
+    <AppPageHeader icon="review" icon-tone="green" title="候选区域与 ROI 判读" class="page-header" />
     <ReviewIdentityPanel />
 
-    <section
+    <AppFeedbackBanner
       v-if="feedbackMessage"
       class="review-feedback"
       :class="`review-feedback--${feedbackTone}`"
-      :role="feedbackTone === 'error' ? 'alert' : 'status'"
-      :aria-live="feedbackTone === 'error' ? 'assertive' : 'polite'"
-      aria-atomic="true"
-    >
-      <strong>{{ feedbackHeading }}</strong>
-      <span>{{ feedbackMessage }}</span>
-    </section>
+      :tone="feedbackTone"
+      :title="feedbackHeading"
+      :message="feedbackMessage"
+    />
 
     <section class="review-grid">
       <RoiCanvas
@@ -49,13 +46,15 @@
         <QuantificationPanel :metrics="displayMetrics" />
       </div>
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import CandidateRegionList from "@/components/CandidateRegionList.vue";
 import QuantificationPanel from "@/components/QuantificationPanel.vue";
 import ReviewIdentityPanel from "@/components/ReviewIdentityPanel.vue";

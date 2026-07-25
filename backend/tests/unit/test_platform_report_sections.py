@@ -4,9 +4,11 @@ from backend.osteo_vision_api.domains.cases.schemas import CaseRecord
 from backend.osteo_vision_api.reports.platform_report import build_platform_report
 from backend.osteo_vision_api.reports.platform_report_sections import (
     artifact_markdown_lines,
+    bone_activity_checkpoint_section_from_runs,
     latest_quantification_from_report,
     platform_safety_lines,
     quality_flag_markdown_lines,
+    task3_fused_image_section_from_runs,
     three_d_evidence_markdown_lines,
     three_d_evidence_section_from_run,
     video_signal_markdown_lines,
@@ -65,6 +67,26 @@ def test_video_signal_report_section_summarizes_frame_paths() -> None:
     assert section["risk_frame_count"] == 1
     assert section["frame_examples"][0]["bone_gate_status"] == "not_available_pending_review"
     assert any("risk.png" in line for line in lines)
+
+
+def test_evidence_section_selection_skips_invalid_runs_without_copying_candidates() -> None:
+    runs = [
+        "invalid-run",
+        {"run_id": "task3", "fused_outputs": {"fused_image_ai": {"available": True}}},
+        None,
+        {
+            "run_id": "bone-activity",
+            "fused_outputs": {"bone_activity_checkpoint_evidence": {"model_id": "checkpoint"}},
+        },
+    ]
+
+    task3 = task3_fused_image_section_from_runs(runs)  # type: ignore[arg-type]
+    bone_activity = bone_activity_checkpoint_section_from_runs(runs)  # type: ignore[arg-type]
+
+    assert task3["source_run_id"] == "task3"
+    assert task3["available"] is True
+    assert bone_activity["source_run_id"] == "bone-activity"
+    assert bone_activity["available"] is True
 
 
 def test_three_d_evidence_report_section_keeps_navigation_boundary() -> None:

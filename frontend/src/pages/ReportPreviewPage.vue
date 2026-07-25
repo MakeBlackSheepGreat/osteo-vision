@@ -1,24 +1,11 @@
 <template>
-  <main class="report-shell">
-    <AppPageHeader title="病例证据包预览" class="page-header" />
+  <AppPageShell class="report-shell" width="standard">
+    <AppPageHeader icon="report" title="病例证据包预览" class="page-header" />
 
     <section class="report-grid">
       <article class="report-panel ov-card">
         <SectionHeading icon="download" title="当前导出" />
-        <dl>
-          <div>
-            <dt>病例 ID</dt>
-            <dd>{{ displayCaseId }}</dd>
-          </div>
-          <div>
-            <dt>证据包路径</dt>
-            <dd>{{ displayExportPath }}</dd>
-          </div>
-          <div>
-            <dt>证据文件数量</dt>
-            <dd>{{ displayArtifactCount }}</dd>
-          </div>
-        </dl>
+        <AppMetricStrip :items="summaryItems" aria-label="当前证据包摘要" />
       </article>
 
       <article class="report-panel ov-card">
@@ -29,26 +16,21 @@
 
     <section class="artifact-preview ov-card" aria-label="导出文件清单">
       <SectionHeading icon="file" eyebrow="导出文件" title="文件清单" class="preview-heading" />
-      <div v-if="previewArtifacts.length" class="artifact-list">
-        <article v-for="artifact in previewArtifacts" :key="artifact.id" class="artifact-card">
-          <div>
-            <strong>{{ artifact.label }}</strong>
-            <span>{{ artifact.path }}</span>
-          </div>
-        </article>
-      </div>
-      <div v-else class="empty-export-preview">
-        <strong>暂无导出内容</strong>
-        <span>请在病例工作台运行分析并导出证据包后查看文件清单。</span>
-      </div>
+      <AppEvidenceArtifactList
+        :artifacts="previewArtifacts"
+        empty-text="请在病例工作台运行分析并导出证据包后查看文件清单。"
+      />
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 
+import AppEvidenceArtifactList from "@/components/AppEvidenceArtifactList.vue";
+import AppMetricStrip from "@/components/AppMetricStrip.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import { useCaseStore } from "@/stores/caseStore";
 import { artifactLabel } from "@/utils/caseDisplay";
@@ -65,14 +47,16 @@ const previewArtifacts = computed(() =>
   })),
 );
 const displayArtifactCount = computed(() => previewArtifacts.value.length);
+const summaryItems = computed(() => [
+  { label: "病例 ID", value: displayCaseId.value, icon: "case" as const, breakable: true },
+  { label: "证据包路径", value: displayExportPath.value, icon: "folder" as const, breakable: true },
+  { label: "证据文件", value: displayArtifactCount.value, icon: "file" as const, tone: "info" as const },
+]);
 </script>
 
 <style scoped>
 .report-shell {
-  min-height: 100dvh;
-  padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
-  background: var(--ov-shell-background);
-  color: var(--ov-text);
+  min-height: calc(100dvh - 64px);
 }
 
 .page-header,
@@ -109,72 +93,9 @@ const displayArtifactCount = computed(() => previewArtifacts.value.length);
   line-height: 1.7;
 }
 
-dl {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-}
-
-dt {
-  color: var(--ov-text-muted);
-  font-size: 12px;
-}
-
-dd {
-  margin: 3px 0 0;
-  color: var(--ov-text);
-  overflow-wrap: anywhere;
-}
-
 .artifact-preview {
   margin-top: 20px;
   padding: 20px;
-}
-
-.artifact-list {
-  display: grid;
-  gap: 12px;
-}
-
-.artifact-card {
-  min-width: 0;
-  border: 1px solid var(--ov-border-subtle);
-  border-radius: var(--ov-radius);
-  padding: 14px 16px;
-  background: var(--ov-bg-soft);
-}
-
-.empty-export-preview {
-  display: grid;
-  gap: 6px;
-  place-items: center;
-  min-height: 170px;
-  border: 1px dashed var(--ov-border-strong);
-  border-radius: var(--ov-radius);
-  background: var(--ov-bg-soft);
-  text-align: center;
-}
-
-.artifact-card strong,
-.artifact-card span {
-  display: block;
-}
-
-.artifact-card strong {
-  color: var(--ov-text);
-}
-
-.artifact-card span,
-.empty-export-preview span {
-  margin-top: 4px;
-  color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.empty-export-preview strong {
-  color: var(--ov-primary-strong);
 }
 
 :deep(.section-heading__eyebrow) {

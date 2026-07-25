@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from pydantic import ValidationError
+
 from backend.osteo_vision_api.core.artifacts import case_artifact_dir
 from backend.osteo_vision_api.core.disclaimers import disclaimer_context
 from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
@@ -17,18 +19,31 @@ from backend.osteo_vision_api.domains.cases.schemas import (
     CandidateRegion,
     CaseInputAsset,
     CaseRecord,
+    Task2PairedSequenceManifest,
 )
 from backend.osteo_vision_api.services.analysis_outputs import (
     bone_activity_checkpoint_artifacts as _bone_activity_checkpoint_artifacts,
 )
+from backend.osteo_vision_api.services.analysis_outputs import fusion_ai_artifacts as _fusion_ai_artifacts
+from backend.osteo_vision_api.services.analysis_outputs import (
+    fusion_ai_candidate_regions as _fusion_ai_candidate_regions,
+)
 from backend.osteo_vision_api.services.analysis_outputs import fusion_artifacts as _fusion_artifacts
 from backend.osteo_vision_api.services.analysis_outputs import fusion_candidate_regions as _fusion_candidate_regions
 from backend.osteo_vision_api.services.analysis_outputs import fusion_fused_outputs as _fusion_fused_outputs
-from backend.osteo_vision_api.services.analysis_outputs import fusion_quantitative_summary as _fusion_quantitative_summary
+from backend.osteo_vision_api.services.analysis_outputs import (
+    fusion_quantitative_summary as _fusion_quantitative_summary,
+)
 from backend.osteo_vision_api.services.analysis_outputs import merge_roi_hints as _merge_roi_hints
-from backend.osteo_vision_api.services.analysis_outputs import missing_dual_channel_warning as _missing_dual_channel_warning
-from backend.osteo_vision_api.services.analysis_outputs import patient_conditioning_artifacts as _patient_conditioning_artifacts
-from backend.osteo_vision_api.services.analysis_outputs import three_channel_quality_artifacts as _three_channel_quality_artifacts
+from backend.osteo_vision_api.services.analysis_outputs import (
+    missing_dual_channel_warning as _missing_dual_channel_warning,
+)
+from backend.osteo_vision_api.services.analysis_outputs import (
+    patient_conditioning_artifacts as _patient_conditioning_artifacts,
+)
+from backend.osteo_vision_api.services.analysis_outputs import (
+    three_channel_quality_artifacts as _three_channel_quality_artifacts,
+)
 from backend.osteo_vision_api.services.analysis_outputs import video_artifacts as _video_artifacts
 from backend.osteo_vision_api.services.analysis_outputs import video_fused_outputs as _video_fused_outputs
 from backend.osteo_vision_api.services.analysis_outputs import video_quantitative_summary as _video_quantitative_summary
@@ -36,18 +51,32 @@ from backend.osteo_vision_api.services.clinical_context_assessment import (
     assess_clinical_context,
     clinical_context_warnings,
 )
-from backend.osteo_vision_api.services.keyframe_report_loader import keyframe_report_for_analysis as _keyframe_report_for_analysis
+from backend.osteo_vision_api.services.keyframe_report_loader import (
+    keyframe_report_for_analysis as _keyframe_report_for_analysis,
+)
 from backend.osteo_vision_api.services.keyframe_report_loader import numeric_sequence as _numeric_sequence
-from backend.osteo_vision_api.services.keyframe_segmentation import analyze_keyframe_segmentations as _analyze_keyframe_segmentations
-from backend.osteo_vision_api.services.keyframe_segmentation import keyframe_segmentation_warnings as _keyframe_segmentation_warnings
+from backend.osteo_vision_api.services.keyframe_segmentation import (
+    analyze_keyframe_segmentations as _analyze_keyframe_segmentations,
+)
+from backend.osteo_vision_api.services.keyframe_segmentation import (
+    keyframe_segmentation_warnings as _keyframe_segmentation_warnings,
+)
 from backend.osteo_vision_api.services.patient_conditioning_gate import (
     resolve_trusted_reviewed_bone_gate,
     target_domain_input_gate,
 )
+from backend.osteo_vision_api.services.task2_sequence_service import (
+    Task2SequenceValidationError,
+    analyze_task2_paired_sequence,
+)
 from backend.osteo_vision_api.services.three_d_evidence import build_three_d_evidence as _build_three_d_evidence
 from backend.osteo_vision_api.services.video_analysis_details import build_video_frame_details as _video_frame_details
-from backend.osteo_vision_api.services.video_analysis_details import build_video_timeline_summary as _video_timeline_summary
-from backend.osteo_vision_api.services.video_hotspot_outputs import build_hotspot_candidate_regions as _hotspot_candidate_regions
+from backend.osteo_vision_api.services.video_analysis_details import (
+    build_video_timeline_summary as _video_timeline_summary,
+)
+from backend.osteo_vision_api.services.video_hotspot_outputs import (
+    build_hotspot_candidate_regions as _hotspot_candidate_regions,
+)
 from backend.osteo_vision_api.services.video_hotspot_outputs import summarize_hotspot_outputs as _hotspot_summary
 from backend.osteo_vision_api.services.video_keyframe_metrics import (
     video_fluorescence_dynamics_summary,
@@ -67,7 +96,9 @@ from osteo_vision_core.core.task_package import default_task_package, load_task_
 from osteo_vision_core.engine.inference import MedicalImagingInferenceService
 from osteo_vision_core.io.live_stream import LiveStreamCaptureConfig, capture_live_keyframes
 from osteo_vision_core.models.adapters import build_adapter, model_spec_from_mapping
+from osteo_vision_core.models.lesion_boundary import assess_candidate_boundaries
 from osteo_vision_core.preprocess.fluorescence import fuse_white_light_fluorescence
+from osteo_vision_core.preprocess.fusion_ai_contract import build_task3_fused_input_contract
 from osteo_vision_core.preprocess.three_channel_quality import assess_three_channel_quality
 
 _BONE_ACTIVITY_ENGINEERING_CANDIDATE_MODEL_ID = "bone_activity_multitask_d074_proxy_candidate"
@@ -99,6 +130,7 @@ class AnalysisService:
         self.repo = repo
         self.config_path = config_path
         self.annotation_repository = annotation_repository
+        self._active_config: dict[str, Any] | None = None
 
     def start_analysis(
         self,
@@ -107,7 +139,8 @@ class AnalysisService:
         parameters: dict[str, Any],
         roi_hints: list[dict[str, Any]],
     ) -> CaseRecord:
-        artifacts = artifact_dirs(load_yaml(self.config_path))
+        self._active_config = load_yaml(self.config_path)
+        artifacts = artifact_dirs(self._active_config)
         output_dir = case_artifact_dir(artifacts["visual"] / "cases", case.case_id)
         run_id = f"run_{uuid4().hex[:10]}"
         effective_parameters = dict(parameters)
@@ -125,6 +158,14 @@ class AnalysisService:
             parameters=run_parameters,
             status="running",
         )
+        if effective_parameters.get("mode") == "task2_paired_sequence":
+            return self._complete_task2_paired_sequence_analysis(
+                case,
+                run,
+                output_dir=output_dir,
+                parameters=effective_parameters,
+                selection_warnings=clinical_context_warnings(effective_parameters["clinical_context_assessment"]),
+            )
         selected_inputs, selection_warnings = self._select_inputs(case, selected_input_ids)
         selection_warnings = [
             *selection_warnings,
@@ -202,6 +243,101 @@ class AnalysisService:
             update={
                 "analysis_runs": [*case.analysis_runs, run],
                 "warnings": [*case.warnings, *warnings],
+            }
+        )
+        updated = updated.model_copy(update={"review_summary": self._review_summary(updated)})
+        self.repo.save(updated)
+        return updated
+
+    def _complete_task2_paired_sequence_analysis(
+        self,
+        case: CaseRecord,
+        run: AnalysisRun,
+        *,
+        output_dir: Path,
+        parameters: dict[str, Any],
+        selection_warnings: list[dict[str, Any]],
+    ) -> CaseRecord:
+        manifest_value = parameters.get("paired_sequence_manifest")
+        try:
+            manifest = Task2PairedSequenceManifest.model_validate(manifest_value)
+        except ValidationError as exc:
+            return self._finish_failed_run(
+                case,
+                run,
+                [
+                    *selection_warnings,
+                    {
+                        "code": "task2_paired_sequence_manifest_invalid",
+                        "message": "The Task 2 paired-sequence manifest failed schema validation.",
+                        "blocking": True,
+                        "details": {"errors": exc.errors(include_url=False)},
+                    },
+                ],
+            )
+        try:
+            fused_outputs, quantitative_summary, artifacts, sequence_warnings = analyze_task2_paired_sequence(
+                case,
+                manifest,
+                run_id=run.run_id,
+                output_dir=output_dir,
+            )
+        except Task2SequenceValidationError as exc:
+            return self._finish_failed_run(
+                case,
+                run,
+                [
+                    *selection_warnings,
+                    {
+                        "code": exc.code,
+                        "message": str(exc),
+                        "blocking": True,
+                        "details": exc.details,
+                    },
+                ],
+            )
+
+        latest_sources = fused_outputs.get("latest_sources")
+        latest_sources = dict(latest_sources) if isinstance(latest_sources, dict) else {}
+        latest_fusion_report = fused_outputs.get("latest_fusion_report")
+        latest_fusion_report = dict(latest_fusion_report) if isinstance(latest_fusion_report, dict) else {}
+        fused_image_ai, task3_warnings = self._fused_image_ai(
+            case_id=case.case_id,
+            white_path=str(latest_sources.get("white_path") or ""),
+            fluorescence_path=str(latest_sources.get("fluorescence_path") or ""),
+            fused_overlay_path=str(latest_sources.get("overlay_path") or ""),
+            fusion_report=latest_fusion_report,
+            output_dir=output_dir / "task2_paired_sequence" / manifest.sequence_id / "task3_fused_image_ai",
+        )
+        fused_outputs["fused_image_ai"] = fused_image_ai
+        task3_candidates = _fusion_ai_candidate_regions(
+            run.run_id,
+            fused_image_ai,
+            max_per_boundary_type=int(parameters.get("task3_max_review_candidates_per_type", 12)),
+        )
+        quantitative_summary["task3_review_candidate_count"] = len(task3_candidates)
+        quantitative_summary["task3_boundary_type_counts"] = (
+            fused_image_ai.get("boundary_assessment", {}).get("boundary_type_counts", {})
+            if isinstance(fused_image_ai.get("boundary_assessment"), dict)
+            else {}
+        )
+        all_warnings = [*selection_warnings, *sequence_warnings, *task3_warnings]
+        artifacts.extend(_fusion_ai_artifacts(case.case_id, run.run_id, fused_image_ai))
+        run = run.model_copy(
+            update={
+                "status": "completed",
+                "candidate_regions": task3_candidates,
+                "fused_outputs": fused_outputs,
+                "quantitative_summary": quantitative_summary,
+                "warnings": all_warnings,
+            }
+        )
+        updated = case.model_copy(
+            update={
+                "analysis_runs": [*case.analysis_runs, run],
+                "artifacts": [*case.artifacts, *artifacts],
+                "status": CaseStatus.ANALYZED,
+                "warnings": [*case.warnings, *all_warnings],
             }
         )
         updated = updated.model_copy(update={"review_summary": self._review_summary(updated)})
@@ -708,6 +844,18 @@ class AnalysisService:
                 synchronization_tolerance_ms=float(parameters.get("synchronization_tolerance_ms", 100.0)),
             )
             fused_outputs["three_channel_quality"] = three_channel_quality
+            synchronization_value = three_channel_quality.get("synchronization")
+            synchronization = dict(synchronization_value) if isinstance(synchronization_value, dict) else {}
+            task2_synchronization_context = {
+                "schema_version": "osteo-vision-task2-synchronization-context-v1",
+                "status": synchronization.get("status"),
+                "source": synchronization.get("source"),
+                "white_fluorescence_delta_ms": synchronization.get("white_fluorescence_delta_ms"),
+                "tolerance_ms": synchronization.get("tolerance_ms"),
+                "reasons": synchronization.get("reasons") or [],
+                "synchronization_verified": synchronization.get("status") == "pass",
+            }
+            fused_outputs["task2_synchronization_context"] = task2_synchronization_context
             if device_overlay:
                 fused_outputs["device_overlay_reference"] = {
                     "input_id": device_overlay.input_id,
@@ -748,6 +896,22 @@ class AnalysisService:
             )
             fused_outputs["bone_activity_checkpoint_evidence"] = bone_activity_checkpoint
             analysis_warnings.extend(bone_activity_warnings)
+            activity_value = bone_activity_checkpoint.get("bone_activity_spectrum")
+            activity_spectrum = dict(activity_value) if isinstance(activity_value, dict) else None
+            fused_image_ai, fused_image_ai_warnings = self._fused_image_ai(
+                case_id=case.case_id,
+                white_path=white.path,
+                fluorescence_path=fluor.path,
+                fused_overlay_path=str(outputs.get("overlay_path") or ""),
+                fusion_report={
+                    **fusion_report,
+                    "task2_synchronization_context": task2_synchronization_context,
+                },
+                output_dir=output_dir / "fused_image_ai",
+                activity_spectrum=activity_spectrum,
+            )
+            fused_outputs["fused_image_ai"] = fused_image_ai
+            analysis_warnings.extend(fused_image_ai_warnings)
             analysis_warnings.extend(fusion_report.get("warnings", []))
             quantitative_summary = _fusion_quantitative_summary(fusion_report, roi_hints=effective_roi_hints)
             quantitative_summary["patient_conditioning"] = patient_conditioning.get("quantification", {})
@@ -755,7 +919,20 @@ class AnalysisService:
                 bone_activity_checkpoint
             )
             candidate_regions = _fusion_candidate_regions(run.run_id, fusion_report, roi_hints=effective_roi_hints)
+            task3_candidates = _fusion_ai_candidate_regions(
+                run.run_id,
+                fused_image_ai,
+                max_per_boundary_type=int(parameters.get("task3_max_review_candidates_per_type", 12)),
+            )
+            candidate_regions.extend(task3_candidates)
+            quantitative_summary["task3_review_candidate_count"] = len(task3_candidates)
+            quantitative_summary["task3_boundary_type_counts"] = (
+                fused_image_ai.get("boundary_assessment", {}).get("boundary_type_counts", {})
+                if isinstance(fused_image_ai.get("boundary_assessment"), dict)
+                else {}
+            )
             fusion_artifacts = _fusion_artifacts(case.case_id, run.run_id, outputs)
+            fusion_artifacts.extend(_fusion_ai_artifacts(case.case_id, run.run_id, fused_image_ai))
             fusion_artifacts.extend(_three_channel_quality_artifacts(case.case_id, run.run_id, three_channel_quality))
             fusion_artifacts.extend(_patient_conditioning_artifacts(case.case_id, run.run_id, patient_conditioning))
             fusion_artifacts.extend(
@@ -794,7 +971,7 @@ class AnalysisService:
         fluorescence_path: str,
         output_dir: Path,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-        runtime = load_yaml(self.config_path).get("runtime", {})
+        runtime = self._configuration().get("runtime", {})
         mapping = next(
             (dict(item) for item in runtime.get("models", []) if item.get("family") == "dual_channel_segmenter"),
             None,
@@ -864,6 +1041,132 @@ class AnalysisService:
                 ],
             )
 
+    def _fused_image_ai(
+        self,
+        *,
+        case_id: str,
+        white_path: str,
+        fluorescence_path: str,
+        fused_overlay_path: str,
+        fusion_report: dict[str, Any],
+        output_dir: Path,
+        activity_spectrum: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        input_contract = build_task3_fused_input_contract(
+            case_id=case_id,
+            white_light_path=white_path,
+            fluorescence_path=fluorescence_path,
+            fused_overlay_path=fused_overlay_path,
+            fusion_report=fusion_report,
+            output_dir=output_dir / "input_contract",
+            target_domain=False,
+        )
+        if input_contract.get("engineering_input_eligible") is not True:
+            return {
+                "available": False,
+                "execution_state": "skipped",
+                "reason": "task2_fused_input_contract_failed",
+                "input_contract": input_contract,
+            }, [
+                {
+                    "code": "task3_fused_input_contract_failed",
+                    "message": "Task 3 fused-image inference was skipped because Task 2 provenance checks failed.",
+                    "blocking": False,
+                    "details": {"checks": input_contract.get("checks")},
+                }
+            ]
+
+        runtime_value = self._configuration().get("runtime", {})
+        runtime = dict(runtime_value) if isinstance(runtime_value, dict) else {}
+        tasks_value = runtime.get("tasks")
+        tasks = dict(tasks_value) if isinstance(tasks_value, dict) else {}
+        segmentation_value = tasks.get("segmentation")
+        segmentation = dict(segmentation_value) if isinstance(segmentation_value, dict) else {}
+        model_id = str(segmentation.get("model_id") or "").strip()
+        models_value = runtime.get("models")
+        models = list(models_value) if isinstance(models_value, list) else []
+        mapping = next(
+            (dict(item) for item in models if isinstance(item, dict) and str(item.get("model_id")) == model_id),
+            None,
+        )
+        if not mapping:
+            return {
+                "available": False,
+                "execution_state": "skipped",
+                "reason": "task3_segmentation_model_not_configured",
+                "input_contract": input_contract,
+            }, []
+
+        mapping["extra"] = {
+            **dict(mapping.get("extra") or {}),
+            "output_dir": str(output_dir / "model_outputs"),
+            "fast_output": False,
+            "output_profile": "task3_fused_image_full_evidence",
+        }
+        try:
+            adapter = build_adapter(model_spec_from_mapping(mapping))
+            adapter_status = adapter.warmup()
+            if not adapter_status.available:
+                return {
+                    "available": False,
+                    "execution_state": "skipped",
+                    "reason": "task3_adapter_warmup_unavailable",
+                    "input_contract": input_contract,
+                    "adapter_status": adapter_status.to_dict(),
+                }, list(adapter_status.warnings)
+            result = adapter.predict(
+                AdapterRequest(
+                    case_id=f"{case_id}_task3_fused",
+                    input_path=fused_overlay_path,
+                    input_type="2d_image",
+                    task_type="segmentation",
+                    modality="white_light_nir2_registered_fusion",
+                    metadata={
+                        "task3_fused_input_contract_path": input_contract.get("contract_path"),
+                        "task3_fused_input_contract_sha256": input_contract.get("contract_sha256"),
+                    },
+                )
+            )
+            payload = result.to_dict()
+            lesion_value = payload.get("lesion_evidence")
+            lesion = dict(lesion_value) if isinstance(lesion_value, dict) else {}
+            boundary = assess_candidate_boundaries(
+                lesion,
+                output_dir=output_dir / "boundary_assessment",
+                case_id=case_id,
+                spatial_interpretation_allowed=input_contract.get("spatial_interpretation_eligible") is True,
+                activity_spectrum=activity_spectrum,
+            )
+            payload.update(
+                {
+                    "available": payload.get("prediction", {}).get("segmentation_available") is True,
+                    "execution_state": "completed",
+                    "input_contract": input_contract,
+                    "boundary_assessment": boundary,
+                    "adapter_status": adapter_status.to_dict(),
+                    "task_role": "task3_ai_on_task2_fused_image",
+                    "spatial_interpretation_allowed": input_contract.get("spatial_interpretation_eligible") is True,
+                    "clinical_claim_allowed": False,
+                }
+            )
+            warnings = payload.get("warnings")
+            return payload, list(warnings) if isinstance(warnings, list) else []
+        except Exception as exc:
+            return {
+                "available": False,
+                "execution_state": "failed_closed",
+                "reason": "task3_fused_image_inference_failed",
+                "detail": str(exc),
+                "input_contract": input_contract,
+            }, [
+                {
+                    "code": "task3_fused_image_inference_failed",
+                    "message": "Task 3 fused-image engineering inference failed closed.",
+                    "blocking": False,
+                    "details": {"error_type": type(exc).__name__, "error": str(exc)},
+                }
+            ]
+
     def _patient_conditioned_ai(
         self,
         *,
@@ -877,7 +1180,7 @@ class AnalysisService:
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         assessment = dict(clinical_context_assessment) if isinstance(clinical_context_assessment, dict) else {}
         clinical_feature_vector = assessment.get("clinical_feature_vector")
-        runtime = load_yaml(self.config_path).get("runtime", {})
+        runtime = self._configuration().get("runtime", {})
         mapping = next(
             (dict(item) for item in runtime.get("models", []) if item.get("family") == "patient_conditioned_segmenter"),
             None,
@@ -1040,7 +1343,7 @@ class AnalysisService:
         registration_evidence: dict[str, Any],
         output_dir: Path,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-        runtime = load_yaml(self.config_path).get("runtime", {})
+        runtime = self._configuration().get("runtime", {})
         mappings = runtime.get("models", []) if isinstance(runtime, dict) else []
         mapping = next(
             (
@@ -1299,7 +1602,7 @@ class AnalysisService:
         return task_package.task_id
 
     def _configured_segmentation_model_id(self) -> str:
-        runtime = load_yaml(self.config_path).get("runtime") or {}
+        runtime = self._configuration().get("runtime") or {}
         tasks = runtime.get("tasks") if isinstance(runtime, dict) else None
         segmentation = tasks.get("segmentation") if isinstance(tasks, dict) else None
         model_id = segmentation.get("model_id") if isinstance(segmentation, dict) else None
@@ -1311,7 +1614,7 @@ class AnalysisService:
         return "convnext2d_keyframe_proxy_segmenter"
 
     def _heuristic_keyframe_fallback_allowed(self) -> bool:
-        runtime = load_yaml(self.config_path).get("runtime") or {}
+        runtime = self._configuration().get("runtime") or {}
         if not isinstance(runtime, dict):
             return True
         configured = runtime.get("allow_heuristic_keyframe_fallback")
@@ -1328,6 +1631,9 @@ class AnalysisService:
             "artifact_count": len(case.artifacts),
             "disclaimer": disclaimer_context(),
         }
+
+    def _configuration(self) -> dict[str, Any]:
+        return self._active_config if self._active_config is not None else load_yaml(self.config_path)
 
 
 def _browser_frame_paths(value: Any) -> list[str]:

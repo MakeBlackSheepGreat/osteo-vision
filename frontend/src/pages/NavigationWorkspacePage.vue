@@ -1,10 +1,13 @@
 <template>
-  <main class="navigation-workspace">
+  <AppPageShell class="navigation-workspace" width="wide">
     <header class="navigation-workspace__header">
-      <div>
-        <p>三维建模与术中导航</p>
-        <h1>病例三维导航工作台</h1>
-        <span>读取病例中的视频候选区、模型、配准和医生复核证据。</span>
+      <div class="ov-title-lead">
+        <AppIcon name="cube" variant="badge" tone="cyan" />
+        <div>
+          <p>三维建模与术中导航</p>
+          <h1>病例三维导航工作台</h1>
+          <span>读取病例中的视频候选区、模型、配准和医生复核证据。</span>
+        </div>
       </div>
       <div class="navigation-workspace__actions">
         <RouterLink class="navigation-workspace__back" :to="surgeryRoute">
@@ -220,7 +223,7 @@
           />
         </div>
     </details>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -229,6 +232,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import L1RegistrationPanel from "@/components/L1RegistrationPanel.vue";
 import L2PoseReplayPanel from "@/components/L2PoseReplayPanel.vue";
 import ThreeDEvidenceControlPanel from "@/components/ThreeDEvidenceControlPanel.vue";

@@ -642,7 +642,7 @@ function eventPoint(event: PointerEvent): RoiPoint | null {
   line-height: 1.5;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1120px) {
   .roi-toolbar {
     grid-template-columns: 1fr 1fr;
   }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import isfinite
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -18,6 +19,62 @@ from backend.osteo_vision_api.services.video_hotspot_outputs import (
     video_manifest_artifacts,
     video_segmentation_artifacts,
 )
+
+
+def _dict_payload(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _list_payload(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _finite_float(value: Any) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return parsed if isfinite(parsed) else 0.0
+
+
+def _positive_int(value: Any, *, default: int) -> int:
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError, OverflowError):
+        return default
+
+
+def _verified_artifacts(
+    case_id: str,
+    run_id: str,
+    paths: tuple[tuple[Any, ArtifactKind], ...],
+) -> list[EvidenceArtifact]:
+    """Build deduplicated artifact records and tolerate stale output paths."""
+
+    artifacts: list[EvidenceArtifact] = []
+    seen: set[Path] = set()
+    for value, kind in paths:
+        if not value:
+            continue
+        try:
+            path = Path(str(value)).expanduser().resolve()
+            if path in seen or not path.is_file():
+                continue
+            checksum = checksum_for_file(path)
+        except (OSError, ValueError):
+            continue
+        seen.add(path)
+        artifacts.append(
+            EvidenceArtifact(
+                artifact_id=f"artifact_{uuid4().hex[:10]}",
+                case_id=case_id,
+                run_id=run_id,
+                kind=kind,
+                path=str(path),
+                checksum=checksum,
+            )
+        )
+    return artifacts
 
 
 def video_fused_outputs(
@@ -175,6 +232,65 @@ def fusion_candidate_regions(
     ]
 
 
+def fusion_ai_candidate_regions(
+    run_id: str,
+    evidence: dict[str, Any],
+    *,
+    max_per_boundary_type: int = 12,
+) -> list[CandidateRegion]:
+    boundary = _dict_payload(evidence.get("boundary_assessment"))
+    candidates = _list_payload(boundary.get("candidates"))
+    lesion = _dict_payload(evidence.get("lesion_evidence"))
+    input_contract = _dict_payload(evidence.get("input_contract"))
+    model_input = _dict_payload(input_contract.get("model_input"))
+    source_path = str(lesion.get("overlay_path") or model_input.get("path") or "")
+    source_dimensions = _list_payload(model_input.get("dimensions"))
+    image_width = source_dimensions[0] if len(source_dimensions) >= 2 else None
+    image_height = source_dimensions[1] if len(source_dimensions) >= 2 else None
+    selected: list[CandidateRegion] = []
+    type_counts: dict[str, int] = {}
+    limit = _positive_int(max_per_boundary_type, default=12)
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        boundary_type = str(item.get("boundary_type") or "signal_candidate_boundary")
+        if type_counts.get(boundary_type, 0) >= limit:
+            continue
+        type_counts[boundary_type] = type_counts.get(boundary_type, 0) + 1
+        bbox = item.get("bbox_xyxy") if isinstance(item.get("bbox_xyxy"), list) else None
+        selected.append(
+            CandidateRegion(
+                candidate_id=f"cand_task3_{uuid4().hex[:10]}",
+                run_id=run_id,
+                score=_finite_float(item.get("score")),
+                risk_type=boundary_type,
+                confidence=_finite_float(item.get("review_confidence") or item.get("confidence")),
+                status=ReviewState.REVIEW_REQUIRED,
+                explanation="Task 3 fused-image boundary candidate routed for physician review.",
+                metadata={
+                    "task_role": "task3_ai_on_task2_fused_image",
+                    "source_candidate_id": item.get("candidate_id"),
+                    "source_path": source_path or None,
+                    "bbox_xyxy": bbox,
+                    "image_width": image_width,
+                    "image_height": image_height,
+                    "boundary_pixel_count": item.get("boundary_pixel_count"),
+                    "boundary_risk_fraction": item.get("boundary_risk_fraction"),
+                    "boundary_uncertainty_fraction": item.get("boundary_uncertainty_fraction"),
+                    "model_confidence": item.get("confidence"),
+                    "review_confidence": item.get("review_confidence"),
+                    "activity_class": item.get("activity_class"),
+                    "activity_overlap_fraction": item.get("activity_overlap_fraction"),
+                    "activity_evidence_available": item.get("activity_evidence_available") is True,
+                    "semantic_scope": item.get("semantic_scope"),
+                    "spatial_interpretation_allowed": boundary.get("spatial_interpretation_allowed") is True,
+                    "clinical_claim_allowed": False,
+                },
+            )
+        )
+    return selected
+
+
 def missing_dual_channel_warning() -> dict[str, Any]:
     return {
         "code": "missing_dual_channel_pair",
@@ -210,6 +326,24 @@ def fusion_artifacts(case_id: str, run_id: str, outputs: dict[str, Any]) -> list
     return artifacts
 
 
+def fusion_ai_artifacts(case_id: str, run_id: str, evidence: dict[str, Any]) -> list[EvidenceArtifact]:
+    lesion = _dict_payload(evidence.get("lesion_evidence"))
+    input_contract = _dict_payload(evidence.get("input_contract"))
+    boundary = _dict_payload(evidence.get("boundary_assessment"))
+    paths = (
+        (input_contract.get("contract_path"), ArtifactKind.REPORT_JSON),
+        (boundary.get("summary_path"), ArtifactKind.REPORT_JSON),
+        (lesion.get("mask_path"), ArtifactKind.ROI_MASK),
+        (lesion.get("probability_path"), ArtifactKind.PROBABILITY_MAP),
+        (lesion.get("uncertainty_path"), ArtifactKind.HEATMAP),
+        (lesion.get("risk_mask_path"), ArtifactKind.ROI_MASK),
+        (lesion.get("uncertain_mask_path"), ArtifactKind.ROI_MASK),
+        (lesion.get("pseudo_color_path"), ArtifactKind.HEATMAP),
+        (lesion.get("overlay_path"), ArtifactKind.OVERLAY),
+    )
+    return _verified_artifacts(case_id, run_id, paths)
+
+
 def patient_conditioning_artifacts(
     case_id: str,
     run_id: str,
@@ -226,27 +360,12 @@ def patient_conditioning_artifacts(
         "conditioned_mask_path": ArtifactKind.ROI_MASK,
         "evidence_manifest_path": ArtifactKind.REPORT_JSON,
     }
-    artifacts: list[EvidenceArtifact] = []
-    seen: set[Path] = set()
+    paths: list[tuple[Any, ArtifactKind]] = []
     for key, kind in mapping.items():
         value = evidence.get(key)
-        if not value:
-            continue
-        path = Path(str(value)).expanduser().resolve()
-        if path in seen or not path.is_file():
-            continue
-        seen.add(path)
-        artifacts.append(
-            EvidenceArtifact(
-                artifact_id=f"artifact_{uuid4().hex[:10]}",
-                case_id=case_id,
-                run_id=run_id,
-                kind=kind,
-                path=str(path),
-                checksum=checksum_for_file(path),
-            )
-        )
-    return artifacts
+        if value:
+            paths.append((value, kind))
+    return _verified_artifacts(case_id, run_id, tuple(paths))
 
 
 def bone_activity_checkpoint_artifacts(
@@ -254,54 +373,24 @@ def bone_activity_checkpoint_artifacts(
     run_id: str,
     evidence: dict[str, Any],
 ) -> list[EvidenceArtifact]:
-    raw_value = evidence.get("raw_engineering_outputs")
-    raw = dict(raw_value) if isinstance(raw_value, dict) else {}
+    raw = _dict_payload(evidence.get("raw_engineering_outputs"))
     paths = (
         (evidence.get("evidence_manifest_path"), ArtifactKind.BONE_ACTIVITY_CHECKPOINT_EVIDENCE),
         (raw.get("path"), ArtifactKind.BONE_ACTIVITY_RAW_ENGINEERING_OUTPUTS),
     )
-    artifacts: list[EvidenceArtifact] = []
-    seen: set[Path] = set()
-    for value, kind in paths:
-        if not value:
-            continue
-        path = Path(str(value)).expanduser().resolve()
-        if path in seen or not path.is_file():
-            continue
-        seen.add(path)
-        artifacts.append(
-            EvidenceArtifact(
-                artifact_id=f"artifact_{uuid4().hex[:10]}",
-                case_id=case_id,
-                run_id=run_id,
-                kind=kind,
-                path=str(path),
-                checksum=checksum_for_file(path),
-            )
-        )
-    return artifacts
+    return _verified_artifacts(case_id, run_id, paths)
 
 
 def three_channel_quality_artifacts(case_id: str, run_id: str, quality: dict[str, Any]) -> list[EvidenceArtifact]:
-    paths = [
+    overlay_comparison = _dict_payload(quality.get("overlay_comparison"))
+    paths = (
         (quality.get("report_path"), ArtifactKind.THREE_CHANNEL_QC_REPORT),
         (
-            (quality.get("overlay_comparison") or {}).get("difference_heatmap_path"),
+            overlay_comparison.get("difference_heatmap_path"),
             ArtifactKind.THREE_CHANNEL_DIFFERENCE_HEATMAP,
         ),
-    ]
-    return [
-        EvidenceArtifact(
-            artifact_id=f"artifact_{uuid4().hex[:10]}",
-            case_id=case_id,
-            run_id=run_id,
-            kind=kind,
-            path=str(path),
-            checksum=checksum_for_file(path),
-        )
-        for path, kind in paths
-        if path
-    ]
+    )
+    return _verified_artifacts(case_id, run_id, paths)
 
 
 def merge_roi_hints(case: CaseRecord, request_hints: list[dict[str, Any]]) -> list[dict[str, Any]]:

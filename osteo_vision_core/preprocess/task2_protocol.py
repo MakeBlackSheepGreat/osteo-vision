@@ -1,0 +1,5 @@
+"""Shared Task 2 timing and synchronization protocol constants."""
+
+TASK2_COMPUTE_BUDGET_MS = 100.0
+TASK2_CONTINUOUS_DISPLAY_INTERNAL_BUDGET_MS = 200.0
+TASK2_SYNCHRONIZATION_TOLERANCE_MS = 100.0

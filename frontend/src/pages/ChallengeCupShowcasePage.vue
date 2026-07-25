@@ -1,10 +1,13 @@
 <template>
-  <main class="showcase-page">
+  <AppPageShell class="showcase-page" width="wide">
     <header class="showcase-page__header">
-      <div class="showcase-page__title">
-        <p>挑战杯工程展示</p>
-        <h1>荧光-三维证据闭环工作站</h1>
-        <span>将术前三维参考、术中荧光融合判读和医生复核后的证据回顾编排为一条可运行展示链。</span>
+      <div class="ov-title-lead">
+        <AppIcon name="layers" variant="badge" tone="blue" />
+        <div class="showcase-page__title">
+          <p>挑战杯工程展示</p>
+          <h1>荧光-三维证据闭环工作站</h1>
+          <span>将术前三维参考、术中荧光融合判读和医生复核后的证据回顾编排为一条可运行展示链。</span>
+        </div>
       </div>
       <div class="showcase-page__actions" aria-label="展示页快捷入口">
         <RouterLink to="/case">
@@ -234,13 +237,14 @@
       <AppIcon name="clipboard" />
       <span>展示数据、模型身份、运行阈值与可导出证据均可回到病例工作台复核。</span>
     </footer>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import type { AppIconName } from "@/components/appIcons";
 import ThreeDRendererRuntimeEmbed from "@/components/ThreeDRendererRuntimeEmbed.vue";
 
