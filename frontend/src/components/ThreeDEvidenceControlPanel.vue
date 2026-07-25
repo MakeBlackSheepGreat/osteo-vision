@@ -118,6 +118,45 @@
             刷新状态
           </AppButton>
         </div>
+        <div
+          v-if="jobId"
+          class="three-d-evidence-control__progress"
+          :data-state="modelingStatus"
+          data-testid="modeling-progress"
+          aria-live="polite"
+        >
+          <div class="three-d-evidence-control__progress-heading">
+            <div>
+              <span>建模进度</span>
+              <strong data-testid="modeling-phase">{{ modelingPhaseLabel }}</strong>
+            </div>
+            <b data-testid="modeling-percent">{{ modelingProgressPercent }}%</b>
+          </div>
+          <div
+            class="three-d-evidence-control__progress-track"
+            role="progressbar"
+            aria-label="三维建模处理进度"
+            :aria-valuemin="0"
+            :aria-valuemax="100"
+            :aria-valuenow="modelingProgressPercent"
+          >
+            <span :style="{ width: `${modelingProgressPercent}%` }"></span>
+          </div>
+          <dl class="three-d-evidence-control__progress-meta">
+            <div>
+              <dt>已用时间</dt>
+              <dd data-testid="modeling-elapsed">{{ modelingElapsedLabel }}</dd>
+            </div>
+            <div>
+              <dt>处理文件</dt>
+              <dd class="ov-breakable">{{ modelingSourceLabel }}</dd>
+            </div>
+            <div>
+              <dt>任务编号</dt>
+              <dd class="ov-breakable">{{ jobId }}</dd>
+            </div>
+          </dl>
+        </div>
         <p class="three-d-evidence-control__job-message" aria-live="polite">{{ jobMessage }}</p>
         <p v-if="errorMessage" class="three-d-evidence-control__error" role="alert">{{ errorMessage }}</p>
       </section>
@@ -185,7 +224,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
 import { apiClient, type BackendJob } from "@/services/apiClient";
@@ -254,9 +293,18 @@ const jobMessage = ref("请选择病例 CBCT 或 STL / GLB 文件，完成受控
 const errorMessage = ref("");
 const pollingPaused = ref(false);
 const canceling = ref(false);
+const modelingProgressPercent = ref(0);
+const modelingPhase = ref("idle");
+const modelingProgressDetails = ref<Record<string, unknown>>({});
+const modelingStartedAtMs = ref<number | null>(null);
+const modelingFinishedAtMs = ref<number | null>(null);
+const elapsedSeconds = ref(0);
 let pollingGeneration = 0;
 let pollingController: AbortController | null = null;
 let uploadGeneration = 0;
+let elapsedTimer: number | null = null;
+
+const MODELING_JOB_STORAGE_PREFIX = "osteo-vision-three-d-modeling-job:";
 
 function shows(section: ControlSection): boolean {
   return props.sections.length === 0 || props.sections.includes(section);
@@ -286,6 +334,33 @@ const modelingStatusLabel = computed(() => {
     segmentation_required: "需要分割标签",
   };
   return labels[modelingStatus.value];
+});
+const modelingPhaseLabel = computed(() => {
+  const labels: Record<string, string> = {
+    idle: "等待提交",
+    queued: "等待后端调度",
+    running: "任务已启动",
+    inspect_source: "校验输入与建模边界",
+    resolve_segmentation: "查找可用分割标签",
+    load_volume: "读取三维体数据",
+    prepare_mask: "生成与清理表面掩膜",
+    extract_surface: "提取三维表面网格",
+    write_surface: "写入表面模型",
+    verify_surface: "校验表面模型",
+    build_evidence: "整理三维证据",
+    persist_case: "写入病例与场景清单",
+    write_manifest: "写入三维证据清单",
+    completed: "建模完成",
+    failed: "建模失败",
+    canceled: "任务已取消",
+  };
+  return labels[modelingPhase.value] || textValue(modelingPhase.value) || "正在处理";
+});
+const modelingElapsedLabel = computed(() => formatElapsed(elapsedSeconds.value));
+const modelingSourceLabel = computed(() => {
+  const currentFile = textValue(modelingProgressDetails.value.current_file);
+  if (currentFile) return currentFile;
+  return selectedSourceAsset()?.name || "来源文件待读取";
 });
 const sceneManifest = computed<ThreeDSceneManifestV2 | null>(() => {
   const value = effectiveEvidence.value?.scene_manifest_v2;
@@ -395,7 +470,10 @@ const safetyBoundary = computed(
 
 watch(
   () => props.caseId,
-  () => resetForCase(),
+  () => {
+    resetForCase();
+    void restoreModelingJob();
+  },
 );
 
 watch(
@@ -411,7 +489,14 @@ watch(availableSourceKinds, (kinds) => {
   if (!kinds.includes(selectedSourceKind.value)) selectedSourceKind.value = kinds[0];
 });
 
-onBeforeUnmount(() => invalidatePolling());
+onMounted(() => {
+  void restoreModelingJob();
+});
+
+onBeforeUnmount(() => {
+  invalidatePolling();
+  stopElapsedTimer();
+});
 
 function openCbctPicker() {
   cbctInput.value?.click();
@@ -481,6 +566,12 @@ async function submitModelingJob() {
   errorMessage.value = "";
   pollingPaused.value = false;
   modelingStatus.value = "queued";
+  modelingPhase.value = "queued";
+  modelingProgressPercent.value = 0;
+  modelingProgressDetails.value = { current_file: source.name };
+  modelingStartedAtMs.value = Date.now();
+  modelingFinishedAtMs.value = null;
+  startElapsedTimer();
   jobMessage.value = "正在提交三维建模任务。";
   try {
     const started = await apiClient.startThreeDModelingJob({
@@ -495,6 +586,8 @@ async function submitModelingJob() {
     });
     if (!isPollingCurrent(polling)) return;
     jobId.value = started.job_id;
+    persistModelingJob(started.job_id);
+    applyJobState(started);
     await pollModelingJob(started.job_id, polling);
   } catch (error) {
     if (!isPollingCurrent(polling) || isAbortError(error)) return;
@@ -548,10 +641,26 @@ async function cancelModelingJob() {
   }
 }
 
-async function pollModelingJob(targetJobId: string, polling: PollingSession, maxAttempts = 60) {
+async function pollModelingJob(targetJobId: string, polling: PollingSession, maxAttempts = 1800) {
+  let consecutiveErrors = 0;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (!isPollingCurrent(polling)) return;
-    const job = await apiClient.getThreeDModelingJob(targetJobId);
+    let job: BackendJob;
+    try {
+      job = await apiClient.getThreeDModelingJob(targetJobId);
+      consecutiveErrors = 0;
+    } catch (error) {
+      if (isAbortError(error)) throw error;
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= 3) {
+        pollingPaused.value = true;
+        errorMessage.value = errorMessageFromUnknown(error, "暂时无法读取建模进度，任务编号已保留。");
+        jobMessage.value = "进度读取已暂停，可点击“刷新状态”继续恢复。";
+        return;
+      }
+      await abortableDelay(1500, polling.controller.signal);
+      continue;
+    }
     if (!isPollingCurrent(polling)) return;
     applyJobState(job);
     if (!isActiveJob(job)) return;
@@ -566,7 +675,23 @@ function applyJobState(job: BackendJob) {
   const result = isRecord(job.result) ? job.result : {};
   const modelingOutcome = textValue(result.modeling_status);
   modelingStatus.value = job.status === "completed" && modelingOutcome === "segmentation_required" ? "segmentation_required" : job.status;
-  const progressMessage = textValue(job.progress?.message);
+  jobId.value = job.job_id;
+  modelingPhase.value = textValue(job.progress?.phase) || job.status;
+  modelingProgressPercent.value = clampPercent(job.progress?.percent, job.status);
+  modelingProgressDetails.value = isRecord(job.progress?.details) ? job.progress.details : modelingProgressDetails.value;
+  const createdAt = parseTimestamp(job.created_at);
+  const updatedAt = parseTimestamp(job.updated_at);
+  if (createdAt !== null) modelingStartedAtMs.value = createdAt;
+  if (isActiveJob(job)) {
+    modelingFinishedAtMs.value = null;
+    startElapsedTimer();
+  } else {
+    modelingFinishedAtMs.value = updatedAt ?? Date.now();
+    updateElapsed();
+    stopElapsedTimer();
+  }
+  persistModelingJob(job.job_id);
+  const progressMessage = localizedJobMessage(textValue(job.progress?.message));
   jobMessage.value = textValue(result.message) || progressMessage || textValue(job.error) || statusMessage(modelingStatus.value);
   if (job.status === "failed") errorMessage.value = textValue(job.error) || "三维建模任务失败。";
 
@@ -614,6 +739,32 @@ function resetForCase() {
   errorMessage.value = "";
   pollingPaused.value = false;
   canceling.value = false;
+  modelingProgressPercent.value = 0;
+  modelingPhase.value = "idle";
+  modelingProgressDetails.value = {};
+  modelingStartedAtMs.value = null;
+  modelingFinishedAtMs.value = null;
+  elapsedSeconds.value = 0;
+  stopElapsedTimer();
+}
+
+async function restoreModelingJob() {
+  if (!shows("imports") || !props.caseId || jobId.value || modelingActive.value) return;
+  const storedJobId = readPersistedModelingJob();
+  if (!storedJobId) return;
+  jobId.value = storedJobId;
+  pollingPaused.value = false;
+  jobMessage.value = "正在恢复上次三维建模任务状态。";
+  const polling = beginPolling(props.caseId);
+  try {
+    await pollModelingJob(storedJobId, polling);
+  } catch (error) {
+    if (!isPollingCurrent(polling) || isAbortError(error)) return;
+    pollingPaused.value = true;
+    errorMessage.value = errorMessageFromUnknown(error, "无法恢复三维建模任务状态。");
+  } finally {
+    if (pollingController === polling.controller) pollingController = null;
+  }
 }
 
 function beginPolling(caseId: string): PollingSession {
@@ -627,6 +778,48 @@ function invalidatePolling() {
   pollingGeneration += 1;
   pollingController?.abort();
   pollingController = null;
+}
+
+function persistModelingJob(targetJobId: string) {
+  try {
+    window.localStorage.setItem(modelingJobStorageKey(), targetJobId);
+  } catch {
+    // 浏览器禁用存储时仍保留当前页面内的轮询和进度显示。
+  }
+}
+
+function readPersistedModelingJob(): string {
+  try {
+    return window.localStorage.getItem(modelingJobStorageKey())?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+function modelingJobStorageKey(): string {
+  return `${MODELING_JOB_STORAGE_PREFIX}${props.caseId}`;
+}
+
+function startElapsedTimer() {
+  updateElapsed();
+  if (elapsedTimer !== null) return;
+  elapsedTimer = window.setInterval(updateElapsed, 1000);
+}
+
+function stopElapsedTimer() {
+  if (elapsedTimer === null) return;
+  window.clearInterval(elapsedTimer);
+  elapsedTimer = null;
+}
+
+function updateElapsed() {
+  const startedAt = modelingStartedAtMs.value;
+  if (startedAt === null) {
+    elapsedSeconds.value = 0;
+    return;
+  }
+  const endedAt = modelingFinishedAtMs.value ?? Date.now();
+  elapsedSeconds.value = Math.max(0, Math.floor((endedAt - startedAt) / 1000));
 }
 
 function isPollingCurrent(polling: PollingSession): boolean {
@@ -652,6 +845,39 @@ function fileSizeLabel(sizeBytes: number): string {
   if (sizeBytes >= 1024 * 1024) return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
   if (sizeBytes >= 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
   return `${sizeBytes} B`;
+}
+
+function clampPercent(value: unknown, status: BackendJob["status"]): number {
+  if (status === "completed") return 100;
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) return status === "queued" ? 0 : modelingProgressPercent.value;
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+}
+
+function parseTimestamp(value: unknown): number | null {
+  const parsed = Date.parse(textValue(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatElapsed(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  if (safeSeconds < 60) return `${safeSeconds} 秒`;
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  if (minutes < 60) return `${minutes} 分 ${remainingSeconds} 秒`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} 小时 ${minutes % 60} 分`;
+}
+
+function localizedJobMessage(message: string): string {
+  const messages: Record<string, string> = {
+    "Job queued.": "三维建模任务已排队。",
+    "Job started.": "三维建模任务已启动。",
+    "Job claimed by local worker.": "本地建模服务已接收任务。",
+    "Job completed.": "三维建模已完成。",
+    "Job canceled by user.": "三维建模任务已取消。",
+  };
+  return messages[message] || message;
 }
 
 function statusMessage(status: ModelingStatus): string {
@@ -953,6 +1179,102 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
   font-size: var(--three-d-body-size);
 }
 
+.three-d-evidence-control__progress {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--ov-border);
+  border-left: 3px solid var(--ov-primary);
+  border-radius: 6px;
+  background: var(--ov-bg-subtle);
+}
+
+.three-d-evidence-control__progress[data-state="completed"] {
+  border-left-color: var(--ov-success);
+}
+
+.three-d-evidence-control__progress[data-state="failed"] {
+  border-left-color: var(--ov-danger);
+}
+
+.three-d-evidence-control__progress[data-state="canceled"],
+.three-d-evidence-control__progress[data-state="segmentation_required"] {
+  border-left-color: var(--ov-warning);
+}
+
+.three-d-evidence-control__progress-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.three-d-evidence-control__progress-heading > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.three-d-evidence-control__progress-heading span,
+.three-d-evidence-control__progress-meta dt {
+  color: var(--ov-text-muted);
+  font-size: var(--three-d-meta-size);
+}
+
+.three-d-evidence-control__progress-heading strong {
+  color: var(--ov-text);
+  font-size: var(--three-d-body-size);
+  line-height: 1.4;
+}
+
+.three-d-evidence-control__progress-heading b {
+  flex: 0 0 auto;
+  color: var(--ov-primary);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.three-d-evidence-control__progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--ov-border);
+}
+
+.three-d-evidence-control__progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ov-primary);
+  transition: width 180ms ease;
+}
+
+.three-d-evidence-control__progress-meta {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.three-d-evidence-control__progress-meta > div {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.55fr) minmax(0, 1.45fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.three-d-evidence-control__progress-meta dt,
+.three-d-evidence-control__progress-meta dd {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.three-d-evidence-control__progress-meta dd {
+  color: var(--ov-text-secondary);
+  font-size: var(--three-d-meta-size);
+  font-weight: 650;
+}
+
 .three-d-evidence-control__job-message,
 .three-d-evidence-control__error,
 .three-d-evidence-control__safety p {
@@ -989,6 +1311,12 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 .three-d-evidence-control__safety dt { color: var(--ov-text-muted); }
 .three-d-evidence-control__safety dd { color: var(--ov-text); font-weight: 700; }
 .three-d-evidence-control__safety p { color: var(--ov-warning-text); font-size: 12px; line-height: 1.62; overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .three-d-evidence-control__progress-track > span {
+    transition: none;
+  }
+}
 
 .three-d-evidence-control--sidebar {
   width: 100%;

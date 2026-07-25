@@ -1,6 +1,7 @@
 <template>
   <AppPageShell class="report-shell" width="standard">
     <AppPageHeader icon="report" title="病例证据包预览" class="page-header" />
+    <AppFeedbackBanner v-if="store.error" class="report-feedback" tone="error" :message="store.error" />
 
     <section class="report-grid">
       <article class="report-panel ov-card">
@@ -25,9 +26,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
+import { useRoute } from "vue-router";
 
 import AppEvidenceArtifactList from "@/components/AppEvidenceArtifactList.vue";
+import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
 import AppMetricStrip from "@/components/AppMetricStrip.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
 import AppPageShell from "@/components/AppPageShell.vue";
@@ -36,6 +39,7 @@ import { useCaseStore } from "@/stores/caseStore";
 import { artifactLabel } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
+const route = useRoute();
 
 const displayCaseId = computed(() => store.currentCase?.case_id ?? "未载入病例");
 const displayExportPath = computed(() => store.exportPath || "暂无导出路径");
@@ -52,6 +56,16 @@ const summaryItems = computed(() => [
   { label: "证据包路径", value: displayExportPath.value, icon: "folder" as const, breakable: true },
   { label: "证据文件", value: displayArtifactCount.value, icon: "file" as const, tone: "info" as const },
 ]);
+
+watch(
+  () => route.query.caseId,
+  async (value) => {
+    const caseId = Array.isArray(value) ? value[0] : value;
+    if (!caseId || typeof caseId !== "string" || store.currentCase?.case_id === caseId) return;
+    await store.loadCase(caseId);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

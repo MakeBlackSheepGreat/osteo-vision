@@ -277,6 +277,11 @@ def test_three_d_evidence_demo_entry_is_public_cbct_non_navigation_reference() -
     assert evidence["registration_status"] == "unregistered"
     assert evidence["navigation_ready"] is False
     assert evidence["doctor_review_status"] == "not_reviewed"
+    assert evidence["display_orientation_status"] == "axis_mapping_inferred_not_physician_reviewed"
+    assert evidence["view_space_mapping"]["display_up_axis"] == "-physical_z"
+    assert evidence["view_space_mapping"]["frontend_rotation_x_degrees"] == 90
+    assert evidence["view_space_mapping"]["frontend_rotation_z_degrees"] == 180
+    assert evidence["view_space_mapping"]["frontend_rotation_order"] == "ZXY"
     assert evidence["scene_manifest"]["schema_version"] == "osteo-vision-three-d-scene-v1"
     assert evidence["scene_manifest"]["mandibular_curve"]["label"] == "D024 mandibular reference curve"
     assert evidence["scene_manifest"]["review_planes"][0]["status"] == "illustrative_unregistered"

@@ -23,7 +23,9 @@ const baseProps = {
   videoCandidates: [],
   operationMessage: "",
   operationMessageType: "info" as const,
+  videoInputSource: "file" as const,
   inputMode: "video" as const,
+  videoMode: "single_video" as const,
   imagePairReady: false,
   imagePairOptions: [],
   selectedImagePairKey: "",
@@ -38,12 +40,35 @@ const baseProps = {
   cameraAnalysisIntervalSec: 5,
   cameraContinuousAnalysisStatus: "连续关键帧分析未启动",
   cameraStatusLabel: "未连接，需浏览器授权后使用",
-  fileVideoActive: false,
-  videoRealtimeAnalysisStatus: "",
   liveSessionReady: false,
 };
 
 describe("CaseWorkspaceControls video stream area", () => {
+  it("offers mutually exclusive file and camera input controls", async () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: baseProps,
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("选择 MP4 视频");
+    expect(wrapper.find(".live-stream-control-card").exists()).toBe(false);
+
+    const cameraSourceButton = wrapper
+      .findAll('[role="tab"]')
+      .find((button) => button.text().includes("浏览器摄像头"));
+    await cameraSourceButton?.trigger("click");
+    expect(wrapper.emitted("update:videoInputSource")?.[0]).toEqual(["camera"]);
+
+    await wrapper.setProps({ videoInputSource: "camera" });
+    expect(wrapper.text()).toContain("开启摄像头");
+    expect(wrapper.text()).not.toContain("选择 MP4 视频");
+  });
+
   it("uses MP4 video as the default official input without rendering a duplicate left preview", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: baseProps,
@@ -61,6 +86,7 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.text()).toContain("MP4 视频");
     expect(wrapper.text()).toContain("选择 MP4 视频");
     expect(wrapper.text()).toContain("启动离线关键帧分析");
+    expect(wrapper.text()).not.toContain("开启摄像头");
     expect(wrapper.text()).not.toContain("官方 MP4 视频路径");
     expect(wrapper.find('input[accept="video/mp4,.mp4"]').exists()).toBe(true);
   });
@@ -120,6 +146,7 @@ describe("CaseWorkspaceControls video stream area", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: {
         ...baseProps,
+        videoInputSource: "camera",
         cameraActive: true,
         cameraStatusLabel: "摄像头已连接，可抓取关键帧进入平台分析",
       },
@@ -147,9 +174,71 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.text()).toContain("推理完成后立即继续");
   });
 
-  it("places live stream controls before analysis parameters", () => {
+  it("supports paired MP4 inputs and exposes synchronization commands", async () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: {
+        ...baseProps,
+        videoMode: "paired_videos",
+        multichannelWhitePath: "C:/demo/white.mp4",
+        multichannelFluorescencePath: "C:/demo/icg.mp4",
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("更换白光 MP4");
+    expect(wrapper.text()).toContain("更换荧光 MP4");
+    expect(wrapper.text()).toContain("可选设备叠加 MP4");
+    expect(wrapper.text()).toContain("准备同步预览");
+    expect(wrapper.text()).toContain("运行双通道融合分析");
+    const prepare = wrapper.findAll("button").find((button) => button.text().includes("准备同步预览"));
+    expect(prepare?.attributes("disabled")).toBeUndefined();
+    await prepare?.trigger("click");
+    expect(wrapper.emitted("prepareMultichannelSession")).toHaveLength(1);
+  });
+
+  it("emits each video workspace mode from the visible tabs", async () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: baseProps,
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    const modeTabs = wrapper.findAll(".video-mode-tabs button");
+    const paired = modeTabs.find((button) => button.text() === "双通道视频");
+    await paired?.trigger("click");
+    expect(wrapper.emitted("update:videoMode")?.[0]).toEqual(["paired_videos"]);
+
+    const composite = modeTabs.find((button) => button.text() === "合成三视图");
+    await composite?.trigger("click");
+    expect(wrapper.emitted("update:videoMode")?.[1]).toEqual(["composite_layout"]);
+  });
+
+  it("labels the browser camera as a single-channel extension", () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: { ...baseProps, videoInputSource: "camera" },
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    expect(wrapper.find(".live-stream-control-card").html()).toContain('title="单路浏览器摄像头"');
+  });
+
+  it("places live stream controls before analysis parameters", () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: { ...baseProps, videoInputSource: "camera" },
       global: {
         stubs: {
           AppIcon: true,
@@ -171,6 +260,7 @@ describe("CaseWorkspaceControls video stream area", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: {
         ...baseProps,
+        videoInputSource: "camera",
         loading: true,
         cameraActive: true,
         cameraStatusLabel: "摄像头已连接，可抓取关键帧进入平台分析",
@@ -194,6 +284,7 @@ describe("CaseWorkspaceControls video stream area", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: {
         ...baseProps,
+        videoInputSource: "camera",
         cameraActive: true,
         cameraManualAnalysisBusy: true,
       },
@@ -223,6 +314,7 @@ describe("CaseWorkspaceControls video stream area", () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: {
         ...baseProps,
+        videoInputSource: "camera",
         cameraActive: true,
         cameraContinuousAnalysisStarting: true,
       },

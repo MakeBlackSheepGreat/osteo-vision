@@ -101,6 +101,9 @@ def build_three_d_evidence(
         "model_source": _string(explicit.get("model_source"))
         or ("case_evidence_package" if model_path else "not_provided"),
         "exported_from": _string(explicit.get("exported_from")) or None,
+        "orientation_review_status": _string(explicit.get("orientation_review_status")) or None,
+        "display_orientation_status": _string(explicit.get("display_orientation_status")) or None,
+        "view_space_mapping": _dict_value(explicit.get("view_space_mapping")) or None,
         "dicom_series_uid": dicom_series_uid or None,
         "segmentation_source": segmentation_source or None,
         "segmentation_review_status": segmentation_review_status or None,
@@ -769,6 +772,22 @@ def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
         "segmentation_review_status": "public_dataset_annotation_not_case_reviewed",
         "registration_status": "unregistered",
         "coordinate_space": "cbct_label_voxel_spacing_mm",
+        "orientation_review_status": "pending_slicer_or_physician_review",
+        "display_orientation_status": "axis_mapping_inferred_not_physician_reviewed",
+        "view_space_mapping": {
+            "source_vertex_order": "physical_xyz_ras",
+            "display_up_axis": "-physical_z",
+            "frontend_rotation_x_degrees": 90,
+            "frontend_rotation_z_degrees": 180,
+            "frontend_rotation_order": "ZXY",
+            "identity_direction": False,
+            "requires_review": True,
+            "reason": (
+                "D024 NIfTI surface uses physical XYZ coordinates with the volume Z axis increasing inferiorly; "
+                "the display rotations map superior anatomy to the viewport up axis and preserve the agreed "
+                "upright mandibular-arch presentation."
+            ),
+        },
         "doctor_review_status": "not_reviewed",
         "navigation_ready": False,
         "scene_manifest": _demo_scene_manifest(),

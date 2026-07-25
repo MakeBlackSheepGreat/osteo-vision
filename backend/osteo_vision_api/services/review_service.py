@@ -798,6 +798,7 @@ class ReviewService:
         candidate_modified = sum(1 for candidate in candidates if candidate.status == ReviewState.MODIFIED)
         candidate_rejected = sum(1 for candidate in candidates if candidate.status == ReviewState.REJECTED)
         return {
+            **case.review_summary,
             "accepted_regions": accepted,
             "modified_regions": modified,
             "rejected_regions": rejected,

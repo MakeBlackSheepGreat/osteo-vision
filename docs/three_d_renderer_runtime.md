@@ -78,7 +78,7 @@ Playwright 桌面联调会启动后端、主平台和独立运行时三个进程
 
 任一门控缺失时，运行时保留候选区的二维联动信息，停止在模型空间绘制 marker。后端快照适配层会复核安全门版本、医生复核状态、变换验证和坐标链验证；未通过的载荷会降为 L0 参考状态。
 
-iframe 桥接使用 `osteo-vision-three-d-runtime-bridge-v1`。主平台为每次场景请求生成 `request_id`，仅在新 iframe 的 `load` 事件后发送 `load_case` 或 `load_reference`；独立运行时在 `scene_loaded`、失败状态和候选选择回包中回显该 ID。主平台忽略旧请求的回包，防止病例或场景切换时的延迟响应覆盖当前画面。独立窗口提供日间/夜间主题开关，并在自身 origin 的 `osteo-vision-theme` 存储中持久化用户选择；嵌入模式接收主平台主题后同步保存。
+iframe 桥接使用 `osteo-vision-three-d-runtime-bridge-v1`。主平台为每次场景请求生成 `request_id`，在新 iframe 的 `load` 事件后发送 `load_case` 或 `load_reference`，并在会话确认前定时重发；独立运行时通过 `runtime_ready` 触发一次补发，重复请求会复用已载入场景。`scene_loaded`、失败状态和候选选择回包均回显该 ID。主平台忽略旧请求的回包，防止病例或场景切换时的延迟响应覆盖当前画面。独立窗口提供日间/夜间主题开关，并在自身 origin 的 `osteo-vision-theme` 存储中持久化用户选择；嵌入模式接收主平台主题后同步保存。
 
 ## 5. 部署产物
 
@@ -93,7 +93,7 @@ iframe 桥接使用 `osteo-vision-three-d-runtime-bridge-v1`。主平台为每�
 - 主平台的 `VITE_OSTEO_THREE_D_RUNTIME_URL` 填写独立运行时完整地址。
 - 后端 `OSTEO_ALLOWED_ORIGINS` 包含主平台和独立运行时的全部 origin。
 
-`scripts/start_platform.ps1 -StartThreeDRuntime` 会在本机默认端口及自定义端口下传递上述本地 origin。独立手动部署需在构建环境中显式设置对应变量。
+`scripts/start_platform.ps1` 会在本机默认端口及自定义端口下传递上述本地 origin 并启动独立运行时；仅需二维平台时追加 `-SkipThreeDRuntime`。独立手动部署需在构建环境中显式设置对应变量。
 
 部署后应独立验证以下路径：
 

@@ -25,6 +25,14 @@ def _job_family(kind: str) -> str:
     return kind
 
 
+def _job_progress_details(job: dict[str, Any]) -> dict[str, Any]:
+    progress_payload = job.get("progress")
+    if not isinstance(progress_payload, dict):
+        return {}
+    details = progress_payload.get("details")
+    return dict(details) if isinstance(details, dict) else {}
+
+
 class JobCapacityError(RuntimeError):
     def __init__(self, *, kind: str, max_active: int, active_count: int) -> None:
         super().__init__(f"Too many active {kind} jobs: {active_count}/{max_active}")
@@ -149,23 +157,25 @@ class JobRegistry:
     def mark_completed(self, job_id: str, result: dict[str, Any]) -> None:
         if self.is_canceled(job_id):
             return
+        current = self.get(job_id) or {}
         self._update(
             job_id,
             status="completed",
             result=result,
             error=None,
-            progress=progress("completed", 100, "Job completed."),
+            progress=progress("completed", 100, "Job completed.", _job_progress_details(current)),
         )
 
     def mark_failed(self, job_id: str, error: str, result: dict[str, Any] | None = None) -> None:
         if self.is_canceled(job_id):
             return
+        current = self.get(job_id) or {}
         self._update(
             job_id,
             status="failed",
             result=result or {},
             error=error,
-            progress=progress("failed", 100, error),
+            progress=progress("failed", progress_percent(current), error, _job_progress_details(current)),
         )
 
     def update_progress(
@@ -193,7 +203,7 @@ class JobRegistry:
                 **job,
                 "status": "canceled",
                 "error": reason,
-                "progress": progress("canceled", progress_percent(job), reason),
+                "progress": progress("canceled", progress_percent(job), reason, _job_progress_details(job)),
                 "updated_at": utc_now(),
             }
             self._jobs[job_id] = canceled

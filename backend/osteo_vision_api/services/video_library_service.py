@@ -9,9 +9,16 @@ from osteo_vision_core.io.video_io import VIDEO_EXTENSIONS
 
 
 class VideoLibraryService:
-    def __init__(self, manifest_path: str | Path, preview_root: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        manifest_path: str | Path,
+        preview_root: str | Path | None = None,
+        *,
+        ofdvd_manifest_path: str | Path | None = None,
+    ) -> None:
         self.manifest_path = Path(manifest_path)
         self.preview_root = Path(preview_root) if preview_root is not None else None
+        self.ofdvd_manifest_path = Path(ofdvd_manifest_path) if ofdvd_manifest_path is not None else None
 
     def list_candidates(self, *, accepted_only: bool = True, limit: int = 100) -> dict[str, Any]:
         rows = self._read_rows()
@@ -56,38 +63,87 @@ class VideoLibraryService:
         return {**candidate, **payload}
 
     def _read_rows(self) -> list[dict[str, str]]:
-        if not self.manifest_path.exists():
+        rows = self._read_manifest(self.manifest_path)
+        indexed = {
+            str(row.get("record_id") or ""): index
+            for index, row in enumerate(rows)
+            if str(row.get("record_id") or "")
+        }
+        for detailed_row in self._read_manifest(self.ofdvd_manifest_path):
+            record_id = str(detailed_row.get("record_id") or "")
+            if not record_id:
+                continue
+            detailed_values = {
+                key: value
+                for key, value in detailed_row.items()
+                if value is not None and str(value).strip()
+            }
+            if record_id in indexed:
+                index = indexed[record_id]
+                rows[index] = {
+                    **rows[index],
+                    **detailed_values,
+                    "_manifest_kind": "ofdvdnet",
+                }
+                continue
+            indexed[record_id] = len(rows)
+            rows.append({**detailed_row, "_manifest_kind": "ofdvdnet"})
+        return rows
+
+    @staticmethod
+    def _read_manifest(path: Path | None) -> list[dict[str, str]]:
+        if path is None or not path.exists():
             return []
-        with self.manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
             return [dict(row) for row in csv.DictReader(handle)]
 
     def _candidate_payload(self, row: dict[str, str]) -> dict[str, Any]:
-        local_path = row.get("local_path", "")
+        is_ofdvd = row.get("_manifest_kind") == "ofdvdnet" or bool(row.get("view_layout"))
+        local_path = row.get("video_path", "") if is_ofdvd else row.get("local_path", "")
         path = Path(local_path) if local_path else Path()
         suffix = path.suffix.lower() if local_path else ""
         exists = bool(local_path and path.exists() and path.is_file())
-        system_readable = bool(exists and suffix in VIDEO_EXTENSIONS and row.get("download_status") == "exists")
-        fluorescence = _yes_no(row.get("fluorescence"))
+        admitted = _yes_no(row.get("readable")) is True if is_ofdvd else row.get("download_status") == "exists"
+        system_readable = bool(exists and suffix in VIDEO_EXTENSIONS and admitted)
+        fluorescence = True if is_ofdvd else _yes_no(row.get("fluorescence"))
         return {
             "record_id": row.get("record_id", ""),
-            "group": row.get("group", ""),
-            "title": row.get("title", ""),
+            "group": row.get("group", "") or row.get("dataset_id", ""),
+            "title": row.get("title", "") or row.get("original_filename", ""),
             "source_page_original_link": row.get("source_page_original_link", ""),
             "direct_download_link": row.get("direct_download_link", ""),
             "local_path": local_path,
             "fluorescence": fluorescence,
-            "medical_scene": row.get("medical_scene", ""),
+            "medical_scene": row.get("medical_scene", "") or ("OFDVDnet fluorescence-guided surgery proxy" if is_ofdvd else ""),
             "usable_for_training": row.get("usable_for_training", ""),
             "notes": row.get("notes", ""),
-            "download_status": row.get("download_status", ""),
-            "error_or_note": row.get("error_or_note", ""),
+            "download_status": row.get("download_status", "") or ("exists" if exists else "missing"),
+            "error_or_note": row.get("error_or_note", "") or row.get("probe_error", ""),
             "size_bytes": _int_or_none(row.get("size_bytes")),
             "sha256": row.get("sha256", ""),
             "downloaded_at_utc": row.get("downloaded_at_utc", ""),
             "exists": exists,
             "system_readable": system_readable,
             "input_type": "video_file" if system_readable else "unsupported_or_missing",
-            "domain_boundary": "Public non-target-domain proxy video; not real intraoperative ICG jaw osteomyelitis data.",
+            "domain_boundary": row.get("domain_boundary", "")
+            or "Public non-target-domain proxy video; not real intraoperative ICG jaw osteomyelitis data.",
+            "view_layout": row.get("view_layout", ""),
+            "crop_regions": {
+                "device_overlay": _xyxy(row.get("overlay_xyxy")),
+                "fluorescence": _xyxy(row.get("fluorescence_xyxy")),
+                "white_light": _xyxy(row.get("reference_xyxy")),
+            }
+            if is_ofdvd
+            else {},
+            "channel_previews": {
+                "full": row.get("full_preview_path", ""),
+                "device_overlay": row.get("overlay_preview_path", ""),
+                "fluorescence": row.get("fluorescence_preview_path", ""),
+                "white_light": row.get("reference_preview_path", ""),
+            }
+            if is_ofdvd
+            else {},
+            "composite_layout_available": bool(is_ofdvd and row.get("view_layout")),
             **self._cached_preview_fields(row.get("record_id", "")),
         }
 
@@ -118,6 +174,16 @@ def _int_or_none(value: str | None) -> int | None:
         return int(value)
     except ValueError:
         return None
+
+
+def _xyxy(value: str | None) -> list[int] | None:
+    if not value:
+        return None
+    try:
+        coordinates = [int(part) for part in value.split("|")]
+    except ValueError:
+        return None
+    return coordinates if len(coordinates) == 4 else None
 
 
 def _safe_record_id(record_id: str) -> str:

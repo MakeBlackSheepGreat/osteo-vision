@@ -295,6 +295,9 @@ export interface ThreeDViewSpaceMapping {
   source_vertex_order?: string | null;
   display_up_axis?: string | null;
   frontend_rotation_x_degrees?: number | string | null;
+  frontend_rotation_y_degrees?: number | string | null;
+  frontend_rotation_z_degrees?: number | string | null;
+  frontend_rotation_order?: "XYZ" | "ZXY" | string | null;
   identity_direction?: boolean | string | null;
   requires_review?: boolean | string | null;
   reason?: string | null;
@@ -755,6 +758,10 @@ export interface VideoCandidate {
   height?: number | null;
   fps?: number | null;
   duration_sec?: number | null;
+  view_layout?: string;
+  crop_regions?: Partial<Record<"white_light" | "fluorescence" | "device_overlay", number[] | null>>;
+  channel_previews?: Partial<Record<"full" | "white_light" | "fluorescence" | "device_overlay", string>>;
+  composite_layout_available?: boolean;
 }
 
 export interface VideoCandidateList {
@@ -762,4 +769,82 @@ export interface VideoCandidateList {
   exists: boolean;
   count: number;
   items: VideoCandidate[];
+}
+
+export type MultichannelVideoMode = "single_video" | "paired_videos" | "composite_layout";
+export type MultichannelVideoRole = "video" | "white_light" | "fluorescence" | "device_overlay";
+
+export interface MultichannelVideoSessionCreateRequest {
+  mode: MultichannelVideoMode;
+  video_input_id?: string | null;
+  video_path?: string | null;
+  white_light_input_id?: string | null;
+  white_light_path?: string | null;
+  fluorescence_input_id?: string | null;
+  fluorescence_path?: string | null;
+  device_overlay_input_id?: string | null;
+  device_overlay_path?: string | null;
+  composite_record_id?: string | null;
+  fluorescence_offset_ms?: number | null;
+  device_overlay_offset_ms?: number | null;
+  synchronization_tolerance_ms?: number;
+  keyframe_count?: number;
+  focus_timepoints_sec?: number[];
+}
+
+export interface MultichannelVideoChannel {
+  role: MultichannelVideoRole;
+  input_id: string;
+  path: string;
+  probe: Record<string, unknown>;
+  automatic_offset_ms: number;
+  effective_offset_ms: number;
+  source_boundary: string;
+}
+
+export interface Task2PairedFrameReference {
+  frame_index: number;
+  white_input_id: string;
+  fluorescence_input_id: string;
+  device_overlay_input_id?: string | null;
+  captured_at?: string | null;
+  white_timestamp_ms?: number | null;
+  fluorescence_timestamp_ms?: number | null;
+  magnification?: number | null;
+  working_distance_mm?: number | null;
+}
+
+export interface Task2PairedSequenceManifest {
+  schema_version: "osteo-vision-task2-paired-sequence-v1";
+  sequence_id: string;
+  frames: Task2PairedFrameReference[];
+  synchronization_tolerance_ms: number;
+  alpha: number;
+  threshold: number;
+  colormap: "green" | "amber" | "magenta";
+  prefer_gpu: boolean;
+}
+
+export interface MultichannelVideoSession {
+  schema_version: "osteo-vision-multichannel-video-session-v1";
+  session_id: string;
+  case_id: string;
+  mode: MultichannelVideoMode;
+  status: "ready" | "degraded" | "blocked";
+  analysis_allowed: boolean;
+  channels: MultichannelVideoChannel[];
+  synchronization_tolerance_ms: number;
+  synchronization_status: "aligned" | "review_required" | "unavailable";
+  initial_time_delta_ms?: number | null;
+  common_start_sec?: number | null;
+  common_end_sec?: number | null;
+  common_duration_sec?: number | null;
+  drift_correction_threshold_ms: number;
+  paired_sequence_manifest?: Task2PairedSequenceManifest | null;
+  frame_pairs: Array<Record<string, unknown>>;
+  warnings: Array<Record<string, unknown>>;
+  failure_reasons: string[];
+  source_boundary: string;
+  created_at: string;
+  updated_at: string;
 }

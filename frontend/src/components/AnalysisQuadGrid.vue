@@ -51,7 +51,7 @@
       <p>{{ streamFooterLabel }}</p>
     </article>
 
-    <article v-for="panel in panels" :key="panel.title" class="analysis-quad-card">
+    <article v-for="panel in visiblePanels" :key="panel.title" class="analysis-quad-card">
       <header>
         <AppIcon :name="panelIcon(panel.title)" />
         <span>{{ panel.title }}</span>
@@ -149,13 +149,14 @@ const emit = defineEmits<{
 const cameraVideoRef = ref<HTMLVideoElement | null>(null);
 const playbackVideoRef = ref<HTMLVideoElement | null>(null);
 
-// 摄像头与导入 MP4 共用同一个“视频流输入”视口；当前选中的 MP4 是官方设备视频流示例，优先覆盖显示。
+// 文件视频与摄像头共用同一主视口，由页面层传入当前选中的互斥输入源。
 const fileVideoActive = computed(() => Boolean(props.videoPlayback?.videoSrc));
 const streamActive = computed(() => props.cameraActive || fileVideoActive.value);
+const visiblePanels = computed(() => props.panels.slice(0, 3));
 const hasVisualContent = computed(
-  () => streamActive.value || Boolean(props.liveOverlaySrc) || props.panels.some((panel) => Boolean(panel.previewSrc)),
+  () => streamActive.value || Boolean(props.liveOverlaySrc) || visiblePanels.value.some((panel) => Boolean(panel.previewSrc)),
 );
-const hasOutputVisualContent = computed(() => props.panels.some((panel) => Boolean(panel.previewSrc)));
+const hasOutputVisualContent = computed(() => visiblePanels.value.some((panel) => Boolean(panel.previewSrc)));
 const gridClass = computed(() => [
   "analysis-quad-grid",
   {
@@ -226,9 +227,14 @@ function currentPlaybackTime(): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function pausePlayback() {
+  playbackVideoRef.value?.pause();
+}
+
 defineExpose({
   capturePlaybackFrame,
   currentPlaybackTime,
+  pausePlayback,
 });
 
 function formatPlaybackTime(value: number | undefined): string {
@@ -262,25 +268,22 @@ function panelIcon(title: string): AppIconName {
 <style scoped>
 .analysis-quad-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(280px, 1fr));
   gap: 12px;
   min-width: 0;
-  min-height: clamp(680px, 72vh, 860px);
+  min-height: clamp(620px, 70vh, 800px);
 }
 
 .analysis-quad-card {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 12px;
   background: var(--ov-bg-elevated);
-}
-
-.analysis-quad-card--camera {
-  grid-row: 1 / -1;
 }
 
 .analysis-quad-card header {
@@ -365,20 +368,33 @@ function panelIcon(title: string): AppIconName {
 .camera-live-player {
   position: absolute;
   z-index: 3;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  transform: translate(-50%, -50%);
 }
 
 .live-segmentation-overlay {
   position: absolute;
   z-index: 5;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
   object-position: center;
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
@@ -425,23 +441,39 @@ function panelIcon(title: string): AppIconName {
 }
 
 .video-stream-player {
-  position: relative;
+  position: absolute;
   z-index: 3;
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
+  object-position: center;
+  transform: translate(-50%, -50%);
   opacity: 1;
   background: var(--ov-bg-media);
 }
 
 .output-viewport img {
-  position: relative;
+  position: absolute;
   z-index: 3;
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
+  object-position: center;
+  transform: translate(-50%, -50%);
 }
 
 .preview-overlay {

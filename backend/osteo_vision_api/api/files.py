@@ -92,6 +92,7 @@ def _video_roots(settings: Settings) -> list[Path]:
         *_artifact_roots(settings),
         (settings.project_root / "research" / "datasets" / "public-candidates").resolve(),
         _manifest_parent(settings.video_manifest_path),
+        _manifest_parent(settings.ofdvd_manifest_path),
     ]
 
 

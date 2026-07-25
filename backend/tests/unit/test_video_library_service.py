@@ -64,6 +64,40 @@ def test_video_library_generates_candidate_preview(tmp_path: Path) -> None:
     assert listed_again["items"][0]["preview_status"] == "cached"
 
 
+def test_video_library_merges_ofdvdnet_layout_metadata(tmp_path: Path) -> None:
+    source = tmp_path / "ofdvd.mp4"
+    source.write_bytes(b"placeholder")
+    manifest = tmp_path / "video-library.csv"
+    _write_manifest(
+        manifest,
+        [
+            {
+                "record_id": "OFDVDNET_001",
+                "local_path": str(source),
+                "download_status": "exists",
+                "source_page_original_link": "https://example.test/ofdvdnet",
+            }
+        ],
+    )
+    ofdvd_manifest = tmp_path / "ofdvdnet.csv"
+    ofdvd_manifest.write_text(
+        "record_id,dataset_id,video_path,original_filename,view_layout,overlay_xyxy,"
+        "fluorescence_xyxy,reference_xyxy,readable,domain_boundary\n"
+        f"OFDVDNET_001,D046,{source},sample.mp4,three_views,0|0|32|24,32|0|64|24,"
+        "0|24|32|48,True,public proxy\n",
+        encoding="utf-8",
+    )
+
+    service = VideoLibraryService(manifest, ofdvd_manifest_path=ofdvd_manifest)
+    candidate = service.get_candidate("OFDVDNET_001")
+
+    assert candidate is not None
+    assert candidate["composite_layout_available"] is True
+    assert candidate["crop_regions"]["white_light"] == [0, 24, 32, 48]
+    assert candidate["crop_regions"]["fluorescence"] == [32, 0, 64, 24]
+    assert candidate["source_page_original_link"] == "https://example.test/ofdvdnet"
+
+
 def _write_manifest(path: Path, rows: list[dict[str, str]]) -> None:
     fieldnames = [
         "record_id",

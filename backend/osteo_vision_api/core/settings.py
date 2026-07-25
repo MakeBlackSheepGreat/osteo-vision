@@ -20,6 +20,14 @@ def _default_video_manifest_path(root: Path) -> Path:
     return inventory / "video_library_manifest.csv"
 
 
+def _default_ofdvd_manifest_path(root: Path) -> Path:
+    inventory = root / "research" / "literature" / "inventory"
+    manifests = sorted(inventory.glob("ofdvdnet_video_manifest_*.csv"), key=lambda path: path.name)
+    if manifests:
+        return manifests[-1]
+    return inventory / "ofdvdnet_video_manifest.csv"
+
+
 def _resolve_project_path(value: str | os.PathLike[str], project_root: Path) -> Path:
     path = Path(value).expanduser()
     if path.is_absolute():
@@ -47,6 +55,7 @@ class Settings:
     job_store_path: Path = _repo_root() / "artifacts" / "platform" / "jobs" / "jobs.json"
     job_execution_mode: str = "background"
     video_manifest_path: Path = _default_video_manifest_path(_repo_root())
+    ofdvd_manifest_path: Path = _default_ofdvd_manifest_path(_repo_root())
     inference_config_path: Path = _repo_root() / "configs" / "inference" / "osteo_vision.yml"
     max_active_case_analysis_jobs: int = 1
     max_active_upload_keyframe_jobs: int = 1
@@ -93,6 +102,10 @@ def load_settings() -> Settings:
         os.environ.get("OSTEO_VIDEO_MANIFEST_PATH", _default_video_manifest_path(root)),
         root,
     )
+    ofdvd_manifest_path = _resolve_project_path(
+        os.environ.get("OSTEO_OFDVD_MANIFEST_PATH", _default_ofdvd_manifest_path(root)),
+        root,
+    )
     inference_config_path = _resolve_project_path(
         os.environ.get(
             "OSTEO_INFERENCE_CONFIG",
@@ -125,6 +138,7 @@ def load_settings() -> Settings:
         job_store_path=job_store_path,
         job_execution_mode=job_execution_mode,
         video_manifest_path=video_manifest_path,
+        ofdvd_manifest_path=ofdvd_manifest_path,
         inference_config_path=inference_config_path,
         max_active_case_analysis_jobs=max_active_case_analysis_jobs,
         max_active_upload_keyframe_jobs=max_active_upload_keyframe_jobs,

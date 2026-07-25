@@ -165,6 +165,33 @@ def test_job_registry_cancel_preserves_canceled_status(tmp_path: Path) -> None:
     assert "run_should_not_win" not in loaded.get("result", {})
 
 
+@pytest.mark.parametrize("terminal_action", ["completed", "failed", "canceled"])
+def test_job_registry_preserves_progress_details_for_terminal_status(
+    tmp_path: Path,
+    terminal_action: str,
+) -> None:
+    registry = JobRegistry(tmp_path / f"{terminal_action}.json")
+    job = registry.create(kind="cbct_surface_modeling", payload={"case_id": "case_progress"})
+    registry.update_progress(
+        job["job_id"],
+        phase="extract_surface",
+        percent=62,
+        message="Extracting surface.",
+        details={"current_file": "jaw_label.nii.gz"},
+    )
+
+    if terminal_action == "completed":
+        registry.mark_completed(job["job_id"], {"model_path": "jaw.stl"})
+    elif terminal_action == "failed":
+        registry.mark_failed(job["job_id"], "Surface extraction failed.")
+    else:
+        registry.cancel(job["job_id"])
+
+    terminal = registry.get(job["job_id"])
+    assert terminal is not None
+    assert terminal["progress"]["details"] == {"current_file": "jaw_label.nii.gz"}
+
+
 def test_job_registry_enforces_active_capacity(tmp_path: Path) -> None:
     registry = JobRegistry(tmp_path / "jobs.json")
     registry.create(kind="case_analysis", payload={"case_id": "case_1"}, max_active=1)

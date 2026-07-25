@@ -13,6 +13,13 @@ const e2eRunId = process.env.OSTEO_E2E_RUN_ID ?? String(Date.now());
 process.env.OSTEO_E2E_RUN_ID = e2eRunId;
 const e2eWorkspace = path.join(repoRoot, ".pytest_tmp", "playwright", e2eRunId);
 const e2eArtifactRoot = path.join(e2eWorkspace, "artifacts");
+const e2eOfdvdManifestPath = path.join(
+  repoRoot,
+  ".pytest_tmp",
+  "playwright",
+  "fixtures",
+  "ofdvdnet_e2e_manifest.csv",
+);
 const d024RuntimeFixturePath = path.join(
   e2eArtifactRoot,
   "three_d_runtime",
@@ -91,6 +98,7 @@ export default defineConfig({
         OSTEO_CASE_STORE_PATH: path.join(e2eWorkspace, "cases.sqlite"),
         OSTEO_ANNOTATION_STORE_PATH: path.join(e2eWorkspace, "annotations.sqlite"),
         OSTEO_JOB_STORE_PATH: path.join(e2eWorkspace, "jobs", "jobs.json"),
+        OSTEO_OFDVD_MANIFEST_PATH: e2eOfdvdManifestPath,
         OSTEO_REVIEW_IDENTITIES_JSON: JSON.stringify({
           [e2ePhysicianToken]: {
             actor_id: "playwright-physician-001",
@@ -126,6 +134,7 @@ export default defineConfig({
         VITE_OSTEO_API_URL: `http://127.0.0.1:${backendPort}`,
         VITE_OSTEO_THREE_D_RUNTIME_URL: `http://127.0.0.1:${threeDRuntimePort}`,
         VITE_OSTEO_EXPECT_STRICT_RUNTIME: process.env.OSTEO_E2E_EXPECT_STRICT_RUNTIME ?? "true",
+        VITE_OSTEO_DEFAULT_CASE_ID: "",
       },
       url: `http://127.0.0.1:${frontendPort}`,
       timeout: 120_000,

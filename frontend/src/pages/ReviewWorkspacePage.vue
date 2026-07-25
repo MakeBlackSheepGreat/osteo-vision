@@ -50,7 +50,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
 import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
@@ -65,6 +66,7 @@ import type { CandidateRegion, RegionOfInterest, ReviewState } from "@/types/cas
 import { reviewStateLabel } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
+const route = useRoute();
 type FeedbackTone = "pending" | "success" | "error";
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1));
@@ -96,6 +98,23 @@ const feedbackHeading = computed(() => {
   if (feedbackTone.value === "success") return "复核记录已更新";
   return "正在处理";
 });
+
+watch(
+  () => route.query.caseId,
+  async (value) => {
+    const caseId = Array.isArray(value) ? value[0] : value;
+    if (!caseId || typeof caseId !== "string" || store.currentCase?.case_id === caseId) return;
+    startOperation(`正在载入病例 ${caseId}...`);
+    const loaded = await store.loadCase(caseId);
+    if (loaded) {
+      operationMessage.value = `病例 ${caseId} 已载入，可继续医生复核。`;
+      operationTone.value = "success";
+      return;
+    }
+    finishOperation("");
+  },
+  { immediate: true },
+);
 
 async function setReviewState(state: ReviewState) {
   const candidateId = activeCandidate.value?.candidate_id;

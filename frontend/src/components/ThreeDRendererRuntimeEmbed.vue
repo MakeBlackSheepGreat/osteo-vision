@@ -18,7 +18,7 @@
         :key="runtimeKey"
         ref="runtimeFrame"
         class="three-d-runtime-embed__frame"
-        :src="runtimeUrl"
+        :src="embeddedRuntimeUrl"
         title="独立三维渲染工作区"
         @load="handleFrameLoad"
         @error="markRuntimeUnavailable('运行时页面未能载入')"
@@ -82,6 +82,7 @@ const emit = defineEmits<{
 
 const BRIDGE_PROTOCOL = "osteo-vision-three-d-runtime-bridge-v1";
 const RUNTIME_TIMEOUT_MS = 10000;
+const RUNTIME_RETRY_INTERVAL_MS = 700;
 
 const runtimeFrame = ref<HTMLIFrameElement | null>(null);
 const runtimeState = ref<RuntimeState>("connecting");
@@ -89,6 +90,7 @@ const runtimeMessage = ref("正在连接独立三维运行时。");
 const runtimeKey = ref(0);
 const activeRequestId = ref("");
 let timeoutId: number | null = null;
+let retryId: number | null = null;
 let themeObserver: MutationObserver | null = null;
 
 const hasSceneRequest = computed(() => Boolean(props.caseId || props.referenceId));
@@ -104,6 +106,15 @@ const runtimeUrl = computed(() => {
     return url.toString();
   } catch {
     return runtimeBaseUrl.value;
+  }
+});
+const embeddedRuntimeUrl = computed(() => {
+  try {
+    const url = new URL(runtimeUrl.value, window.location.origin);
+    url.searchParams.set("embedded", "1");
+    return url.toString();
+  } catch {
+    return runtimeUrl.value;
   }
 });
 const runtimeOrigin = computed(() => {
@@ -124,6 +135,7 @@ watch(
   () => {
     if (!hasSceneRequest.value) {
       clearRuntimeTimeout();
+      clearRuntimeRetry();
       activeRequestId.value = "";
       runtimeState.value = "connecting";
       runtimeMessage.value = "等待病例或公开参考场景。";
@@ -139,12 +151,14 @@ onMounted(() => {
   if (hasSceneRequest.value) {
     activeRequestId.value = requestId();
     scheduleRuntimeTimeout();
+    scheduleRuntimeRetry();
   }
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", handleRuntimeMessage);
   clearRuntimeTimeout();
+  clearRuntimeRetry();
   themeObserver?.disconnect();
 });
 
@@ -153,6 +167,7 @@ function handleFrameLoad() {
   runtimeState.value = "connecting";
   runtimeMessage.value = "渲染运行时页面已载入，正在等待会话确认。";
   postSceneRequest();
+  scheduleRuntimeRetry();
 }
 
 function reloadRuntime() {
@@ -195,9 +210,14 @@ function handleRuntimeMessage(event: MessageEvent<RuntimeMessage>) {
   if (event.origin !== runtimeOrigin.value || event.source !== runtimeFrame.value?.contentWindow) return;
   const message = event.data;
   if (message?.protocol !== BRIDGE_PROTOCOL || typeof message.type !== "string") return;
+  if (message.type === "runtime_ready") {
+    postSceneRequest();
+    return;
+  }
   if (message.request_id !== activeRequestId.value) return;
   if (message.type === "scene_loaded") {
     clearRuntimeTimeout();
+    clearRuntimeRetry();
     runtimeState.value = "ready";
     runtimeMessage.value = message.message || "受控场景快照已载入。";
     return;
@@ -218,6 +238,7 @@ function handleRuntimeMessage(event: MessageEvent<RuntimeMessage>) {
 
 function markRuntimeUnavailable(message: string) {
   clearRuntimeTimeout();
+  clearRuntimeRetry();
   runtimeState.value = "degraded";
   runtimeMessage.value = message;
 }
@@ -236,6 +257,22 @@ function clearRuntimeTimeout() {
   timeoutId = null;
 }
 
+function scheduleRuntimeRetry() {
+  clearRuntimeRetry();
+  retryId = window.setInterval(() => {
+    if (!hasSceneRequest.value || runtimeState.value !== "connecting") {
+      clearRuntimeRetry();
+      return;
+    }
+    postSceneRequest();
+  }, RUNTIME_RETRY_INTERVAL_MS);
+}
+
+function clearRuntimeRetry() {
+  if (retryId !== null) window.clearInterval(retryId);
+  retryId = null;
+}
+
 function sceneRequestType(): RuntimeRequestType | null {
   if (props.caseId) return "load_case";
   if (props.referenceId) return "load_reference";
@@ -248,11 +285,13 @@ function requestId(): string {
 
 function recreateRuntime(message: string) {
   clearRuntimeTimeout();
+  clearRuntimeRetry();
   runtimeKey.value += 1;
   activeRequestId.value = requestId();
   runtimeState.value = "connecting";
   runtimeMessage.value = message;
   scheduleRuntimeTimeout();
+  scheduleRuntimeRetry();
 }
 
 function currentTheme(): "light" | "dark" {

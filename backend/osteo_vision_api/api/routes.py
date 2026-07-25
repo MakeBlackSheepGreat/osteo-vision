@@ -14,9 +14,11 @@ from backend.osteo_vision_api.api import (
     inputs,
     live_frames,
     manual_annotations,
+    multichannel_videos,
     promotion_approvals,
     regions,
     review_events,
+    standard_demo_case,
     three_d_modeling,
     three_d_runtime,
     uploads,
@@ -32,6 +34,7 @@ from backend.osteo_vision_api.services.input_service import InputService
 from backend.osteo_vision_api.services.job_service import JobRegistry
 from backend.osteo_vision_api.services.live_frame_service import LiveFrameAnalysisService
 from backend.osteo_vision_api.services.manual_annotation_service import ManualAnnotationService
+from backend.osteo_vision_api.services.multichannel_video_service import MultichannelVideoService
 from backend.osteo_vision_api.services.promotion_approval_service import (
     PromotionApprovalRepository,
     PromotionApprovalService,
@@ -39,6 +42,7 @@ from backend.osteo_vision_api.services.promotion_approval_service import (
 )
 from backend.osteo_vision_api.services.review_service import ReviewService
 from backend.osteo_vision_api.services.static_dataset_review import StaticDatasetReviewService
+from backend.osteo_vision_api.services.standard_demo_case import StandardDemoCaseService
 from backend.osteo_vision_api.services.video_library_service import VideoLibraryService
 from osteo_vision_core.core.config import load_yaml
 from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
@@ -78,6 +82,19 @@ def build_router(settings: Settings) -> APIRouter:
     video_library_service = VideoLibraryService(
         settings.video_manifest_path,
         preview_root=settings.artifact_root / "video_library_previews",
+        ofdvd_manifest_path=settings.ofdvd_manifest_path,
+    )
+    multichannel_video_service = MultichannelVideoService(
+        repo,
+        input_service,
+        video_library_service,
+        settings.artifact_root,
+    )
+    standard_demo_case_service = StandardDemoCaseService(
+        repo,
+        input_service,
+        video_library_service,
+        multichannel_video_service,
     )
     static_dataset_review_service = StaticDatasetReviewService(settings.project_root)
     hospital_intake_service = HospitalIntakeService(
@@ -124,7 +141,12 @@ def build_router(settings: Settings) -> APIRouter:
         }
 
     router.include_router(cases.router(repo), tags=["cases"])
+    router.include_router(standard_demo_case.router(standard_demo_case_service), tags=["standard-demo"])
     router.include_router(inputs.router(repo, input_service), tags=["inputs"])
+    router.include_router(
+        multichannel_videos.router(repo, multichannel_video_service),
+        tags=["multichannel-video"],
+    )
     router.include_router(live_frames.router(repo, live_frame_service), tags=["live-frames"])
     router.include_router(
         analysis_runs.router(

@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from math import isfinite
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -308,8 +309,14 @@ class AnalysisService:
             fused_overlay_path=str(latest_sources.get("overlay_path") or ""),
             fusion_report=latest_fusion_report,
             output_dir=output_dir / "task2_paired_sequence" / manifest.sequence_id / "task3_fused_image_ai",
+            low_latency=True,
         )
         fused_outputs["fused_image_ai"] = fused_image_ai
+        fused_outputs["ai_source_frame_index"] = latest_sources.get("frame_index")
+        fused_outputs["ai_source_timestamp_ms"] = latest_sources.get("white_timestamp_ms")
+        fused_outputs["ai_input_semantics"] = "fused_rgb_keyframe"
+        fused_outputs["ai_input_label"] = "融合 RGB 关键帧"
+        fused_outputs["dual_branch_model_used"] = False
         task3_candidates = _fusion_ai_candidate_regions(
             run.run_id,
             fused_image_ai,
@@ -1051,6 +1058,7 @@ class AnalysisService:
         fusion_report: dict[str, Any],
         output_dir: Path,
         activity_spectrum: dict[str, Any] | None = None,
+        low_latency: bool = False,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         input_contract = build_task3_fused_input_contract(
             case_id=case_id,
@@ -1097,15 +1105,28 @@ class AnalysisService:
                 "input_contract": input_contract,
             }, []
 
+        model_extra = dict(mapping.get("extra") or {})
+        low_latency_extra = (
+            dict(model_extra.get("live_stream") or {})
+            if low_latency and isinstance(model_extra.get("live_stream"), dict)
+            else {}
+        )
         mapping["extra"] = {
-            **dict(mapping.get("extra") or {}),
+            **model_extra,
+            **low_latency_extra,
             "output_dir": str(output_dir / "model_outputs"),
-            "fast_output": False,
-            "output_profile": "task3_fused_image_full_evidence",
+            "fast_output": bool(low_latency_extra.get("fast_output", False)),
+            "output_profile": (
+                "task3_fused_image_low_latency"
+                if low_latency
+                else "task3_fused_image_full_evidence"
+            ),
         }
         try:
+            warmup_started = perf_counter()
             adapter = build_adapter(model_spec_from_mapping(mapping))
             adapter_status = adapter.warmup()
+            warmup_ms = (perf_counter() - warmup_started) * 1000.0
             if not adapter_status.available:
                 return {
                     "available": False,
@@ -1114,6 +1135,7 @@ class AnalysisService:
                     "input_contract": input_contract,
                     "adapter_status": adapter_status.to_dict(),
                 }, list(adapter_status.warnings)
+            inference_started = perf_counter()
             result = adapter.predict(
                 AdapterRequest(
                     case_id=f"{case_id}_task3_fused",
@@ -1127,9 +1149,11 @@ class AnalysisService:
                     },
                 )
             )
+            inference_ms = (perf_counter() - inference_started) * 1000.0
             payload = result.to_dict()
             lesion_value = payload.get("lesion_evidence")
             lesion = dict(lesion_value) if isinstance(lesion_value, dict) else {}
+            boundary_started = perf_counter()
             boundary = assess_candidate_boundaries(
                 lesion,
                 output_dir=output_dir / "boundary_assessment",
@@ -1137,6 +1161,7 @@ class AnalysisService:
                 spatial_interpretation_allowed=input_contract.get("spatial_interpretation_eligible") is True,
                 activity_spectrum=activity_spectrum,
             )
+            boundary_ms = (perf_counter() - boundary_started) * 1000.0
             payload.update(
                 {
                     "available": payload.get("prediction", {}).get("segmentation_available") is True,
@@ -1145,6 +1170,13 @@ class AnalysisService:
                     "boundary_assessment": boundary,
                     "adapter_status": adapter_status.to_dict(),
                     "task_role": "task3_ai_on_task2_fused_image",
+                    "performance": {
+                        "profile": mapping["extra"]["output_profile"],
+                        "warmup_ms": round(warmup_ms, 3),
+                        "model_inference_ms": round(inference_ms, 3),
+                        "boundary_assessment_ms": round(boundary_ms, 3),
+                        "total_ms": round(warmup_ms + inference_ms + boundary_ms, 3),
+                    },
                     "spatial_interpretation_allowed": input_contract.get("spatial_interpretation_eligible") is True,
                     "clinical_claim_allowed": False,
                 }
@@ -1625,6 +1657,7 @@ class AnalysisService:
     def _review_summary(self, case: CaseRecord) -> dict[str, Any]:
         analysis_run = case.analysis_runs[-1] if case.analysis_runs else None
         return {
+            **case.review_summary,
             "status": case.status,
             "run_id": analysis_run.run_id if analysis_run else None,
             "candidate_regions": len(analysis_run.candidate_regions) if analysis_run else 0,

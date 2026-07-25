@@ -326,6 +326,10 @@ def test_public_d024_reference_uses_same_snapshot_contract_and_controlled_asset(
     assert payload["mode_label"] == "公开 D024 下颌参考"
     assert payload["candidate_regions"] == []
     assert payload["three_d_evidence"]["input_domain"] == "public_reference_non_target_domain"
+    assert payload["three_d_evidence"]["view_space_mapping"]["display_up_axis"] == "-physical_z"
+    assert payload["three_d_evidence"]["view_space_mapping"]["frontend_rotation_x_degrees"] == 90
+    assert payload["three_d_evidence"]["view_space_mapping"]["frontend_rotation_z_degrees"] == 180
+    assert payload["three_d_evidence"]["view_space_mapping"]["frontend_rotation_order"] == "ZXY"
     assert payload["safety"]["navigation_level"] == "L0"
     assert payload["safety"]["navigation_ready"] is False
     assert payload["model_asset"]["url"] == "/three-d-runtime/v1/references/d024/assets/model"

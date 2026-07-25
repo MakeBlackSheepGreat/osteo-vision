@@ -1,4 +1,4 @@
-import type { CaseInputDraft, CaseRecord, ClinicalContext, ExportResponse, L1StaticRegistrationRequest, L2PoseReplayRequest, ReviewState, VideoCandidate, VideoCandidateList } from "@/types/case";
+import type { CaseInputDraft, CaseRecord, ClinicalContext, ExportResponse, L1StaticRegistrationRequest, L2PoseReplayRequest, MultichannelVideoSession, MultichannelVideoSessionCreateRequest, ReviewState, VideoCandidate, VideoCandidateList } from "@/types/case";
 import type {
   AnnotationList,
   AnnotationSourceList,
@@ -139,6 +139,9 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ title, disclaimer_version: "platform-safety-v1" }),
     });
+  },
+  ensureStandardDemoCase(): Promise<CaseRecord> {
+    return request<CaseRecord>("/platform/standard-demo-case", { method: "POST" });
   },
   getCase(caseId: string): Promise<CaseRecord> {
     return request<CaseRecord>(`/cases/${caseId}`);
@@ -364,6 +367,20 @@ export const apiClient = {
     return request<VideoCandidate>(`/video-library/candidates/${encodeURIComponent(recordId)}/preview`, {
       method: "POST",
     });
+  },
+  createMultichannelVideoSession(
+    caseId: string,
+    payload: MultichannelVideoSessionCreateRequest,
+  ): Promise<MultichannelVideoSession> {
+    return request<MultichannelVideoSession>(`/cases/${caseId}/multichannel-video-sessions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  getMultichannelVideoSession(caseId: string, sessionId: string): Promise<MultichannelVideoSession> {
+    return request<MultichannelVideoSession>(
+      `/cases/${caseId}/multichannel-video-sessions/${encodeURIComponent(sessionId)}`,
+    );
   },
   listDatasetReviewQueue(): Promise<DatasetReviewQueue> {
     return request<DatasetReviewQueue | DatasetReviewRecord[]>("/dataset-review/queue").then((payload) =>

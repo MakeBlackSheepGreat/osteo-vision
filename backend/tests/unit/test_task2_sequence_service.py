@@ -107,6 +107,16 @@ def test_analysis_service_dispatches_paired_sequence_and_persists_task3_handoff(
     monkeypatch: Any,
 ) -> None:
     case, frame_ids = _paired_case(tmp_path, frame_count=2)
+    case = case.model_copy(
+        update={
+            "review_summary": {
+                "multichannel_session_id": "multichannel_demo",
+                "multichannel_session_status": "ready",
+                "multichannel_video_mode": "paired_videos",
+                "multichannel_synchronization_status": "synchronized",
+            }
+        }
+    )
     repo = JsonCaseRepository(tmp_path / "cases.json")
     repo.create(case)
     config_path = tmp_path / "config.yml"
@@ -123,10 +133,11 @@ def test_analysis_service_dispatches_paired_sequence_and_persists_task3_handoff(
         encoding="utf-8",
     )
     service = AnalysisService(repo, config_path=str(config_path))
-    monkeypatch.setattr(
-        service,
-        "_fused_image_ai",
-        lambda **_kwargs: (
+    task3_calls: list[dict[str, Any]] = []
+
+    def fake_fused_image_ai(**kwargs: Any) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        task3_calls.append(kwargs)
+        return (
             {
                 "available": False,
                 "execution_state": "skipped",
@@ -134,9 +145,18 @@ def test_analysis_service_dispatches_paired_sequence_and_persists_task3_handoff(
                 "boundary_assessment": {"candidate_count": 0, "candidates": []},
                 "spatial_interpretation_allowed": False,
                 "clinical_claim_allowed": False,
+                "performance": {
+                    "profile": "task3_fused_image_low_latency",
+                    "model_inference_ms": 12.5,
+                },
             },
             [],
-        ),
+        )
+
+    monkeypatch.setattr(
+        service,
+        "_fused_image_ai",
+        fake_fused_image_ai,
     )
     manifest = {
         "schema_version": "osteo-vision-task2-paired-sequence-v1",
@@ -161,10 +181,18 @@ def test_analysis_service_dispatches_paired_sequence_and_persists_task3_handoff(
     assert run.fused_outputs["fused_image_ai"]["execution_state"] == "skipped"
     assert run.quantitative_summary["frame_count"] == 2
     assert run.quantitative_summary["task3_review_candidate_count"] == 0
+    assert task3_calls[0]["low_latency"] is True
+    assert run.fused_outputs["ai_source_frame_index"] == 1
+    assert run.fused_outputs["ai_source_timestamp_ms"] == 40.0
+    assert run.fused_outputs["fused_image_ai"]["performance"]["model_inference_ms"] == 12.5
     assert any(artifact.kind.value == "task2_sequence_manifest" for artifact in updated.artifacts)
     persisted = repo.get(case.case_id)
     assert persisted is not None
     assert persisted.analysis_runs[-1].run_id == run.run_id
+    assert persisted.review_summary["multichannel_session_id"] == "multichannel_demo"
+    assert persisted.review_summary["multichannel_session_status"] == "ready"
+    assert persisted.review_summary["multichannel_video_mode"] == "paired_videos"
+    assert persisted.review_summary["multichannel_synchronization_status"] == "synchronized"
 
 
 def _paired_case(tmp_path: Path, *, frame_count: int) -> tuple[CaseRecord, list[tuple[str, str]]]:

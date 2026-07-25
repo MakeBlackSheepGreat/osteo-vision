@@ -857,7 +857,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 .annotation-content img {
-  object-fit: fill;
+  object-fit: contain;
   user-select: none;
 }
 

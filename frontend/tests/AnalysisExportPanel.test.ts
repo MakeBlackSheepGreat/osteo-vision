@@ -27,6 +27,7 @@ describe("AnalysisExportPanel", () => {
           { kind: "video_segmentation_manifest", path: "manifest.json", size_bytes: 2048 },
           { kind: "unknown_kind", path: "raw.bin", size_bytes: null },
         ],
+        caseId: "case export/001",
       },
       global: {
         stubs: {
@@ -43,7 +44,7 @@ describe("AnalysisExportPanel", () => {
     expect(wrapper.text()).toContain("MP4 分割清单");
     expect(wrapper.text()).toContain("unknown_kind");
     expect(wrapper.text()).toContain("证据文件共 2 项");
-    expect(wrapper.find("a.export-report-link").attributes("href")).toBe("/report");
+    expect(wrapper.find("a.export-report-link").attributes("href")).toBe("/report?caseId=case%20export%2F001");
     expect(wrapper.text()).toContain("artifacts/platform/case/export.zip");
   });
 });

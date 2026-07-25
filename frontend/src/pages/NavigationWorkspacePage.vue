@@ -15,6 +15,7 @@
           返回术中影像
         </RouterLink>
         <AppButton
+          v-if="store.currentCase"
           variant="secondary"
           size="sm"
           icon="load"
@@ -76,14 +77,20 @@
                 <strong>CBCT 体数据</strong>
                 <small>DICOM、NIfTI</small>
               </div>
-              <AppButton size="sm" icon="folder" disabled data-requires-case="true" title="请先载入病例">选择文件</AppButton>
+              <span class="navigation-unavailable-state">
+                <AppIcon name="case" />
+                载入病例后可用
+              </span>
             </div>
             <div class="navigation-empty-workbench__import-row">
               <div>
                 <strong>表面模型</strong>
                 <small>STL、GLB</small>
               </div>
-              <AppButton size="sm" icon="folder" disabled data-requires-case="true" title="请先载入病例">选择文件</AppButton>
+              <span class="navigation-unavailable-state">
+                <AppIcon name="case" />
+                载入病例后可用
+              </span>
             </div>
             <p>导入前需关联病例，确保来源、方向和处理记录可追溯。</p>
           </template>
@@ -142,8 +149,10 @@
               <small>空间方向、模型来源和配准状态将在视口内持续显示。</small>
             </div>
             <footer>
-              <AppButton size="sm" icon="expand" disabled data-requires-case="true" title="请先载入病例">适应视图</AppButton>
-              <AppButton size="sm" icon="move" disabled data-requires-case="true" title="请先载入病例">自动旋转：关</AppButton>
+              <span class="navigation-unavailable-state">
+                <AppIcon name="case" />
+                载入病例后开放视图操作
+              </span>
             </footer>
           </template>
         </section>
@@ -174,7 +183,10 @@
               <li><span>分割或代理来源</span><strong>待记录</strong></li>
               <li><span>表面连通性</span><strong>待检查</strong></li>
             </ul>
-            <AppButton size="sm" icon="cube" block disabled data-requires-case="true" title="请先载入病例">生成检查表面</AppButton>
+            <span class="navigation-unavailable-state navigation-unavailable-state--block">
+              <AppIcon name="case" />
+              载入病例后生成检查表面
+            </span>
           </template>
         </section>
 
@@ -200,7 +212,10 @@
           </dl>
           <p>{{ reviewBoundaryText }}</p>
           <RouterLink v-if="store.currentCase" class="navigation-empty-workbench__review-link" :to="reviewRoute">进入医生复核</RouterLink>
-          <AppButton v-else size="sm" icon="check" block disabled data-requires-case="true" title="请先载入病例">提交医生复核</AppButton>
+          <span v-else class="navigation-unavailable-state navigation-unavailable-state--block">
+            <AppIcon name="case" />
+            载入病例后进入医生复核
+          </span>
         </section>
       </div>
     </section>
@@ -667,6 +682,30 @@ function numberFrom(value: unknown): number | null {
 
 .navigation-empty-workbench__import-row strong {
   font-size: 12px;
+}
+
+.navigation-unavailable-state {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 28px;
+  border-left: 2px solid var(--ov-border-strong);
+  padding: 4px 0 4px 8px;
+  color: var(--ov-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.navigation-unavailable-state > .app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.navigation-unavailable-state--block {
+  width: 100%;
 }
 
 .navigation-empty-workbench__import-row small,

@@ -182,7 +182,14 @@ const fluorescenceFilter = ref<VideoCandidateFluorescenceFilter>("all");
 const trainingFilter = ref<VideoCandidateTrainingFilter>("all");
 const previewingRecordId = ref("");
 const importingRecordId = ref("");
-const importedRecordIds = ref(new Set<string>());
+const importedRecordIds = computed(() => {
+  const recordIds = new Set<string>();
+  for (const asset of store.currentCase?.inputs ?? []) {
+    const recordId = asset.channel === "video" ? asset.metadata?.record_id : undefined;
+    if (typeof recordId === "string" && recordId.trim()) recordIds.add(recordId);
+  }
+  return recordIds;
+});
 const operationMessage = ref("");
 const pageSize = 12;
 const currentPage = ref(1);
@@ -278,7 +285,6 @@ async function importCandidate(recordId: string) {
   operationMessage.value = "";
   try {
     store.currentCase = await apiClient.importVideoCandidate(targetCaseId, recordId);
-    importedRecordIds.value = new Set([...importedRecordIds.value, recordId]);
     operationMessage.value = `视频已导入病例 ${targetCaseId}：${recordId}`;
   } catch (importError) {
     error.value = errorMessage(importError);
@@ -532,7 +538,7 @@ onMounted(() => {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .candidate-preview figcaption {

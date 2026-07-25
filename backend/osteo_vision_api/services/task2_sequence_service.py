@@ -64,9 +64,15 @@ def analyze_task2_paired_sequence(
             reference.fluorescence_input_id,
             InputChannel.FLUORESCENCE,
         )
+        device_overlay = (
+            _required_asset(assets, reference.device_overlay_input_id, InputChannel.DEVICE_OVERLAY)
+            if reference.device_overlay_input_id
+            else None
+        )
         record, fusion_report = _analyze_frame_pair(
             white,
             fluorescence,
+            device_overlay,
             reference=reference,
             manifest=manifest,
             session=session,
@@ -75,11 +81,16 @@ def analyze_task2_paired_sequence(
         records.append(record)
         latest_fusion_report = fusion_report
         latest_sources = {
+            "frame_index": reference.frame_index,
+            "white_timestamp_ms": reference.white_timestamp_ms,
+            "fluorescence_timestamp_ms": reference.fluorescence_timestamp_ms,
             "white_input_id": white.input_id,
             "fluorescence_input_id": fluorescence.input_id,
             "white_path": white.path,
             "fluorescence_path": fluorescence.path,
             "overlay_path": record["overlay_path"],
+            "device_overlay_path": device_overlay.path if device_overlay else None,
+            "device_overlay_difference_path": record.get("device_overlay_difference_path"),
         }
         artifacts.append(
             EvidenceArtifact(
@@ -234,6 +245,7 @@ def analyze_task2_paired_sequence(
 def _analyze_frame_pair(
     white: CaseInputAsset,
     fluorescence: CaseInputAsset,
+    device_overlay: CaseInputAsset | None,
     *,
     reference: Any,
     manifest: Task2PairedSequenceManifest,
@@ -289,8 +301,24 @@ def _analyze_frame_pair(
         prefer_gpu=manifest.prefer_gpu,
     )
     encode_started = perf_counter()
+    registered_path = frame_dir / f"frame_{reference.frame_index:06d}_registered_fluorescence.jpg"
+    normalized_path = frame_dir / f"frame_{reference.frame_index:06d}_normalized.jpg"
+    pseudocolor_path = frame_dir / f"frame_{reference.frame_index:06d}_pseudocolor.jpg"
     overlay_path = frame_dir / f"frame_{reference.frame_index:06d}_overlay.jpg"
+    registered_u8 = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
+    Image.fromarray(registered_u8).save(registered_path, quality=90, optimize=False)
+    Image.fromarray(np.clip(normalized * 255.0, 0, 255).astype(np.uint8)).save(
+        normalized_path,
+        quality=90,
+        optimize=False,
+    )
+    Image.fromarray(pseudo_color).save(pseudocolor_path, quality=90, optimize=False)
     Image.fromarray(overlay).save(overlay_path, quality=90, optimize=False)
+    device_comparison = _device_overlay_comparison(
+        device_overlay,
+        overlay,
+        frame_dir / f"frame_{reference.frame_index:06d}_device_overlay_difference.jpg",
+    )
     encode_ms = (perf_counter() - encode_started) * 1000.0
     registration_ms = float(registration.get("elapsed_ms") or 0.0)
     fusion_ms = float(acceleration.get("elapsed_ms") or 0.0)
@@ -327,8 +355,12 @@ def _analyze_frame_pair(
             "total_ms": round((perf_counter() - total_started) * 1000.0, 3),
         },
         "positive_area_fraction": round(float(np.mean(normalized >= manifest.threshold)), 6),
+        "registered_fluorescence_path": str(registered_path),
+        "normalized_path": str(normalized_path),
+        "pseudocolor_path": str(pseudocolor_path),
         "overlay_path": str(overlay_path),
         "overlay_sha256": checksum_for_file(overlay_path),
+        **device_comparison,
     }
     fusion_report = {
         "case_id": white.input_id,
@@ -345,6 +377,59 @@ def _analyze_frame_pair(
         },
     }
     return record, fusion_report
+
+
+def _device_overlay_comparison(
+    device_overlay: CaseInputAsset | None,
+    software_overlay: np.ndarray,
+    difference_path: Path,
+) -> dict[str, Any]:
+    if device_overlay is None:
+        return {
+            "device_overlay_path": None,
+            "device_overlay_difference_path": None,
+            "device_overlay_comparison": {"available": False, "reason": "device_overlay_not_provided"},
+        }
+    try:
+        import cv2
+
+        with Image.open(device_overlay.path) as image:
+            device_image = image.convert("RGB")
+            resized = device_image.size != (software_overlay.shape[1], software_overlay.shape[0])
+            if resized:
+                device_image = device_image.resize(
+                    (software_overlay.shape[1], software_overlay.shape[0]),
+                    Image.Resampling.BILINEAR,
+                )
+            device_array = np.asarray(device_image, dtype=np.uint8)
+        absolute_difference = np.mean(
+            np.abs(device_array.astype(np.float32) - software_overlay.astype(np.float32)),
+            axis=2,
+        )
+        difference_u8 = np.clip(absolute_difference * 3.0, 0, 255).astype(np.uint8)
+        heatmap_bgr = cv2.applyColorMap(difference_u8, cv2.COLORMAP_TURBO)
+        heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB)
+        Image.fromarray(heatmap_rgb).save(difference_path, quality=90, optimize=False)
+        return {
+            "device_overlay_path": device_overlay.path,
+            "device_overlay_difference_path": str(difference_path),
+            "device_overlay_comparison": {
+                "available": True,
+                "resized_to_software_overlay": resized,
+                "mean_absolute_difference": round(float(np.mean(absolute_difference)), 6),
+                "p95_absolute_difference": round(float(np.percentile(absolute_difference, 95)), 6),
+            },
+        }
+    except (OSError, ValueError) as exc:
+        return {
+            "device_overlay_path": device_overlay.path,
+            "device_overlay_difference_path": None,
+            "device_overlay_comparison": {
+                "available": False,
+                "reason": "device_overlay_decode_failed",
+                "error": str(exc),
+            },
+        }
 
 
 def _required_asset(

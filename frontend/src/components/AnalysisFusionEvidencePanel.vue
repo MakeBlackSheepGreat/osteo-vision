@@ -127,7 +127,7 @@ defineProps<{
 .fusion-colorbar img {
   width: 100%;
   height: 32px;
-  object-fit: fill;
+  object-fit: contain;
   border-radius: 3px;
   background: var(--ov-bg-media);
 }

@@ -17,6 +17,63 @@ from backend.osteo_vision_api.services.static_registration_service import (
 NavigationRunner = Callable[..., dict[str, Any]]
 
 
+def test_cbct_modeling_job_exposes_detailed_progress_before_case_persistence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    jobs = JobRegistry(tmp_path / "jobs.json")
+    job = jobs.create(kind="cbct_surface_modeling", payload={"case_id": "case_progress"})
+    observed_progress: list[dict[str, Any]] = []
+
+    def build_with_progress(**kwargs: Any) -> dict[str, Any]:
+        reporter = kwargs["progress_reporter"]
+        reporter(
+            "extract_surface",
+            62,
+            "正在从标签体提取三维表面网格。",
+            {"current_file": "case_progress_label.nii.gz"},
+        )
+        observed_progress.append((jobs.get(job["job_id"]) or {})["progress"])
+        return {
+            "modeling_status": "completed",
+            "model_path": "case_progress.stl",
+            "three_d_evidence": {"model_path": "case_progress.stl"},
+        }
+
+    monkeypatch.setattr(job_tasks, "build_cbct_surface_model", build_with_progress)
+    monkeypatch.setattr(
+        job_tasks,
+        "persist_three_d_modeling_result",
+        lambda _repo, *, case_id, job_id, result: {
+            **result,
+            "case_persistence": {"status": "persisted", "case_id": case_id, "job_id": job_id},
+        },
+    )
+
+    result = job_tasks.run_cbct_surface_modeling_job(
+        jobs,
+        job["job_id"],
+        object(),
+        Path("case_progress.nii.gz"),
+        label_value=1,
+        case_id="case_progress",
+        dataset_id="unit",
+        decimation_step=1,
+        source_original_filename="case_progress.nii.gz",
+    )
+
+    assert observed_progress == [
+        {
+            "phase": "extract_surface",
+            "percent": 62,
+            "message": "正在从标签体提取三维表面网格。",
+            "details": {"current_file": "case_progress_label.nii.gz"},
+        }
+    ]
+    assert result["status"] == "completed"
+    assert jobs.get(job["job_id"])["progress"]["percent"] == 100  # type: ignore[index]
+
+
 @pytest.mark.parametrize(
     (
         "kind",

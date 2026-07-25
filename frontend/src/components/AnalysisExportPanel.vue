@@ -28,7 +28,7 @@
         <strong>证据文件共 {{ artifactEntries.length }} 项</strong>
         <span>{{ artifactTypeSummary }}</span>
       </div>
-      <a class="export-report-link" href="/report">查看完整文件清单</a>
+      <a class="export-report-link" :href="reportHref">查看完整文件清单</a>
     </div>
     <p class="export-path export-path--inline ov-breakable">{{ exportPath }}</p>
   </div>
@@ -45,6 +45,7 @@ const props = defineProps<{
   exportLinks: Array<{ label: string; path: string; href: string }>;
   exportSummary: Record<string, unknown>;
   artifactEntries: Array<{ kind: string; path: string; size_bytes?: number | null }>;
+  caseId?: string;
 }>();
 
 // 导出摘要属于报告展示细节，独立出来后主工作台不用关心字段命名和大小格式化。
@@ -66,6 +67,10 @@ const exportSummaryItems = computed(() => {
 const artifactTypeSummary = computed(() =>
   Array.from(new Set(props.artifactEntries.map((entry) => artifactKindLabel(entry.kind)))).join("、"),
 );
+const reportHref = computed(() => {
+  const caseId = props.caseId?.trim();
+  return caseId ? `/report?caseId=${encodeURIComponent(caseId)}` : "/report";
+});
 </script>
 
 <style scoped>

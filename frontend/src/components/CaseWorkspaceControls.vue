@@ -2,7 +2,28 @@
   <aside class="left-sidebar" aria-label="官方输入与分析控制">
     <section class="control-card">
       <SectionHeading icon="upload" title="官方设备输入" />
-      <div class="input-mode-tabs" role="tablist" aria-label="输入类型">
+      <div class="input-source-tabs" role="tablist" aria-label="视频输入来源">
+        <button
+          type="button"
+          :class="{ active: videoInputSource === 'file' }"
+          role="tab"
+          :aria-selected="videoInputSource === 'file'"
+          @click="emit('update:videoInputSource', 'file')"
+        >
+          文件输入
+        </button>
+        <button
+          type="button"
+          :class="{ active: videoInputSource === 'camera' }"
+          role="tab"
+          :aria-selected="videoInputSource === 'camera'"
+          @click="emit('update:videoInputSource', 'camera')"
+        >
+          浏览器摄像头
+        </button>
+      </div>
+
+      <div v-show="videoInputSource === 'file'" class="input-mode-tabs" role="tablist" aria-label="输入类型">
         <button
           type="button"
           :class="{ active: inputMode === 'video' }"
@@ -23,47 +44,125 @@
         </button>
       </div>
 
-      <div v-if="inputMode === 'video'" class="input-mode-panel" role="tabpanel">
+      <div v-if="videoInputSource === 'file' && inputMode === 'video'" class="input-mode-panel" role="tabpanel">
         <div class="input-mode-heading">
           <strong>术中 MP4 视频</strong>
-          <span>{{ videoReady ? "已导入病例" : "待选择文件" }}</span>
+          <span>{{ multichannelSession ? "同步会话已准备" : videoReady ? "已导入病例" : "待选择文件" }}</span>
         </div>
-        <AppButton
-          class="input-picker-action"
-          variant="primary"
-          size="sm"
-          icon="folder"
-          block
-          :disabled="loading || !hasCase || isUploadingVideo"
-          :title="videoActionHint"
-          @click="openFilePicker('video')"
-        >
-          {{ isUploadingVideo ? "正在导入 MP4" : videoPath ? "更换 MP4 视频" : "选择 MP4 视频" }}
-        </AppButton>
-        <p class="selected-input-path">{{ videoPath || "尚未选择 MP4 文件" }}</p>
-        <label class="field compact-field">
-          <span>重点复核时间点（秒，可选）</span>
-          <input
-            :value="videoTimepoints"
-            type="text"
-            inputmode="decimal"
-            placeholder="例如 0, 1.5, 3.0"
-            @input="emit('update:videoTimepoints', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
-        <AppButton
-          variant="primary"
-          size="sm"
-          icon="play"
-          block
-          :disabled="loading || analysisJobPolling || !hasCase || !videoReady"
-          :title="videoActionHint"
-          @click="emit('runVideoFileAnalysis')"
-        >
-          启动离线关键帧分析
-        </AppButton>
-        <details class="video-example-details">
-          <summary>导入公开视频示例</summary>
+        <div class="video-mode-tabs" role="tablist" aria-label="MP4 视频模式">
+          <button
+            v-for="mode in videoModes"
+            :key="mode.value"
+            type="button"
+            role="tab"
+            :class="{ active: videoMode === mode.value }"
+            :aria-selected="videoMode === mode.value"
+            @click="emit('update:videoMode', mode.value)"
+          >
+            {{ mode.label }}
+          </button>
+        </div>
+
+        <template v-if="videoMode === 'single_video'">
+          <div class="single-video-workspace">
+            <div class="single-video-actions">
+              <AppButton
+                class="input-picker-action"
+                variant="secondary"
+                size="sm"
+                icon="folder"
+                block
+                :disabled="loading || !hasCase || isUploadingVideo"
+                :title="videoActionHint"
+                @click="openFilePicker('video')"
+              >
+                {{ isUploadingVideo ? "正在导入 MP4" : videoPath ? "更换 MP4 视频" : "选择 MP4 视频" }}
+              </AppButton>
+              <AppButton
+                variant="primary"
+                size="sm"
+                icon="play"
+                block
+                :disabled="loading || analysisJobPolling || !hasCase || !videoReady"
+                :title="videoActionHint"
+                @click="emit('runVideoFileAnalysis')"
+              >
+                启动离线关键帧分析
+              </AppButton>
+            </div>
+            <div class="selected-input-path" :title="videoPath || '尚未选择 MP4 文件'">
+              <span>当前视频</span>
+              <strong>{{ shortInputPath(videoPath) }}</strong>
+            </div>
+            <label class="field compact-field single-video-timepoints">
+              <span>重点复核时间点（秒，可选）</span>
+              <input
+                :value="videoTimepoints"
+                type="text"
+                inputmode="decimal"
+                placeholder="例如 0, 1.5, 3.0"
+                @input="emit('update:videoTimepoints', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+          </div>
+          <details class="video-example-details">
+            <summary>导入公开视频示例</summary>
+            <VideoCandidateSelectorPanel
+              :loading="loading"
+              :has-case="hasCase"
+              :is-loading-video-candidates="isLoadingVideoCandidates"
+              :is-loading-video-preview="isLoadingVideoPreview"
+              :selected-video-candidate-id="selectedVideoCandidateId"
+              :selected-video-candidate-preview-src="selectedVideoCandidatePreviewSrc"
+              :video-candidates="videoCandidates"
+              @load-video-candidates="emit('loadVideoCandidates')"
+              @select-video-candidate="emit('selectVideoCandidate', $event)"
+              @import-video-candidate="emit('importVideoCandidate')"
+            />
+          </details>
+        </template>
+
+        <template v-else-if="videoMode === 'paired_videos'">
+          <div class="multichannel-file-actions">
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="folder"
+              :disabled="loading || !hasCase || isUploadingVideo"
+              @click="openFilePicker('video_white_light')"
+            >
+              {{ multichannelWhitePath ? "更换白光 MP4" : "选择白光 MP4" }}
+            </AppButton>
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="folder"
+              :disabled="loading || !hasCase || isUploadingVideo"
+              @click="openFilePicker('video_fluorescence')"
+            >
+              {{ multichannelFluorescencePath ? "更换荧光 MP4" : "选择荧光 MP4" }}
+            </AppButton>
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="folder"
+              :disabled="loading || !hasCase || isUploadingVideo"
+              @click="openFilePicker('video_device_overlay')"
+            >
+              {{ multichannelDeviceOverlayPath ? "更换设备叠加 MP4" : "可选设备叠加 MP4" }}
+            </AppButton>
+          </div>
+          <dl class="image-pair-status">
+            <div><dt>白光</dt><dd>{{ shortInputPath(multichannelWhitePath) }}</dd></div>
+            <div><dt>荧光</dt><dd>{{ shortInputPath(multichannelFluorescencePath) }}</dd></div>
+            <div><dt>设备叠加</dt><dd>{{ shortInputPath(multichannelDeviceOverlayPath) }}</dd></div>
+          </dl>
+        </template>
+
+        <template v-else>
+          <p class="multichannel-boundary">
+            OFDVDnet 为公开非目标域荧光手术代理，三视图将受控拆分为白光、荧光和设备叠加视频。
+          </p>
           <VideoCandidateSelectorPanel
             :loading="loading"
             :has-case="hasCase"
@@ -71,15 +170,78 @@
             :is-loading-video-preview="isLoadingVideoPreview"
             :selected-video-candidate-id="selectedVideoCandidateId"
             :selected-video-candidate-preview-src="selectedVideoCandidatePreviewSrc"
-            :video-candidates="videoCandidates"
+            :video-candidates="compositeVideoCandidates"
             @load-video-candidates="emit('loadVideoCandidates')"
             @select-video-candidate="emit('selectVideoCandidate', $event)"
             @import-video-candidate="emit('importVideoCandidate')"
           />
-        </details>
+        </template>
+
+        <template v-if="videoMode !== 'single_video'">
+          <label class="field compact-field">
+            <span>重点复核时间点（秒，可选）</span>
+            <input
+              :value="videoTimepoints"
+              type="text"
+              inputmode="decimal"
+              placeholder="例如 0, 1.5, 3.0"
+              @input="emit('update:videoTimepoints', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <div class="offset-grid">
+            <label class="field compact-field">
+              <span>荧光偏移（ms）</span>
+              <input
+                :value="fluorescenceOffsetMs"
+                type="number"
+                step="1"
+                @input="emit('update:fluorescenceOffsetMs', Number(($event.target as HTMLInputElement).value))"
+              />
+            </label>
+            <label class="field compact-field">
+              <span>设备叠加偏移（ms）</span>
+              <input
+                :value="deviceOverlayOffsetMs"
+                type="number"
+                step="1"
+                :disabled="!multichannelDeviceOverlayPath && videoMode !== 'composite_layout'"
+                @input="emit('update:deviceOverlayOffsetMs', Number(($event.target as HTMLInputElement).value))"
+              />
+            </label>
+          </div>
+          <AppButton variant="ghost" size="sm" icon="load" block @click="emit('resetMultichannelOffsets')">
+            复位自动偏移
+          </AppButton>
+          <dl v-if="multichannelSession" class="multichannel-session-status">
+            <div><dt>同步状态</dt><dd>{{ synchronizationStatusLabel }}</dd></div>
+            <div><dt>共同区间</dt><dd>{{ commonIntervalLabel }}</dd></div>
+            <div><dt>起始时间差</dt><dd>{{ initialDeltaLabel }}</dd></div>
+            <div><dt>配准可用</dt><dd>{{ multichannelSession.analysis_allowed ? "可运行" : "不可运行" }}</dd></div>
+          </dl>
+          <AppButton
+            variant="secondary"
+            size="sm"
+            icon="layers"
+            block
+            :disabled="multichannelPrepareDisabled"
+            @click="emit('prepareMultichannelSession')"
+          >
+            {{ multichannelPreparing ? "正在准备同步预览" : "准备同步预览" }}
+          </AppButton>
+          <AppButton
+            variant="primary"
+            size="sm"
+            icon="play"
+            block
+            :disabled="loading || analysisJobPolling || !multichannelSession?.analysis_allowed"
+            @click="emit('runMultichannelAnalysis')"
+          >
+            运行双通道融合分析
+          </AppButton>
+        </template>
       </div>
 
-      <div v-else class="input-mode-panel" role="tabpanel">
+      <div v-else-if="videoInputSource === 'file'" class="input-mode-panel" role="tabpanel">
         <div class="input-mode-heading">
           <strong>白光与 ICG JPEG 图像对</strong>
           <span>{{ imagePairReady ? "已导入病例" : "待选择图像" }}</span>
@@ -182,15 +344,40 @@
       />
       <input
         ref="videoFileInput"
+        data-testid="single-video-file-input"
         class="hidden-file-input"
         type="file"
         accept="video/mp4,.mp4"
         @change="emit('filePicked', 'video', $event)"
       />
+      <input
+        ref="whiteVideoFileInput"
+        data-testid="white-light-video-file-input"
+        class="hidden-file-input"
+        type="file"
+        accept="video/mp4,.mp4"
+        @change="emit('filePicked', 'video_white_light', $event)"
+      />
+      <input
+        ref="fluorescenceVideoFileInput"
+        data-testid="fluorescence-video-file-input"
+        class="hidden-file-input"
+        type="file"
+        accept="video/mp4,.mp4"
+        @change="emit('filePicked', 'video_fluorescence', $event)"
+      />
+      <input
+        ref="deviceOverlayVideoFileInput"
+        data-testid="device-overlay-video-file-input"
+        class="hidden-file-input"
+        type="file"
+        accept="video/mp4,.mp4"
+        @change="emit('filePicked', 'video_device_overlay', $event)"
+      />
     </section>
 
-    <section class="control-card live-stream-control-card">
-      <SectionHeading icon="camera" icon-tone="cyan" title="实时视频流控制" />
+    <section v-if="videoInputSource === 'camera'" class="control-card live-stream-control-card">
+      <SectionHeading icon="camera" icon-tone="cyan" title="单路浏览器摄像头" />
       <div class="camera-control-status" aria-live="polite">
         <strong>{{ cameraActive ? "摄像头已连接" : "摄像头未连接" }}</strong>
         <span>{{ cameraStatusLabel }}</span>
@@ -207,7 +394,7 @@
         >
           {{ cameraOpening ? "请求摄像头权限中" : "开启摄像头" }}
         </AppButton>
-        <template v-if="cameraActive && !fileVideoActive">
+        <template v-if="cameraActive">
           <AppButton
             variant="ghost"
             size="sm"
@@ -270,25 +457,6 @@
           </AppButton>
           <p class="camera-control-note">{{ cameraContinuousAnalysisStatus }}</p>
         </template>
-        <template v-else-if="cameraActive && fileVideoActive">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            icon="close"
-            block
-            @click="emit('stopCamera')"
-          >
-            关闭摄像头
-          </AppButton>
-          <p class="camera-control-note">
-            {{ videoRealtimeAnalysisStatus || "MP4 播放后将自动启动逐帧实时分割。" }}
-          </p>
-        </template>
-        <template v-else-if="fileVideoActive">
-          <p class="camera-control-note">
-            {{ videoRealtimeAnalysisStatus || "MP4 播放后将自动启动逐帧实时分割。" }}
-          </p>
-        </template>
         <p v-else class="camera-control-note">连接摄像头后可抓取关键帧或启动连续实时分割。</p>
       </div>
     </section>
@@ -334,16 +502,21 @@ import { computed, ref } from "vue";
 import AppButton from "@/components/AppButton.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import VideoCandidateSelectorPanel from "@/components/VideoCandidateSelectorPanel.vue";
-import type { VideoCandidate } from "@/types/case";
+import type { MultichannelVideoMode, MultichannelVideoSession, VideoCandidate } from "@/types/case";
 
 type ImageChannel = "white_light" | "fluorescence" | "device_overlay";
-type UploadChannel = ImageChannel | "video";
+type UploadChannel = ImageChannel | "video" | "video_white_light" | "video_fluorescence" | "video_device_overlay";
 type Colormap = "green" | "amber" | "magenta";
 type InputMode = "video" | "images";
+type VideoInputSource = "file" | "camera";
 
 const emit = defineEmits<{
+  "update:videoInputSource": [value: VideoInputSource];
   "update:inputMode": [value: InputMode];
+  "update:videoMode": [value: MultichannelVideoMode];
   "update:videoTimepoints": [value: string];
+  "update:fluorescenceOffsetMs": [value: number];
+  "update:deviceOverlayOffsetMs": [value: number];
   "update:alpha": [value: number];
   "update:threshold": [value: number];
   "update:colormap": [value: Colormap];
@@ -353,6 +526,9 @@ const emit = defineEmits<{
   importVideoCandidate: [];
   runAnalysis: [];
   runVideoFileAnalysis: [];
+  prepareMultichannelSession: [];
+  runMultichannelAnalysis: [];
+  resetMultichannelOffsets: [];
   startCamera: [];
   stopCamera: [];
   captureCameraFrame: [];
@@ -363,11 +539,20 @@ const emit = defineEmits<{
 }>();
 
 const props = withDefaults(defineProps<{
+  videoInputSource?: VideoInputSource;
   inputMode: InputMode;
+  videoMode?: MultichannelVideoMode;
   whiteLightPath: string;
   fluorescencePath: string;
   deviceOverlayPath?: string;
   videoPath: string;
+  multichannelWhitePath?: string;
+  multichannelFluorescencePath?: string;
+  multichannelDeviceOverlayPath?: string;
+  multichannelSession?: MultichannelVideoSession | null;
+  multichannelPreparing?: boolean;
+  fluorescenceOffsetMs?: number | null;
+  deviceOverlayOffsetMs?: number | null;
   videoTimepoints: string;
   alpha: number;
   threshold: number;
@@ -399,15 +584,60 @@ const props = withDefaults(defineProps<{
   cameraAnalysisIntervalSec: number;
   cameraContinuousAnalysisStatus: string;
   cameraStatusLabel: string;
-  fileVideoActive: boolean;
-  videoRealtimeAnalysisStatus?: string;
   liveSessionReady: boolean;
-}>(), { deviceOverlayPath: "", isUploadingDeviceOverlay: false });
+}>(), {
+  deviceOverlayPath: "",
+  isUploadingDeviceOverlay: false,
+  multichannelWhitePath: "",
+  multichannelFluorescencePath: "",
+  multichannelDeviceOverlayPath: "",
+  multichannelSession: null,
+  multichannelPreparing: false,
+  fluorescenceOffsetMs: 0,
+  deviceOverlayOffsetMs: 0,
+  videoMode: "single_video",
+  videoInputSource: "file",
+});
 
 const whiteLightFileInput = ref<HTMLInputElement | null>(null);
 const fluorescenceFileInput = ref<HTMLInputElement | null>(null);
 const deviceOverlayFileInput = ref<HTMLInputElement | null>(null);
 const videoFileInput = ref<HTMLInputElement | null>(null);
+const whiteVideoFileInput = ref<HTMLInputElement | null>(null);
+const fluorescenceVideoFileInput = ref<HTMLInputElement | null>(null);
+const deviceOverlayVideoFileInput = ref<HTMLInputElement | null>(null);
+const videoModes: Array<{ value: MultichannelVideoMode; label: string }> = [
+  { value: "single_video", label: "单路视频" },
+  { value: "paired_videos", label: "双通道视频" },
+  { value: "composite_layout", label: "合成三视图" },
+];
+const compositeVideoCandidates = computed(() =>
+  props.videoCandidates.filter((candidate) => candidate.composite_layout_available),
+);
+const multichannelPrepareDisabled = computed(() => {
+  if (props.loading || props.multichannelPreparing || !props.hasCase || props.isUploadingVideo) return true;
+  if (props.videoMode === "paired_videos") {
+    return !props.multichannelWhitePath || !props.multichannelFluorescencePath;
+  }
+  return !props.selectedVideoCandidateId || !compositeVideoCandidates.value.some(
+    (candidate) => candidate.record_id === props.selectedVideoCandidateId,
+  );
+});
+const synchronizationStatusLabel = computed(() => {
+  if (!props.multichannelSession) return "未准备";
+  if (props.multichannelSession.synchronization_status === "aligned") return "已对齐";
+  if (props.multichannelSession.synchronization_status === "review_required") return "需要复核";
+  return "不可用";
+});
+const commonIntervalLabel = computed(() => {
+  const session = props.multichannelSession;
+  if (!session || session.common_start_sec == null || session.common_end_sec == null) return "未计算";
+  return `${session.common_start_sec.toFixed(2)}–${session.common_end_sec.toFixed(2)} s`;
+});
+const initialDeltaLabel = computed(() => {
+  const value = props.multichannelSession?.initial_time_delta_ms;
+  return typeof value === "number" ? `${value.toFixed(2)} ms` : "未计算";
+});
 const imageActionHint = computed(() => {
   if (!props.hasCase) return "请先在“病例档案”中新建或加载病例。";
   if (!props.whiteLightPath || !props.fluorescencePath) return "请依次选择白光 JPEG 与 ICG 荧光 JPEG。";
@@ -462,6 +692,18 @@ function openFilePicker(channel: UploadChannel) {
   }
   if (channel === "device_overlay") {
     deviceOverlayFileInput.value?.click();
+    return;
+  }
+  if (channel === "video_white_light") {
+    whiteVideoFileInput.value?.click();
+    return;
+  }
+  if (channel === "video_fluorescence") {
+    fluorescenceVideoFileInput.value?.click();
+    return;
+  }
+  if (channel === "video_device_overlay") {
+    deviceOverlayVideoFileInput.value?.click();
     return;
   }
   videoFileInput.value?.click();
@@ -526,6 +768,7 @@ function shortInputPath(path: string): string {
   display: none;
 }
 
+.input-source-tabs,
 .input-mode-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -533,6 +776,7 @@ function shortInputPath(path: string): string {
   margin-bottom: 10px;
 }
 
+.input-source-tabs button,
 .input-mode-tabs button {
   min-height: 34px;
   border: 1px solid var(--ov-border-strong);
@@ -545,16 +789,114 @@ function shortInputPath(path: string): string {
   cursor: pointer;
 }
 
+.input-source-tabs button.active,
 .input-mode-tabs button.active {
   border-color: var(--ov-border-accent);
   background: var(--ov-bg-info);
   color: var(--ov-primary);
 }
 
+.input-source-tabs button:focus-visible,
 .input-mode-tabs button:focus-visible,
+.video-mode-tabs button:focus-visible,
 .video-example-details summary:focus-visible {
   outline: 2px solid var(--ov-border-accent);
   outline-offset: 2px;
+}
+
+.video-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--ov-border);
+  border-radius: 5px;
+  padding: 4px;
+  background: var(--ov-bg-soft);
+}
+
+.video-mode-tabs button {
+  min-width: 0;
+  min-height: 36px;
+  border: 0;
+  border-radius: 3px;
+  padding: 5px 6px;
+  background: transparent;
+  color: var(--ov-text-secondary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.3;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.video-mode-tabs button.active {
+  background: var(--ov-primary);
+  color: var(--ov-text-on-primary);
+  box-shadow: none;
+}
+
+.multichannel-file-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.multichannel-file-actions :deep(.app-button) {
+  min-height: 44px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.offset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.multichannel-boundary {
+  margin: 0;
+  border-left: 3px solid var(--ov-warning);
+  padding: 7px 9px;
+  background: var(--ov-bg-warning);
+  color: var(--ov-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.multichannel-session-status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ov-border);
+  border-radius: 5px;
+  background: var(--ov-border);
+}
+
+.multichannel-session-status div {
+  min-width: 0;
+  padding: 6px 7px;
+  background: var(--ov-bg-soft);
+}
+
+.multichannel-session-status dt,
+.multichannel-session-status dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.multichannel-session-status dt {
+  color: var(--ov-text-muted);
+  font-size: 10px;
+}
+
+.multichannel-session-status dd {
+  margin-top: 2px;
+  color: var(--ov-text);
+  font-size: 11px;
+  font-weight: 750;
 }
 
 .input-mode-panel {
@@ -587,17 +929,67 @@ function shortInputPath(path: string): string {
   justify-content: flex-start;
 }
 
+.single-video-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 0.78fr);
+  gap: 7px;
+  align-items: end;
+}
+
+.single-video-actions {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.single-video-actions :deep(.app-button) {
+  min-width: 0;
+  min-height: 38px;
+  justify-content: center;
+  padding-right: 7px;
+  padding-left: 7px;
+  text-align: center;
+}
+
 .selected-input-path {
-  min-height: 33px;
-  margin: -2px 0 0;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 36px;
+  margin: 0;
   border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
-  padding: 7px 8px;
+  padding: 6px 8px;
   background: var(--ov-bg-soft);
   color: var(--ov-text-secondary);
-  font-size: 11px;
   line-height: 1.35;
+}
+
+.selected-input-path span {
+  color: var(--ov-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.selected-input-path strong {
+  min-width: 0;
+  color: var(--ov-text-secondary);
+  font-size: 11px;
   overflow-wrap: anywhere;
+}
+
+.single-video-timepoints {
+  min-width: 0;
+}
+
+.single-video-timepoints span {
+  font-size: 10px;
+}
+
+.single-video-timepoints input {
+  min-height: 36px;
+  font-size: 11px;
 }
 
 .image-pair-actions {

@@ -1,6 +1,6 @@
 # Backend Optimization Ledger
 
-更新时间：2026-07-25
+更新时间：2026-07-26
 
 本文件记录项目后端生产代码、共享分析核心、应用入口和后端测试代码清单，并维护后端性能/健壮性优化台账。清单只收录源码与测试 `.py` 文件，不收录 `artifacts/`、`output/`、缓存和生成目录。
 
@@ -15,10 +15,10 @@
 
 | 范围 | 文件数 | 总行数 | 最新文件 | 最新写入 |
 |---|---:|---:|---|---|
-| 生产 API 与服务层 | 81 | 27889 | `backend/osteo_vision_api/reports/platform_report.py` | 2026-07-25 14:18:23 |
-| 共享分析核心（由后端调用） | 116 | 23525 | `osteo_vision_core/models/lesion_boundary.py` | 2026-07-25 10:26:38 |
+| 生产 API 与服务层 | 85 | 27080 | `backend/osteo_vision_api/services/multichannel_video_service.py` | 2026-07-26 02:27:43 |
+| 共享分析核心（由后端调用） | 116 | 20985 | `osteo_vision_core/models/lesion_boundary.py` | 2026-07-25 10:26:38 |
 | 应用启动与兼容入口 | 4 | 210 | `app/main.py` | 2026-07-23 13:47:25 |
-| 后端测试 | 46 | 13900 | `backend/tests/unit/test_platform_report.py` | 2026-07-25 14:18:23 |
+| 后端测试 | 50 | 12978 | `backend/tests/contract/test_multichannel_video_api.py` | 2026-07-26 02:27:43 |
 
 ## 生产 API 与服务层
 
@@ -35,11 +35,13 @@
 - `backend/osteo_vision_api/api/inputs.py` （20 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/live_frames.py` （224 行，最近写入 2026-07-24 19:06:27）
 - `backend/osteo_vision_api/api/manual_annotations.py` （263 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/api/multichannel_videos.py` （45 行，最近写入 2026-07-25 22:22:50）
 - `backend/osteo_vision_api/api/promotion_approvals.py` （155 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/regions.py` （86 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/review_events.py` （37 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/review_identity.py` （110 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/routes.py` （174 行，最近写入 2026-07-25 00:17:05）
+- `backend/osteo_vision_api/api/standard_demo_case.py` （10 行，最近写入 2026-07-25 21:37:00）
 - `backend/osteo_vision_api/api/three_d_modeling.py` （427 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/three_d_runtime.py` （70 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/api/upload_processing.py` （273 行，最近写入 2026-07-23 13:47:25）
@@ -69,21 +71,22 @@
 - `backend/osteo_vision_api/services/active_review_queue.py` （726 行，最近写入 2026-07-19 07:55:30）
 - `backend/osteo_vision_api/services/analysis_outputs.py` （451 行，最近写入 2026-07-25 03:25:38）
 - `backend/osteo_vision_api/services/analysis_service.py` （2306 行，最近写入 2026-07-25 03:19:13）
-- `backend/osteo_vision_api/services/cbct_modeling_service.py` （1653 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/services/cbct_modeling_service.py` （1786 行，最近写入 2026-07-26 02:09:18）
 - `backend/osteo_vision_api/services/clinical_context_assessment.py` （375 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/export_bundle.py` （241 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/export_core_files.py` （400 行，最近写入 2026-07-25 03:30:48）
 - `backend/osteo_vision_api/services/export_service.py` （141 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/hospital_intake_service.py` （766 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/input_service.py` （196 行，最近写入 2026-07-23 13:47:25）
-- `backend/osteo_vision_api/services/job_service.py` （288 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/services/job_service.py` （298 行，最近写入 2026-07-26 02:10:42）
 - `backend/osteo_vision_api/services/job_state.py` （39 行，最近写入 2026-07-06 19:45:58）
-- `backend/osteo_vision_api/services/job_tasks.py` （320 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/services/job_tasks.py` （364 行，最近写入 2026-07-26 02:09:18）
 - `backend/osteo_vision_api/services/job_worker.py` （159 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/keyframe_report_loader.py` （117 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/keyframe_segmentation.py` （371 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/live_frame_service.py` （941 行，最近写入 2026-07-24 19:11:53）
 - `backend/osteo_vision_api/services/manual_annotation_service.py` （1409 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/services/multichannel_video_service.py` （812 行，最近写入 2026-07-26 02:27:43）
 - `backend/osteo_vision_api/services/offline_pose_replay_service.py` （2363 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/patient_conditioning_gate.py` （252 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/promotion_approval_service.py` （524 行，最近写入 2026-07-23 13:47:25）
@@ -93,6 +96,7 @@
 - `backend/osteo_vision_api/services/roi_service.py` （25 行，最近写入 2026-06-16 00:49:13）
 - `backend/osteo_vision_api/services/static_dataset_review.py` （858 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/static_registration_service.py` （1294 行，最近写入 2026-07-23 13:47:25）
+- `backend/osteo_vision_api/services/standard_demo_case.py` （191 行，最近写入 2026-07-26 01:11:41）
 - `backend/osteo_vision_api/services/task2_sequence_service.py` （582 行，最近写入 2026-07-25 10:26:38）
 - `backend/osteo_vision_api/services/three_d_case_evidence.py` （268 行，最近写入 2026-07-23 13:47:25）
 - `backend/osteo_vision_api/services/three_d_evidence.py` （978 行，最近写入 2026-07-23 13:47:25）
@@ -240,9 +244,11 @@
 - `backend/tests/contract/test_hospital_intake_api.py` （479 行，最近写入 2026-07-23 13:47:25）
 - `backend/tests/contract/test_live_frames_api.py` （850 行，最近写入 2026-07-24 19:11:53）
 - `backend/tests/contract/test_manual_annotations_api.py` （515 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/contract/test_multichannel_video_api.py` （292 行，最近写入 2026-07-26 02:27:43）
 - `backend/tests/contract/test_offline_pose_replay_api.py` （1269 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/contract/test_promotion_approvals_api.py` （338 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/contract/test_review_api.py` （308 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/contract/test_standard_demo_case_api.py` （78 行，最近写入 2026-07-26 01:11:33）
 - `backend/tests/contract/test_runtime_readiness_api.py` （70 行，最近写入 2026-07-25 00:16:47）
 - `backend/tests/contract/test_three_d_registration_api.py` （730 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/contract/test_three_d_runtime_api.py` （362 行，最近写入 2026-07-23 13:47:26）
@@ -254,11 +260,11 @@
 - `backend/tests/unit/test_cbct_modeling_service.py` （463 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_clinical_context_assessment.py` （220 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_export_service.py` （515 行，最近写入 2026-07-23 13:47:26）
-- `backend/tests/unit/test_job_service.py` （241 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/unit/test_job_service.py` （268 行，最近写入 2026-07-26 02:10:53）
 - `backend/tests/unit/test_job_worker.py` （191 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_lesion_boundary.py` （190 行，最近写入 2026-07-25 10:26:38）
 - `backend/tests/unit/test_manual_annotation_service.py` （312 行，最近写入 2026-07-23 13:47:26）
-- `backend/tests/unit/test_navigation_job_lifecycle.py` （167 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/unit/test_navigation_job_lifecycle.py` （224 行，最近写入 2026-07-26 02:00:43）
 - `backend/tests/unit/test_offline_pose_replay_service.py` （132 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_patient_conditioning_analysis.py` （421 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_platform_report.py` （40 行，最近写入 2026-07-25 14:18:23）
@@ -276,6 +282,7 @@
 - `backend/tests/unit/test_three_d_evidence_service.py` （286 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_video_dynamic_quantification.py` （272 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_video_keyframe_metrics.py` （48 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/unit/test_video_hotspot_outputs.py` （91 行，最近写入 2026-07-26 01:58:05）
 - `backend/tests/unit/test_video_library_service.py` （98 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_video_signal_segmentation_contract.py` （255 行，最近写入 2026-07-23 13:47:26）
 
@@ -283,6 +290,10 @@
 
 | 日期 | 文件 | 优化内容 | 验证证据 | 状态 |
 |---|---|---|---|---|
+| 2026-07-26 | `backend/osteo_vision_api/services/multichannel_video_service.py` | 合成三视图拆分由每通道独立 FFmpeg 进程改为单进程 `split`/多路 `crop`；采样时间改为无 NumPy 的有限值安全实现；会话 ID 严格校验；会话 JSON 采用临时文件、`fsync` 与原子替换写入；缓存读取减少预检查 | `test_multichannel_video_api.py` 12 项通过；`test_analysis_service.py` 21 项通过；服务与相关 API 的 mypy、Ruff、Black、isort 通过 | 已完成 |
+| 2026-07-26 | `backend/osteo_vision_api/services/analysis_service.py` | 补回 Task3 融合计时路径所需的 `perf_counter` 导入，恢复运行时计时与类型检查 | 分析服务 21 项单元测试、mypy 与 Ruff 通过 | 已完成 |
+| 2026-07-26 | `backend/osteo_vision_api/services/cbct_modeling_service.py`、`job_tasks.py`、`job_service.py` | 三维建模任务增加输入检查、标签查找、体数据读取、掩膜清理、表面提取、STL 写入、证据整理和病例持久化阶段进度；每阶段记录百分比、当前文件和病例；取消任务后跳过病例持久化；失败任务保留失败前进度 | 新增导航任务进度与终态详情保留单元测试；CBCT 建模、任务服务和导航生命周期 34 项测试通过；三维建模 API 契约所在文件 24 项测试通过；Ruff、前端 239 项测试、typecheck、生产构建和 1440/1024 桌面浏览器检查通过 | 已完成 |
+| 2026-07-26 | `backend/osteo_vision_api/services/video_hotspot_outputs.py` | 将热点汇总改为单次常量附加内存扫描；候选选取由全量排序收敛为固定 Top-3 堆选择；统一有限数值门控，跳过异常帧/`NaN`/无穷值；证据产物去重、缓存同路径 SHA256 并跳过缺失或目录路径 | 新增 `backend/tests/unit/test_video_hotspot_outputs.py` 覆盖异常数值、Top-3 选择、缺失文件与去重；热点相关 11 项测试通过；定向 mypy、Ruff、Black、isort 通过。全量后端 pytest 在当前工作区发现 11 项既有失败，集中于视频库导入、人工标注/复核和融合 AI 配置，当前文件定向测试通过 | 已完成 |
 | 2026-07-25 | `osteo_vision_core/models/lesion_boundary.py` | 复用每类候选的单次排序结果，移除重复分组扫描和重复排序；达到候选总量或类别上限后提前停止；计数从多轮扫描收敛为单轮 `Counter`；删除未调用的 `_bbox_component` | 4096 候选、80 次重复：选择结果一致，均值 3.539 ms 降至 2.316 ms，约 1.53 倍；全量 `pytest`、Ruff、格式检查通过 | 已完成 |
 | 2026-07-25 | `osteo_vision_core/models/lesion_boundary.py` | 增加数值、NaN、候选 bbox 与上限参数安全归一化；异常候选跳过并保持医生复核边界 | 新增 `backend/tests/unit/test_lesion_boundary.py`，覆盖空间 NMS、总上限、异常 bbox 和异常参数 | 已完成 |
 | 2026-07-25 | `backend/osteo_vision_api/services/task2_sequence_service.py` | 删除未使用的任务2计算预算导入 | Ruff 定向检查通过 | 已完成 |
@@ -301,6 +312,7 @@
 
 ## Latest Candidate
 
+- 本轮已完成三维建模任务进度与取消边界增强，后端阶段状态可供前端持续轮询并在刷新后恢复。
 - 本轮已完成最近未审计核心文件 `osteo_vision_core/models/lesion_boundary.py` 的优化，候选优先级、每类上限、总上限、空间抑制和医学安全回退语义均由回归测试覆盖。
 - 本轮已完成 `backend/osteo_vision_api/reports/platform_report.py` 的序列化缓存优化，回归测试验证报告输出值保持一致。
 - 本轮已完成 `backend/osteo_vision_api/reports/platform_report_sections.py` 的只读 JSON 容器复用和患者条件章节聚合清理，避免大规模视频证据列表与嵌套字典的冗余浅拷贝。
@@ -311,7 +323,9 @@
 - 本轮已完成 `backend/osteo_vision_api/services/review_service.py` 的复核帧计数重复逻辑合并。
 - 本轮已完成 `backend/osteo_vision_api/services/active_review_queue.py` 的评分数值有限性门控。
 - 本轮已完成 `backend/osteo_vision_api/services/static_registration_service.py` 的配准请求只读载荷复用。
-- 下一候选为 `backend/osteo_vision_api/services/video_hotspot_outputs.py`，后续从热点排序、候选聚合与证据扫描开始审计。
+- 已完成 `backend/osteo_vision_api/services/video_hotspot_outputs.py` 的热点排序、候选聚合和证据扫描审计，异常输入与缺失产物可安全降级。
+- 已完成 `backend/osteo_vision_api/services/multichannel_video_service.py` 的三路视频拆分、采样和会话写入审计。
+- 下一候选为 `backend/osteo_vision_api/services/video_library_service.py`，重点检查清单读取缓存、候选索引、路径校验和重复视频元数据解析。
 - 已移除本轮发现的完全未调用私有函数 `_bbox_component`，并清理任务2服务中的未使用导入。
 
 ## Verification Baseline
@@ -319,4 +333,4 @@
 - Python 环境：`C:\Users\876762330\.conda\envs\osteo-vision\python.exe`。
 - 目标质量门：`pytest`、`ruff`、必要的运行基准和严格平台 smoke。
 - 每次优化需记录行为回归、性能变化、异常输入处理和剩余未优化候选。
-- 本轮验证：任务2/任务3定向测试 20 项通过；病灶边界、报告缓存、报告章节和分析产物回归测试通过；全量 Python `pytest` 通过；Ruff、Black、isort 和 `git diff --check` 通过。
+- 本轮验证：多通道视频 API 12 项、分析服务 21 项测试通过；定向 mypy、Ruff、Black、isort 与 `git diff --check` 通过。三维建模、任务服务和导航生命周期 34 项单元测试、三维建模 API 契约 24 项测试、前端 239 项测试、typecheck、生产构建与桌面浏览器检查证据继续有效。此前全量后端 `pytest` 的 11 项失败已通过补回 `perf_counter` 后重新缩小范围，剩余失败集中在视频库导入、人工标注/复核配置路径，需后续单独审计。

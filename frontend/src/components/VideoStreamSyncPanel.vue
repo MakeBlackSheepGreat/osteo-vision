@@ -354,7 +354,7 @@ async function requestEditBoneGate(detail: HotspotFrameDetail) {
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: 4px;
-  object-fit: cover;
+  object-fit: contain;
   background: var(--ov-bg-media);
 }
 
