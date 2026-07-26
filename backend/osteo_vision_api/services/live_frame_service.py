@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from io import BytesIO
@@ -27,7 +28,7 @@ MAX_LIVE_IMAGE_DIMENSION = 4096
 MAX_LIVE_IMAGE_PIXELS = 4096 * 2160
 MAX_LIVE_CONCURRENT_INFERENCES = 8
 DEFAULT_MAX_RETAINED_FRAMES_PER_CASE = 120
-MAX_RETAINED_FRAMES_PER_CASE = 1000
+MAX_RETAINED_FRAMES_PER_CASE = 5000
 LIVE_FRAME_MANIFEST_FILENAME = "live_frame_manifest.json"
 MAX_LIVE_FRAME_MANIFEST_BYTES = 1024 * 1024
 DIRECTORY_COMMIT_RETRY_DELAYS_SECONDS = (0.01, 0.025, 0.05, 0.1, 0.2)
@@ -107,9 +108,13 @@ class LiveFrameAnalysisService:
             maximum=MAX_RETAINED_FRAMES_PER_CASE,
             field_name="runtime.live_frames.max_retained_frames_per_case",
         )
+        self._asynchronous_retention = bool(live_runtime.get("asynchronous_retention", False))
         self._inference_gate = BoundedSemaphore(self._max_concurrent_inferences)
         self._adapter_lock = Lock()
         self._retention_lock = Lock()
+        self._retention_index: dict[Path, list[Path]] = {}
+        self._retention_pending: set[Path] = set()
+        self._retention_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="live-frame-retention")
 
     def acquire_admission(self, *, wait: bool | None = None) -> LiveFrameAdmission:
         """Reserve capacity before request bytes are accepted into memory."""
@@ -203,6 +208,7 @@ class LiveFrameAnalysisService:
             completed_at = datetime.now(timezone.utc).isoformat()
             actual_model_id = str(output.get("model_id") or model_id)
             manifest_path = staging_dir / LIVE_FRAME_MANIFEST_FILENAME
+            manifest_started = perf_counter()
             _write_json_fsync(
                 manifest_path,
                 {
@@ -221,14 +227,39 @@ class LiveFrameAnalysisService:
                     "source_timestamp_sec": applied_parameters["source_timestamp_sec"],
                 },
             )
+            manifest_write_ms = (perf_counter() - manifest_started) * 1000.0
+            retention_started = perf_counter()
             with self._retention_lock:
                 _commit_staging_directory(staging_dir, final_dir)
-                retention = _retain_recent_live_frames(
-                    output_root=output_root,
-                    max_retained_frames=self._max_retained_frames_per_case,
-                    configured_output_roots=self._configured_output_roots(),
-                    protected_frame_id=frame_id,
-                )
+                indexed_frames = self._retention_index.get(output_root)
+                if indexed_frames is None:
+                    indexed_frames = _list_live_frame_directories(output_root)
+                    self._retention_index[output_root] = indexed_frames
+                elif final_dir not in indexed_frames:
+                    indexed_frames.append(final_dir)
+                if self._asynchronous_retention:
+                    cleanup_threshold = self._max_retained_frames_per_case + max(
+                        16,
+                        self._max_retained_frames_per_case // 4,
+                    )
+                    retention = {
+                        "max_retained_frames_per_case": self._max_retained_frames_per_case,
+                        "retained_frame_count": len(indexed_frames),
+                        "evicted_frame_ids": [],
+                        "cleanup_pending": len(indexed_frames) > cleanup_threshold,
+                        "cleanup_threshold": cleanup_threshold,
+                    }
+                    if retention["cleanup_pending"]:
+                        self._schedule_retention_cleanup(output_root, protected_frame_id=frame_id)
+                else:
+                    retention = _retain_recent_live_frames(
+                        output_root=output_root,
+                        max_retained_frames=self._max_retained_frames_per_case,
+                        configured_output_roots=self._configured_output_roots(),
+                        protected_frame_id=frame_id,
+                        indexed_frames=indexed_frames,
+                    )
+            retention_ms = (perf_counter() - retention_started) * 1000.0
             evidence_path = final_dir / evidence_suffix
             manifest_path = final_dir / LIVE_FRAME_MANIFEST_FILENAME
             elapsed_ms = (perf_counter() - started) * 1000.0
@@ -237,6 +268,8 @@ class LiveFrameAnalysisService:
                 "decode_ms": round(decode_ms, 2),
                 "evidence_write_ms": round(evidence_write_ms, 2),
                 "model_ms": round(model_ms, 2),
+                "manifest_write_ms": round(manifest_write_ms, 2),
+                "commit_and_retention_ms": round(retention_ms, 2),
                 "total_ms": round(elapsed_ms, 2),
                 "input_bytes": len(frame_bytes),
                 "decoded_width": int(image.shape[1]),
@@ -288,7 +321,7 @@ class LiveFrameAnalysisService:
         finally:
             lease.release()
 
-    def warmup(self, model_id: str | None = None) -> dict[str, Any]:
+    def warmup(self, model_id: str | None = None, *, case_id: str | None = None) -> dict[str, Any]:
         """Load the configured live model once before the first camera frame arrives."""
 
         model_id = str(model_id or self.default_model_id)
@@ -302,14 +335,41 @@ class LiveFrameAnalysisService:
                 )
             self._load_model_if_needed(adapter)
             self._run_warmup_inference(adapter)
+            case_preparation = self.prepare_case(case_id) if case_id else None
             return {
                 "model_id": model_id,
                 "model_family": adapter.describe().family,
                 "available": True,
                 "warnings": list(status.warnings),
+                "case_preparation": case_preparation,
             }
         finally:
             lease.release()
+
+    def prepare_case(self, case_id: str | None) -> dict[str, Any]:
+        resolved_case_id = str(case_id or "").strip()
+        if not resolved_case_id:
+            raise LiveFrameInputError("Live frame warmup case_id is invalid.")
+        output_root = case_artifact_dir(self._live_frame_root, resolved_case_id)
+        with self._retention_lock:
+            indexed = self._retention_index.get(output_root)
+            if indexed is None:
+                indexed = _list_live_frame_directories(output_root)
+                self._retention_index[output_root] = indexed
+            cleanup_pending = len(indexed) > self._max_retained_frames_per_case
+            if cleanup_pending:
+                _retain_recent_live_frames(
+                    output_root=output_root,
+                    max_retained_frames=self._max_retained_frames_per_case,
+                    configured_output_roots=self._configured_output_roots(),
+                    protected_frame_id="",
+                    indexed_frames=indexed,
+                )
+        return {
+            "case_id": resolved_case_id,
+            "indexed_frame_count": len(indexed),
+            "cleanup_pending": cleanup_pending,
+        }
 
     def _adapter(self, model_id: str) -> Any:
         cached = self._adapters.get(model_id)
@@ -429,6 +489,33 @@ class LiveFrameAnalysisService:
             if output_dir:
                 roots.add(resolve_path(str(output_dir)))
         return roots
+
+    def _schedule_retention_cleanup(self, output_root: Path, *, protected_frame_id: str) -> None:
+        if output_root in self._retention_pending:
+            return
+        indexed_frames = self._retention_index.get(output_root) or []
+        if len(indexed_frames) <= self._max_retained_frames_per_case:
+            return
+        self._retention_pending.add(output_root)
+
+        def cleanup() -> None:
+            try:
+                with self._retention_lock:
+                    current = self._retention_index.get(output_root)
+                    if current is None:
+                        return
+                    _retain_recent_live_frames(
+                        output_root=output_root,
+                        max_retained_frames=self._max_retained_frames_per_case,
+                        configured_output_roots=self._configured_output_roots(),
+                        protected_frame_id=protected_frame_id,
+                        indexed_frames=current,
+                    )
+            finally:
+                with self._retention_lock:
+                    self._retention_pending.discard(output_root)
+
+        self._retention_executor.submit(cleanup)
 
     def _load_model_if_needed(self, adapter: Any) -> None:
         load_model = getattr(adapter, "_load_model", None)
@@ -564,33 +651,24 @@ def _retain_recent_live_frames(
     max_retained_frames: int,
     configured_output_roots: set[Path],
     protected_frame_id: str,
+    indexed_frames: list[Path] | None = None,
 ) -> dict[str, Any]:
-    frame_entries: list[tuple[int, Path]] = []
-    try:
-        candidates = list(output_root.iterdir())
-    except OSError:
-        candidates = []
-    for frame_dir in candidates:
-        if (
-            not frame_dir.name.startswith("live_")
-            or not _is_direct_child(frame_dir, output_root)
-            or frame_dir.is_symlink()
-            or not frame_dir.is_dir()
-        ):
-            continue
-        try:
-            modified_ns = frame_dir.stat().st_mtime_ns
-        except OSError:
-            continue
-        frame_entries.append((modified_ns, frame_dir))
-    frame_entries.sort(
-        key=lambda item: (item[1].name == protected_frame_id, item[0], item[1].name),
-        reverse=True,
-    )
+    if indexed_frames is None:
+        indexed_frames = _list_live_frame_directories(output_root)
+    else:
+        indexed_frames[:] = [
+            path
+            for path in indexed_frames
+            if path.name.startswith("live_") and _is_direct_child(path, output_root) and path.is_dir()
+        ]
+    protected = [path for path in indexed_frames if path.name == protected_frame_id]
+    older = [path for path in indexed_frames if path.name != protected_frame_id]
+    ordered = [*protected, *reversed(older)]
 
     evicted_frame_ids: list[str] = []
     # Only candidates beyond the budget need manifest parsing on the normal path.
-    for _modified_ns, frame_dir in frame_entries[max_retained_frames:]:
+    evicted_paths: set[Path] = set()
+    for frame_dir in ordered[max_retained_frames:]:
         manifest = _read_live_frame_manifest(frame_dir, output_root=output_root)
         if manifest is None:
             continue
@@ -618,13 +696,38 @@ def _retain_recent_live_frames(
             for path in matching_paths:
                 _unlink_managed_output(path, allowed_roots={root}, safe_prefix=safe_prefix)
         evicted_frame_ids.append(str(manifest.get("frame_id") or frame_dir.name))
+        evicted_paths.add(frame_dir)
 
-    retained_count = max(0, len(frame_entries) - len(evicted_frame_ids))
+    indexed_frames[:] = [path for path in indexed_frames if path not in evicted_paths]
+    retained_count = len(indexed_frames)
     return {
         "max_retained_frames_per_case": max_retained_frames,
         "retained_frame_count": retained_count,
         "evicted_frame_ids": evicted_frame_ids,
     }
+
+
+def _list_live_frame_directories(output_root: Path) -> list[Path]:
+    frame_entries: list[tuple[int, Path]] = []
+    try:
+        candidates = list(output_root.iterdir())
+    except OSError:
+        candidates = []
+    for frame_dir in candidates:
+        if (
+            not frame_dir.name.startswith("live_")
+            or not _is_direct_child(frame_dir, output_root)
+            or frame_dir.is_symlink()
+            or not frame_dir.is_dir()
+        ):
+            continue
+        try:
+            modified_ns = frame_dir.stat().st_mtime_ns
+        except OSError:
+            continue
+        frame_entries.append((modified_ns, frame_dir))
+    frame_entries.sort(key=lambda item: (item[0], item[1].name))
+    return [item[1] for item in frame_entries]
 
 
 def _read_live_frame_manifest(frame_dir: Path, *, output_root: Path) -> dict[str, Any] | None:
@@ -698,15 +801,17 @@ def _resolve_without_error(path: Path) -> Path | None:
 
 def _paths_from_payload(value: Any) -> set[Path]:
     paths: set[Path] = set()
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if isinstance(item, str) and (key == "path" or key.endswith("_path")):
-                paths.add(Path(item))
-            else:
-                paths.update(_paths_from_payload(item))
-    elif isinstance(value, list):
-        for item in value:
-            paths.update(_paths_from_payload(item))
+    pending = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, dict):
+            for key, item in current.items():
+                if isinstance(item, str) and (key == "path" or key.endswith("_path")):
+                    paths.add(Path(item))
+                elif isinstance(item, (dict, list)):
+                    pending.append(item)
+        elif isinstance(current, list):
+            pending.extend(item for item in current if isinstance(item, (dict, list)))
     return paths
 
 

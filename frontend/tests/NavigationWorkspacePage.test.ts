@@ -209,13 +209,12 @@ describe("NavigationWorkspacePage", () => {
     expect(workbench.find(".navigation-empty-workbench__review").exists()).toBe(true);
     expect(workbench.get(".navigation-empty-workbench__notice > a").attributes("href")).toBe("/cases");
     expect(workbench.get('[data-state="awaiting-case"]').attributes("aria-label")).toBe("空三维视口");
+    expect(wrapper.find(".navigation-workspace__actions button").exists()).toBe(false);
 
-    const caseActions = workbench.findAll('[data-requires-case="true"]');
-    expect(caseActions.length).toBeGreaterThanOrEqual(6);
-    for (const action of caseActions) {
-      expect(action.attributes("disabled")).toBeDefined();
-      expect(action.attributes("title")).toBe("请先载入病例");
-    }
+    expect(workbench.findAll("button")).toHaveLength(0);
+    const unavailableStates = workbench.findAll(".navigation-unavailable-state");
+    expect(unavailableStates).toHaveLength(5);
+    expect(unavailableStates.every((state) => state.text().includes("载入病例后"))).toBe(true);
     expect(wrapper.find('[data-testid="three-d-runtime-mounted"]').exists()).toBe(false);
   });
 });

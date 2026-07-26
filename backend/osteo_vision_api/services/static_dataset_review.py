@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import threading
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -44,6 +45,29 @@ MEDICAL_BOUNDARY = (
     "They require physician review and cannot support clinical diagnosis claims."
 )
 
+FileSignature = tuple[int, int, int, int] | None
+
+
+@dataclass
+class _ManifestCache:
+    signature: FileSignature
+    records_by_id: dict[str, dict[str, Any]]
+
+
+@dataclass
+class _QueueManifestCache:
+    signature: FileSignature
+    records: list[tuple[str, dict[str, Any], Path]]
+    records_by_id: dict[str, tuple[str, dict[str, Any], Path]]
+
+
+@dataclass
+class _ImageCache:
+    signature: FileSignature
+    width: int
+    height: int
+    checksum: str | None = None
+
 
 class StaticDatasetReviewError(ValueError):
     """Base error raised by the static publication-figure review service."""
@@ -71,6 +95,9 @@ class StaticDatasetReviewService:
         self.reviewed_manifest_path = (common_root / REVIEWED_MANIFEST_NAME).resolve()
         self.seed_manifest_path = (common_root / SEED_MANIFEST_NAME).resolve()
         self._write_lock = threading.RLock()
+        self._manifest_cache: dict[Path, _ManifestCache] = {}
+        self._queue_cache: dict[Path, _QueueManifestCache] = {}
+        self._image_cache: dict[Path, _ImageCache] = {}
 
     def list_queue(self) -> dict[str, Any]:
         reviewed_by_id = self._reviewed_records_by_id()
@@ -86,7 +113,7 @@ class StaticDatasetReviewService:
                     reviewed_by_id.get(str(source_record.get("record_id") or ""))
                     or seed_by_id.get(str(source_record.get("record_id") or "")),
                 )
-            except (OSError, StaticDatasetReviewSecurityError, UnidentifiedImageError):
+            except (OSError, TypeError, ValueError):
                 skipped_count += 1
                 continue
             if item is None:
@@ -118,8 +145,8 @@ class StaticDatasetReviewService:
         role = _normalized_reviewer_role(reviewer_role)
         dataset_id, source_record, dataset_root = self._find_source_record(record_id)
         image_path = self._source_image_path(source_record, dataset_root)
-        with Image.open(image_path) as source_image:
-            width, height = int(source_image.width), int(source_image.height)
+        image_info = self._image_info(image_path)
+        width, height = image_info.width, image_info.height
         mask = _decode_and_validate_mask(mask_png_base64, expected_size=(width, height))
         positive_area_fraction = float(np.mean(mask > 0))
 
@@ -130,7 +157,7 @@ class StaticDatasetReviewService:
 
         with self._write_lock:
             _atomic_save_mask(mask_path, mask)
-            image_checksum = _sha256_file(image_path)
+            image_checksum = self._image_info(image_path, with_checksum=True).checksum or ""
             label_checksum = _sha256_file(mask_path)
             training_eligible = state in {"accepted", "modified"} and _source_allows_training(source_record)
             reviewed_record = {
@@ -187,8 +214,8 @@ class StaticDatasetReviewService:
         normalized_colormap = _normalized_colormap(colormap)
         dataset_id, source_record, dataset_root = self._find_source_record(record_id)
         image_path = self._source_image_path(source_record, dataset_root)
-        with Image.open(image_path) as source_image:
-            width, height = int(source_image.width), int(source_image.height)
+        image_info = self._image_info(image_path)
+        width, height = image_info.width, image_info.height
 
         safe_stem = _safe_record_stem(str(source_record["source_record_id"]), str(source_record["record_id"]))
         output_dir = self._resolve_within(
@@ -223,7 +250,7 @@ class StaticDatasetReviewService:
             positive_area_fraction,
             component_count=int(result.get("prediction", {}).get("candidate_count") or 0),
         )
-        image_checksum = _sha256_file(image_path)
+        image_checksum = self._image_info(image_path, with_checksum=True).checksum or ""
         label_checksum = _sha256_file(mask_path)
         seed_record = {
             "record_id": str(source_record["record_id"]),
@@ -350,12 +377,13 @@ class StaticDatasetReviewService:
             "accepted_suggestion_id": requested_suggestion_id,
             "crop_reviewed_at_utc": datetime.now(timezone.utc).isoformat(),
             "crop_source_image_path": str(original_path),
-            "crop_source_checksum": _sha256_file(original_path),
+            "crop_source_checksum": self._image_info(original_path, with_checksum=True).checksum or "",
             "review_state": "review_required",
             "training_eligible": False,
         }
         with self._write_lock:
             _atomic_save_image(crop_path, cropped)
+            self._invalidate_cache(crop_path)
             self._update_queue_record(queue_path, str(source_record["record_id"]), updated_fields)
             self._remove_seed_record(str(source_record["record_id"]))
 
@@ -389,25 +417,56 @@ class StaticDatasetReviewService:
         except FileNotFoundError as exc:
             raise StaticDatasetReviewNotFoundError(f"Reviewed mask not found: {record_id}") from exc
 
+    def _queue_manifest(
+        self,
+        dataset_id: str,
+        dataset_root: Path,
+    ) -> tuple[list[tuple[str, dict[str, Any], Path]], dict[str, tuple[str, dict[str, Any], Path]]]:
+        queue_path = (dataset_root / QUEUE_RELATIVE_PATH).resolve()
+        signature = _file_signature(queue_path)
+        with self._write_lock:
+            cached = self._queue_cache.get(queue_path)
+            if cached is not None and cached.signature == signature:
+                return cached.records, cached.records_by_id
+            if signature is None:
+                empty: list[tuple[str, dict[str, Any], Path]] = []
+                self._queue_cache[queue_path] = _QueueManifestCache(None, empty, {})
+                return empty, {}
+            payload = json.loads(queue_path.read_text(encoding="utf-8"))
+            raw_records = payload.get("records", []) if isinstance(payload, dict) else []
+            records: list[tuple[str, dict[str, Any], Path]] = []
+            records_by_id: dict[str, tuple[str, dict[str, Any], Path]] = {}
+            if isinstance(raw_records, list):
+                for raw_record in raw_records:
+                    if not isinstance(raw_record, dict):
+                        continue
+                    record_id = str(raw_record.get("record_id") or "").strip()
+                    if not record_id:
+                        continue
+                    source_record = dict(raw_record)
+                    entry = (dataset_id, source_record, dataset_root)
+                    records.append(entry)
+                    records_by_id.setdefault(record_id, entry)
+            self._queue_cache[queue_path] = _QueueManifestCache(signature, records, records_by_id)
+            return records, records_by_id
+
     def _queue_records(self) -> list[tuple[str, dict[str, Any], Path]]:
         records: list[tuple[str, dict[str, Any], Path]] = []
         for dataset_id, dataset_root in self.dataset_roots.items():
-            queue_path = dataset_root / QUEUE_RELATIVE_PATH
-            if not queue_path.is_file():
-                continue
-            payload = json.loads(queue_path.read_text(encoding="utf-8"))
-            for raw_record in payload.get("records", []):
-                if not isinstance(raw_record, dict) or not str(raw_record.get("record_id") or "").strip():
-                    continue
-                records.append((dataset_id, dict(raw_record), dataset_root))
+            dataset_records, _records_by_id = self._queue_manifest(dataset_id, dataset_root)
+            records.extend(dataset_records)
         return records
 
     def _find_source_record(self, record_id: str) -> tuple[str, dict[str, Any], Path]:
         requested = str(record_id or "").strip()
-        for dataset_id, source_record, dataset_root in self._queue_records():
-            if str(source_record.get("record_id") or "") == requested:
-                self._source_original_image_path(source_record, dataset_root)
-                return dataset_id, source_record, dataset_root
+        for dataset_id, dataset_root in self.dataset_roots.items():
+            _records, records_by_id = self._queue_manifest(dataset_id, dataset_root)
+            match = records_by_id.get(requested)
+            if match is None:
+                continue
+            _dataset_id, source_record, dataset_root = match
+            self._source_original_image_path(source_record, dataset_root)
+            return _dataset_id, source_record, dataset_root
         raise StaticDatasetReviewNotFoundError(f"Dataset review record not found: {requested}")
 
     def _source_image_path(self, source_record: dict[str, Any], dataset_root: Path) -> Path:
@@ -476,10 +535,11 @@ class StaticDatasetReviewService:
             return None
         crop_required = not bool(str(source_record.get("cropped_image_path") or "").strip())
         image_path = self._effective_image_path(source_record, dataset_root)
-        with Image.open(image_path) as image:
-            width, height = int(image.width), int(image.height)
-        record_id = str(source_record["record_id"])
         reviewed = dict(reviewed_record or {})
+        image_checksum = str(reviewed.get("image_checksum") or reviewed.get("checksum") or "")
+        image_info = self._image_info(image_path, with_checksum=not bool(image_checksum))
+        width, height = image_info.width, image_info.height
+        record_id = str(source_record["record_id"])
         mask_path: Path | None = None
         raw_mask_path = str(reviewed.get("mask_path") or "").strip()
         if raw_mask_path:
@@ -489,9 +549,8 @@ class StaticDatasetReviewService:
                 mask_path = None
         review_state = str(reviewed.get("review_state") or source_record.get("review_state") or "review_required")
         training_eligible = bool(reviewed.get("training_eligible")) and mask_path is not None
-        image_checksum = str(reviewed.get("image_checksum") or reviewed.get("checksum") or "")
         if not image_checksum:
-            image_checksum = _sha256_file(image_path)
+            image_checksum = image_info.checksum or ""
         label_checksum = str(reviewed.get("label_checksum") or "") if mask_path is not None else ""
         encoded_id = quote(record_id, safe="")
         return {
@@ -548,6 +607,53 @@ class StaticDatasetReviewService:
             "medical_boundary": MEDICAL_BOUNDARY,
         }
 
+    def _manifest_records_by_id(self, manifest_path: Path) -> dict[str, dict[str, Any]]:
+        cache_path = manifest_path.resolve(strict=False)
+        signature = _file_signature(cache_path)
+        with self._write_lock:
+            cached = self._manifest_cache.get(cache_path)
+            if cached is not None and cached.signature == signature:
+                return cached.records_by_id
+            if signature is None:
+                records: dict[str, dict[str, Any]] = {}
+                self._manifest_cache[cache_path] = _ManifestCache(None, records)
+                return records
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+            raw_records = payload.get("records", []) if isinstance(payload, dict) else []
+            records = {}
+            if isinstance(raw_records, list):
+                for raw_record in raw_records:
+                    if not isinstance(raw_record, dict):
+                        continue
+                    record_id = str(raw_record.get("record_id") or "").strip()
+                    if record_id:
+                        records[record_id] = dict(raw_record)
+            self._manifest_cache[cache_path] = _ManifestCache(signature, records)
+            return records
+
+    def _image_info(self, image_path: Path, *, with_checksum: bool = False) -> _ImageCache:
+        cache_path = image_path.resolve(strict=False)
+        signature = _file_signature(cache_path)
+        with self._write_lock:
+            cached = self._image_cache.get(cache_path)
+            if cached is not None and cached.signature == signature and (not with_checksum or cached.checksum):
+                return cached
+            with Image.open(cache_path) as image:
+                width, height = int(image.width), int(image.height)
+            checksum = cached.checksum if cached is not None and cached.signature == signature else None
+            if with_checksum and not checksum:
+                checksum = _sha256_file(cache_path)
+            updated = _ImageCache(signature, width, height, checksum)
+            self._image_cache[cache_path] = updated
+            return updated
+
+    def _invalidate_cache(self, path: Path) -> None:
+        cache_path = path.resolve(strict=False)
+        with self._write_lock:
+            self._manifest_cache.pop(cache_path, None)
+            self._queue_cache.pop(cache_path, None)
+            self._image_cache.pop(cache_path, None)
+
     def _update_queue_record(self, queue_path: Path, record_id: str, fields: dict[str, Any]) -> None:
         payload = json.loads(queue_path.read_text(encoding="utf-8"))
         records = payload.get("records") or []
@@ -561,19 +667,13 @@ class StaticDatasetReviewService:
             raise StaticDatasetReviewNotFoundError(f"Dataset review record not found: {record_id}")
         payload["updated_at_utc"] = datetime.now(timezone.utc).isoformat()
         _atomic_write_json(queue_path, payload)
+        self._invalidate_cache(queue_path)
 
     def _reviewed_records_by_id(self) -> dict[str, dict[str, Any]]:
-        if not self.reviewed_manifest_path.is_file():
-            return {}
-        payload = json.loads(self.reviewed_manifest_path.read_text(encoding="utf-8"))
-        return {
-            str(record["record_id"]): dict(record)
-            for record in payload.get("records", [])
-            if isinstance(record, dict) and str(record.get("record_id") or "").strip()
-        }
+        return self._manifest_records_by_id(self.reviewed_manifest_path)
 
     def _upsert_reviewed_record(self, record: dict[str, Any]) -> None:
-        records_by_id = self._reviewed_records_by_id()
+        records_by_id = dict(self._reviewed_records_by_id())
         records_by_id[str(record["record_id"])] = record
         records = sorted(
             records_by_id.values(),
@@ -589,19 +689,13 @@ class StaticDatasetReviewService:
         }
         self.reviewed_manifest_path.parent.mkdir(parents=True, exist_ok=True)
         _atomic_write_json(self.reviewed_manifest_path, payload)
+        self._invalidate_cache(self.reviewed_manifest_path)
 
     def _seed_records_by_id(self) -> dict[str, dict[str, Any]]:
-        if not self.seed_manifest_path.is_file():
-            return {}
-        payload = json.loads(self.seed_manifest_path.read_text(encoding="utf-8"))
-        return {
-            str(record["record_id"]): dict(record)
-            for record in payload.get("records", [])
-            if isinstance(record, dict) and str(record.get("record_id") or "").strip()
-        }
+        return self._manifest_records_by_id(self.seed_manifest_path)
 
     def _upsert_seed_record(self, record: dict[str, Any]) -> None:
-        records_by_id = self._seed_records_by_id()
+        records_by_id = dict(self._seed_records_by_id())
         records_by_id[str(record["record_id"])] = record
         records = sorted(
             records_by_id.values(),
@@ -617,9 +711,10 @@ class StaticDatasetReviewService:
         }
         self.seed_manifest_path.parent.mkdir(parents=True, exist_ok=True)
         _atomic_write_json(self.seed_manifest_path, payload)
+        self._invalidate_cache(self.seed_manifest_path)
 
     def _remove_seed_record(self, record_id: str) -> None:
-        records_by_id = self._seed_records_by_id()
+        records_by_id = dict(self._seed_records_by_id())
         if record_id not in records_by_id:
             return
         records_by_id.pop(record_id, None)
@@ -639,6 +734,7 @@ class StaticDatasetReviewService:
             "medical_boundary": MEDICAL_BOUNDARY,
         }
         _atomic_write_json(self.seed_manifest_path, payload)
+        self._invalidate_cache(self.seed_manifest_path)
 
     @staticmethod
     def _resolve_within(root: Path, requested: Path, *, must_exist: bool) -> Path:
@@ -826,6 +922,14 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_name(f".{path.name}.tmp")
     temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(temporary, path)
+
+
+def _file_signature(path: Path) -> FileSignature:
+    try:
+        stat = path.stat()
+    except OSError:
+        return None
+    return (int(stat.st_mtime_ns), int(stat.st_size), int(stat.st_ctime_ns), int(getattr(stat, "st_ino", 0)))
 
 
 def _sha256_file(path: Path) -> str:

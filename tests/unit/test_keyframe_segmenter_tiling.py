@@ -9,6 +9,7 @@ from PIL import Image
 from osteo_vision_core.models.keyframe_segmenter import (
     TinyKeyframeSegmenter2D,
     connected_probability_candidates,
+    connected_probability_candidates_with_summary,
     predict_keyframe_image,
     predict_keyframe_probability_with_uncertainty,
 )
@@ -183,3 +184,30 @@ def test_connected_probability_candidates_reports_component_statistics() -> None
     assert np.isclose(candidates[0]["confidence"], 0.9)
     assert candidates[1]["bbox_xyxy"] == [1, 1, 4, 3]
     assert np.isclose(candidates[1]["score"], 0.45)
+
+
+def test_connected_probability_candidates_apply_scale_gate_and_auditable_cap() -> None:
+    mask = np.zeros((120, 160), dtype=np.uint8)
+    probability = np.zeros_like(mask, dtype=np.float32)
+    for index in range(12):
+        x = 4 + (index % 6) * 25
+        y = 4 + (index // 6) * 45
+        side = 3 if index < 4 else 8
+        mask[y : y + side, x : x + side] = 1
+        probability[y : y + side, x : x + side] = 0.7 + index * 0.01
+
+    candidates, summary = connected_probability_candidates_with_summary(
+        mask,
+        probability,
+        min_component_area=32,
+        model_id="candidate_cap_test",
+        max_candidates=3,
+    )
+
+    assert len(candidates) == 3
+    assert summary["total_component_count"] == 12
+    assert summary["eligible_component_count"] == 8
+    assert summary["suppressed_small_component_count"] == 4
+    assert summary["suppressed_limit_count"] == 5
+    assert summary["retained_candidate_count"] == 3
+    assert all(candidate["area_px"] == 64 for candidate in candidates)

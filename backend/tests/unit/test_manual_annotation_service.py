@@ -2,14 +2,20 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
 
+import backend.osteo_vision_api.services.manual_annotation_service as manual_annotation_service
 from backend.osteo_vision_api.core.artifacts import checksum_for_file
 from backend.osteo_vision_api.domains.annotations.enums import AnnotationReviewDecision
 from backend.osteo_vision_api.domains.annotations.repository import AnnotationRepository
-from backend.osteo_vision_api.domains.annotations.schemas import AnnotationCreateRequest, AnnotationGeometry, AnnotationSourceRequest
+from backend.osteo_vision_api.domains.annotations.schemas import (
+    AnnotationCreateRequest,
+    AnnotationGeometry,
+    AnnotationSourceRequest,
+)
 from backend.osteo_vision_api.domains.cases.enums import InputChannel, ReviewerRole
 from backend.osteo_vision_api.domains.cases.repository import JsonCaseRepository
 from backend.osteo_vision_api.domains.cases.schemas import (
@@ -125,6 +131,65 @@ def test_video_keyframe_and_model_candidate_sources_create_full_size_masks(tmp_p
     )
     assert ignore_annotation.label.value == "ignore"
     assert Path(ignore_annotation.mask_path).is_file()
+
+
+def test_list_sources_reuses_run_video_lookup_and_indexes_candidate_frames(tmp_path: Path) -> None:
+    frame_path = tmp_path / "keyframe.jpg"
+    Image.fromarray(np.full((24, 32, 3), 120, dtype=np.uint8)).save(frame_path)
+    video_path = tmp_path / "source.mp4"
+    video_path.write_bytes(b"test-only-video-reference")
+    now = datetime.now(timezone.utc)
+    run = AnalysisRun(
+        run_id="run-indexed",
+        case_id="case-indexed",
+        fused_outputs={
+            "source_path": str(video_path),
+            "frame_details": [{"frame_index": index, "evidence_path": str(frame_path)} for index in range(3)],
+        },
+        candidate_regions=[
+            CandidateRegion(
+                candidate_id="candidate-indexed",
+                run_id="run-indexed",
+                risk_type="boundary_risk",
+                metadata={"frame_index": 2},
+            )
+        ],
+    )
+    case = CaseRecord(
+        case_id="case-indexed",
+        title="indexed annotation sources",
+        created_at=now,
+        updated_at=now,
+        inputs=[
+            CaseInputAsset(
+                input_id="video-indexed",
+                channel=InputChannel.VIDEO,
+                path=str(video_path),
+                mime_type="video/mp4",
+            )
+        ],
+        analysis_runs=[run],
+    )
+    case_repo = JsonCaseRepository(tmp_path / "cases.json")
+    case_repo.create(case)
+    service = ManualAnnotationService(
+        AnnotationRepository(tmp_path / "annotations.sqlite"),
+        case_repo,
+        tmp_path / "artifacts",
+    )
+
+    with (
+        patch.object(
+            manual_annotation_service, "_run_video_asset", wraps=manual_annotation_service._run_video_asset
+        ) as lookup,
+        patch.object(manual_annotation_service, "_find_frame", side_effect=AssertionError("linear frame lookup used")),
+    ):
+        sources = service.list_sources(case).sources
+
+    assert len(sources) == 4
+    assert lookup.call_count == 1
+    candidate = next(source for source in sources if source.source_type.value == "model_candidate")
+    assert candidate.source_path == str(frame_path.resolve())
 
 
 def test_training_eligibility_requires_a_distinct_physician_reviewer(tmp_path: Path) -> None:

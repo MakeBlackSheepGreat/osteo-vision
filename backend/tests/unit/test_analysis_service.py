@@ -98,6 +98,11 @@ def test_analysis_service_creates_fluorescence_outputs(tmp_path: Path, monkeypat
     assert dual_channel_ai["reason"] == "adapter_warmup_unavailable"
     assert dual_channel_ai["traditional_fusion_fallback_available"] is True
     assert "runtime execution disabled by configuration" in dual_channel_ai["adapter_status"]["reasons"]
+    fused_image_ai = run.fused_outputs["fused_image_ai"]
+    assert fused_image_ai["execution_state"] == "completed"
+    assert fused_image_ai["input_contract"]["engineering_input_eligible"] is True
+    assert fused_image_ai["input_contract"]["spatial_interpretation_eligible"] is False
+    assert fused_image_ai["spatial_interpretation_allowed"] is False
 
 
 def test_analysis_service_prefers_latest_input_when_duplicate_channel_assets_exist(tmp_path: Path) -> None:
@@ -744,6 +749,90 @@ def test_keyframe_segmentation_prefers_trainable_model(tmp_path: Path) -> None:
     assert outputs[0]["review_priority"] == "high"
     assert outputs[0]["target_domain_flag"] is False
     assert outputs[0]["quantification"]["positive_area_px"] > 0
+
+
+def test_task3_fused_image_ai_executes_with_bound_task2_contract(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "keyframe_fused.pt"
+    model = TinyKeyframeSegmenter2D(base_channels=2)
+    torch.save(
+        {
+            "model_id": "keyframe_fused_test",
+            "model_family": "convnext2d_keyframe_segmenter",
+            "model_config": {"in_channels": 3, "out_channels": 2, "base_channels": 2},
+            "state_dict": model.state_dict(),
+            "threshold": 0.0,
+        },
+        checkpoint_path,
+    )
+    config_path = tmp_path / "config.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "runtime:",
+                "  tasks:",
+                "    segmentation:",
+                "      pipeline: segmentation",
+                "      model_id: keyframe_fused_test",
+                "  models:",
+                "    - model_id: keyframe_fused_test",
+                "      family: convnext2d_keyframe_segmenter",
+                "      task_types: [segmentation]",
+                "      input_types: [2d_image]",
+                f"      checkpoint_path: {json.dumps(str(checkpoint_path))}",
+                "      dependency_group: torch",
+                "      device_policy: cpu",
+                "      extra:",
+                "        threshold: 0.0",
+                "        tile_size: 32",
+                "        tile_overlap: 8",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    white_path = tmp_path / "white.png"
+    fluorescence_path = tmp_path / "fluorescence.png"
+    fused_path = tmp_path / "fused.png"
+    image = np.zeros((48, 64, 3), dtype=np.uint8)
+    image[8:40, 12:52, 1] = 220
+    Image.fromarray(image).save(white_path)
+    Image.fromarray(image[..., 1]).save(fluorescence_path)
+    Image.fromarray(image).save(fused_path)
+    fusion_report = {
+        "outputs": {"overlay_path": str(fused_path)},
+        "fusion": {
+            "algorithm_version": "fluorescence_fusion_v2",
+            "registration_details": {
+                "method": "adaptive_multiscale_registration_v1",
+                "applied": True,
+                "matrix_2x3": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                "elapsed_ms": 30.0,
+                "quality": 0.9,
+            },
+            "acceleration": {"backend": "torch_cuda", "elapsed_ms": 25.0},
+            "performance": {"registration_ms": 30.0},
+        },
+    }
+    service = AnalysisService(
+        JsonCaseRepository(tmp_path / "cases.json"),
+        config_path=str(config_path),
+    )
+
+    evidence, warnings = service._fused_image_ai(
+        case_id="case_fused_ai",
+        white_path=str(white_path),
+        fluorescence_path=str(fluorescence_path),
+        fused_overlay_path=str(fused_path),
+        fusion_report=fusion_report,
+        output_dir=tmp_path / "fused_ai",
+    )
+
+    assert evidence["execution_state"] == "completed"
+    assert evidence["available"] is True
+    assert evidence["input_contract"]["engineering_input_eligible"] is True
+    assert evidence["boundary_assessment"]["available"] is True
+    assert evidence["boundary_assessment"]["candidate_count"] >= 1
+    assert evidence["task_role"] == "task3_ai_on_task2_fused_image"
+    assert warnings
 
 
 def test_keyframe_segmentation_falls_back_when_trainable_mask_is_empty(

@@ -1,10 +1,13 @@
 <template>
-  <main class="manual-annotation-page">
+  <AppPageShell class="manual-annotation-page" width="wide">
     <header class="annotation-page-header">
-      <div>
-        <span class="page-kicker">医生标注工作台</span>
-        <h1>病灶人工标注</h1>
-        <p>像素级标注、版本审计与训练准入</p>
+      <div class="ov-title-lead annotation-title-lead">
+        <AppIcon name="brush" variant="badge" tone="amber" />
+        <div class="annotation-title-copy">
+          <span class="page-kicker">医生标注工作台</span>
+          <h1>病灶人工标注</h1>
+          <p>像素级标注、版本审计与训练准入</p>
+        </div>
       </div>
       <form class="case-loader" @submit.prevent="loadCaseWorkspace">
         <label>
@@ -309,7 +312,7 @@
     </section>
 
     <MedicalDisclaimer v-if="store.currentCase" />
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -318,6 +321,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import ManualAnnotationCanvas from "@/components/ManualAnnotationCanvas.vue";
 import MedicalDisclaimer from "@/components/MedicalDisclaimer.vue";
 import ReviewIdentityPanel from "@/components/ReviewIdentityPanel.vue";
@@ -868,7 +872,7 @@ function errorMessage(error: unknown, fallback: string): string {
   margin-bottom: var(--ov-space-5);
 }
 
-.annotation-page-header > div:first-child {
+.annotation-title-copy {
   display: grid;
   gap: 5px;
 }

@@ -32,7 +32,15 @@ export type AppIconName =
   | "redo"
   | "trash"
   | "sun"
-  | "moon";
+  | "moon"
+  | "database"
+  | "filter"
+  | "arrowLeft"
+  | "arrowRight"
+  | "info"
+  | "externalLink"
+  | "shield"
+  | "chart";
 
 export const appIconSvg: Record<AppIconName, string> = {
   case: '<rect x="4" y="4" width="16" height="16" rx="2.2" /><path d="M8 8h8M8 12h8M8 16h5" />',
@@ -69,4 +77,12 @@ export const appIconSvg: Record<AppIconName, string> = {
   trash: '<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />',
   sun: '<circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />',
   moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />',
+  database: '<ellipse cx="12" cy="5.5" rx="7.5" ry="3" /><path d="M4.5 5.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" /><path d="M4.5 11.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" />',
+  filter: '<path d="M4 5h16l-6.2 7v5.5l-3.6 1.8V12z" />',
+  arrowLeft: '<path d="m14.5 5-7 7 7 7" /><path d="M8 12h10" />',
+  arrowRight: '<path d="m9.5 5 7 7-7 7" /><path d="M16 12H6" />',
+  info: '<circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5h.01" />',
+  externalLink: '<path d="M14 5h5v5M19 5l-8 8" /><path d="M17 13v5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 18V9a1.5 1.5 0 0 1 1.5-1.5h5" />',
+  shield: '<path d="M12 3 20 6v5.5c0 4.8-3.2 7.8-8 9.5-4.8-1.7-8-4.7-8-9.5V6z" /><path d="m8.5 12 2.2 2.2 4.8-5" />',
+  chart: '<path d="M5 20V10M12 20V4M19 20v-7M3 20h18" />',
 };

@@ -129,8 +129,9 @@ class StaticRegistrationService:
         reprojection_threshold: float | None = None
         camera_calibration_evidence: dict[str, Any] = {}
         threshold_approval_source = normalized.get("threshold_approval")
-        threshold_approval = dict(threshold_approval_source) if isinstance(threshold_approval_source, dict) else {}
-        microscope_pose = dict(normalized.get("microscope_pose_evidence") or {})
+        threshold_approval = threshold_approval_source if isinstance(threshold_approval_source, dict) else {}
+        microscope_pose_value = normalized.get("microscope_pose_evidence")
+        microscope_pose = microscope_pose_value if isinstance(microscope_pose_value, dict) else {}
         actor = normalized.get("review_actor") if isinstance(normalized.get("review_actor"), dict) else None
         doctor_status = str(normalized.get("doctor_review_status") or "review_required")
         transform_chain = [

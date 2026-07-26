@@ -54,7 +54,9 @@ start_platform.cmd -NoBrowser -Headless
 - 健康检查：`http://127.0.0.1:8001/health`
 - 就绪检查：`http://127.0.0.1:8001/ready`
 - 前端：`http://127.0.0.1:5174/`
-- 独立三维渲染运行时：`http://127.0.0.1:5175/`，通过 `-StartThreeDRuntime` 作为可选独立进程启动。
+- 独立三维渲染运行时：`http://127.0.0.1:5175/`，根目录启动入口默认拉起该独立进程。
+
+根目录启动入口还会创建并默认打开 `case_standard_demo`。该标准示例优先使用 `OFDVDNET_001` 公开非目标域三视图视频，预热白光、荧光和设备叠加三路拆分缓存，并关联 D024 公开下颌表面参考；资源或 FFmpeg 缺失时保留原始 MP4、单路降级状态和 L0 参考。
 
 端口覆盖变量：`OSTEO_BACKEND_PORT`、`OSTEO_FRONTEND_PORT`、`OSTEO_THREE_D_RUNTIME_PORT`、`VITE_OSTEO_API_URL`、`VITE_OSTEO_THREE_D_RUNTIME_URL`、`VITE_OSTEO_MAIN_APP_ORIGIN`、`OSTEO_ALLOWED_ORIGINS`。后端、主前端和独立三维运行时端口需使用三个不同值。
 
@@ -82,10 +84,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_ru
 主平台与渲染运行时一起启动：
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition
 ```
 
-独立运行时通过 `/runtime-manifest.json` 确认服务身份。主平台的病例、CBCT/STL 建模、L1/L2、安全状态、二维证据和医生复核不依赖该渲染进程保持可用。
+独立运行时通过 `/runtime-manifest.json` 确认服务身份。需跳过三维进程时，根目录启动入口追加 `-SkipThreeDRuntime`。主平台的病例、CBCT/STL 建模、L1/L2、安全状态、二维证据和医生复核不依赖该渲染进程保持可用。
 
 Gradio 入口仅用于框架兼容性检查：
 
@@ -123,13 +125,23 @@ start_platform.cmd
 
 1. **数据准入**：登记机构授权、用途、脱敏、病例映射保管状态并校验文件。
 2. **病例档案**：创建病例、录入受限临床上下文、检查输入状态。
-3. **病例工作台**：上传 JPEG 双通道或导入 MP4，执行融合、关键帧或连续帧分析。
+3. **病例工作台**：一级入口保持 MP4 与 JPEG。MP4 内可选择单路视频、独立白光/荧光双路视频，或 OFDVDnet 合成三视图示例；双路模式先准备同步预览，再运行任务2关键帧配准融合。浏览器摄像头保持单路扩展输入。
 4. **三维导航**：导入 CBCT/STL，检查对象树、建模、L1 配准和 L2 离线回放。
 5. **医生复核**：接受、修改或拒绝候选结果。
 6. **报告导出**：生成结构化报告和病例证据包。
 7. **人工标注**：从病例关键帧进入像素级标注、版本和训练准入流程。
 
 正式设备文件写入病例前应通过数据准入页面。`quarantined` 文件仅保留原因码，不能参与分析。
+
+### 双通道 MP4 操作
+
+1. 在病例工作台选择“MP4 视频”。
+2. 选择“独立双通道视频”并分别上传白光、荧光 MP4；设备叠加 MP4 可选。也可选择“合成三视图示例”并选中 `OFDVDNET_001`。
+3. 保持自动偏移，或填写荧光/设备叠加的毫秒偏移。点击“准备同步预览”。
+4. 检查共同有效区间、同步状态和配准可用状态。容器起始时间差超过 `33.34 ms` 时会显示复核提示，比赛演示仍可继续。
+5. 点击“运行双通道融合分析”。四宫格按白光原始视频、荧光原始/配准后、软件融合/设备叠加、AI 风险与不确定性组织。
+
+同步播放器以白光为主时钟，通道漂移超过 `80 ms` 时自动校正。分析采用最多 2–120 对同步关键帧，默认 12 对；界面明确标记“关键帧同步结果”。OFDVDnet 属于公开非目标域代理，不能作为真实术中 ICG 颌骨骨髓炎性能证据。
 
 ## 6. 运行与模型核验
 

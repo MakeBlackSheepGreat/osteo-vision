@@ -24,7 +24,7 @@ if str(ROOT) not in sys.path:
 from backend.osteo_vision_api.services.live_frame_service import LiveFrameAnalysisService  # noqa: E402
 from osteo_vision_core.models.keyframe_segmenter import select_torch_device  # noqa: E402
 
-BROWSER_MAX_LONG_SIDE = 960
+BROWSER_MAX_LONG_SIDE = 512
 BROWSER_JPEG_QUALITY = 85
 MIN_TIMED_FRAMES = 5
 
@@ -182,7 +182,7 @@ def run_live_fast_output_gate(
     elif source_image_path:
         capture = prepare_browser_profile_jpeg(
             source_image_path,
-            destination / "input" / "browser_profile_frame_960.jpg",
+            destination / "input" / "browser_profile_frame_512.jpg",
         )
         capture["source_type"] = "repeated_still_image"
         capture["prepared_frame_count"] = timed_frames
@@ -359,7 +359,7 @@ def _run_model_protocol(
     service = LiveFrameAnalysisService(str(config_path))
     model_id = service.default_model_id
     warmup_started = perf_counter()
-    warmup = service.warmup(model_id)
+    warmup = service.warmup(model_id, case_id=f"live_fast_gate_{label}")
     model_warmup_ms = (perf_counter() - warmup_started) * 1000.0
     adapter = service._adapter(model_id)
     spec = adapter.describe()
@@ -616,9 +616,9 @@ def _render_zh(report: dict[str, Any]) -> str:
             "## 结论",
             "",
             f"- 综合门控：`{'通过' if checks['pass'] else '未通过'}`。",
-            f"- 当前生产模型门控：`{'通过' if candidate['gate_passed'] else '未通过'}`；上一版 ConvNeXt 主线同协议门控：`{'通过' if mainline['gate_passed'] else '未通过'}`。",
+            f"- 当前生产模型门控：`{'通过' if candidate['gate_passed'] else '未通过'}`；同协议对照运行门控：`{'通过' if mainline['gate_passed'] else '未通过'}`。",
             f"- 同协议可比性：`{comparison['strictly_comparable']}`。当前生产配置 SHA256 在运行前后保持一致，本门控未执行模型切换。",
-            f"- 当前生产配置 SHA256：`{report['config_integrity']['production_sha256_after']}`；上一版 ConvNeXt 隔离快照 SHA256：`{report['config_integrity']['mainline_sha256_after']}`。",
+            f"- 当前生产配置 SHA256：`{report['config_integrity']['production_sha256_after']}`；对照配置 SHA256：`{report['config_integrity']['mainline_sha256_after']}`。",
             "- 本结果仅提供非目标域工程延迟和输出完整性证据，所有分割结果继续要求医生复核。",
             "",
             "## 实测协议",
@@ -636,7 +636,7 @@ def _render_zh(report: dict[str, Any]) -> str:
             _zh_result_row(candidate),
             _zh_result_row(mainline),
             "",
-            f"当前生产 Residual Attention 相对上一版 ConvNeXt 主线的服务 E2E P95 变化为 `{_fmt(comparison['candidate_delta_percent']['service_e2e_p95'])}%`，模型 P95 变化为 `{_fmt(comparison['candidate_delta_percent']['model_p95'])}%`。正值表示当前生产模型耗时更高。",
+            f"当前生产模型 `{candidate['model_id']}` 相对同协议对照 `{mainline['model_id']}` 的服务 E2E P95 变化为 `{_fmt(comparison['candidate_delta_percent']['service_e2e_p95'])}%`，模型 P95 变化为 `{_fmt(comparison['candidate_delta_percent']['model_p95'])}%`。正值表示当前生产运行耗时更高。",
             "",
             "## 输出核验",
             "",
@@ -666,9 +666,9 @@ def _render_en(report: dict[str, Any]) -> str:
             "## Decision",
             "",
             f"- Combined gate: `{'passed' if checks['pass'] else 'failed'}`.",
-            f"- Current production-model gate: `{'passed' if candidate['gate_passed'] else 'failed'}`; same-protocol previous ConvNeXt mainline gate: `{'passed' if mainline['gate_passed'] else 'failed'}`.",
+            f"- Current production-model gate: `{'passed' if candidate['gate_passed'] else 'failed'}`; same-protocol comparator gate: `{'passed' if mainline['gate_passed'] else 'failed'}`.",
             f"- Strict protocol comparability: `{comparison['strictly_comparable']}`. The current production config SHA256 remained unchanged and this gate performed no model switch.",
-            f"- Current production config SHA256: `{report['config_integrity']['production_sha256_after']}`; isolated previous ConvNeXt snapshot SHA256: `{report['config_integrity']['mainline_sha256_after']}`.",
+            f"- Current production config SHA256: `{report['config_integrity']['production_sha256_after']}`; comparator config SHA256: `{report['config_integrity']['mainline_sha256_after']}`.",
             "- These results provide non-target-domain engineering latency and output-integrity evidence only. Physician review remains required.",
             "",
             "## Measured Protocol",
@@ -686,7 +686,7 @@ def _render_en(report: dict[str, Any]) -> str:
             _en_result_row(candidate),
             _en_result_row(mainline),
             "",
-            f"Current-production Residual Attention service E2E P95 changed by `{_fmt(comparison['candidate_delta_percent']['service_e2e_p95'])}%` relative to the previous ConvNeXt mainline; model P95 changed by `{_fmt(comparison['candidate_delta_percent']['model_p95'])}%`. Positive values indicate higher current-production latency.",
+            f"Current-production model `{candidate['model_id']}` service E2E P95 changed by `{_fmt(comparison['candidate_delta_percent']['service_e2e_p95'])}%` relative to same-protocol comparator `{mainline['model_id']}`; model P95 changed by `{_fmt(comparison['candidate_delta_percent']['model_p95'])}%`. Positive values indicate higher current-production latency.",
             "",
             "## Output Audit",
             "",

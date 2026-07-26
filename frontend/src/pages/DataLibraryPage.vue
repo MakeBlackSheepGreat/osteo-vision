@@ -1,19 +1,17 @@
 <template>
-  <main class="data-library-page">
+  <AppPageShell class="data-library-page" width="large">
     <header class="library-header">
-      <div>
-        <h1>公开代理视频库</h1>
-        <p>{{ statusMessage }}</p>
-      </div>
-      <div class="library-metrics" aria-label="视频库概览">
-        <div v-for="item in summaryItems" :key="item.label" class="metric-tile">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
+      <div class="ov-title-lead">
+        <AppIcon name="database" variant="badge" tone="cyan" />
+        <div>
+          <h1>公开代理视频库</h1>
+          <p>{{ statusMessage }}</p>
         </div>
       </div>
+      <AppMetricStrip class="library-metrics" :items="summaryItems" aria-label="视频库概览" />
     </header>
 
-    <section class="library-toolbar" aria-label="视频库筛选">
+    <AppToolbar class="library-toolbar" aria-label="视频库筛选">
       <AppButton
         variant="primary"
         size="sm"
@@ -44,12 +42,10 @@
         <span>当前病例</span>
         <strong>{{ currentCaseLabel }}</strong>
       </div>
-    </section>
+    </AppToolbar>
 
-    <section v-if="error" class="library-alert" role="alert">{{ error }}</section>
-    <section v-if="operationMessage" class="library-status" role="status" aria-live="polite">
-      {{ operationMessage }}
-    </section>
+    <AppFeedbackBanner v-if="error" class="library-alert" tone="error" :message="error" />
+    <AppFeedbackBanner v-if="operationMessage" class="library-status" tone="success" :message="operationMessage" />
 
     <section class="candidate-grid" aria-label="公开视频候选列表">
       <article v-for="candidate in paginatedCandidates" :key="candidate.record_id" class="candidate-card">
@@ -108,6 +104,7 @@
             {{ importButtonLabel(candidate.record_id) }}
           </AppButton>
           <a v-if="videoCandidateSourceUrl(candidate)" :href="videoCandidateSourceUrl(candidate)" target="_blank" rel="noreferrer">
+            <AppIcon name="externalLink" />
             原始来源
           </a>
         </div>
@@ -118,6 +115,7 @@
       <AppButton
         variant="secondary"
         size="sm"
+        icon="arrowLeft"
         :disabled="interactionBusy || currentPage <= 1"
         :title="interactionBusy ? '请等待当前视频库操作完成' : currentPage <= 1 ? '当前已是第一页' : '查看上一页'"
         @click="currentPage -= 1"
@@ -128,6 +126,7 @@
       <AppButton
         variant="secondary"
         size="sm"
+        icon="arrowRight"
         :disabled="interactionBusy || currentPage >= pageCount"
         :title="interactionBusy ? '请等待当前视频库操作完成' : currentPage >= pageCount ? '当前已是最后一页' : '查看下一页'"
         @click="currentPage += 1"
@@ -136,14 +135,27 @@
       </AppButton>
     </nav>
 
-    <p v-if="!loading && !filteredCandidates.length" class="empty-state">当前筛选下没有可显示的视频候选。</p>
-  </main>
+    <AppEmptyState
+      v-if="!loading && !filteredCandidates.length"
+      class="empty-state"
+      compact
+      icon="video"
+      title="暂无可显示视频"
+      description="当前筛选条件下没有可显示的公开视频候选。"
+    />
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
+import AppEmptyState from "@/components/AppEmptyState.vue";
+import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import AppMetricStrip from "@/components/AppMetricStrip.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
+import AppToolbar from "@/components/AppToolbar.vue";
 import { apiClient } from "@/services/apiClient";
 import { useCaseStore } from "@/stores/caseStore";
 import type { VideoCandidate } from "@/types/case";
@@ -170,7 +182,14 @@ const fluorescenceFilter = ref<VideoCandidateFluorescenceFilter>("all");
 const trainingFilter = ref<VideoCandidateTrainingFilter>("all");
 const previewingRecordId = ref("");
 const importingRecordId = ref("");
-const importedRecordIds = ref(new Set<string>());
+const importedRecordIds = computed(() => {
+  const recordIds = new Set<string>();
+  for (const asset of store.currentCase?.inputs ?? []) {
+    const recordId = asset.channel === "video" ? asset.metadata?.record_id : undefined;
+    if (typeof recordId === "string" && recordId.trim()) recordIds.add(recordId);
+  }
+  return recordIds;
+});
 const operationMessage = ref("");
 const pageSize = 12;
 const currentPage = ref(1);
@@ -216,12 +235,12 @@ const summaryItems = computed(() => {
   ).length;
   const totalBytes = candidates.value.reduce((sum, candidate) => sum + (candidate.size_bytes || 0), 0);
   return [
-    { label: "总候选", value: String(candidates.value.length) },
-    { label: "荧光", value: String(fluorescenceCount) },
-    { label: "非荧光", value: String(nonFluorescenceCount) },
-    { label: "增强/自监督", value: String(enhancementCount) },
-    { label: "演示/自监督", value: String(demoCount) },
-    { label: "本地体量", value: formatBytes(totalBytes) },
+    { label: "总候选", value: String(candidates.value.length), icon: "database" as const },
+    { label: "荧光", value: String(fluorescenceCount), icon: "target" as const },
+    { label: "非荧光", value: String(nonFluorescenceCount), icon: "video" as const },
+    { label: "增强/自监督", value: String(enhancementCount), icon: "layers" as const },
+    { label: "演示/自监督", value: String(demoCount), icon: "play" as const },
+    { label: "本地体量", value: formatBytes(totalBytes), icon: "folder" as const },
   ];
 });
 
@@ -266,7 +285,6 @@ async function importCandidate(recordId: string) {
   operationMessage.value = "";
   try {
     store.currentCase = await apiClient.importVideoCandidate(targetCaseId, recordId);
-    importedRecordIds.value = new Set([...importedRecordIds.value, recordId]);
     operationMessage.value = `视频已导入病例 ${targetCaseId}：${recordId}`;
   } catch (importError) {
     error.value = errorMessage(importError);
@@ -520,7 +538,7 @@ onMounted(() => {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .candidate-preview figcaption {
@@ -566,6 +584,7 @@ onMounted(() => {
 
 .candidate-actions a {
   display: inline-flex;
+  gap: 6px;
   align-items: center;
   justify-content: center;
   min-height: 36px;
@@ -576,6 +595,11 @@ onMounted(() => {
   text-decoration: none;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+.candidate-actions a :deep(.app-icon) {
+  width: 15px;
+  height: 15px;
 }
 
 .library-pagination {

@@ -174,8 +174,37 @@ describe("ThreeDRuntimeApp", () => {
     Object.defineProperty(window, "parent", { configurable: true, value: originalParent });
   });
 
+  it("does not restart a pending snapshot when the parent retries the same scene request", async () => {
+    window.history.replaceState({}, "", "/");
+    const originalParent = window.parent;
+    const parentWindow = { postMessage: vi.fn() } as unknown as WindowProxy;
+    Object.defineProperty(window, "parent", { configurable: true, value: parentWindow });
+    const pending = deferred<ReturnType<typeof caseSnapshot>>();
+    runtimeClientMocks.fetchCaseSnapshot.mockReturnValue(pending.promise);
+
+    const wrapper = mount(ThreeDRuntimeApp, {
+      global: { stubs: { ThreeDViewport: { template: '<div class="viewport-stub" />' } } },
+    });
+    const message = bridgeMessage(parentWindow, "case_retry", "request-retry");
+    window.dispatchEvent(message);
+    window.dispatchEvent(message);
+    await flushPromises();
+
+    expect(runtimeClientMocks.fetchCaseSnapshot).toHaveBeenCalledTimes(1);
+
+    pending.resolve(caseSnapshot("case_retry"));
+    await flushPromises();
+    expect(parentWindow.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "scene_loaded", request_id: "request-retry" }),
+      "http://localhost:5174",
+    );
+
+    wrapper.unmount();
+    Object.defineProperty(window, "parent", { configurable: true, value: originalParent });
+  });
+
   it("waits for the verified bridge request when an iframe URL already contains a case ID", async () => {
-    window.history.replaceState({}, "", "/?caseId=case_embedded");
+    window.history.replaceState({}, "", "/?caseId=case_embedded&embedded=1");
     const originalParent = window.parent;
     const parentWindow = { postMessage: vi.fn() } as unknown as WindowProxy;
     Object.defineProperty(window, "parent", { configurable: true, value: parentWindow });
@@ -192,6 +221,8 @@ describe("ThreeDRuntimeApp", () => {
       },
     });
     await flushPromises();
+    expect(wrapper.get(".runtime-shell").classes()).toContain("is-embedded");
+    expect(wrapper.find(".runtime-shell__header").exists()).toBe(true);
     expect(runtimeClientMocks.fetchCaseSnapshot).not.toHaveBeenCalled();
 
     window.dispatchEvent(bridgeMessage(parentWindow, "case_embedded"));

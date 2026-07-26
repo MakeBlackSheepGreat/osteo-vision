@@ -1,19 +1,16 @@
 <template>
-  <main class="review-shell">
-    <AppPageHeader title="候选区域与 ROI 判读" class="page-header" />
+  <AppPageShell class="review-shell" width="standard">
+    <AppPageHeader icon="review" icon-tone="green" title="候选区域与 ROI 判读" class="page-header" />
     <ReviewIdentityPanel />
 
-    <section
+    <AppFeedbackBanner
       v-if="feedbackMessage"
       class="review-feedback"
       :class="`review-feedback--${feedbackTone}`"
-      :role="feedbackTone === 'error' ? 'alert' : 'status'"
-      :aria-live="feedbackTone === 'error' ? 'assertive' : 'polite'"
-      aria-atomic="true"
-    >
-      <strong>{{ feedbackHeading }}</strong>
-      <span>{{ feedbackMessage }}</span>
-    </section>
+      :tone="feedbackTone"
+      :title="feedbackHeading"
+      :message="feedbackMessage"
+    />
 
     <section class="review-grid">
       <RoiCanvas
@@ -49,13 +46,16 @@
         <QuantificationPanel :metrics="displayMetrics" />
       </div>
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
+import AppFeedbackBanner from "@/components/AppFeedbackBanner.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import CandidateRegionList from "@/components/CandidateRegionList.vue";
 import QuantificationPanel from "@/components/QuantificationPanel.vue";
 import ReviewIdentityPanel from "@/components/ReviewIdentityPanel.vue";
@@ -66,6 +66,7 @@ import type { CandidateRegion, RegionOfInterest, ReviewState } from "@/types/cas
 import { reviewStateLabel } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
+const route = useRoute();
 type FeedbackTone = "pending" | "success" | "error";
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1));
@@ -97,6 +98,23 @@ const feedbackHeading = computed(() => {
   if (feedbackTone.value === "success") return "复核记录已更新";
   return "正在处理";
 });
+
+watch(
+  () => route.query.caseId,
+  async (value) => {
+    const caseId = Array.isArray(value) ? value[0] : value;
+    if (!caseId || typeof caseId !== "string" || store.currentCase?.case_id === caseId) return;
+    startOperation(`正在载入病例 ${caseId}...`);
+    const loaded = await store.loadCase(caseId);
+    if (loaded) {
+      operationMessage.value = `病例 ${caseId} 已载入，可继续医生复核。`;
+      operationTone.value = "success";
+      return;
+    }
+    finishOperation("");
+  },
+  { immediate: true },
+);
 
 async function setReviewState(state: ReviewState) {
   const candidateId = activeCandidate.value?.candidate_id;

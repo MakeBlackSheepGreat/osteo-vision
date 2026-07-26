@@ -87,6 +87,12 @@ runtime:
         tile_overlap: 64
         tile_batch_size: 4
         max_whole_pixels: 1048576
+        evidence_png_compression: 1
+        overlay_format: jpeg
+        overlay_jpeg_quality: 90
+        candidate_min_component_area: 64
+        candidate_min_area_fraction: 0.00002
+        candidate_max_count: 256
         temperature: 1.4138116836547852
         uncertainty_tta_enabled: true
         live_stream:

@@ -15,6 +15,7 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
   const cameraStream = ref<MediaStream | null>(null);
   const isOpeningCamera = ref(false);
   let captureVideo: HTMLVideoElement | null = null;
+  let cameraStartGeneration = 0;
 
   const cameraActive = computed(() => Boolean(cameraStream.value));
   const cameraStatusLabel = computed(() => {
@@ -30,6 +31,7 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
       return false;
     }
 
+    const requestGeneration = ++cameraStartGeneration;
     isOpeningCamera.value = true;
     options.onMessage?.("正在请求摄像头权限...");
     try {
@@ -44,6 +46,10 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
         },
         audio: false,
       });
+      if (requestGeneration !== cameraStartGeneration) {
+        stream.getTracks().forEach((track) => track.stop());
+        return false;
+      }
       cameraStream.value = stream;
       captureVideo = document.createElement("video");
       captureVideo.muted = true;
@@ -53,14 +59,20 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
       options.onMessage?.("摄像头已打开，可写入病例或启动实时视频分析。");
       return true;
     } catch (error) {
-      options.onMessage?.(cameraAccessErrorMessage(error), "error");
+      if (requestGeneration === cameraStartGeneration) {
+        options.onMessage?.(cameraAccessErrorMessage(error), "error");
+      }
       return false;
     } finally {
-      isOpeningCamera.value = false;
+      if (requestGeneration === cameraStartGeneration) {
+        isOpeningCamera.value = false;
+      }
     }
   }
 
   function stopCameraInput() {
+    cameraStartGeneration += 1;
+    isOpeningCamera.value = false;
     // 主动释放媒体轨道，避免离开页面后摄像头仍被浏览器占用。
     cameraStream.value?.getTracks().forEach((track) => track.stop());
     cameraStream.value = null;

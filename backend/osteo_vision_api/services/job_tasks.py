@@ -9,8 +9,14 @@ from backend.osteo_vision_api.domains.cases.schemas import AnalysisRunCreateRequ
 from backend.osteo_vision_api.services.analysis_service import AnalysisService
 from backend.osteo_vision_api.services.cbct_modeling_service import build_cbct_surface_model
 from backend.osteo_vision_api.services.job_service import JobRegistry
-from backend.osteo_vision_api.services.offline_pose_replay_service import OfflinePoseReplayRequestError, OfflinePoseReplayService
-from backend.osteo_vision_api.services.static_registration_service import StaticRegistrationRequestError, StaticRegistrationService
+from backend.osteo_vision_api.services.offline_pose_replay_service import (
+    OfflinePoseReplayRequestError,
+    OfflinePoseReplayService,
+)
+from backend.osteo_vision_api.services.static_registration_service import (
+    StaticRegistrationRequestError,
+    StaticRegistrationService,
+)
 from backend.osteo_vision_api.services.three_d_case_evidence import (
     persist_l1_registration_result,
     persist_l2_pose_replay_result,
@@ -136,12 +142,34 @@ def run_cbct_surface_modeling_job(
     if jobs.is_canceled(job_id):
         return _job_result(job_id, "cbct_surface_modeling", "canceled")
 
-    jobs.update_progress(job_id, phase="inspect_source", percent=15, message="检查 CBCT/STL 输入与建模边界。")
+    source_name = source_original_filename or source_path.name
+    jobs.update_progress(
+        job_id,
+        phase="inspect_source",
+        percent=8,
+        message="正在检查 CBCT / STL 输入与建模边界。",
+        details={"current_file": source_name},
+    )
     try:
-        jobs.update_progress(job_id, phase="surface_modeling", percent=45, message="生成或接入上下颌骨表面模型。")
         modeling_source_paths: list[str | Path] | None = (
             [path for path in source_paths] if source_paths is not None else None
         )
+
+        def report_progress(
+            phase: str,
+            percent: int,
+            message: str,
+            details: dict[str, Any] | None = None,
+        ) -> None:
+            progress_details = {"current_file": source_name, **(details or {})}
+            jobs.update_progress(
+                job_id,
+                phase=phase,
+                percent=percent,
+                message=message,
+                details=progress_details,
+            )
+
         result = build_cbct_surface_model(
             settings=settings,
             source_path=source_path,
@@ -152,18 +180,34 @@ def run_cbct_surface_modeling_job(
             decimation_step=decimation_step,
             source_role=source_role,
             source_original_filename=source_original_filename,
+            progress_reporter=report_progress,
         )
         result = {
             **result,
             "source_path": str(source_path),
             "source_paths": [str(path) for path in (source_paths or [source_path])],
         }
+        if jobs.is_canceled(job_id):
+            return _job_result(job_id, "cbct_surface_modeling", "canceled")
+        jobs.update_progress(
+            job_id,
+            phase="persist_case",
+            percent=96,
+            message="正在把三维模型、证据清单和场景状态写入病例。",
+            details={"current_file": source_name, "case_id": case_id},
+        )
         result = persist_three_d_modeling_result(repo, case_id=case_id, job_id=job_id, result=result)
     except Exception as exc:
         jobs.mark_failed(job_id, str(exc))
         return _job_result(job_id, "cbct_surface_modeling", "failed", error=str(exc))
 
-    jobs.update_progress(job_id, phase="write_manifest", percent=90, message="写入三维证据 manifest。")
+    jobs.update_progress(
+        job_id,
+        phase="write_manifest",
+        percent=98,
+        message="病例三维证据已写入，正在完成任务。",
+        details={"current_file": source_name, "case_id": case_id},
+    )
     if result.get("modeling_status") == "segmentation_required":
         jobs.mark_completed(job_id, result)
     elif result.get("model_path") or result.get("three_d_evidence"):

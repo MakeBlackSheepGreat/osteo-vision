@@ -263,6 +263,53 @@ export function videoPreviewPanelsFromRun(
     .filter((item): item is AnalysisPreviewPanel => item !== null);
 }
 
+export function fusedImageAiPreviewPanelsFromRun(
+  run: RunLike | null | undefined,
+  previewUrl: PreviewUrlBuilder,
+): AnalysisPreviewPanel[] {
+  const fusedOutputs = run?.fused_outputs ?? {};
+  const fusedImageAi = recordFrom(fusedOutputs.fused_image_ai) ? fusedOutputs.fused_image_ai : {};
+  if (stringFrom(fusedImageAi.execution_state) !== "completed") return [];
+  const lesionEvidence = recordFrom(fusedImageAi.lesion_evidence) ? fusedImageAi.lesion_evidence : {};
+  const boundary = recordFrom(fusedImageAi.boundary_assessment) ? fusedImageAi.boundary_assessment : {};
+  const counts = recordFrom(boundary.boundary_type_counts) ? boundary.boundary_type_counts : {};
+  const candidateCount = Math.max(0, Math.round(numberFrom(boundary.candidate_count)));
+  const evaluatedCandidateCount = Math.max(
+    candidateCount,
+    Math.round(numberFrom(boundary.evaluated_candidate_count)),
+  );
+  const suppressedCandidateCount = Math.max(0, Math.round(numberFrom(boundary.suppressed_candidate_count)));
+  const uncertainCount = Math.max(0, Math.round(numberFrom(counts.uncertain_boundary)));
+  const riskCount = Math.max(0, Math.round(numberFrom(counts.high_risk_transition_boundary)));
+  const spatialAllowed = fusedImageAi.spatial_interpretation_allowed === true;
+  return [
+    panelFromPath(
+      "AI 候选叠加",
+      `保留 ${candidateCount} / 评估 ${evaluatedCandidateCount}`,
+      `${spatialAllowed ? "融合输入空间解释已授权" : "融合输入空间解释关闭"}；抑制 ${suppressedCandidateCount} 个低优先级碎片`,
+      "任务2融合图 → 任务3",
+      stringFrom(lesionEvidence.overlay_path),
+      previewUrl,
+    ),
+    panelFromPath(
+      "边界风险",
+      `${riskCount} 个高风险边界`,
+      "模型信号边界复核提示",
+      "风险掩膜",
+      stringFrom(lesionEvidence.risk_mask_path),
+      previewUrl,
+    ),
+    panelFromPath(
+      "边界不确定性",
+      `${uncertainCount} 个不确定边界`,
+      "低置信或质量受限区域",
+      "不确定性掩膜",
+      stringFrom(lesionEvidence.uncertain_mask_path),
+      previewUrl,
+    ),
+  ].filter((item): item is AnalysisPreviewPanel => item !== null);
+}
+
 export function hotspotOutputsFromRun(run: RunLike | null | undefined): Array<Record<string, unknown>> {
   const hotspotOutputs = run?.fused_outputs?.hotspot_outputs;
   return Array.isArray(hotspotOutputs) ? hotspotOutputs.filter(recordFrom) : [];

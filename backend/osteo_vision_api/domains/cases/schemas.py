@@ -354,6 +354,128 @@ class AnalysisRunCreateRequest(BaseModel):
     roi_hints: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class Task2PairedFrameReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    frame_index: int = Field(ge=0)
+    white_input_id: str = Field(min_length=1, max_length=160)
+    fluorescence_input_id: str = Field(min_length=1, max_length=160)
+    device_overlay_input_id: str | None = Field(default=None, min_length=1, max_length=160)
+    captured_at: datetime | None = None
+    white_timestamp_ms: float | None = Field(default=None, ge=0.0)
+    fluorescence_timestamp_ms: float | None = Field(default=None, ge=0.0)
+    magnification: float | None = Field(default=None, ge=1.3, le=17.0)
+    working_distance_mm: float | None = Field(default=None, ge=200.0, le=630.0)
+
+
+class Task2PairedSequenceManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["osteo-vision-task2-paired-sequence-v1"]
+    sequence_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+    frames: list[Task2PairedFrameReference] = Field(min_length=2, max_length=120)
+    synchronization_tolerance_ms: float = Field(default=33.34, gt=0.0, le=1000.0)
+    alpha: float = Field(default=0.45, ge=0.0, le=1.0)
+    threshold: float = Field(default=0.6, ge=0.0, le=1.0)
+    colormap: Literal["green", "amber", "magenta"] = "green"
+    prefer_gpu: bool = True
+
+    @model_validator(mode="after")
+    def validate_frame_order_and_unique_assets(self) -> Task2PairedSequenceManifest:
+        indexes = [frame.frame_index for frame in self.frames]
+        if indexes != sorted(indexes) or len(indexes) != len(set(indexes)):
+            raise ValueError("paired sequence frame_index values must be unique and strictly increasing")
+        white_ids = [frame.white_input_id for frame in self.frames]
+        fluorescence_ids = [frame.fluorescence_input_id for frame in self.frames]
+        if len(white_ids) != len(set(white_ids)) or len(fluorescence_ids) != len(set(fluorescence_ids)):
+            raise ValueError("paired sequence input assets must be unique per frame")
+        device_ids = [frame.device_overlay_input_id for frame in self.frames if frame.device_overlay_input_id]
+        if len(device_ids) != len(set(device_ids)):
+            raise ValueError("paired sequence device overlay assets must be unique per frame")
+        captured = [frame.captured_at for frame in self.frames if frame.captured_at is not None]
+        if len(captured) > 1 and captured != sorted(captured):
+            raise ValueError("paired sequence captured_at values must be chronological")
+        return self
+
+
+class MultichannelVideoSessionCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["single_video", "paired_videos", "composite_layout"]
+    video_input_id: str | None = Field(default=None, max_length=160)
+    video_path: str | None = None
+    white_light_input_id: str | None = Field(default=None, max_length=160)
+    white_light_path: str | None = None
+    fluorescence_input_id: str | None = Field(default=None, max_length=160)
+    fluorescence_path: str | None = None
+    device_overlay_input_id: str | None = Field(default=None, max_length=160)
+    device_overlay_path: str | None = None
+    composite_record_id: str | None = Field(default=None, max_length=160)
+    fluorescence_offset_ms: float | None = Field(default=None, ge=-3_600_000, le=3_600_000)
+    device_overlay_offset_ms: float | None = Field(default=None, ge=-3_600_000, le=3_600_000)
+    synchronization_tolerance_ms: float = Field(default=33.34, gt=0.0, le=1000.0)
+    keyframe_count: int = Field(default=12, ge=2, le=120)
+    focus_timepoints_sec: list[float] = Field(default_factory=list, max_length=120)
+
+    @field_validator("focus_timepoints_sec")
+    @classmethod
+    def validate_focus_timepoints(cls, values: list[float]) -> list[float]:
+        if any(not 0.0 <= float(value) <= 86_400.0 for value in values):
+            raise ValueError("focus timepoints must be between 0 and 86400 seconds")
+        return values
+
+    @model_validator(mode="after")
+    def validate_mode_inputs(self) -> MultichannelVideoSessionCreateRequest:
+        if self.mode == "single_video" and not any((self.video_input_id, self.video_path)):
+            raise ValueError("single_video requires video_input_id or video_path")
+        if self.mode == "paired_videos":
+            if not any((self.white_light_input_id, self.white_light_path)):
+                raise ValueError("paired_videos requires a white-light video")
+            if not any((self.fluorescence_input_id, self.fluorescence_path)):
+                raise ValueError("paired_videos requires a fluorescence video")
+        if self.mode == "composite_layout" and not self.composite_record_id:
+            raise ValueError("composite_layout requires composite_record_id")
+        return self
+
+
+class MultichannelVideoChannel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["video", "white_light", "fluorescence", "device_overlay"]
+    input_id: str
+    path: str
+    probe: dict[str, Any] = Field(default_factory=dict)
+    automatic_offset_ms: float = 0.0
+    effective_offset_ms: float = 0.0
+    source_boundary: str = ""
+
+
+class MultichannelVideoSession(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["osteo-vision-multichannel-video-session-v1"]
+    session_id: str
+    case_id: str
+    mode: Literal["single_video", "paired_videos", "composite_layout"]
+    status: Literal["ready", "degraded", "blocked"]
+    analysis_allowed: bool
+    channels: list[MultichannelVideoChannel] = Field(default_factory=list)
+    synchronization_tolerance_ms: float
+    synchronization_status: Literal["aligned", "review_required", "unavailable"]
+    initial_time_delta_ms: float | None = None
+    common_start_sec: float | None = None
+    common_end_sec: float | None = None
+    common_duration_sec: float | None = None
+    drift_correction_threshold_ms: float = 80.0
+    paired_sequence_manifest: Task2PairedSequenceManifest | None = None
+    frame_pairs: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    failure_reasons: list[str] = Field(default_factory=list)
+    source_boundary: str
+    created_at: datetime = Field(default_factory=_utc_now)
+    updated_at: datetime = Field(default_factory=_utc_now)
+
+
 class ReviewMutationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

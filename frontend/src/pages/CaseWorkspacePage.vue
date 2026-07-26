@@ -1,47 +1,48 @@
 <template>
-  <main class="case-workspace">
+  <AppPageShell class="case-workspace" width="wide" density="compact">
     <header class="workspace-header">
-      <div class="workspace-title">
-        <p>术中影像工作台</p>
-        <h1>颌骨骨髓炎术中辅助决策平台</h1>
+      <div class="workspace-title ov-title-lead">
+        <AppIcon name="target" variant="badge" tone="cyan" />
+        <div>
+          <p>术中影像工作台</p>
+          <h1>颌骨骨髓炎术中辅助决策平台</h1>
+        </div>
       </div>
       <div class="workspace-header-actions">
-        <div class="workspace-context" aria-label="当前工作区状态">
-          <span>{{ store.currentCase?.title || "未载入病例" }}</span>
-          <strong :class="analysisStatusClass">{{ latestRunStatusLabel }}</strong>
-        </div>
-        <RouterLink
-          v-if="store.currentCase"
-          class="navigation-workspace-link"
-          :to="navigationWorkspaceRoute"
-          title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
+        <AppCaseContext
+          class="workspace-context"
+          :title="store.currentCase?.title"
+          :case-id="store.currentCase?.case_id"
+          :status="latestRunStatusLabel"
+          :tone="analysisStatusTone"
         >
-          <AppIcon name="cube" />
-          <span>
-            <strong>三维导航</strong>
-            <small>{{ threeDWorkspaceStatus }}</small>
-          </span>
-        </RouterLink>
+          <template #actions>
+            <RouterLink
+              v-if="store.currentCase"
+              class="navigation-workspace-link"
+              :to="navigationWorkspaceRoute"
+              title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
+            >
+              <AppIcon name="cube" />
+              <span>
+                <strong>三维导航</strong>
+                <small>{{ threeDWorkspaceStatus }}</small>
+              </span>
+            </RouterLink>
+          </template>
+        </AppCaseContext>
       </div>
     </header>
-
-    <details class="review-notice" aria-live="polite">
-      <summary>
-        <AppIcon class="notice-icon" name="alert" variant="badge" tone="amber" />
-        <strong>医生复核边界</strong>
-        <span>关键判断需医生确认。</span>
-      </summary>
-      <p>
-        该系统输出的 ICG 荧光信号与风险提示仅供术中医生参考，不能替代医生的专业判断与临床决策。
-        所有关键操作与治疗决策均须由具备资质的医生进行复核与确认。
-      </p>
-    </details>
 
     <section class="workspace-grid">
       <aside class="workspace-sidebar" aria-label="输入控制与结果摘要">
         <CaseWorkspaceControls
+          :video-input-source="videoInputSource"
           v-model:input-mode="inputMode"
+          v-model:video-mode="videoMode"
           v-model:video-timepoints="videoTimepoints"
+          v-model:fluorescence-offset-ms="fluorescenceOffsetMs"
+          v-model:device-overlay-offset-ms="deviceOverlayOffsetMs"
           v-model:alpha="alpha"
           v-model:threshold="threshold"
           v-model:colormap="colormap"
@@ -49,6 +50,11 @@
           :fluorescence-path="fluorescencePath"
           :device-overlay-path="deviceOverlayPath"
           :video-path="videoPath"
+          :multichannel-white-path="multichannelWhitePath"
+          :multichannel-fluorescence-path="multichannelFluorescencePath"
+          :multichannel-device-overlay-path="multichannelDeviceOverlayPath"
+          :multichannel-session="activeMultichannelSession"
+          :multichannel-preparing="multichannelPreparing"
           :loading="store.loading"
           :has-case="Boolean(store.currentCase)"
           :is-uploading-white="isUploadingWhite"
@@ -76,9 +82,8 @@
           :camera-analysis-interval-sec="cameraAnalysisIntervalSec"
           :camera-continuous-analysis-status="cameraContinuousAnalysisStatus"
           :camera-status-label="cameraStatusLabel"
-          :file-video-active="fileVideoActive"
-          :video-realtime-analysis-status="videoRealtimeAnalysisStatus"
           :live-session-ready="Boolean(store.currentCase)"
+          @update:video-input-source="switchVideoInputSource"
           @file-picked="handleFilePicked"
           @load-video-candidates="loadVideoCandidates"
           @select-video-candidate="selectVideoCandidate"
@@ -86,6 +91,9 @@
            @run-analysis="runAnalysis"
            @select-image-pair="selectImagePair"
           @run-video-file-analysis="runVideoFileAnalysis"
+          @prepare-multichannel-session="prepareMultichannelSession"
+          @run-multichannel-analysis="runMultichannelAnalysis"
+          @reset-multichannel-offsets="resetMultichannelOffsets"
           @start-camera="openCameraForLiveAnalysis"
           @stop-camera="stopCameraInput"
           @capture-camera-frame="captureAndAnalyzeBrowserCameraFrame"
@@ -117,30 +125,12 @@
       </aside>
 
       <section class="analysis-column" aria-label="分析结果">
-        <ThreeChannelQualityPanel
-          :quality="threeChannelQuality"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <PatientConditioningEvidencePanel
-          :evidence="patientConditioningEvidence"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <BoneActivityCheckpointEvidencePanel
-          :evidence="boneActivityCheckpointEvidence"
-          :download-url="apiClient.fileDownloadUrl"
-        />
-        <ViabilitySpectrumPanel
-          :spectrum="boneActivitySpectrum"
-          :preview-url="apiClient.filePreviewUrl"
-          :download-url="apiClient.fileDownloadUrl"
-        />
         <AnalysisWorkspaceCard
           ref="analysisWorkspaceCardRef"
           :loading="store.loading"
           :error="store.error"
           :has-case="Boolean(store.currentCase)"
+          :case-id="store.currentCase?.case_id"
           :export-path="store.exportPath"
           :export-links="exportLinks"
           :export-summary="store.exportResult?.summary ?? {}"
@@ -164,15 +154,20 @@
           :hotspot-frame-details="hotspotFrameDetails"
           :timeline-manifest-summary="timelineManifestSummary"
           :fusion-evidence-summary="fusionEvidenceSummary"
-          :video-playback="videoPlaybackAnalysis"
-          :camera-stream="cameraStream"
-          :camera-active="cameraActive"
+          :video-playback="videoInputSource === 'file' ? videoPlaybackAnalysis : null"
+          :camera-stream="videoInputSource === 'camera' ? cameraStream : null"
+          :camera-active="videoInputSource === 'camera' && cameraActive"
           :camera-status-label="cameraStatusLabel"
           :live-overlay-src="liveOverlaySrc"
           :live-frame-status="liveFrameStatus"
           :live-model-latency-ms="liveModelLatencyMs"
           :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
           :analysis-expanded="analysisExpanded"
+          :video-mode="activeAnalysisVideoMode"
+          :multichannel-channel-paths="multichannelChannelPaths"
+          :multichannel-session="activeMultichannelSession"
+          :multichannel-task2-result="activeMultichannelSession ? multichannelTask2Result : null"
+          :multichannel-ai-preview-src="activeMultichannelSession ? multichannelAiPreviewSrc : ''"
           @export="exportCase"
           @refresh-job="refreshAnalysisJob"
           @cancel-job="cancelAnalysisJob"
@@ -189,6 +184,34 @@
           @close-fullscreen="closeAnalysisFullscreen"
         />
 
+        <details class="evidence-disclosure">
+          <summary>
+            <span>质量、患者条件与骨活性证据</span>
+            <strong>展开复核证据</strong>
+          </summary>
+          <div class="evidence-stack">
+            <ThreeChannelQualityPanel
+              :quality="threeChannelQuality"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <PatientConditioningEvidencePanel
+              :evidence="patientConditioningEvidence"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <BoneActivityCheckpointEvidencePanel
+              :evidence="boneActivityCheckpointEvidence"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+            <ViabilitySpectrumPanel
+              :spectrum="boneActivitySpectrum"
+              :preview-url="apiClient.filePreviewUrl"
+              :download-url="apiClient.fileDownloadUrl"
+            />
+          </div>
+        </details>
+
         <details v-if="showDebugPanel" class="debug-panel">
           <summary>开发调试数据</summary>
           <pre>{{ store.currentCase }}</pre>
@@ -197,7 +220,7 @@
 
     </section>
 
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -206,6 +229,8 @@ import { useRoute } from "vue-router";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
+import AppCaseContext from "@/components/AppCaseContext.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import BoneActivityCheckpointEvidencePanel from "@/components/BoneActivityCheckpointEvidencePanel.vue";
 import CaseWorkspaceControls from "@/components/CaseWorkspaceControls.vue";
 import ClinicalContextPanel from "@/components/ClinicalContextPanel.vue";
@@ -221,6 +246,7 @@ import {
   filterHotspotTimelineItems,
   candidateOverlaysFromRegions,
   fusionEvidenceSummaryFromRun,
+  fusedImageAiPreviewPanelsFromRun,
   hotspotFrameDetailsFromRun,
   hotspotTimelineFromRun,
   roiOverlaysFromRegions,
@@ -250,7 +276,7 @@ import { useOperationMessage } from "@/composables/useOperationMessage";
 import { apiClient } from "@/services/apiClient";
 import type { LiveFrameAnalysisResult } from "@/services/apiClient";
 import { useCaseStore } from "@/stores/caseStore";
-import type { CandidateRegion, CaseInputAsset, ClinicalContext, ClinicalContextAssessment, RegionOfInterest, VideoCandidate } from "@/types/case";
+import type { CandidateRegion, CaseInputAsset, ClinicalContext, ClinicalContextAssessment, MultichannelVideoMode, MultichannelVideoSession, RegionOfInterest, VideoCandidate } from "@/types/case";
 import { candidateForHotspotFrame, candidateFrameIndexes } from "@/utils/boneGateActions";
 import { caseImagePairs, imagePairLabel, selectedImageInputIds } from "@/utils/caseInputPairs";
 import {
@@ -272,6 +298,8 @@ import {
 
 const store = useCaseStore();
 const route = useRoute();
+const configuredDefaultCaseId = import.meta.env.VITE_OSTEO_DEFAULT_CASE_ID;
+const standardDemoCaseId = configuredDefaultCaseId === undefined ? "case_standard_demo" : configuredDefaultCaseId.trim();
 
 // 页面层保留业务流程编排：上传、写入病例、触发分析和导出。
 const whiteLightPath = ref("");
@@ -279,7 +307,16 @@ const fluorescencePath = ref("");
 const deviceOverlayPath = ref("");
 const selectedImagePairKey = ref("");
 const videoPath = ref("");
+const videoInputSource = ref<"file" | "camera">("file");
 const inputMode = ref<"video" | "images">("video");
+const videoMode = ref<MultichannelVideoMode>("single_video");
+const multichannelWhitePath = ref("");
+const multichannelFluorescencePath = ref("");
+const multichannelDeviceOverlayPath = ref("");
+const multichannelSession = ref<MultichannelVideoSession | null>(null);
+const multichannelPreparing = ref(false);
+const fluorescenceOffsetMs = ref<number | null>(null);
+const deviceOverlayOffsetMs = ref<number | null>(null);
 const videoTimepoints = ref("");
 const syncedCaseId = ref("");
 const alpha = ref(0.45);
@@ -323,13 +360,28 @@ let liveFrameRequestGeneration = 0;
 let liveFrameRequestController: AbortController | null = null;
 let liveFrameRequestSource: "camera" | "video" | "" = "";
 let liveAnalysisSourceGeneration = 0;
+let multichannelOffsetTimer: number | null = null;
 
 watch(
   () => route.query.caseId,
   async (value) => {
-    const caseId = Array.isArray(value) ? value[0] : value;
-    if (!caseId || typeof caseId !== "string" || store.currentCase?.case_id === caseId) return;
+    const routeCaseId = Array.isArray(value) ? value[0] : value;
+    const caseId =
+      typeof routeCaseId === "string" && routeCaseId
+        ? routeCaseId
+        : store.currentCase
+          ? ""
+          : standardDemoCaseId;
+    if (!caseId || store.currentCase?.case_id === caseId) return;
     setOperationMessage(`正在载入病例：${caseId}...`);
+    if (caseId === standardDemoCaseId) {
+      try {
+        await apiClient.ensureStandardDemoCase();
+      } catch (error) {
+        setOperationMessage(`标准示例病例准备失败：${errorMessage(error)}`, "error");
+        return;
+      }
+    }
     await store.loadCase(caseId);
     const loaded = store.currentCase?.case_id === caseId;
     setOperationMessage(loaded ? `病例已载入：${caseId}` : store.error || "病例载入失败", loaded ? "info" : "error");
@@ -372,8 +424,6 @@ const {
 
 const {
   active: videoPlaybackAnalysisActive,
-  running: videoPlaybackAnalysisRunning,
-  statusLabel: videoPlaybackAnalysisLoopStatus,
   start: startVideoPlaybackAnalysisLoop,
   stop: stopVideoPlaybackAnalysisLoop,
 } = useContinuousCameraAnalysis({
@@ -415,10 +465,21 @@ const imagePairReady = computed(
 const videoReady = computed(
   () => Boolean(videoPath.value) && latestInputPathByChannel.value.get("video") === videoPath.value,
 );
+const activeAnalysisVideoMode = computed<MultichannelVideoMode>(() =>
+  videoInputSource.value === "file" && inputMode.value === "video" ? videoMode.value : "single_video",
+);
+const activeMultichannelSession = computed<MultichannelVideoSession | null>(() => {
+  if (activeAnalysisVideoMode.value === "single_video") return null;
+  return multichannelSession.value?.mode === activeAnalysisVideoMode.value ? multichannelSession.value : null;
+});
+const multichannelChannelPaths = computed(() => ({
+  white_light: multichannelWhitePath.value,
+  fluorescence: multichannelFluorescencePath.value,
+  device_overlay: multichannelDeviceOverlayPath.value,
+}));
 const metricEntries = computed(() => Object.entries(latestRun.value?.quantitative_summary ?? {}));
 const latestCandidates = computed<CandidateRegion[]>(() => latestRun.value?.candidate_regions ?? []);
 const boneGateCandidateFrameIndexes = computed(() => candidateFrameIndexes(latestCandidates.value));
-const latestMode = computed(() => stringFrom(latestRun.value?.fused_outputs?.mode));
 const outputPaths = computed<Record<string, unknown>>(() => {
   const fusedOutputs = latestRun.value?.fused_outputs ?? {};
   const nestedOutputs = isRecord(fusedOutputs.outputs) ? fusedOutputs.outputs : {};
@@ -464,9 +525,28 @@ const analysisStatusClass = computed(() => {
   if (latestRun.value?.status === "completed") return "completed";
   return "idle";
 });
+const analysisStatusTone = computed(() => {
+  if (analysisStatusClass.value === "running") return "warning";
+  if (analysisStatusClass.value === "completed") return "success";
+  if (analysisStatusClass.value === "failed") return "danger";
+  return "neutral";
+});
 
 const kpiItems = computed<Array<{ label: string; value: string; icon: AppIconName }>>(() => [
-  { label: "分析任务", value: latestMode.value === "video_file_keyframes" ? "MP4 视频分析" : "JPEG 图像融合", icon: "clipboard" },
+  {
+    label: "分析任务",
+    value:
+      activeAnalysisVideoMode.value === "paired_videos"
+        ? "双通道配准融合"
+        : activeAnalysisVideoMode.value === "composite_layout"
+          ? "三视图拆分分析"
+          : videoInputSource.value === "camera"
+            ? "摄像头连续分析"
+            : inputMode.value === "video"
+              ? "MP4 视频分析"
+              : "JPEG 图像融合",
+    icon: "clipboard",
+  },
   { label: "输入通道", value: `${displayInputAssets.value.length} 个`, icon: "layers" },
   { label: "候选区域", value: String(displayCandidates.value.length), icon: "target" },
   { label: "分析状态", value: latestRunStatusLabel.value, icon: "document" },
@@ -482,6 +562,13 @@ const previewPanels = computed<AnalysisPreviewPanel[]>(() => {
     selectedHotspotTimelineKey.value,
   );
   if (videoPanels.length) return videoPanels.slice(0, 3).map((panel) => ({ ...panel, overlays }));
+  const fusedImageAiPanels = fusedImageAiPreviewPanelsFromRun(latestRun.value, apiClient.filePreviewUrl);
+  if (fusedImageAiPanels.length) {
+    return [
+      previewPanel("融合图", `融合透明度: ${alpha.value.toFixed(2)}`, `伪彩方案: ${colormapLabel(colormap.value)}`, "白光 + ICG", stringFrom(outputPaths.value.overlay_path)),
+      ...fusedImageAiPanels,
+    ].slice(0, 3).map((panel) => ({ ...panel, overlays }));
+  }
   return [
     previewPanel("融合图", `融合透明度: ${alpha.value.toFixed(2)}`, `伪彩方案: ${colormapLabel(colormap.value)}`, "白光 + ICG", stringFrom(outputPaths.value.overlay_path)),
     previewPanel("热图", `当前阈值: ${threshold.value.toFixed(2)}`, "色标范围: 0 - 1", "0        1.0", stringFrom(outputPaths.value.heatmap_path)),
@@ -535,19 +622,41 @@ const timelineManifestSummary = computed(() =>
 const fusionEvidenceSummary = computed<FusionEvidenceSummary | null>(() =>
   fusionEvidenceSummaryFromRun(latestRun.value, apiClient.filePreviewUrl),
 );
+const multichannelTask2Result = computed<Record<string, unknown> | null>(() => {
+  const value = latestRun.value?.fused_outputs?.task2_paired_sequence;
+  if (!isRecord(value)) return null;
+  const fusedOutputs = latestRun.value?.fused_outputs;
+  return {
+    ...value,
+    ai_source_frame_index: fusedOutputs?.ai_source_frame_index,
+    ai_source_timestamp_ms: fusedOutputs?.ai_source_timestamp_ms,
+    ai_inference_ms: isRecord(fusedOutputs?.fused_image_ai)
+      && isRecord(fusedOutputs.fused_image_ai.performance)
+      ? fusedOutputs.fused_image_ai.performance.model_inference_ms
+      : null,
+  };
+});
+const multichannelAiPreviewSrc = computed(() => {
+  const panels = fusedImageAiPreviewPanelsFromRun(latestRun.value, apiClient.filePreviewUrl);
+  return panels.find((panel) => Boolean(panel.previewSrc))?.previewSrc ?? "";
+});
 const videoPlaybackAnalysis = computed<VideoPlaybackAnalysis | null>(() =>
-  videoPlaybackAnalysisFromRun(
-    latestRun.value,
-    displayInputAssets.value,
-    apiClient.fileVideoUrl,
-    apiClient.filePreviewUrl,
-    videoPath.value,
-  ),
+  activeAnalysisVideoMode.value !== "single_video"
+    ? null
+    : videoPlaybackAnalysisFromRun(
+        latestRun.value,
+        displayInputAssets.value,
+        apiClient.fileVideoUrl,
+        apiClient.filePreviewUrl,
+        videoPath.value,
+      ),
 );
-const fileVideoActive = computed(() => Boolean(videoPlaybackAnalysis.value?.videoSrc));
+const fileVideoActive = computed(
+  () => videoInputSource.value === "file" && Boolean(videoPlaybackAnalysis.value?.videoSrc),
+);
 const activeLiveFrameSource = computed<"camera" | "video" | "">(() => {
   if (fileVideoActive.value) return "video";
-  if (cameraActive.value) return "camera";
+  if (videoInputSource.value === "camera" && cameraActive.value) return "camera";
   return "";
 });
 const liveFrameIsCurrent = computed(() => {
@@ -597,13 +706,6 @@ const liveModelLatencyMs = computed(() =>
 const liveEndToEndLatencyMs = computed(() =>
   liveFrameIsDisplayable.value ? liveFrameResult.value?.inference_latency_ms ?? null : null,
 );
-const videoRealtimeAnalysisStatus = computed(() => {
-  if (videoPlaybackAnalysisRunning.value) return "MP4 逐帧实时分割正在处理当前播放帧。";
-  if (videoPlaybackAnalysisActive.value) {
-    return `MP4 逐帧实时分割已启动，已完成 ${videoPlaybackAnalysisLoopStatus.value.replace(/^.*已完成 /, "")}`;
-  }
-  return "MP4 播放后将自动启动逐帧实时分割。";
-});
 const navigationWorkspaceRoute = computed(() => ({
   path: "/navigation",
   query: { caseId: store.currentCase?.case_id ?? "" },
@@ -631,6 +733,7 @@ watch(
             (asset) =>
               `${asset.input_id}:${asset.channel}:${asset.path}:${stringFrom(asset.metadata.pair_id)}:${stringFrom(asset.metadata.batch_id)}`,
           ),
+          stringFrom(store.currentCase.review_summary?.multichannel_session_id),
         ].join("|")
       : "",
   () => {
@@ -649,6 +752,27 @@ watch(
     if (!hotspotTimelineItems.value.some((item) => item.key === selectedHotspotTimelineKey.value)) {
       selectedHotspotTimelineKey.value = hotspotTimelineItems.value[0].key;
     }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => ({
+    caseId: store.currentCase?.case_id ?? "",
+    sessionId: stringFrom(store.currentCase?.review_summary?.multichannel_session_id),
+  }),
+  ({ caseId, sessionId }) => {
+    if (!caseId) {
+      multichannelSession.value = null;
+      return;
+    }
+    if (!sessionId) {
+      if (multichannelSession.value?.case_id && multichannelSession.value.case_id !== caseId) {
+        multichannelSession.value = null;
+      }
+      return;
+    }
+    void restoreMultichannelSession(caseId, sessionId);
   },
   { immediate: true },
 );
@@ -709,6 +833,37 @@ watch(videoPath, (source, previousSource) => {
   clearLiveFrameResult("video");
 });
 
+watch(videoMode, (mode) => {
+  videoPlaybackPlaying.value = false;
+  stopVideoPlaybackAnalysisLoop(false);
+  invalidateLiveFrameRequest("video");
+  clearLiveFrameResult("video");
+  const labels: Record<MultichannelVideoMode, string> = {
+    single_video: "单路视频",
+    paired_videos: "双通道视频",
+    composite_layout: "合成三视图",
+  };
+  setOperationMessage(`已切换到${labels[mode]}工作区。`);
+});
+
+watch(
+  [fluorescenceOffsetMs, deviceOverlayOffsetMs],
+  ([fluorescenceOffset, deviceOffset], [previousFluorescenceOffset, previousDeviceOffset]) => {
+    if (
+      !activeMultichannelSession.value
+      || videoMode.value === "single_video"
+      || (fluorescenceOffset === previousFluorescenceOffset && deviceOffset === previousDeviceOffset)
+    ) {
+      return;
+    }
+    if (multichannelOffsetTimer !== null) window.clearTimeout(multichannelOffsetTimer);
+    multichannelOffsetTimer = window.setTimeout(() => {
+      multichannelOffsetTimer = null;
+      void prepareMultichannelSession();
+    }, 250);
+  },
+);
+
 function previewPanel(title: string, tag: string, label: string, scale: string, path: string): AnalysisPreviewPanel {
   return {
     title,
@@ -734,9 +889,21 @@ function syncInputPathsFromCase() {
     deviceOverlayPath.value = "";
     selectedImagePairKey.value = "";
     videoPath.value = "";
+    multichannelWhitePath.value = "";
+    multichannelFluorescencePath.value = "";
+    multichannelDeviceOverlayPath.value = "";
+    multichannelSession.value = null;
+    fluorescenceOffsetMs.value = null;
+    deviceOverlayOffsetMs.value = null;
   }
   const latestByChannel = (channel: CaseInputAsset["channel"]) =>
-    [...caseRecord.inputs].reverse().find((asset) => asset.channel === channel)?.path ?? "";
+    [...caseRecord.inputs]
+      .reverse()
+      .find(
+        (asset) =>
+          asset.channel === channel
+          && asset.metadata.source !== "multichannel_video_keyframe",
+      )?.path ?? "";
   const defaultPair = availableImagePairs.value.at(-1);
   if (caseChanged && defaultPair) {
     selectedImagePairKey.value = defaultPair.key;
@@ -746,7 +913,14 @@ function syncInputPathsFromCase() {
   }
   const white = latestByChannel("white_light");
   const fluorescence = latestByChannel("fluorescence");
-  const video = latestByChannel("video");
+  const preferredVideo = [...caseRecord.inputs]
+    .reverse()
+    .find(
+      (asset) =>
+        asset.channel === "video"
+        && (asset.metadata.standard_demo === true || asset.metadata.channel_role === "composite_source"),
+    );
+  const video = preferredVideo?.path ?? latestByChannel("video");
   const deviceOverlay = latestByChannel("device_overlay");
   if (white && ((!defaultPair && caseChanged) || !whiteLightPath.value.trim())) whiteLightPath.value = white;
   if (fluorescence && ((!defaultPair && caseChanged) || !fluorescencePath.value.trim())) {
@@ -754,6 +928,25 @@ function syncInputPathsFromCase() {
   }
   if (video && (caseChanged || !videoPath.value.trim())) videoPath.value = video;
   if (deviceOverlay && (caseChanged || !deviceOverlayPath.value.trim())) deviceOverlayPath.value = deviceOverlay;
+}
+
+async function restoreMultichannelSession(caseId: string, sessionId: string) {
+  try {
+    const session = await apiClient.getMultichannelVideoSession(caseId, sessionId);
+    if (store.currentCase?.case_id !== caseId) return;
+    multichannelSession.value = session;
+    videoMode.value = session.mode;
+    if (session.mode === "composite_layout" && !selectedVideoCandidateId.value) {
+      selectedVideoCandidateId.value = "OFDVDNET_001";
+    }
+    for (const channel of session.channels) {
+      if (channel.role === "white_light") multichannelWhitePath.value = channel.path;
+      if (channel.role === "fluorescence") multichannelFluorescencePath.value = channel.path;
+      if (channel.role === "device_overlay") multichannelDeviceOverlayPath.value = channel.path;
+    }
+  } catch (error) {
+    setOperationMessage(`多通道会话恢复失败：${errorMessage(error)}`, "error");
+  }
 }
 
 function selectHotspotFrame(key: string) {
@@ -842,7 +1035,12 @@ async function loadVideoCandidates() {
     const payload = await apiClient.listVideoCandidates(true);
     videoCandidates.value = payload.items;
     if (payload.items.length && !selectedVideoCandidateId.value) {
-      await selectVideoCandidate(payload.items[0].record_id);
+      const preferred =
+        videoMode.value === "composite_layout"
+          ? payload.items.find((candidate) => candidate.record_id === "OFDVDNET_001")
+            ?? payload.items.find((candidate) => candidate.composite_layout_available)
+          : payload.items[0];
+      if (preferred) await selectVideoCandidate(preferred.record_id);
     }
     setOperationMessage(`已加载 ${payload.count} 条本地可读 MP4 候选。`);
   } catch (error) {
@@ -1105,6 +1303,10 @@ async function analyzeCameraFrame(
 }
 
 async function startContinuousCameraAnalysis() {
+  if (videoInputSource.value !== "camera") {
+    setOperationMessage("请先选择浏览器摄像头输入。", "error");
+    return;
+  }
   if (!cameraActive.value) {
     setOperationMessage("请先开启摄像头。", "error");
     return;
@@ -1134,6 +1336,7 @@ function stopContinuousCameraAnalysis(message = true) {
 }
 
 async function startVideoPlaybackAnalysis() {
+  if (videoInputSource.value !== "file") return;
   if (!fileVideoActive.value) return;
   videoPlaybackPlaying.value = true;
   if (videoPlaybackAnalysisActive.value) return;
@@ -1252,6 +1455,10 @@ function clearLiveFrameExpiryTimer() {
 onBeforeUnmount(() => {
   liveAnalysisSourceGeneration += 1;
   invalidateLiveFrameRequest();
+  if (multichannelOffsetTimer !== null) {
+    window.clearTimeout(multichannelOffsetTimer);
+    multichannelOffsetTimer = null;
+  }
 });
 
 async function prepareContinuousCameraAnalysis() {
@@ -1269,17 +1476,41 @@ async function prepareVideoPlaybackAnalysis() {
 }
 
 async function openCameraForLiveAnalysis() {
+  if (videoInputSource.value !== "camera") {
+    switchVideoInputSource("camera");
+  }
   const opened = await startCameraInput();
   if (opened) {
     void warmupLiveFrameModel().catch(() => undefined);
   }
 }
 
+function switchVideoInputSource(source: "file" | "camera") {
+  if (source === videoInputSource.value) return;
+  liveAnalysisSourceGeneration += 1;
+
+  if (source === "camera") {
+    videoPlaybackPlaying.value = false;
+    stopVideoPlaybackAnalysisLoop(false);
+    analysisWorkspaceCardRef.value?.pausePlayback();
+    invalidateLiveFrameRequest("video");
+    clearLiveFrameResult("video");
+  } else {
+    stopContinuousCameraAnalysisLoop(false);
+    invalidateLiveFrameRequest("camera");
+    clearLiveFrameResult("camera");
+    stopCameraInput();
+  }
+
+  videoInputSource.value = source;
+  setOperationMessage(source === "camera" ? "已切换为浏览器摄像头输入。" : "已切换为文件输入。");
+}
+
 async function warmupLiveFrameModel() {
   if (liveModelWarmupPromise.value) return liveModelWarmupPromise.value;
   const task = (async () => {
     setOperationMessage("摄像头已连接，正在预热实时分割模型...");
-    const warmup = await apiClient.warmupLiveFrameModel();
+    const warmup = await apiClient.warmupLiveFrameModel(undefined, store.currentCase?.case_id);
     if (!warmup.available) {
       throw new Error("实时分割模型不可用。");
     }
@@ -1356,6 +1587,114 @@ async function runVideoFileAnalysis() {
     store.error || `MP4 分割分析完成，已抽取 ${count} 帧，生成 ${hotspotCount} 个候选区。`,
     store.error ? "error" : "info",
   );
+}
+
+async function prepareMultichannelSession() {
+  if (!store.currentCase || multichannelPreparing.value) return;
+  const requestedTimestamps = parseVideoTimepoints(videoTimepoints.value);
+  if (videoTimepoints.value.trim() && !requestedTimestamps.length) {
+    setOperationMessage("关键时间点格式无效，请输入秒数并用逗号或空格分隔。", "error");
+    return;
+  }
+  const selectedCandidate = videoCandidates.value.find(
+    (candidate) =>
+      candidate.record_id === selectedVideoCandidateId.value
+      && candidate.composite_layout_available,
+  );
+  const standardRecordId = stringFrom(
+    store.currentCase.inputs.find((asset) => asset.metadata.standard_demo === true)?.metadata.record_id,
+  );
+  if (
+    videoMode.value === "paired_videos"
+    && (!multichannelWhitePath.value || !multichannelFluorescencePath.value)
+  ) {
+    setOperationMessage("请先选择白光与荧光两路 MP4。", "error");
+    return;
+  }
+  if (videoMode.value === "composite_layout" && !selectedCandidate && !standardRecordId) {
+    setOperationMessage("请选择带三视图布局元数据的 OFDVDnet 视频。", "error");
+    return;
+  }
+  multichannelPreparing.value = true;
+  setOperationMessage("正在探测视频、计算共同区间并准备 12 对同步关键帧...");
+  try {
+    const session = await apiClient.createMultichannelVideoSession(store.currentCase.case_id, {
+      mode: videoMode.value,
+      ...(videoMode.value === "paired_videos"
+        ? {
+            white_light_path: multichannelWhitePath.value,
+            fluorescence_path: multichannelFluorescencePath.value,
+            device_overlay_path: multichannelDeviceOverlayPath.value || null,
+          }
+        : {
+            composite_record_id: selectedCandidate?.record_id || standardRecordId,
+          }),
+      fluorescence_offset_ms: fluorescenceOffsetMs.value,
+      device_overlay_offset_ms: deviceOverlayOffsetMs.value,
+      synchronization_tolerance_ms: 33.34,
+      keyframe_count: 12,
+      focus_timepoints_sec: requestedTimestamps,
+    });
+    multichannelSession.value = session;
+    store.currentCase = await apiClient.getCase(store.currentCase.case_id);
+    for (const channel of session.channels) {
+      if (channel.role === "white_light") multichannelWhitePath.value = channel.path;
+      if (channel.role === "fluorescence") multichannelFluorescencePath.value = channel.path;
+      if (channel.role === "device_overlay") multichannelDeviceOverlayPath.value = channel.path;
+    }
+    const status = session.synchronization_status === "aligned" ? "同步已对齐" : "同步需要复核";
+    setOperationMessage(
+      session.analysis_allowed
+        ? `多通道会话已准备：${status}，共同有效区间 ${Number(session.common_duration_sec ?? 0).toFixed(2)} 秒。`
+        : session.warnings.map((warning) => stringFrom(warning.message)).filter(Boolean).join("；")
+          || "多通道会话无法运行分析。",
+      session.analysis_allowed ? "info" : "error",
+    );
+  } catch (error) {
+    setOperationMessage(errorMessage(error), "error");
+  } finally {
+    multichannelPreparing.value = false;
+  }
+}
+
+async function runMultichannelAnalysis() {
+  const session = activeMultichannelSession.value;
+  if (!store.currentCase || !session?.paired_sequence_manifest) {
+    setOperationMessage("请先准备可用的双通道同步预览。", "error");
+    return;
+  }
+  if (!session.analysis_allowed) {
+    setOperationMessage("当前多通道会话没有共同有效区间或成对关键帧，无法运行分析。", "error");
+    return;
+  }
+  const manifest = {
+    ...session.paired_sequence_manifest,
+    alpha: alpha.value,
+    threshold: threshold.value,
+    colormap: colormap.value,
+  };
+  setOperationMessage("正在运行任务2同步关键帧配准、融合与 AI 辅助分析...");
+  await store.runAnalysisJob(
+    {
+      mode: "task2_paired_sequence",
+      multichannel_session_id: session.session_id,
+      ai_input_semantics: "fused_rgb_keyframe",
+      paired_sequence_manifest: manifest,
+    },
+    roiHintsFromCurrentCase(),
+  );
+  setOperationMessage(
+    store.error || latestRunFailureMessage() || "双通道融合分析完成，四宫格已同步最近关键帧证据。",
+    store.error || latestRunFailureMessage() ? "error" : "info",
+  );
+}
+
+function resetMultichannelOffsets() {
+  fluorescenceOffsetMs.value = null;
+  deviceOverlayOffsetMs.value = null;
+  if (activeMultichannelSession.value) {
+    void prepareMultichannelSession();
+  }
 }
 
 async function reanalyzeSelectedHotspotFrame() {
@@ -1532,7 +1871,17 @@ async function saveClinicalContext(context: ClinicalContext) {
   setOperationMessage(store.error || "患者结构化上下文已保存，当前仅用于风险先验与校准。", store.error ? "error" : "info");
 }
 
-async function handleFilePicked(channel: "white_light" | "fluorescence" | "device_overlay" | "video", event: Event) {
+async function handleFilePicked(
+  channel:
+    | "white_light"
+    | "fluorescence"
+    | "device_overlay"
+    | "video"
+    | "video_white_light"
+    | "video_fluorescence"
+    | "video_device_overlay",
+  event: Event,
+) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
@@ -1541,7 +1890,37 @@ async function handleFilePicked(channel: "white_light" | "fluorescence" | "devic
     await uploadSelectedVideo(file);
     return;
   }
+  if (
+    channel === "video_white_light"
+    || channel === "video_fluorescence"
+    || channel === "video_device_overlay"
+  ) {
+    await uploadSelectedMultichannelVideo(channel, file);
+    return;
+  }
   await uploadSelectedImage(channel, file);
+}
+
+async function uploadSelectedMultichannelVideo(
+  role: "video_white_light" | "video_fluorescence" | "video_device_overlay",
+  file: File,
+) {
+  isUploadingVideo.value = true;
+  const label =
+    role === "video_white_light" ? "白光" : role === "video_fluorescence" ? "荧光" : "设备叠加";
+  setOperationMessage(`正在上传${label} MP4：${file.name}`);
+  try {
+    const uploaded = await apiClient.uploadRawFile(file, "none");
+    if (role === "video_white_light") multichannelWhitePath.value = uploaded.path;
+    if (role === "video_fluorescence") multichannelFluorescencePath.value = uploaded.path;
+    if (role === "video_device_overlay") multichannelDeviceOverlayPath.value = uploaded.path;
+    multichannelSession.value = null;
+    setOperationMessage(`${label} MP4 已上传，准备同步预览后写入多通道会话。`);
+  } catch (error) {
+    setOperationMessage(errorMessage(error), "error");
+  } finally {
+    isUploadingVideo.value = false;
+  }
 }
 
 async function uploadSelectedImage(channel: "white_light" | "fluorescence" | "device_overlay", file: File) {
@@ -1704,7 +2083,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .workspace-header,
-.review-notice,
 .workspace-grid {
   width: min(100%, var(--ov-content-wide));
   margin-right: auto;
@@ -1713,6 +2091,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-header {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--ov-space-5);
   align-items: end;
   justify-content: space-between;
@@ -1720,6 +2099,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .workspace-title {
+  flex: 1 1 440px;
   min-width: 0;
 }
 
@@ -1741,6 +2121,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-context {
   display: flex;
+  flex: 1 1 300px;
   gap: var(--ov-space-3);
   align-items: center;
   justify-content: flex-end;
@@ -1775,6 +2156,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .workspace-header-actions {
   display: flex;
+  flex: 1 1 300px;
   flex-wrap: wrap;
   gap: var(--ov-space-3);
   align-items: center;
@@ -1835,76 +2217,9 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   font-weight: 700;
 }
 
-.review-notice {
-  margin-bottom: var(--ov-space-5);
-  border: 1px solid var(--ov-border);
-  border-left: 3px solid var(--ov-warning);
-  border-radius: 6px;
-  background: var(--ov-bg-warning);
-}
-
-.review-notice summary {
-  display: grid;
-  grid-template-columns: 24px auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  min-height: 42px;
-  padding: 8px 14px 8px 12px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.review-notice summary::-webkit-details-marker {
-  display: none;
-}
-
-.review-notice summary::after {
-  justify-self: end;
-  color: var(--ov-warning);
-  font-size: 12px;
-  font-weight: 900;
-  content: "详情";
-}
-
-.review-notice[open] summary {
-  border-bottom: 1px solid var(--ov-border);
-}
-
-.review-notice[open] summary::after {
-  content: "收起";
-}
-
-.notice-icon {
-  width: 22px;
-  height: 22px;
-}
-
-.review-notice strong {
-  color: var(--ov-warning);
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
-.review-notice span {
-  min-width: 0;
-  color: var(--ov-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.review-notice p {
-  margin: 0;
-  padding: 10px 14px 12px 46px;
-  color: var(--ov-text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(304px, 326px) minmax(0, 1fr);
+  grid-template-columns: minmax(296px, 316px) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -1975,6 +2290,65 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.evidence-disclosure {
+  min-width: 0;
+  border: 1px solid var(--ov-border);
+  border-radius: 7px;
+  background: var(--ov-bg-elevated);
+  box-shadow: var(--ov-shadow);
+}
+
+.evidence-disclosure > summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 11px 14px;
+  color: var(--ov-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.evidence-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-disclosure > summary span {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.evidence-disclosure > summary strong {
+  color: var(--ov-primary-strong);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.evidence-disclosure > summary strong::after {
+  margin-left: 8px;
+  content: "+";
+}
+
+.evidence-disclosure[open] > summary {
+  border-bottom: 1px solid var(--ov-border-subtle);
+}
+
+.evidence-disclosure[open] > summary strong::after {
+  content: "-";
+}
+
+.evidence-stack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
 }
 
 .result-card,
@@ -2153,10 +2527,11 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 }
 
 .case-workspace :deep(.empty-preview-copy) {
-  border-color: var(--ov-border);
-  background: var(--ov-bg-elevated);
+  border: 0;
+  padding: 8px 12px;
+  background: transparent;
   color: var(--ov-text-secondary);
-  box-shadow: var(--ov-shadow);
+  box-shadow: none;
 }
 
 .case-workspace :deep(.empty-preview-copy strong) {
@@ -2257,25 +2632,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   background: transparent;
 }
 
-/* Desktop clinical workstation polish: matte surfaces, fewer nested frames, clearer hierarchy. */
-.result-card,
-.debug-panel,
-.case-workspace :deep(.control-card),
-.case-workspace :deep(.analysis-card),
-.case-workspace :deep(.summary-card),
-.case-workspace :deep(.analysis-quad-card),
-.case-workspace :deep(.fusion-evidence-panel),
-.case-workspace :deep(.hotspot-timeline),
-.case-workspace :deep(.export-panel),
-.case-workspace :deep(.job-panel),
-.case-workspace :deep(.hotspot-frame-detail),
-.case-workspace :deep(.hotspot-frame-drawer),
-.case-workspace :deep(.timeline-manifest-panel) {
-  border-color: var(--ov-border);
-  background: var(--ov-bg-elevated);
-  box-shadow: var(--ov-shadow);
-}
-
 .case-workspace :deep(.analysis-card) {
   padding: 20px;
 }
@@ -2288,43 +2644,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 .case-workspace :deep(.analysis-quad-viewport) {
   border-color: var(--ov-border-strong);
-}
-
-.case-workspace :deep(.empty-preview-copy) {
-  border: 0;
-  padding: 8px 12px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.case-workspace :deep(.empty-preview-copy strong) {
-  color: var(--ov-text);
-}
-
-.case-workspace :deep(.empty-preview-copy span) {
-  color: var(--ov-text-muted);
-}
-
-.case-workspace :deep(input),
-.case-workspace :deep(textarea),
-.case-workspace :deep(select),
-.case-workspace :deep(output) {
-  border-color: var(--ov-border-strong);
-  background: var(--ov-bg-control);
-  color: var(--ov-text);
-}
-
-.case-workspace :deep(.app-button) {
-  border-color: var(--ov-border-strong);
-  background: var(--ov-bg-control);
-  color: var(--ov-primary);
-  box-shadow: none;
-}
-
-.case-workspace :deep(.app-button--primary) {
-  border-color: var(--ov-border-accent);
-  background: var(--ov-button-primary-bg);
-  color: var(--ov-text-on-primary);
 }
 
 .case-workspace :deep(.summary-chip),
@@ -2364,23 +2683,7 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
 @media (max-width: 1359px) {
   .workspace-grid {
-    grid-template-columns: minmax(286px, 304px) minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 1180px) {
-  .workspace-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .workspace-sidebar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-
-  .workspace-sidebar :deep(.left-sidebar),
-  .workspace-sidebar :deep(.summary-card) {
-    min-width: 0;
+    grid-template-columns: minmax(276px, 296px) minmax(0, 1fr);
   }
 }
 
@@ -2402,23 +2705,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
     line-height: 1.22;
   }
 
-  .review-notice {
-    margin-bottom: 10px;
-  }
-
-  .review-notice summary {
-    grid-template-columns: 22px auto minmax(0, 1fr) auto;
-    padding: 7px 10px;
-  }
-
-  .review-notice span {
-    white-space: normal;
-  }
-
-  .review-notice p {
-    grid-column: 1 / -1;
-    padding: 9px 10px 11px;
-  }
 }
 
 </style>

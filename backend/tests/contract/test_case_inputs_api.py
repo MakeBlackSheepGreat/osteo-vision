@@ -531,6 +531,7 @@ def test_video_library_candidate_can_be_imported_as_case_input(tmp_path: Path, m
     manifest = tmp_path / "video_manifest.csv"
     _write_video_manifest(manifest, [{"record_id": "LIB001", "local_path": str(source), "download_status": "exists"}])
     monkeypatch.setenv("OSTEO_VIDEO_MANIFEST_PATH", str(manifest))
+    monkeypatch.setenv("OSTEO_OFDVD_MANIFEST_PATH", str(tmp_path / "missing-ofdvdnet.csv"))
     client = TestClient(create_app())
     created = client.post("/cases", json={"title": "video library case"}).json()
     case_id = created["case_id"]

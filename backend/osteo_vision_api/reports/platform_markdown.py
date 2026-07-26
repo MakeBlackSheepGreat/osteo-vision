@@ -12,6 +12,7 @@ from backend.osteo_vision_api.reports.platform_report_sections import (
     patient_conditioning_markdown_lines,
     platform_safety_lines,
     quality_flag_markdown_lines,
+    task3_fused_image_markdown_lines,
     three_channel_quality_markdown_lines,
     three_d_evidence_markdown_lines,
     video_signal_markdown_lines,
@@ -25,6 +26,7 @@ def build_platform_markdown(case: CaseRecord, report: dict[str, Any]) -> str:
         *_quality_section(case),
         *_clinical_context_section(report),
         *_patient_conditioning_section(report),
+        *_task3_fused_image_section(report),
         *_bone_activity_checkpoint_section(report),
         *_json_section("Quantification", quantification),
         *_video_signal_section(report),
@@ -69,6 +71,17 @@ def _patient_conditioning_section(report: dict[str, Any]) -> list[str]:
         "## Patient-Conditioned Segmentation Comparison",
         "",
         *patient_conditioning_markdown_lines(section),
+        "",
+    ]
+
+
+def _task3_fused_image_section(report: dict[str, Any]) -> list[str]:
+    section = report.get("task3_fused_image_ai")
+    section = section if isinstance(section, dict) else {}
+    return [
+        "## Task 3 Fused-Image AI Review Evidence",
+        "",
+        *task3_fused_image_markdown_lines(section),
         "",
     ]
 

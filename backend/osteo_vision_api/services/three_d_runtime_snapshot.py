@@ -16,8 +16,8 @@ from backend.osteo_vision_api.domains.cases.schemas import (
     CaseRecord,
     ThreeDRuntimeModelAsset,
     ThreeDRuntimeSafety,
-    ThreeDRuntimeSpatialMapping,
     ThreeDRuntimeSnapshot,
+    ThreeDRuntimeSpatialMapping,
 )
 from backend.osteo_vision_api.services.three_d_evidence import build_three_d_evidence
 
@@ -218,7 +218,13 @@ def resolve_model_asset(settings: Settings, raw_path: object) -> ResolvedThreeDM
     return ResolvedThreeDModelAsset(
         path=resolved,
         format=model_format,
-        sha256=_cached_file_sha256(str(resolved), stat.st_size, stat.st_mtime_ns),
+        sha256=_cached_file_sha256(
+            str(resolved),
+            stat.st_size,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+            int(getattr(stat, "st_ino", 0)),
+        ),
         size_bytes=stat.st_size,
     )
 
@@ -373,7 +379,10 @@ def _transform_chain_mentions_space(value: object, coordinate_space: str) -> boo
     for item in value:
         if not isinstance(item, Mapping):
             continue
-        if _safe_text(item.get("from_space")) == coordinate_space or _safe_text(item.get("to_space")) == coordinate_space:
+        if (
+            _safe_text(item.get("from_space")) == coordinate_space
+            or _safe_text(item.get("to_space")) == coordinate_space
+        ):
             return True
     return False
 
@@ -516,8 +525,8 @@ def _timestamp(value: datetime) -> str:
 
 
 @lru_cache(maxsize=256)
-def _cached_file_sha256(path: str, size_bytes: int, mtime_ns: int) -> str:
-    del size_bytes, mtime_ns
+def _cached_file_sha256(path: str, size_bytes: int, mtime_ns: int, ctime_ns: int, inode: int) -> str:
+    del size_bytes, mtime_ns, ctime_ns, inode
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):

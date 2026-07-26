@@ -1,5 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CandidateRegionList from "../src/components/CandidateRegionList.vue";
@@ -26,6 +27,30 @@ describe("review workspace", () => {
 
     expect(wrapper.get(".roi-canvas-stub").attributes("data-has-output")).toBe("true");
     expect(wrapper.get(".roi-canvas-stub").attributes("data-disabled")).toBe("false");
+  });
+
+  it("loads the case identified by the navigation query before enabling review actions", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useCaseStore();
+    vi.spyOn(store, "loadCase").mockImplementation(async (caseId) => {
+      const loaded = { ...caseWithCandidate(), case_id: caseId };
+      store.currentCase = loaded;
+      return loaded;
+    });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/review", component: ReviewWorkspacePage }],
+    });
+    await router.push("/review?caseId=case_review_from_navigation");
+    await router.isReady();
+
+    const wrapper = mountReviewWorkspace(pinia, router);
+    await flushPromises();
+
+    expect(store.loadCase).toHaveBeenCalledWith("case_review_from_navigation");
+    expect(wrapper.get(".roi-canvas-stub").attributes("data-disabled")).toBe("false");
+    expect(wrapper.text()).toContain("病例 case_review_from_navigation 已载入");
   });
 
   it("renders store write failures in an assertive alert", async () => {
@@ -106,10 +131,17 @@ describe("review workspace", () => {
   });
 });
 
-function mountReviewWorkspace(pinia: ReturnType<typeof createPinia>) {
+function mountReviewWorkspace(pinia: ReturnType<typeof createPinia>, router?: ReturnType<typeof createRouter>) {
+  const reviewRouter = router ?? createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/", component: { template: "<div />" } },
+      { path: "/review", component: ReviewWorkspacePage },
+    ],
+  });
   return mount(ReviewWorkspacePage, {
     global: {
-      plugins: [pinia],
+      plugins: [pinia, reviewRouter],
       stubs: {
         AppPageHeader: true,
         CandidateRegionList: true,

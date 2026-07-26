@@ -16,11 +16,14 @@ describe("ThreeDRendererRuntimeEmbed", () => {
     const frame = wrapper.get("iframe");
     expect(frame.attributes("src")).toContain("http://127.0.0.1:5175");
     expect(frame.attributes("src")).toContain("caseId=case_001");
+    expect(frame.attributes("src")).toContain("embedded=1");
     expect(wrapper.text()).toContain("正在建立三维渲染会话");
     const status = wrapper.get('[data-testid="three-d-runtime-status"]');
     expect(status.isVisible()).toBe(true);
     expect(getComputedStyle(status.element).opacity).not.toBe("0");
-    expect(wrapper.get('a[target="_blank"]').attributes("href")).toContain("caseId=case_001");
+    const standaloneUrl = wrapper.get('a[target="_blank"]').attributes("href");
+    expect(standaloneUrl).toContain("caseId=case_001");
+    expect(standaloneUrl).not.toContain("embedded=1");
   });
 
   it("degrades visibly when the separate runtime does not confirm within the allowed window", async () => {
@@ -92,6 +95,34 @@ describe("ThreeDRendererRuntimeEmbed", () => {
     expect(wrapper.emitted("selectCandidateFrame")?.[0]).toEqual([
       { candidateId: "candidate_001", frameKey: "frame_10", frameIndex: 10, timestampSec: 1.25 },
     ]);
+  });
+
+  it("re-sends the current scene request until the isolated runtime confirms it", async () => {
+    vi.useFakeTimers();
+    const wrapper = mount(ThreeDRendererRuntimeEmbed, { props: { caseId: "case_001" } });
+    const runtimeWindow = { postMessage: vi.fn() };
+    Object.defineProperty(wrapper.get("iframe").element, "contentWindow", { configurable: true, value: runtimeWindow });
+
+    await wrapper.get("iframe").trigger("load");
+    expect(runtimeWindow.postMessage).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(700);
+    expect(runtimeWindow.postMessage).toHaveBeenCalledTimes(2);
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: "http://127.0.0.1:5175",
+        source: runtimeWindow as unknown as MessageEventSource,
+        data: {
+          protocol: "osteo-vision-three-d-runtime-bridge-v1",
+          type: "scene_loaded",
+          request_id: "case_001-0",
+        },
+      }),
+    );
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(1400);
+    expect(runtimeWindow.postMessage).toHaveBeenCalledTimes(2);
   });
 
   it("ignores bridge messages from an untrusted origin", async () => {

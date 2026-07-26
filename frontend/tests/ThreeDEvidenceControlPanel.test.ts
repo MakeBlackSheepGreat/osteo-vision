@@ -5,7 +5,10 @@ import ThreeDEvidenceControlPanel from "@/components/ThreeDEvidenceControlPanel.
 import { apiClient } from "@/services/apiClient";
 
 describe("ThreeDEvidenceControlPanel", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
 
   it("uploads CBCT data, submits the case-bound modeling job, and emits after persistence", async () => {
     const file = new File(["cbct-volume"], "case_001.nii", { type: "application/octet-stream" });
@@ -61,6 +64,10 @@ describe("ThreeDEvidenceControlPanel", () => {
     expect(wrapper.emitted("evidencePersisted")).toHaveLength(1);
     expect(wrapper.text()).toContain("模型证据已持久化。");
     expect(wrapper.text()).toContain("L0 未配准参考");
+    expect(wrapper.find('[data-testid="modeling-progress"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="modeling-percent"]').text()).toBe("100%");
+    expect(wrapper.get('[data-testid="modeling-phase"]').text()).toBe("建模完成");
+    expect(wrapper.text()).toContain("case_001.nii");
 
     await wrapper.setProps({
       evidence: {
@@ -97,7 +104,13 @@ describe("ThreeDEvidenceControlPanel", () => {
       job_id: "job_surface_001",
       kind: "cbct_surface_modeling",
       status: "running",
-      progress: { message: "正在检查表面模型。" },
+      progress: {
+        phase: "verify_surface",
+        percent: 72,
+        message: "正在检查表面模型。",
+        details: { current_file: "mandible.glb" },
+      },
+      created_at: new Date(Date.now() - 12_000).toISOString(),
     });
     const cancel = vi.spyOn(apiClient, "cancelThreeDModelingJob").mockResolvedValue({
       job_id: "job_surface_001",
@@ -114,6 +127,10 @@ describe("ThreeDEvidenceControlPanel", () => {
 
     expect(getJob).toHaveBeenCalledWith("job_surface_001");
     expect(wrapper.findAll('[data-testid="cancel-modeling-job"]')).toHaveLength(1);
+    expect(wrapper.get('[data-testid="modeling-percent"]').text()).toBe("72%");
+    expect(wrapper.get('[data-testid="modeling-phase"]').text()).toBe("校验表面模型");
+    expect(wrapper.get('[data-testid="modeling-elapsed"]').text()).toContain("12 秒");
+    expect(wrapper.text()).toContain("mandible.glb");
 
     await wrapper.get('[data-testid="cancel-modeling-job"]').trigger("click");
     await flushPromises();
@@ -121,6 +138,39 @@ describe("ThreeDEvidenceControlPanel", () => {
     expect(cancel).toHaveBeenCalledWith("job_surface_001");
     expect(wrapper.text()).toContain("已取消");
     expect(wrapper.findAll('[data-testid="cancel-modeling-job"]')).toHaveLength(0);
+  });
+
+  it("restores a persisted modeling job after the page is remounted", async () => {
+    window.localStorage.setItem("osteo-vision-three-d-modeling-job:case_restore", "job_restore_001");
+    const getJob = vi.spyOn(apiClient, "getThreeDModelingJob").mockResolvedValue({
+      job_id: "job_restore_001",
+      kind: "cbct_surface_modeling",
+      status: "completed",
+      progress: {
+        phase: "completed",
+        percent: 100,
+        message: "三维建模已完成。",
+        details: { current_file: "restored_surface.stl" },
+      },
+      created_at: "2026-07-26T08:00:00Z",
+      updated_at: "2026-07-26T08:02:05Z",
+      result: {
+        three_d_evidence: {
+          model_path: "artifacts/models/restored_surface.stl",
+          navigation_level: "L0",
+          navigation_ready: false,
+        },
+      },
+    });
+
+    const wrapper = mount(ThreeDEvidenceControlPanel, { props: { caseId: "case_restore" } });
+    await flushPromises();
+
+    expect(getJob).toHaveBeenCalledWith("job_restore_001");
+    expect(wrapper.get('[data-testid="modeling-percent"]').text()).toBe("100%");
+    expect(wrapper.get('[data-testid="modeling-phase"]').text()).toBe("建模完成");
+    expect(wrapper.get('[data-testid="modeling-elapsed"]').text()).toBe("2 分 5 秒");
+    expect(wrapper.text()).toContain("restored_surface.stl");
   });
 
   it("renders a single panel section for the stable three-column navigation workbench", () => {

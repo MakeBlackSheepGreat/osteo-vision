@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import cv2
@@ -130,3 +131,27 @@ def test_frames_csv_write_is_atomic_and_returns_replay_summary(tmp_path) -> None
             "failure_reasons": [],
         }
     ]
+
+
+def test_render_overlay_rejects_source_frames_without_replay_evidence(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    writer = cv2.VideoWriter(str(source), cv2.VideoWriter_fourcc(*"mp4v"), 10.0, (32, 24))  # type: ignore[attr-defined]
+    for index in range(3):
+        frame = np.full((24, 32, 3), index * 40, dtype=np.uint8)
+        writer.write(frame)
+    writer.release()
+
+    replay_frames = [
+        SimpleNamespace(frame_index=0, projected_points_px=[[5.0, 5.0], [20.0, 10.0]]),
+        SimpleNamespace(frame_index=1, projected_points_px=[[6.0, 5.0], [21.0, 10.0]]),
+    ]
+
+    with pytest.raises(replay_service.OfflinePoseReplayRequestError) as error:
+        replay_service._render_overlay_video(
+            source,
+            replay_frames,
+            tmp_path / "overlay.mp4",
+            fps=10.0,
+        )
+
+    assert error.value.code == "overlay_frame_count_mismatch"

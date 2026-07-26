@@ -10,7 +10,8 @@ param(
     [switch]$NoInstall,
     [switch]$NoBrowser,
     [switch]$Headless,
-    [switch]$StartThreeDRuntime
+    [switch]$StartThreeDRuntime,
+    [switch]$SkipThreeDRuntime
 )
 
 $ErrorActionPreference = "Stop"
@@ -129,6 +130,9 @@ $runtimeCheck = Join-Path $repoRoot "tools\check_runtime_readiness.py"
 $runtimePorts = @($BackendPort, $FrontendPort, $ThreeDRuntimePort)
 if (($runtimePorts | Select-Object -Unique).Count -ne 3) {
     throw "BackendPort, FrontendPort and ThreeDRuntimePort must use three different values."
+}
+if ($StartThreeDRuntime -and $SkipThreeDRuntime) {
+    throw "StartThreeDRuntime and SkipThreeDRuntime cannot be used together."
 }
 if ($StrictCompetition) {
     $InferenceConfig = "configs/inference/osteo_vision_competition_strict.yml"
@@ -264,6 +268,19 @@ if (-not $backendVerified) {
 }
 Write-Host "[ready] Backend:  $apiUrl"
 
+Write-Host "[wait] Preparing the standard demonstration case..."
+try {
+    $standardDemoCase = Invoke-RestMethod -Uri "$apiUrl/platform/standard-demo-case" -Method Post -TimeoutSec 180
+    if (-not $standardDemoCase.case_id) {
+        throw "Standard demonstration case API returned no case identifier."
+    }
+    $standardDemoCaseId = [string]$standardDemoCase.case_id
+    Write-Host "[ready] Standard case: $standardDemoCaseId"
+}
+catch {
+    throw "Standard demonstration case preparation failed. $($_.Exception.Message)"
+}
+
 Write-Host "[wait] Warming up the configured segmentation model..."
 try {
     $warmup = Invoke-RestMethod `
@@ -295,6 +312,7 @@ else {
 `$env:VITE_OSTEO_API_URL = '$apiUrl'
 `$env:VITE_OSTEO_THREE_D_RUNTIME_URL = '$threeDRuntimeUrl'
 `$env:VITE_OSTEO_EXPECT_STRICT_RUNTIME = '$expectStrictRuntime'
+`$env:VITE_OSTEO_DEFAULT_CASE_ID = '$standardDemoCaseId'
 npm --prefix "$frontendDir" run dev -- --host $HostAddress --port $FrontendPort --strictPort
 "@
     Start-DevWindow -Title "Osteo Vision Frontend :$FrontendPort" -Command $frontendCommand -WorkingDirectory $repoRoot -Headless:$Headless
@@ -317,8 +335,8 @@ if (-not $frontendReady) {
     exit 1
 }
 
-if ($StartThreeDRuntime) {
-    Write-Host "[three-d-runtime] Starting optional independent renderer on port $ThreeDRuntimePort..."
+if (-not $SkipThreeDRuntime) {
+    Write-Host "[three-d-runtime] Starting independent renderer on port $ThreeDRuntimePort..."
     try {
         if (-not (Test-Path -LiteralPath $threeDRuntimeDir)) {
             throw "Runtime directory is missing: $threeDRuntimeDir"

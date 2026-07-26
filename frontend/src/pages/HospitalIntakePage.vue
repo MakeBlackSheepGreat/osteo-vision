@@ -1,6 +1,6 @@
 <template>
-  <main class="intake-page">
-    <AppPageHeader eyebrow="真实数据交接" title="医院数据准入与隔离">
+  <AppPageShell class="intake-page" width="large">
+    <AppPageHeader eyebrow="真实数据交接" icon="shield" icon-tone="green" title="医院数据准入与隔离">
       <template #actions>
         <RouterLink class="back-link" to="/cases">
           <AppIcon name="case" />
@@ -331,7 +331,7 @@
         </details>
       </aside>
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -340,6 +340,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AppPageHeader from "@/components/AppPageHeader.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import { apiClient } from "@/services/apiClient";
 import type { InputChannel } from "@/types/case";
 import type {
@@ -801,6 +802,18 @@ function formatBytes(value: number): string {
   gap: 24px;
   align-items: start;
   margin-top: 24px;
+}
+
+@media (max-width: 1100px) {
+  .intake-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .intake-results {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 .intake-form,

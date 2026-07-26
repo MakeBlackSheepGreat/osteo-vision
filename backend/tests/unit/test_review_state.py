@@ -12,6 +12,7 @@ from backend.osteo_vision_api.domains.cases.schemas import (
     BoneGateMaskCreateRequest,
     CandidateRegion,
     CaseRecord,
+    RegionOfInterest,
     RegionUpdateRequest,
     ReviewActorIdentity,
     ReviewEvent,
@@ -37,6 +38,42 @@ def test_review_state_transition_is_saved(tmp_path) -> None:
     assert updated.rois[0].review_state == ReviewState.MODIFIED
     assert repo.get("case_review").rois[0].review_state == ReviewState.MODIFIED
     assert updated.review_events[-1].role == ReviewerRole.ENGINEERING_REVIEWER
+
+
+def test_review_summary_counts_regions_and_candidates_in_single_pass(tmp_path: Path) -> None:
+    case = CaseRecord(
+        case_id="case_review_summary",
+        title="review summary",
+        rois=[
+            RegionOfInterest(roi_id="roi-a", case_id="case_review_summary", review_state=ReviewState.ACCEPTED),
+            RegionOfInterest(roi_id="roi-b", case_id="case_review_summary", review_state=ReviewState.MODIFIED),
+            RegionOfInterest(roi_id="roi-c", case_id="case_review_summary", review_state=ReviewState.REJECTED),
+        ],
+        analysis_runs=[
+            AnalysisRun(
+                run_id="run-summary",
+                case_id="case_review_summary",
+                candidate_regions=[
+                    CandidateRegion(candidate_id="candidate-a", run_id="run-summary", status=ReviewState.ACCEPTED),
+                    CandidateRegion(candidate_id="candidate-b", run_id="run-summary", status=ReviewState.MODIFIED),
+                    CandidateRegion(candidate_id="candidate-c", run_id="run-summary", status=ReviewState.REJECTED),
+                    CandidateRegion(candidate_id="candidate-d", run_id="run-summary"),
+                ],
+            )
+        ],
+    )
+    repo = JsonCaseRepository(tmp_path / "cases.json")
+    service = ReviewService(repo)
+
+    summary = service._review_summary(case)
+
+    assert summary["accepted_regions"] == 1
+    assert summary["modified_regions"] == 1
+    assert summary["rejected_regions"] == 1
+    assert summary["accepted_candidates"] == 1
+    assert summary["modified_candidates"] == 1
+    assert summary["rejected_candidates"] == 1
+    assert summary["total_review_events"] == 0
 
 
 def test_legacy_review_event_is_loaded_as_unverified() -> None:

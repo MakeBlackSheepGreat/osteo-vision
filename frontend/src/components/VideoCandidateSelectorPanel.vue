@@ -290,7 +290,7 @@ watch(filteredVideoCandidates, (candidates) => {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .candidate-preview figcaption {

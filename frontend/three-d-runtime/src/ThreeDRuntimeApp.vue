@@ -1,5 +1,5 @@
 <template>
-  <main class="runtime-shell" :data-theme="theme">
+  <main class="runtime-shell" :class="{ 'is-embedded': embedded }" :data-theme="theme">
     <header class="runtime-shell__header">
       <div class="runtime-shell__title">
         <span>Osteo Vision</span>
@@ -131,6 +131,7 @@ const activeCaseId = ref(queryValue("caseId"));
 const activeReferenceId = ref(queryValue("referenceId"));
 const activeRequestId = ref("");
 const theme = ref<ThemeName>(initialTheme());
+const embedded = queryValue("embedded") === "1" && window.parent !== window;
 let snapshotRequestGeneration = 0;
 
 const candidates = computed(() => snapshot.value?.candidate_regions ?? []);
@@ -187,6 +188,7 @@ const inspectorSummary = computed(() => {
 onMounted(() => {
   applyTheme(theme.value);
   window.addEventListener("message", handleBridgeMessage);
+  announceRuntimeReady();
   if (window.parent === window && (activeCaseId.value || activeReferenceId.value)) void loadSnapshot();
 });
 
@@ -238,6 +240,10 @@ function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
   const requestId = message.request_id?.trim();
   if (!requestId) return;
   if (message.type === "load_case" && message.case_id) {
+    if (isActiveSceneRequest(requestId, message.case_id, "")) {
+      if (snapshot.value && !loading.value) notifyParent("scene_loaded", "受控三维场景快照已载入。");
+      return;
+    }
     activeRequestId.value = requestId;
     activeCaseId.value = message.case_id;
     activeReferenceId.value = "";
@@ -246,11 +252,45 @@ function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
     return;
   }
   if (message.type === "load_reference" && message.reference_id) {
+    if (isActiveSceneRequest(requestId, "", message.reference_id)) {
+      if (snapshot.value && !loading.value) notifyParent("scene_loaded", "受控三维场景快照已载入。");
+      return;
+    }
     activeRequestId.value = requestId;
     activeReferenceId.value = message.reference_id;
     activeCaseId.value = "";
     if (message.theme) applyTheme(message.theme, { persist: true });
     void loadSnapshot();
+  }
+}
+
+function isActiveSceneRequest(requestId: string, caseId: string, referenceId: string): boolean {
+  return (
+    activeRequestId.value === requestId &&
+    activeCaseId.value === caseId &&
+    activeReferenceId.value === referenceId
+  );
+}
+
+function announceRuntimeReady() {
+  if (window.parent === window) return;
+  const targetOrigin = parentOriginHint();
+  if (!targetOrigin) return;
+  window.parent.postMessage(
+    {
+      protocol: BRIDGE_PROTOCOL,
+      type: "runtime_ready",
+    },
+    targetOrigin,
+  );
+}
+
+function parentOriginHint(): string {
+  try {
+    const origin = new URL(document.referrer).origin;
+    return parentOrigins.includes(origin) ? origin : "";
+  } catch {
+    return parentOrigins.length === 1 ? parentOrigins[0] : "";
   }
 }
 

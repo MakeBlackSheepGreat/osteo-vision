@@ -6,6 +6,7 @@ import json
 import math
 import re
 from datetime import datetime, timezone
+from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Any
 
@@ -49,9 +50,10 @@ def build_three_d_evidence(
     transform_format = _string(explicit.get("transform_format") or parameters.get("three_d_transform_format")).lower()
     microscope_pose_evidence = _microscope_pose_evidence(explicit, parameters=parameters)
     coordinate_space = _string(explicit.get("coordinate_space") or parameters.get("three_d_coordinate_space"))
-    model_coordinate_space = _string(
-        explicit.get("model_coordinate_space") or parameters.get("three_d_model_coordinate_space")
-    ) or coordinate_space
+    model_coordinate_space = (
+        _string(explicit.get("model_coordinate_space") or parameters.get("three_d_model_coordinate_space"))
+        or coordinate_space
+    )
     dicom_series_uid = _string(explicit.get("dicom_series_uid") or parameters.get("three_d_dicom_series_uid"))
     segmentation_source = _string(explicit.get("segmentation_source") or parameters.get("three_d_segmentation_source"))
     segmentation_review_status = _string(
@@ -101,6 +103,9 @@ def build_three_d_evidence(
         "model_source": _string(explicit.get("model_source"))
         or ("case_evidence_package" if model_path else "not_provided"),
         "exported_from": _string(explicit.get("exported_from")) or None,
+        "orientation_review_status": _string(explicit.get("orientation_review_status")) or None,
+        "display_orientation_status": _string(explicit.get("display_orientation_status")) or None,
+        "view_space_mapping": _dict_value(explicit.get("view_space_mapping")) or None,
         "dicom_series_uid": dicom_series_uid or None,
         "segmentation_source": segmentation_source or None,
         "segmentation_review_status": segmentation_review_status or None,
@@ -567,7 +572,12 @@ def _validate_transform_file(*, transform_path: str, expected_sha256: str, decla
         return result
     result["supported_format"] = True
 
-    actual_sha256 = _sha256(path)
+    try:
+        raw_bytes = path.read_bytes()
+    except OSError:
+        reasons.append("transform_file_unreadable")
+        return result
+    actual_sha256 = hashlib.sha256(raw_bytes).hexdigest()
     result["sha256"] = actual_sha256
     if not expected_sha256:
         reasons.append("transform_sha256_missing")
@@ -579,7 +589,7 @@ def _validate_transform_file(*, transform_path: str, expected_sha256: str, decla
         result["sha256_match"] = True
 
     try:
-        matrix = _load_transform_matrix(path, transform_format)
+        matrix = _load_transform_matrix(path, transform_format, raw_bytes=raw_bytes)
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         reasons.append("transform_matrix_unreadable")
         return result
@@ -611,20 +621,21 @@ def _normalize_transform_format(value: str) -> str:
     return {"itk": "tfm", "itk_tfm": "tfm", "numpy": "npy"}.get(normalized, normalized)
 
 
-def _load_transform_matrix(path: Path, transform_format: str) -> list[list[float]]:
+def _load_transform_matrix(path: Path, transform_format: str, *, raw_bytes: bytes | None = None) -> list[list[float]]:
+    content = raw_bytes if raw_bytes is not None else path.read_bytes()
     if transform_format == "json":
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(content.decode("utf-8"))
         if isinstance(payload, dict):
             payload = payload.get("matrix") or payload.get("transform_matrix") or payload.get("affine")
         return _coerce_matrix(payload)
     if transform_format == "csv":
-        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        with StringIO(content.decode("utf-8-sig"), newline="") as handle:
             rows = [[float(value) for value in row if value.strip()] for row in csv.reader(handle)]
         return _coerce_matrix(rows)
     if transform_format == "txt":
-        return _matrix_from_numeric_text(path.read_text(encoding="utf-8-sig"))
+        return _matrix_from_numeric_text(content.decode("utf-8-sig"))
     if transform_format == "tfm":
-        text = path.read_text(encoding="utf-8-sig")
+        text = content.decode("utf-8-sig")
         match = re.search(r"^Parameters:\s*(.+)$", text, flags=re.MULTILINE)
         if match:
             values = [float(value) for value in match.group(1).split()]
@@ -636,7 +647,7 @@ def _load_transform_matrix(path: Path, transform_format: str) -> list[list[float
     if transform_format == "npy":
         import numpy as np
 
-        return _coerce_matrix(np.load(path, allow_pickle=False).tolist())
+        return _coerce_matrix(np.load(BytesIO(content), allow_pickle=False).tolist())
     raise ValueError(f"Unsupported transform format: {transform_format}")
 
 
@@ -742,14 +753,6 @@ def _normalize_unit(value: Any) -> str:
     }.get(normalized, normalized)
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
     demo = _string(parameters.get("three_d_evidence_demo")).lower()
     if demo not in {"d024", "d024_mandible", "d024_mandible_surface"}:
@@ -769,6 +772,22 @@ def _demo_evidence(parameters: dict[str, Any]) -> dict[str, Any]:
         "segmentation_review_status": "public_dataset_annotation_not_case_reviewed",
         "registration_status": "unregistered",
         "coordinate_space": "cbct_label_voxel_spacing_mm",
+        "orientation_review_status": "pending_slicer_or_physician_review",
+        "display_orientation_status": "axis_mapping_inferred_not_physician_reviewed",
+        "view_space_mapping": {
+            "source_vertex_order": "physical_xyz_ras",
+            "display_up_axis": "-physical_z",
+            "frontend_rotation_x_degrees": 90,
+            "frontend_rotation_z_degrees": 180,
+            "frontend_rotation_order": "ZXY",
+            "identity_direction": False,
+            "requires_review": True,
+            "reason": (
+                "D024 NIfTI surface uses physical XYZ coordinates with the volume Z axis increasing inferiorly; "
+                "the display rotations map superior anatomy to the viewport up axis and preserve the agreed "
+                "upright mandibular-arch presentation."
+            ),
+        },
         "doctor_review_status": "not_reviewed",
         "navigation_ready": False,
         "scene_manifest": _demo_scene_manifest(),

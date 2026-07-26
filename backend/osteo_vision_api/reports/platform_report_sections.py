@@ -46,11 +46,13 @@ CLINICAL_FEATURE_VECTOR_FIELDS = (
 
 
 def _dict_payload(value: Any) -> dict[str, Any]:
-    return dict(value) if isinstance(value, dict) else {}
+    # Report sections only read these JSON-compatible payloads.  Reusing the
+    # original container avoids copying large per-frame evidence dictionaries.
+    return value if isinstance(value, dict) else {}
 
 
 def _list_payload(value: Any) -> list[Any]:
-    return list(value) if isinstance(value, list) else []
+    return value if isinstance(value, list) else []
 
 
 def clinical_feature_vector_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
@@ -116,25 +118,131 @@ def clinical_context_markdown_lines(section: dict[str, Any]) -> list[str]:
     return lines
 
 
+def task3_fused_image_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
+    latest_run = run if isinstance(run, dict) else {}
+    fused_outputs = _dict_payload(latest_run.get("fused_outputs"))
+    evidence = _dict_payload(fused_outputs.get("fused_image_ai"))
+    if not evidence:
+        return {
+            "available": False,
+            "section_title": "Task 3 fused-image AI review evidence",
+            "medical_boundary": "No Task 3 fused-image AI evidence was recorded for this analysis run.",
+        }
+    input_contract = _dict_payload(evidence.get("input_contract"))
+    boundary = _dict_payload(evidence.get("boundary_assessment"))
+    lesion = _dict_payload(evidence.get("lesion_evidence"))
+    return {
+        "available": evidence.get("available") is True,
+        "section_title": "Task 3 fused-image AI review evidence",
+        "execution_state": evidence.get("execution_state"),
+        "model_id": evidence.get("model_id"),
+        "model_family": evidence.get("model_family"),
+        "task_role": evidence.get("task_role"),
+        "input_contract_schema": input_contract.get("schema_version"),
+        "input_contract_path": input_contract.get("contract_path"),
+        "input_contract_sha256": input_contract.get("contract_sha256"),
+        "engineering_input_eligible": input_contract.get("engineering_input_eligible") is True,
+        "task2_provenance": input_contract.get("task2_provenance") or {},
+        "boundary_assessment_schema": boundary.get("schema_version"),
+        "boundary_assessment_path": boundary.get("summary_path"),
+        "candidate_count": boundary.get("candidate_count", 0),
+        "evaluated_candidate_count": boundary.get("evaluated_candidate_count", boundary.get("candidate_count", 0)),
+        "suppressed_candidate_count": boundary.get("suppressed_candidate_count", 0),
+        "boundary_type_counts": boundary.get("boundary_type_counts") or {},
+        "evaluated_boundary_type_counts": boundary.get("evaluated_boundary_type_counts") or {},
+        "activity_class_counts": boundary.get("activity_class_counts") or {},
+        "evaluated_activity_class_counts": boundary.get("evaluated_activity_class_counts") or {},
+        "activity_evidence": boundary.get("activity_evidence") or {},
+        "candidate_retention": boundary.get("candidate_retention") or {},
+        "review_priority": boundary.get("review_priority"),
+        "spatial_interpretation_allowed": evidence.get("spatial_interpretation_allowed") is True,
+        "clinical_claim_allowed": evidence.get("clinical_claim_allowed") is True,
+        "mask_path": lesion.get("mask_path"),
+        "probability_path": lesion.get("probability_path"),
+        "risk_mask_path": lesion.get("risk_mask_path"),
+        "uncertain_mask_path": lesion.get("uncertain_mask_path"),
+        "overlay_path": lesion.get("overlay_path"),
+        "physician_review_required": boundary.get("physician_review_required", True),
+        "medical_boundary": boundary.get("medical_boundary")
+        or (
+            "Boundary classes describe engineering signal, risk, and uncertainty layers. Pathological necrosis, "
+            "active bone status, and surgical margins require physician review and target-domain evidence."
+        ),
+    }
+
+
+def task3_fused_image_section_from_runs(runs: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """Select the newest run that actually contains fused-image AI evidence.
+
+    A case can have a JPEG fusion run followed by an MP4 video run.  Using only
+    the final run hides the JPEG Task 3 result from the exported report.  Keep
+    the latest-run field untouched while selecting this section by evidence
+    availability and retaining the source run id for auditability.
+    """
+
+    candidates = [run for run in (runs or []) if isinstance(run, dict)]
+    for run in reversed(candidates):
+        fused_outputs = _dict_payload(run.get("fused_outputs"))
+        evidence = _dict_payload(fused_outputs.get("fused_image_ai"))
+        if not evidence:
+            continue
+        section = task3_fused_image_section_from_run(run)
+        section["source_run_id"] = run.get("run_id")
+        section["source_run_selection"] = "latest_run_with_task3_fused_image_ai"
+        return section
+    section = task3_fused_image_section_from_run(candidates[-1] if candidates else None)
+    section["source_run_id"] = None
+    section["source_run_selection"] = "no_task3_fused_image_ai_run"
+    return section
+
+
+def task3_fused_image_markdown_lines(section: dict[str, Any]) -> list[str]:
+    if not section.get("available"):
+        return [f"- {section.get('medical_boundary')}"]
+    provenance = _dict_payload(section.get("task2_provenance"))
+    boundary_counts = _dict_payload(section.get("boundary_type_counts"))
+    activity_counts = _dict_payload(section.get("activity_class_counts"))
+    activity_evidence = _dict_payload(section.get("activity_evidence"))
+    return [
+        f"- Execution state: `{section.get('execution_state') or 'not recorded'}`",
+        f"- Model: `{section.get('model_id') or 'not recorded'}`",
+        f"- Input contract: `{section.get('input_contract_schema') or 'not recorded'}`",
+        f"- Input contract SHA256: `{section.get('input_contract_sha256') or 'not recorded'}`",
+        f"- Engineering input eligible: `{bool(section.get('engineering_input_eligible'))}`",
+        f"- Task 2 registration and fusion compute: `{provenance.get('registration_fusion_compute_ms')}` ms",
+        f"- Task 2 accelerator: `{provenance.get('accelerator') or 'not recorded'}`",
+        f"- Boundary candidate count: `{section.get('candidate_count') or 0}`",
+        f"- Evaluated boundary candidates: `{section.get('evaluated_candidate_count') or 0}`",
+        f"- Suppressed low-priority boundary candidates: `{section.get('suppressed_candidate_count') or 0}`",
+        f"- Signal candidate boundaries: `{boundary_counts.get('signal_candidate_boundary') or 0}`",
+        f"- High-risk transition boundaries: `{boundary_counts.get('high_risk_transition_boundary') or 0}`",
+        f"- Uncertain boundaries: `{boundary_counts.get('uncertain_boundary') or 0}`",
+        f"- Bone-activity evidence available: `{bool(activity_evidence.get('available'))}`",
+        f"- Low-activity review candidates: `{activity_counts.get('low_activity_candidate') or 0}`",
+        f"- Transition review candidates: `{activity_counts.get('transition_candidate') or 0}`",
+        f"- High-activity references: `{activity_counts.get('high_activity_candidate') or 0}`",
+        f"- Activity-unavailable candidates: `{activity_counts.get('unavailable_pending_reviewed_bone_gate') or 0}`",
+        f"- Spatial interpretation allowed: `{bool(section.get('spatial_interpretation_allowed'))}`",
+        f"- Physician review required: `{bool(section.get('physician_review_required'))}`",
+        f"- Clinical claim allowed: `{bool(section.get('clinical_claim_allowed'))}`",
+        f"- Boundary: {section.get('medical_boundary')}",
+    ]
+
+
 def patient_conditioning_section_from_run(run: dict[str, Any] | None) -> dict[str, Any]:
     latest_run = run if isinstance(run, dict) else {}
-    fused_outputs_value = latest_run.get("fused_outputs")
-    fused_outputs = dict(fused_outputs_value) if isinstance(fused_outputs_value, dict) else {}
-    evidence_value = fused_outputs.get("patient_conditioning_evidence")
-    evidence = dict(evidence_value) if isinstance(evidence_value, dict) else {}
+    fused_outputs = _dict_payload(latest_run.get("fused_outputs"))
+    evidence = _dict_payload(fused_outputs.get("patient_conditioning_evidence"))
     if not evidence:
         return {
             "available": False,
             "section_title": "Patient-conditioned segmentation comparison",
             "medical_boundary": "No patient-conditioned segmentation evidence was recorded for this analysis run.",
         }
-    prediction_value = evidence.get("prediction")
-    prediction = dict(prediction_value) if isinstance(prediction_value, dict) else {}
+    prediction = _dict_payload(evidence.get("prediction"))
     payload = {**prediction, **evidence}
-    quantification_value = payload.get("quantification")
-    quantification = dict(quantification_value) if isinstance(quantification_value, dict) else {}
-    reviewed_gate_value = payload.get("reviewed_bone_gate")
-    reviewed_gate = dict(reviewed_gate_value) if isinstance(reviewed_gate_value, dict) else {}
+    quantification = _dict_payload(payload.get("quantification"))
+    reviewed_gate = _dict_payload(payload.get("reviewed_bone_gate"))
     clinical_feature_vector = clinical_feature_vector_from_payload(payload)
     return {
         "available": True,
@@ -171,8 +279,7 @@ def patient_conditioning_section_from_run(run: dict[str, Any] | None) -> dict[st
 def patient_conditioning_markdown_lines(section: dict[str, Any]) -> list[str]:
     if not section.get("available"):
         return [f"- {section.get('medical_boundary')}"]
-    quantification_value = section.get("quantification")
-    quantification = dict(quantification_value) if isinstance(quantification_value, dict) else {}
+    quantification = _dict_payload(section.get("quantification"))
     failure_reasons = [str(item) for item in section.get("failure_reasons") or [] if str(item).strip()]
     vector = clinical_feature_vector_from_payload(section)
     vector_lines = _clinical_feature_vector_markdown_lines(vector)
@@ -244,6 +351,25 @@ def bone_activity_checkpoint_section_from_run(run: dict[str, Any] | None) -> dic
         "medical_boundary": payload.get("medical_boundary")
         or "Bone-activity checkpoint evidence requires physician review and validated promotion gates.",
     }
+
+
+def bone_activity_checkpoint_section_from_runs(runs: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """Select the newest run containing bone-activity checkpoint evidence."""
+
+    candidates = [run for run in (runs or []) if isinstance(run, dict)]
+    for run in reversed(candidates):
+        fused_outputs = _dict_payload(run.get("fused_outputs"))
+        evidence = _dict_payload(fused_outputs.get("bone_activity_checkpoint_evidence"))
+        if not evidence:
+            continue
+        section = bone_activity_checkpoint_section_from_run(run)
+        section["source_run_id"] = run.get("run_id")
+        section["source_run_selection"] = "latest_run_with_bone_activity_checkpoint_evidence"
+        return section
+    section = bone_activity_checkpoint_section_from_run(candidates[-1] if candidates else None)
+    section["source_run_id"] = None
+    section["source_run_selection"] = "no_bone_activity_checkpoint_run"
+    return section
 
 
 def bone_activity_checkpoint_markdown_lines(section: dict[str, Any]) -> list[str]:

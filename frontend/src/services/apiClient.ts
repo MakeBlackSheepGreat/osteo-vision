@@ -1,4 +1,4 @@
-import type { CaseInputDraft, CaseRecord, ClinicalContext, ExportResponse, L1StaticRegistrationRequest, L2PoseReplayRequest, ReviewState, VideoCandidate, VideoCandidateList } from "@/types/case";
+import type { CaseInputDraft, CaseRecord, ClinicalContext, ExportResponse, L1StaticRegistrationRequest, L2PoseReplayRequest, MultichannelVideoSession, MultichannelVideoSessionCreateRequest, ReviewState, VideoCandidate, VideoCandidateList } from "@/types/case";
 import type {
   AnnotationList,
   AnnotationSourceList,
@@ -111,6 +111,7 @@ export interface LiveFrameWarmupResult {
   model_family: string;
   available: boolean;
   warnings?: Array<Record<string, unknown>>;
+  case_preparation?: Record<string, unknown> | null;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -138,6 +139,9 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ title, disclaimer_version: "platform-safety-v1" }),
     });
+  },
+  ensureStandardDemoCase(): Promise<CaseRecord> {
+    return request<CaseRecord>("/platform/standard-demo-case", { method: "POST" });
   },
   getCase(caseId: string): Promise<CaseRecord> {
     return request<CaseRecord>(`/cases/${caseId}`);
@@ -364,6 +368,20 @@ export const apiClient = {
       method: "POST",
     });
   },
+  createMultichannelVideoSession(
+    caseId: string,
+    payload: MultichannelVideoSessionCreateRequest,
+  ): Promise<MultichannelVideoSession> {
+    return request<MultichannelVideoSession>(`/cases/${caseId}/multichannel-video-sessions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  getMultichannelVideoSession(caseId: string, sessionId: string): Promise<MultichannelVideoSession> {
+    return request<MultichannelVideoSession>(
+      `/cases/${caseId}/multichannel-video-sessions/${encodeURIComponent(sessionId)}`,
+    );
+  },
   listDatasetReviewQueue(): Promise<DatasetReviewQueue> {
     return request<DatasetReviewQueue | DatasetReviewRecord[]>("/dataset-review/queue").then((payload) =>
       Array.isArray(payload) ? { items: payload } : payload,
@@ -461,10 +479,13 @@ export const apiClient = {
     }
     return response.json() as Promise<LiveFrameAnalysisResult>;
   },
-  warmupLiveFrameModel(modelId?: string): Promise<LiveFrameWarmupResult> {
+  warmupLiveFrameModel(modelId?: string, caseId?: string): Promise<LiveFrameWarmupResult> {
     return request<LiveFrameWarmupResult>("/live-frames/warmup", {
       method: "POST",
-      body: JSON.stringify(modelId ? { model_id: modelId } : {}),
+      body: JSON.stringify({
+        ...(modelId ? { model_id: modelId } : {}),
+        ...(caseId ? { case_id: caseId } : {}),
+      }),
     });
   },
   async uploadThreeDAsset(file: File): Promise<UploadResponse> {

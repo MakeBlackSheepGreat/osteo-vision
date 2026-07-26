@@ -1,0 +1,101 @@
+{
+  "sha": "e5f3e95e9d72f222b98eead220e567484f2cdc72",
+  "node_id": "C_kwDOPDLP9doAKGU1ZjNlOTVlOWQ3MmYyMjJiOThlZWFkMjIwZTU2NzQ4NGYyY2RjNzI",
+  "commit": {
+    "author": {
+      "name": "ZhongLab2020",
+      "email": "zhongyet@outlook.com",
+      "date": "2025-06-28T04:42:35Z"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "date": "2025-06-28T04:42:35Z"
+    },
+    "message": "Update apply.py",
+    "tree": {
+      "sha": "b25093240e0589540be8dfd46e03d2a3f805b77e",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/trees/b25093240e0589540be8dfd46e03d2a3f805b77e"
+    },
+    "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/git/commits/e5f3e95e9d72f222b98eead220e567484f2cdc72",
+    "comment_count": 0,
+    "verification": {
+      "verified": true,
+      "reason": "valid",
+      "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJoX3K7CRC1aQ7uu5UhlAAAfrMQAFisQaA/4gSlzUJe3IXeokNn\nMEh5TH/OB65LdQXV7pEjAHguO+SNNSmPkHTNrO0Wo12YplPx2ndzZL2sRd9WeoEk\n3H73SxGHgT16SzBZhj/Cl3FupCLA9OMiPzdaHTqqqsgOGsHBRJQzUcwooVPHIJqF\nI1jUywF8ytjs9anXM0m44AB0o5eQa9WB5pSCzCkygulyFHQ7QT4R3F4/PSbdS2ni\na2OI6aljHv63UiGEVo9l8r3363BzolWl97FtDz0ewD69EhpuOlVNSTGe0gMcisGk\nwUg7vXgUkITOJI+HfEamwoj5msLgcUYe5OxSOY5UzK32kbxNHoI43Lw/ueHfQT+u\nD+9a8JSZvl6UxYUoJyHWCF0EKF0wE0ckPjqJk4Qfj3Wx13e2Irlm1/tGLdx+3Z0a\nTex5GtZXwXG+jsCPJVjcQGVsn8H2Npqf3ESTtT2eySOkVmPyliVQd2XEA+WxvIrp\njnrtfwg3hIc55DE4enYghT6DYDYE9D/FMqOjEUkHEefZYIgf1j8CXwkmr4c5qynX\nGpMRSBiZzHYQUD9VYSnyr4p+bc+k6x6sJTSo4qJ33tr2BtwbCz9MW8aPcrWheA6r\n+Z8X+Rsqp8tJgqnursvLlomRTmMwYULX51e9QkR01gt3VXb7dUEmORDn9es79nOM\nn7EUj9qGuxC7xeKpt4bb\n=JJM6\n-----END PGP SIGNATURE-----\n",
+      "payload": "tree b25093240e0589540be8dfd46e03d2a3f805b77e\nparent cec97669d993b7ef7983ccdf1a918becb85a6021\nauthor ZhongLab2020 <zhongyet@outlook.com> 1751085755 +0800\ncommitter GitHub <noreply@github.com> 1751085755 +0800\n\nUpdate apply.py",
+      "verified_at": "2025-06-28T04:42:35Z"
+    }
+  },
+  "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/commits/e5f3e95e9d72f222b98eead220e567484f2cdc72",
+  "html_url": "https://github.com/ZhongLab2020/NIR-IIb_sO2_UNet/commit/e5f3e95e9d72f222b98eead220e567484f2cdc72",
+  "comments_url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/commits/e5f3e95e9d72f222b98eead220e567484f2cdc72/comments",
+  "author": {
+    "login": "ZhongLab2020",
+    "id": 218330692,
+    "node_id": "U_kgDODQN2RA",
+    "avatar_url": "https://avatars.githubusercontent.com/u/218330692?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/ZhongLab2020",
+    "html_url": "https://github.com/ZhongLab2020",
+    "followers_url": "https://api.github.com/users/ZhongLab2020/followers",
+    "following_url": "https://api.github.com/users/ZhongLab2020/following{/other_user}",
+    "gists_url": "https://api.github.com/users/ZhongLab2020/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/ZhongLab2020/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/ZhongLab2020/subscriptions",
+    "organizations_url": "https://api.github.com/users/ZhongLab2020/orgs",
+    "repos_url": "https://api.github.com/users/ZhongLab2020/repos",
+    "events_url": "https://api.github.com/users/ZhongLab2020/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/ZhongLab2020/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "committer": {
+    "login": "web-flow",
+    "id": 19864447,
+    "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+    "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/web-flow",
+    "html_url": "https://github.com/web-flow",
+    "followers_url": "https://api.github.com/users/web-flow/followers",
+    "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+    "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+    "organizations_url": "https://api.github.com/users/web-flow/orgs",
+    "repos_url": "https://api.github.com/users/web-flow/repos",
+    "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/web-flow/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "parents": [
+    {
+      "sha": "cec97669d993b7ef7983ccdf1a918becb85a6021",
+      "url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/commits/cec97669d993b7ef7983ccdf1a918becb85a6021",
+      "html_url": "https://github.com/ZhongLab2020/NIR-IIb_sO2_UNet/commit/cec97669d993b7ef7983ccdf1a918becb85a6021"
+    }
+  ],
+  "stats": {
+    "total": 4,
+    "additions": 2,
+    "deletions": 2
+  },
+  "files": [
+    {
+      "sha": "ef39d4371536893c99a4921bd3aca83d9f1ec307",
+      "filename": "apply.py",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2,
+      "changes": 4,
+      "blob_url": "https://github.com/ZhongLab2020/NIR-IIb_sO2_UNet/blob/e5f3e95e9d72f222b98eead220e567484f2cdc72/apply.py",
+      "raw_url": "https://github.com/ZhongLab2020/NIR-IIb_sO2_UNet/raw/e5f3e95e9d72f222b98eead220e567484f2cdc72/apply.py",
+      "contents_url": "https://api.github.com/repos/ZhongLab2020/NIR-IIb_sO2_UNet/contents/apply.py?ref=e5f3e95e9d72f222b98eead220e567484f2cdc72",
+      "patch": "@@ -7,9 +7,9 @@\n from model import UNet\r\n \r\n # parameters\r\n-input_path_global = 'D:/PycharmProjects/Practical_Dataset/input/GutMicro3.tif'  # Input TIFF\r\n+input_path_global = 'D:/PycharmProjects/Practical_Dataset/input/Gut3.tif'  # Input TIFF\r\n model_path_global = 'NIR_UNet.pth'  # Pretrained model path\r\n-output_path_global = 'D:/PycharmProjects/Practical_Dataset/output/GutMicro3.tif'  # Output TIFF\r\n+output_path_global = 'D:/PycharmProjects/Practical_Dataset/output/Gut3.tif'  # Output TIFF\r\n device_global = 'cuda'  # 'cuda' if torch.cuda.is_available() else 'cpu'\r\n \r\n \r"
+    }
+  ]
+}

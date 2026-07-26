@@ -332,7 +332,7 @@ function canvasContext(): CanvasRenderingContext2D | null {
 }
 
 .editor-canvas-frame img {
-  object-fit: cover;
+  object-fit: contain;
   opacity: 0.78;
 }
 

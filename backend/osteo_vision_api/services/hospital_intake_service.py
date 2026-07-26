@@ -6,6 +6,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import RLock
 from typing import Any
 from uuid import uuid4
 
@@ -47,6 +48,9 @@ class HospitalIntakeService:
         self.intake_root = ensure_dir(self.artifact_root / "hospital_intake")
         self.repo = repo
         self.input_service = input_service
+        self._checksum_cache_lock = RLock()
+        self._existing_checksum_signature: tuple[tuple[str, int, int], ...] | None = None
+        self._existing_checksum_values: set[str] = set()
 
     def admit_batch(self, request: HospitalIntakeBatchRequest) -> dict[str, Any]:
         batch_token = _safe_token(request.batch_id)
@@ -389,8 +393,12 @@ class HospitalIntakeService:
         report: dict[str, Any],
     ) -> list[dict[str, Any]]:
         persisted: list[dict[str, Any]] = []
-        admitted = [record for record in records if record["status"] == "admitted"]
-        external_case_ids = sorted({str(record["external_case_id"]) for record in admitted})
+        admitted_by_external_case: dict[str, list[dict[str, Any]]] = {}
+        for record in records:
+            if record["status"] == "admitted":
+                external_case_id = str(record["external_case_id"])
+                admitted_by_external_case.setdefault(external_case_id, []).append(record)
+        external_case_ids = sorted(admitted_by_external_case)
         existing_cases: dict[str, CaseRecord | None] = {}
         for external_case_id in external_case_ids:
             platform_case_id = _platform_case_id(request.source_organization, external_case_id)
@@ -407,7 +415,7 @@ class HospitalIntakeService:
             existing_cases[external_case_id] = case
 
         for external_case_id in external_case_ids:
-            case_records = [record for record in admitted if record["external_case_id"] == external_case_id]
+            case_records = admitted_by_external_case[external_case_id]
             platform_case_id = str(case_records[0]["platform_case_id"])
             case = existing_cases[external_case_id]
             is_new = case is None
@@ -557,21 +565,36 @@ class HospitalIntakeService:
         return payload if isinstance(payload, dict) else None
 
     def _existing_checksums(self) -> set[str]:
-        checksums: set[str] = set()
-        for path in self.intake_root.glob(f"*/{REPORT_FILENAME}"):
+        report_paths = sorted(self.intake_root.glob(f"*/{REPORT_FILENAME}"), key=lambda path: str(path))
+        signatures: list[tuple[str, int, int]] = []
+        for path in report_paths:
             try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+                stat = path.stat()
+            except OSError:
                 continue
-            records = payload.get("records") if isinstance(payload, dict) else None
-            if not isinstance(records, list):
-                continue
-            checksums.update(
-                str(record.get("sha256") or "")
-                for record in records
-                if isinstance(record, dict) and record.get("status") == "admitted" and record.get("sha256")
-            )
-        return checksums
+            signatures.append((str(path), stat.st_mtime_ns, stat.st_size))
+        cache_key = tuple(signatures)
+        with self._checksum_cache_lock:
+            if cache_key == self._existing_checksum_signature:
+                return set(self._existing_checksum_values)
+
+            checksums: set[str] = set()
+            for path_value, _, _ in signatures:
+                try:
+                    payload = json.loads(Path(path_value).read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+                records = payload.get("records") if isinstance(payload, dict) else None
+                if not isinstance(records, list):
+                    continue
+                checksums.update(
+                    str(record.get("sha256") or "")
+                    for record in records
+                    if isinstance(record, dict) and record.get("status") == "admitted" and record.get("sha256")
+                )
+            self._existing_checksum_signature = cache_key
+            self._existing_checksum_values = checksums
+            return set(checksums)
 
 
 def _batch_blockers(request: HospitalIntakeBatchRequest) -> list[dict[str, Any]]:

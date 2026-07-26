@@ -5,14 +5,16 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import numpy as np
 from skimage import measure, morphology
 
 from backend.osteo_vision_api.core.settings import Settings
-from scripts.export_cbct_mandible_surface import sha256_for_file, write_binary_stl
 from osteo_vision_core.preprocess.input_validation import detect_input_type
+from scripts.export_cbct_mandible_surface import sha256_for_file, write_binary_stl
+
+ModelingProgressReporter = Callable[[str, int, str, dict[str, Any] | None], None]
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,17 @@ class CbctPredictionLabelSource:
     source_type: str
 
 
+def _report_progress(
+    reporter: ModelingProgressReporter | None,
+    phase: str,
+    percent: int,
+    message: str,
+    details: dict[str, Any] | None = None,
+) -> None:
+    if reporter is not None:
+        reporter(phase, percent, message, details)
+
+
 def build_cbct_surface_model(
     *,
     settings: Settings,
@@ -63,7 +76,15 @@ def build_cbct_surface_model(
     decimation_step: int = 1,
     source_role: str = "volume",
     source_original_filename: str | None = None,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any]:
+    _report_progress(
+        progress_reporter,
+        "inspect_source",
+        12,
+        "正在校验三维输入格式、来源角色与建模边界。",
+        {"current_file": source_original_filename or Path(source_path).name},
+    )
     source = _resolve_modeling_source(settings, source_path)
     sources = _resolve_modeling_sources(settings, source_paths) if source_paths else [source]
     input_type = detect_input_type(source)
@@ -72,6 +93,13 @@ def build_cbct_surface_model(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if input_type == "surface_model":
+        _report_progress(
+            progress_reporter,
+            "verify_surface",
+            72,
+            "正在校验并接入现有 STL / GLB 表面模型。",
+            {"current_file": source.name, "input_type": input_type},
+        )
         return _surface_model_evidence(source, output_dir=output_dir, case_id=case_id)
 
     if input_type in {"dicom_series", "medical_volume", "nifti_volume"}:
@@ -84,6 +112,7 @@ def build_cbct_surface_model(
                 dataset_id=dataset_id,
                 input_type=input_type,
                 decimation_step=decimation_step,
+                progress_reporter=progress_reporter,
             )
         if normalized_source_role == "volume" and input_type in {"medical_volume", "nifti_volume"}:
             if _volume_looks_like_label(source):
@@ -105,6 +134,13 @@ def build_cbct_surface_model(
                         "请明确选择标签建模，或上传原始 CBCT 强度体。"
                     ),
                 }
+        _report_progress(
+            progress_reporter,
+            "resolve_segmentation",
+            24,
+            "正在查找与当前体数据匹配的受控分割标签。",
+            {"current_file": source.name, "input_type": input_type},
+        )
         segmented = _try_cbct_segmentation_surface(
             settings=settings,
             source=source,
@@ -114,6 +150,7 @@ def build_cbct_surface_model(
             input_type=input_type,
             source_role=normalized_source_role,
             source_original_filename=source_original_filename,
+            progress_reporter=progress_reporter,
         )
         if segmented is not None:
             return segmented
@@ -124,6 +161,7 @@ def build_cbct_surface_model(
             dataset_id=dataset_id,
             decimation_step=decimation_step,
             input_type=input_type,
+            progress_reporter=progress_reporter,
         )
         if proxy is not None:
             return proxy
@@ -160,6 +198,7 @@ def _direct_label_surface_evidence(
     dataset_id: str,
     input_type: str,
     decimation_step: int,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any]:
     if not _volume_looks_like_label(source):
         manifest = _source_role_mismatch_manifest(
@@ -206,6 +245,7 @@ def _direct_label_surface_evidence(
         output_dir=output_dir,
         decimation_step=decimation_step,
         input_type=input_type,
+        progress_reporter=progress_reporter,
     )
 
 
@@ -246,6 +286,7 @@ def _try_cbct_segmentation_surface(
     input_type: str,
     source_role: str,
     source_original_filename: str | None,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any] | None:
     source_info = _find_cbct_segmentation_source(
         settings=settings,
@@ -263,6 +304,7 @@ def _try_cbct_segmentation_surface(
             output_dir=output_dir,
             decimation_step=decimation_step,
             input_type=input_type,
+            progress_reporter=progress_reporter,
         )
     except Exception:
         return None
@@ -523,15 +565,37 @@ def _cbct_label_surface_evidence(
     output_dir: Path,
     decimation_step: int,
     input_type: str,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any]:
     if decimation_step < 1:
         raise ValueError("decimation_step must be >= 1")
+    _report_progress(
+        progress_reporter,
+        "load_volume",
+        34,
+        "正在读取分割标签体及其物理坐标信息。",
+        {"current_file": source_info.label_path.name, "input_type": input_type},
+    )
     mask, geometry = _load_label_mask_volume(source_info.label_path, label_values=source_info.label_values)
+    _report_progress(
+        progress_reporter,
+        "prepare_mask",
+        48,
+        "正在检查标签范围并准备表面提取掩膜。",
+        {"current_file": source_info.label_path.name, "label_values": list(source_info.label_values)},
+    )
     if decimation_step > 1:
         mask = mask[::decimation_step, ::decimation_step, ::decimation_step]
     if not np.any(mask):
         raise ValueError(f"Labels {source_info.label_values} were not found in {source_info.label_path}")
     mask, pad_offset = _pad_for_marching_cubes(mask)
+    _report_progress(
+        progress_reporter,
+        "extract_surface",
+        62,
+        "正在从标签体提取三维表面网格。",
+        {"current_file": source_info.label_path.name},
+    )
     vertices_zyx, faces, normals, _ = measure.marching_cubes(mask.astype(np.uint8), level=0.5, spacing=(1.0, 1.0, 1.0))
     vertices_zyx = vertices_zyx - np.asarray(pad_offset, dtype=np.float32)
     vertices = _array_zyx_vertices_to_physical_xyz(vertices_zyx, geometry=geometry, decimation_step=decimation_step)
@@ -540,6 +604,13 @@ def _cbct_label_surface_evidence(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{source_info.case_id}_{source_info.output_suffix}.stl"
+    _report_progress(
+        progress_reporter,
+        "write_surface",
+        76,
+        "正在写入 STL 表面模型并计算文件校验值。",
+        {"current_file": output_path.name, "vertex_count": int(len(vertices)), "face_count": int(len(faces))},
+    )
     write_binary_stl(output_path, vertices=vertices, faces=faces, normals=normals)
     sha256 = sha256_for_file(output_path)
     quality: dict[str, Any] = {
@@ -563,6 +634,13 @@ def _cbct_label_surface_evidence(
     )
     quality["per_label"] = label_quality["per_label"]
     quality["quality_warnings"].extend(label_quality["quality_warnings"])
+    _report_progress(
+        progress_reporter,
+        "build_evidence",
+        86,
+        "正在整理方向、坐标系、质量门与医生复核边界。",
+        {"current_file": output_path.name, "sha256": sha256},
+    )
     scene_manifest_v2 = _label_surface_scene_manifest_v2(
         source_info=source_info,
         source_volume_path=source_volume_path,
@@ -652,6 +730,13 @@ def _cbct_label_surface_evidence(
         "three_d_evidence": evidence,
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _report_progress(
+        progress_reporter,
+        "write_manifest",
+        92,
+        "三维表面与证据清单已生成，正在写入病例。",
+        {"current_file": manifest_path.name},
+    )
     return {
         "model_path": str(output_path),
         "manifest_path": str(manifest_path),
@@ -945,8 +1030,16 @@ def _try_cbct_proxy_surface(
     dataset_id: str,
     decimation_step: int,
     input_type: str,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any] | None:
     try:
+        _report_progress(
+            progress_reporter,
+            "load_volume",
+            34,
+            "正在读取 CBCT 体数据及其物理坐标信息。",
+            {"current_file": sources[0].name if sources else "CBCT", "source_count": len(sources)},
+        )
         volume, geometry = _load_cbct_proxy_volume(sources)
         return _cbct_proxy_surface_evidence(
             volume=volume,
@@ -957,6 +1050,7 @@ def _try_cbct_proxy_surface(
             dataset_id=dataset_id,
             decimation_step=decimation_step,
             input_type=input_type,
+            progress_reporter=progress_reporter,
         )
     except Exception:
         return None
@@ -1006,6 +1100,7 @@ def _cbct_proxy_surface_evidence(
     dataset_id: str,
     decimation_step: int,
     input_type: str,
+    progress_reporter: ModelingProgressReporter | None = None,
 ) -> dict[str, Any]:
     if decimation_step < 1:
         raise ValueError("decimation_step must be >= 1")
@@ -1014,10 +1109,27 @@ def _cbct_proxy_surface_evidence(
     effective_step = max(decimation_step, _auto_proxy_decimation_step(data))
     if effective_step > 1:
         data = data[::effective_step, ::effective_step, ::effective_step]
+    _report_progress(
+        progress_reporter,
+        "prepare_mask",
+        48,
+        "正在生成硬组织代理掩膜并执行形态学清理。",
+        {
+            "current_file": sources[0].name if sources else "CBCT",
+            "decimation_step": int(effective_step),
+        },
+    )
     mask, quality = _hard_tissue_proxy_mask_with_summary(data)
     if not np.any(mask):
         raise ValueError("DICOM CBCT proxy threshold produced an empty mask")
     mask, pad_offset = _pad_for_marching_cubes(mask)
+    _report_progress(
+        progress_reporter,
+        "extract_surface",
+        62,
+        "正在从硬组织代理掩膜提取三维表面网格。",
+        {"current_file": sources[0].name if sources else "CBCT"},
+    )
     vertices_zyx, faces, normals, _ = measure.marching_cubes(mask.astype(np.uint8), level=0.5, spacing=(1.0, 1.0, 1.0))
     vertices_zyx = vertices_zyx - np.asarray(pad_offset, dtype=np.float32)
     vertices = _array_zyx_vertices_to_physical_xyz(vertices_zyx, geometry=geometry, decimation_step=effective_step)
@@ -1026,6 +1138,13 @@ def _cbct_proxy_surface_evidence(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{case_id}_cbct_balanced_hard_tissue_proxy.stl"
+    _report_progress(
+        progress_reporter,
+        "write_surface",
+        76,
+        "正在写入 STL 表面模型并计算文件校验值。",
+        {"current_file": output_path.name, "vertex_count": int(len(vertices)), "face_count": int(len(faces))},
+    )
     write_binary_stl(output_path, vertices=vertices, faces=faces, normals=normals)
     sha256 = sha256_for_file(output_path)
     source_names = [source.name for source in sources]
@@ -1033,6 +1152,13 @@ def _cbct_proxy_surface_evidence(
         geometry=geometry,
         source_paths=sources,
         source_type="balanced_hard_tissue_proxy",
+    )
+    _report_progress(
+        progress_reporter,
+        "build_evidence",
+        86,
+        "正在整理方向、坐标系、质量门与医生复核边界。",
+        {"current_file": output_path.name, "sha256": sha256},
     )
     scene_manifest_v2 = _dicom_proxy_scene_manifest_v2(
         case_id=case_id,
@@ -1125,6 +1251,13 @@ def _cbct_proxy_surface_evidence(
         "three_d_evidence": evidence,
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _report_progress(
+        progress_reporter,
+        "write_manifest",
+        92,
+        "三维表面与证据清单已生成，正在写入病例。",
+        {"current_file": manifest_path.name},
+    )
     return {
         "model_path": str(output_path),
         "manifest_path": str(manifest_path),

@@ -1,14 +1,19 @@
 <template>
-  <main class="case-management-shell">
-    <header class="management-header">
-      <div class="management-title">
-        <h1>病例建立、加载与基础质控</h1>
-      </div>
-      <RouterLink class="intake-link" to="/intake">
-        <AppIcon name="upload" />
-        <span>医院数据准入</span>
-      </RouterLink>
-    </header>
+  <AppPageShell class="case-management-shell" width="standard">
+    <AppPageHeader
+      eyebrow="病例工作流"
+      icon="case"
+      icon-tone="blue"
+      title="病例建立、加载与基础质控"
+      class="management-header"
+    >
+      <template #actions>
+        <RouterLink class="intake-link" to="/intake">
+          <AppIcon name="upload" />
+          <span>医院数据准入</span>
+        </RouterLink>
+      </template>
+    </AppPageHeader>
 
     <section class="management-grid">
       <section class="management-card">
@@ -110,7 +115,7 @@
         </div>
       </section>
     </section>
-  </main>
+  </AppPageShell>
 </template>
 
 <script setup lang="ts">
@@ -118,6 +123,8 @@ import { computed, ref } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AppPageHeader from "@/components/AppPageHeader.vue";
+import AppPageShell from "@/components/AppPageShell.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import { useOperationMessage } from "@/composables/useOperationMessage";
 import { useCaseStore } from "@/stores/caseStore";

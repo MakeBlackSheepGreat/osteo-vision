@@ -4,12 +4,13 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("desktop navigation layout", () => {
-  it("wraps the full clinical navigation at narrower workstation widths", () => {
+  it("uses the original persistent workstation top navigation", () => {
     const source = fs.readFileSync(path.resolve(process.cwd(), "src/App.vue"), "utf8");
-    const workstationRule = source.match(/@media \(max-width: 1120px\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
 
-    expect(workstationRule).toContain("flex-wrap: wrap");
-    expect(workstationRule).toContain("grid-template-columns: repeat(auto-fit, minmax(146px, 1fr))");
-    expect(source).not.toContain("@media (min-width: 861px) and (max-width: 1120px)");
+    expect(source).toContain('class="app-top-nav"');
+    expect(source).toContain('aria-label="顶部导航"');
+    expect(source).toContain("<AppNavPills");
+    expect(source).not.toContain("app-sidebar");
+    expect(source).not.toContain("osteo-vision-sidebar-collapsed");
   });
 });

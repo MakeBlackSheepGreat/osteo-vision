@@ -11,6 +11,9 @@ const generatedFixtureDir = path.join(repoRoot, ".pytest_tmp", "playwright", "fi
 const whiteFixturePath = path.join(generatedFixtureDir, "white_4k.jpg");
 const fluorescenceFixturePath = path.join(generatedFixtureDir, "fluorescence_4k.jpg");
 const videoFixturePath = path.join(generatedFixtureDir, "fluorescence_4k_h264.mp4");
+const pairedVideoFixturePath = path.join(generatedFixtureDir, "paired_channel_640x480_h264.mp4");
+const compositeVideoFixturePath = path.join(generatedFixtureDir, "ofdvdnet_three_view_h264.mp4");
+const ofdvdManifestFixturePath = path.join(generatedFixtureDir, "ofdvdnet_e2e_manifest.csv");
 const screenshotDir = path.join(repoRoot, "artifacts", "e2e", "browser_smoke");
 const physicianReviewToken = "playwright-physician-token-20260715";
 const independentPhysicianReviewToken = "playwright-independent-physician-token-20260719";
@@ -22,6 +25,28 @@ test.beforeAll(() => {
   fs.mkdirSync(screenshotDir, { recursive: true });
   ensureJpegFixtures();
   ensureMp4Fixture();
+  ensurePairedMp4Fixture();
+  ensureCompositeMp4Fixture();
+});
+
+test("browser file video and camera inputs remain mutually exclusive", async ({ page }) => {
+  await page.goto("/case");
+  await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
+
+  await expect(page.getByRole("tab", { name: "文件输入" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "MP4 视频" })).toBeVisible();
+  await expect(page.locator(".live-stream-control-card")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "浏览器摄像头" }).click();
+  await expect(page.getByRole("tab", { name: "浏览器摄像头" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".live-stream-control-card")).toBeVisible();
+  await expect(page.getByRole("button", { name: "开启摄像头" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "MP4 视频" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "文件输入" }).click();
+  await expect(page.getByRole("tab", { name: "MP4 视频" })).toBeVisible();
+  await expect(page.locator(".live-stream-control-card")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test("browser case workflow creates, analyzes, reviews, exports, and opens data library", async ({ page }, testInfo) => {
@@ -95,7 +120,7 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
   const [videoInputResponse] = await Promise.all([
     waitForCaseInputAttachment(page),
-    page.locator('input[type="file"][accept="video/mp4,.mp4"]').setInputFiles(videoFixturePath),
+    page.getByTestId("single-video-file-input").setInputFiles(videoFixturePath),
   ]);
   const videoCase = await videoInputResponse.json();
   const videoInput = videoCase.inputs.find((item: { channel: string }) => item.channel === "video");
@@ -103,6 +128,7 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   expect(videoInput.metadata.ffprobe.available).toBe(true);
   expect(videoInput.metadata.ffprobe.stream.codec_name).toBe("h264");
   await expect(page.getByText(/MP4 视频已导入病例：/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("MP4 视频分析", { exact: true })).toBeVisible();
 
   await page.getByLabel("重点复核时间点（秒，可选）").fill("0, 0.2, 0.4");
   await page.getByRole("button", { name: "启动离线关键帧分析" }).click();
@@ -185,6 +211,147 @@ test("browser MP4 upload analysis and public-video import stay usable", async ({
   await expect(page.locator(".selected-input-path")).not.toHaveText("尚未选择 MP4 文件");
   await capturePage(page, testInfo, "05-video-library-import.png");
 
+  expect(browserErrors).toEqual([]);
+});
+
+test("browser paired MP4 workflow prepares synchronization and runs Task 2 fusion", async ({ page }, testInfo) => {
+  const browserErrors = collectBrowserErrors(page);
+  await page.goto("/cases");
+  await expectHealthyPage(page, "病例建立、加载与基础质控");
+  await createCaseThroughUi(page, "Playwright 双通道 MP4 病例");
+  await page.getByRole("link", { name: "病例工作台", exact: true }).click();
+  await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
+  await page.getByRole("tab", { name: "双通道视频", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "双通道视频配准与融合" })).toBeVisible();
+  await expect(page.locator(".multichannel-grid")).toBeVisible();
+  await expect(page.locator(".analysis-quad-grid")).toHaveCount(0);
+  await page.getByRole("tab", { name: "单路视频", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "术中影像与风险提示" })).toBeVisible();
+  await expect(page.locator(".analysis-quad-grid > .analysis-quad-card")).toHaveCount(4);
+  await page.getByRole("tab", { name: "双通道视频", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "双通道视频配准与融合" })).toBeVisible();
+
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.url().includes("/uploads/raw?") && response.request().method() === "POST",
+    ),
+    page.getByTestId("white-light-video-file-input").setInputFiles(pairedVideoFixturePath),
+  ]);
+  await expect(page.getByRole("button", { name: "更换白光 MP4" })).toBeEnabled();
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.url().includes("/uploads/raw?") && response.request().method() === "POST",
+    ),
+    page.getByTestId("fluorescence-video-file-input").setInputFiles(pairedVideoFixturePath),
+  ]);
+  await expect(page.getByRole("button", { name: "更换荧光 MP4" })).toBeEnabled();
+  const [sessionResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        /\/cases\/[^/]+\/multichannel-video-sessions$/.test(new URL(response.url()).pathname)
+        && response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "准备同步预览" }).click(),
+  ]);
+  expect(sessionResponse.status()).toBe(200);
+  const sessionPayload = (await sessionResponse.json()) as { case_id: string };
+  await expect(page.getByText(/多通道会话已准备：/)).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(".multichannel-grid")).toBeVisible();
+  await expect(page.getByText("融合 RGB 关键帧", { exact: true })).toBeVisible();
+  await expect(page.getByText("双通道配准融合", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "运行双通道融合分析" }).click();
+  await expect(page.getByText("双通道融合分析完成，四宫格已同步最近关键帧证据。")).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.getByText(/关键帧同步结果 · 第 \d+ 帧/).first()).toBeVisible();
+  await expect(page.locator(".registration-strip")).toContainText("adaptive_multiscale_registration_v2");
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1280, height: 800 },
+    { width: 1024, height: 768 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((value) => window.localStorage.setItem("osteo-vision-theme", value), theme);
+      await page.goto(`/case?caseId=${encodeURIComponent(sessionPayload.case_id)}`);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect(page.locator(".multichannel-grid")).toBeVisible();
+      await expectStableViewport(page);
+      await capturePage(
+        page,
+        testInfo,
+        `06-paired-mp4-task2-${viewport.width}x${viewport.height}-${theme}.png`,
+      );
+    }
+  }
+  expect(browserErrors).toEqual([]);
+});
+
+test("browser standard OFDVDnet case restores three synchronized channels", async ({ page, request }) => {
+  const browserErrors = collectBrowserErrors(page);
+  const forbiddenUrls: string[] = [];
+  page.on("response", (response) => {
+    if (response.status() === 403) forbiddenUrls.push(response.url());
+  });
+  const backendPort = Number(process.env.OSTEO_E2E_BACKEND_PORT ?? "18991");
+  const prepared = await request.post(`http://127.0.0.1:${backendPort}/platform/standard-demo-case`);
+  expect(prepared.status()).toBe(200);
+  const standardCase = (await prepared.json()) as { case_id: string };
+
+  await page.goto(`/case?caseId=${encodeURIComponent(standardCase.case_id)}`);
+  await expectHealthyPage(page, "颌骨骨髓炎术中辅助决策平台");
+  await expect(page.getByRole("tab", { name: "合成三视图", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "合成三视图拆分与分析" })).toBeVisible();
+  await expect(page.locator(".multichannel-grid")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(".multichannel-grid video")).toHaveCount(3);
+  await expect(page.getByText("公开非目标域", { exact: false }).first()).toBeVisible();
+
+  const synchronizedTimes = await page.locator(".multichannel-grid video").evaluateAll(async (videos) => {
+    const elements = videos as HTMLVideoElement[];
+    for (const video of elements) video.muted = true;
+    await elements[0].play();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    elements[0].pause();
+    return elements.map((video) => video.currentTime);
+  });
+  expect(synchronizedTimes[0]).toBeGreaterThan(0);
+  expect(Math.abs(synchronizedTimes[1] - synchronizedTimes[0])).toBeLessThan(0.08);
+  expect(Math.abs(synchronizedTimes[2] - synchronizedTimes[0])).toBeLessThan(0.08);
+  const visibleVideoGeometry = await page.locator(".multichannel-grid video").evaluateAll((videos) =>
+    (videos as HTMLVideoElement[])
+      .filter((video) => video.getBoundingClientRect().width > 0)
+      .map((video) => {
+        const media = video.getBoundingClientRect();
+        const viewport = video.parentElement?.getBoundingClientRect();
+        return {
+          rendered_ratio: media.width / media.height,
+          source_ratio: video.videoWidth / video.videoHeight,
+          fits_viewport:
+            Boolean(viewport)
+            && media.width <= (viewport?.width ?? 0) + 1
+            && media.height <= (viewport?.height ?? 0) + 1,
+          centered:
+            Boolean(viewport)
+            && Math.abs(media.x + media.width / 2 - ((viewport?.x ?? 0) + (viewport?.width ?? 0) / 2)) < 1
+            && Math.abs(media.y + media.height / 2 - ((viewport?.y ?? 0) + (viewport?.height ?? 0) / 2)) < 1,
+        };
+      }),
+  );
+  expect(visibleVideoGeometry.length).toBeGreaterThanOrEqual(2);
+  for (const geometry of visibleVideoGeometry) {
+    expect(Math.abs(geometry.rendered_ratio - geometry.source_ratio)).toBeLessThan(0.01);
+    expect(geometry.fits_viewport).toBe(true);
+    expect(geometry.centered).toBe(true);
+  }
+
+  await page.getByRole("button", { name: "运行双通道融合分析" }).click();
+  await expect(page.getByText("双通道融合分析完成，四宫格已同步最近关键帧证据。")).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.getByRole("button", { name: "设备叠加" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "差异热图" })).toBeVisible();
+  expect(forbiddenUrls).toEqual([]);
   expect(browserErrors).toEqual([]);
 });
 
@@ -514,5 +681,85 @@ function ensureMp4Fixture(): void {
       env: { ...process.env },
       stdio: "pipe",
     },
+  );
+}
+
+function ensurePairedMp4Fixture(): void {
+  if (fs.existsSync(pairedVideoFixturePath)) return;
+  fs.mkdirSync(generatedFixtureDir, { recursive: true });
+  execFileSync(
+    projectFfmpeg,
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=#20272c:s=640x480:r=8:d=2",
+      "-vf",
+      "drawbox=x=80+120*t:y=140:w=130:h=130:color=#00c98d:t=fill,drawbox=x=410:y=90:w=100:h=100:color=#36a7d8:t=fill",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-crf",
+      "24",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      pairedVideoFixturePath,
+    ],
+    {
+      cwd: repoRoot,
+      env: { ...process.env },
+      stdio: "pipe",
+    },
+  );
+}
+
+function ensureCompositeMp4Fixture(): void {
+  fs.mkdirSync(generatedFixtureDir, { recursive: true });
+  if (!fs.existsSync(compositeVideoFixturePath)) {
+    execFileSync(
+      projectFfmpeg,
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=#172127:s=960x240:r=8:d=3",
+        "-vf",
+        [
+          "drawbox=x=30+40*t:y=70:w=90:h=90:color=#33d49d:t=fill",
+          "drawbox=x=360+30*t:y=80:w=100:h=80:color=#d8eef6:t=fill",
+          "drawbox=x=700+20*t:y=65:w=110:h=100:color=#5ea7cf:t=fill",
+        ].join(","),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "24",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        compositeVideoFixturePath,
+      ],
+      {
+        cwd: repoRoot,
+        env: { ...process.env },
+        stdio: "pipe",
+      },
+    );
+  }
+  fs.writeFileSync(
+    ofdvdManifestFixturePath,
+    [
+      "record_id,dataset_id,video_path,original_filename,view_layout,overlay_xyxy,fluorescence_xyxy,reference_xyxy,readable,domain_boundary",
+      `OFDVDNET_001,D046,${compositeVideoFixturePath},ofdvdnet-e2e.mp4,three_views,0|0|320|240,320|0|640|240,640|0|960|240,True,Public non-target-domain fluorescence surgery proxy`,
+      "",
+    ].join("\n"),
+    "utf8",
   );
 }

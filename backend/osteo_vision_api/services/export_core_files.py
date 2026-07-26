@@ -48,12 +48,12 @@ def _three_d_scene_manifest_payload(case: CaseRecord) -> dict[str, Any]:
     latest_run = case.analysis_runs[-1] if case.analysis_runs else None
     fused_outputs = latest_run.fused_outputs if latest_run is not None else {}
     evidence_value = fused_outputs.get("three_d_evidence")
-    evidence = dict(evidence_value) if isinstance(evidence_value, dict) else {}
+    evidence = _dict_payload(evidence_value)
     case_evidence = case.three_d_evidence
     if isinstance(case_evidence, dict) and case_evidence:
         evidence = {**evidence, **case_evidence}
     scene_manifest_value = evidence.get("scene_manifest_v2")
-    scene_manifest_v2 = dict(scene_manifest_value) if isinstance(scene_manifest_value, dict) else {}
+    scene_manifest_v2 = _dict_payload(scene_manifest_value)
     navigation_evidence = three_d_navigation_evidence_summary(evidence)
     if scene_manifest_v2 or navigation_evidence.get("available"):
         return {
@@ -112,6 +112,66 @@ def _quantification_rows(case: CaseRecord) -> list[dict[str, Any]]:
                 **clinical_fields,
             }
         )
+        task3_fused = _task3_fused_image_evidence(run.fused_outputs)
+        if task3_fused:
+            input_contract = _dict_payload(task3_fused.get("input_contract"))
+            boundary = _dict_payload(task3_fused.get("boundary_assessment"))
+            task2_provenance = _dict_payload(input_contract.get("task2_provenance"))
+            boundary_counts = _dict_payload(boundary.get("boundary_type_counts"))
+            evaluated_boundary_counts = _dict_payload(boundary.get("evaluated_boundary_type_counts"))
+            activity_counts = _dict_payload(boundary.get("activity_class_counts"))
+            activity_evidence = _dict_payload(boundary.get("activity_evidence"))
+            rows.append(
+                {
+                    "case_id": case.case_id,
+                    "run_id": run.run_id,
+                    "roi_id": "",
+                    "review_state": case.status,
+                    "record_type": "task3_fused_image_ai_summary",
+                    "task3_model_id": task3_fused.get("model_id"),
+                    "task3_model_family": task3_fused.get("model_family"),
+                    "task3_execution_state": task3_fused.get("execution_state"),
+                    "task3_input_contract_schema": input_contract.get("schema_version"),
+                    "task3_input_contract_sha256": input_contract.get("contract_sha256"),
+                    "task3_engineering_input_eligible": input_contract.get("engineering_input_eligible", False),
+                    "task3_spatial_interpretation_allowed": task3_fused.get("spatial_interpretation_allowed", False),
+                    "task3_clinical_claim_allowed": task3_fused.get("clinical_claim_allowed", False),
+                    "task3_boundary_candidate_count": boundary.get("candidate_count", 0),
+                    "task3_evaluated_boundary_candidate_count": boundary.get(
+                        "evaluated_candidate_count", boundary.get("candidate_count", 0)
+                    ),
+                    "task3_suppressed_boundary_candidate_count": boundary.get("suppressed_candidate_count", 0),
+                    "task3_signal_boundary_count": boundary_counts.get("signal_candidate_boundary", 0),
+                    "task3_high_risk_transition_boundary_count": boundary_counts.get(
+                        "high_risk_transition_boundary", 0
+                    ),
+                    "task3_uncertain_boundary_count": boundary_counts.get("uncertain_boundary", 0),
+                    "task3_evaluated_signal_boundary_count": evaluated_boundary_counts.get(
+                        "signal_candidate_boundary", boundary_counts.get("signal_candidate_boundary", 0)
+                    ),
+                    "task3_evaluated_high_risk_transition_boundary_count": evaluated_boundary_counts.get(
+                        "high_risk_transition_boundary",
+                        boundary_counts.get("high_risk_transition_boundary", 0),
+                    ),
+                    "task3_evaluated_uncertain_boundary_count": evaluated_boundary_counts.get(
+                        "uncertain_boundary", boundary_counts.get("uncertain_boundary", 0)
+                    ),
+                    "task3_activity_evidence_available": activity_evidence.get("available", False),
+                    "task3_low_activity_candidate_count": activity_counts.get("low_activity_candidate", 0),
+                    "task3_transition_candidate_count": activity_counts.get("transition_candidate", 0),
+                    "task3_high_activity_reference_count": activity_counts.get("high_activity_candidate", 0),
+                    "task3_activity_unavailable_candidate_count": activity_counts.get(
+                        "unavailable_pending_reviewed_bone_gate", 0
+                    ),
+                    "task3_review_priority": boundary.get("review_priority"),
+                    "task2_registration_ms": task2_provenance.get("registration_ms"),
+                    "task2_gpu_fusion_ms": task2_provenance.get("gpu_fusion_ms"),
+                    "task2_registration_fusion_compute_ms": task2_provenance.get("registration_fusion_compute_ms"),
+                    "task2_accelerator": task2_provenance.get("accelerator"),
+                    "medical_boundary": boundary.get("medical_boundary"),
+                    **clinical_fields,
+                }
+            )
         patient_conditioning = _patient_conditioning_evidence(run.fused_outputs)
         if patient_conditioning:
             patient_quantification = patient_conditioning.get("quantification")
@@ -199,7 +259,7 @@ def _quantification_rows(case: CaseRecord) -> list[dict[str, Any]]:
         bone_activity = _bone_activity_checkpoint_evidence(run.fused_outputs)
         if bone_activity:
             raw_value = bone_activity.get("raw_engineering_outputs")
-            raw = dict(raw_value) if isinstance(raw_value, dict) else {}
+            raw = _dict_payload(raw_value)
             registration_value = bone_activity.get("registration_evidence")
             registration = dict(registration_value) if isinstance(registration_value, dict) else {}
             selection_value = bone_activity.get("reviewed_bone_gate_selection")
@@ -304,6 +364,16 @@ def _patient_conditioning_evidence(fused_outputs: Any) -> dict[str, Any]:
     prediction_value = evidence.get("prediction")
     prediction = dict(prediction_value) if isinstance(prediction_value, dict) else {}
     return {**prediction, **evidence}
+
+
+def _task3_fused_image_evidence(fused_outputs: Any) -> dict[str, Any]:
+    fused = fused_outputs if isinstance(fused_outputs, dict) else {}
+    evidence = fused.get("fused_image_ai")
+    return _dict_payload(evidence)
+
+
+def _dict_payload(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
 
 
 def _bone_activity_checkpoint_evidence(fused_outputs: Any) -> dict[str, Any]:

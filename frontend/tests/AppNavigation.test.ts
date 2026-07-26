@@ -34,13 +34,16 @@ describe("App navigation", () => {
       { label: "病例工作台", to: "/case" },
       { label: "三维导航", to: "/navigation" },
       { label: "医生复核", to: "/review" },
-      { label: "人工标注", to: "/annotations" },
       { label: "报告导出", to: "/report" },
       { label: "视频库", to: "/data" },
       { label: "静态数据复核", to: "/dataset-review" },
+      { label: "人工标注", to: "/annotations" },
       { label: "工程展示", to: "/showcase" },
     ]);
 
+    expect(wrapper.get(".app-top-nav").attributes("aria-label")).toBe("顶部导航");
+    expect(wrapper.findAll(".ov-nav-pill .app-icon")).toHaveLength(10);
+    expect(wrapper.find(".app-sidebar").exists()).toBe(false);
     expect(wrapper.find(".runtime-status").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("比赛严格运行");
   });

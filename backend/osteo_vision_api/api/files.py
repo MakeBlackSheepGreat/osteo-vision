@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -19,12 +19,22 @@ DOWNLOAD_SUFFIXES = (
 
 def router(settings: Settings) -> APIRouter:
     api = APIRouter()
+    # These roots are fixed by the immutable runtime settings. Resolving them once
+    # avoids repeated filesystem work for every preview/download request.
+    artifact_roots = _artifact_roots(settings)
+    video_roots = _video_roots(settings, artifact_roots=artifact_roots)
 
     @api.get("/files/preview")
     def preview_file(path: str = Query(..., min_length=1)) -> FileResponse:
         """读取平台生成的可视化证据图，只允许访问受信任的 artifact 根目录。"""
 
-        resolved = _resolve_artifact_path(settings, path, not_found_detail="Preview file not found")
+        resolved = _resolve_local_path(
+            settings,
+            path,
+            not_found_detail="Preview file not found",
+            allowed_roots=artifact_roots,
+            outside_detail="Path is outside artifact roots",
+        )
         if resolved.suffix.lower() not in PREVIEW_SUFFIXES:
             raise HTTPException(status_code=415, detail="Unsupported preview file type")
 
@@ -34,7 +44,13 @@ def router(settings: Settings) -> APIRouter:
     def download_file(path: str = Query(..., min_length=1)) -> FileResponse:
         """下载证据包和结构化报告文件，路径仍限制在 artifact 根目录内。"""
 
-        resolved = _resolve_artifact_path(settings, path, not_found_detail="Download file not found")
+        resolved = _resolve_local_path(
+            settings,
+            path,
+            not_found_detail="Download file not found",
+            allowed_roots=artifact_roots,
+            outside_detail="Path is outside artifact roots",
+        )
         if _file_suffix(resolved) not in DOWNLOAD_SUFFIXES:
             raise HTTPException(status_code=415, detail="Unsupported download file type")
         return FileResponse(
@@ -47,7 +63,13 @@ def router(settings: Settings) -> APIRouter:
     def video_file(path: str = Query(..., min_length=1)) -> FileResponse:
         """播放 MP4 视频流示例，允许 artifact、公开视频库和 manifest 所在目录。"""
 
-        resolved = _resolve_video_path(settings, path, not_found_detail="Video file not found")
+        resolved = _resolve_local_path(
+            settings,
+            path,
+            not_found_detail="Video file not found",
+            allowed_roots=video_roots,
+            outside_detail="Path is outside video playback roots",
+        )
         if resolved.suffix.lower() not in VIDEO_SUFFIXES:
             raise HTTPException(status_code=415, detail="Unsupported video file type")
         return FileResponse(
@@ -58,48 +80,44 @@ def router(settings: Settings) -> APIRouter:
     return api
 
 
-def _resolve_artifact_path(settings: Settings, path: str, *, not_found_detail: str) -> Path:
-    return _resolve_local_path(
-        settings,
-        path,
-        not_found_detail=not_found_detail,
-        allowed_roots=_artifact_roots(settings),
-        outside_detail="Path is outside artifact roots",
-    )
-
-
-def _resolve_video_path(settings: Settings, path: str, *, not_found_detail: str) -> Path:
-    return _resolve_local_path(
-        settings,
-        path,
-        not_found_detail=not_found_detail,
-        allowed_roots=_video_roots(settings),
-        outside_detail="Path is outside video playback roots",
-    )
-
-
-def _artifact_roots(settings: Settings) -> list[Path]:
+def _artifact_roots(settings: Settings) -> tuple[Path, ...]:
     # artifact_root 可能由测试或部署环境覆盖；project_root/artifacts 是本仓库默认运行产物目录。
-    return [
-        settings.artifact_root.resolve(),
-        (settings.project_root / "artifacts").resolve(),
-    ]
+    return tuple(
+        dict.fromkeys(
+            (
+                settings.artifact_root.resolve(strict=False),
+                (settings.project_root / "artifacts").resolve(strict=False),
+            )
+        )
+    )
 
 
-def _video_roots(settings: Settings) -> list[Path]:
+def _video_roots(
+    settings: Settings,
+    *,
+    artifact_roots: tuple[Path, ...] | None = None,
+) -> tuple[Path, ...]:
     # 视频播放比图片预览多开放公开候选数据目录，便于前端用真实公开视频做 MP4 视频流示例。
-    return [
-        *_artifact_roots(settings),
-        (settings.project_root / "research" / "datasets" / "public-candidates").resolve(),
-        _manifest_parent(settings.video_manifest_path),
-    ]
+    roots = artifact_roots if artifact_roots is not None else _artifact_roots(settings)
+    return tuple(
+        dict.fromkeys(
+            (
+                *roots,
+                (settings.project_root / "research" / "datasets" / "public-candidates").resolve(strict=False),
+                _manifest_parent(settings.video_manifest_path),
+                _manifest_parent(settings.ofdvd_manifest_path),
+            )
+        )
+    )
 
 
 def _manifest_parent(path: Path) -> Path:
     try:
-        return path.resolve(strict=True).parent
-    except FileNotFoundError:
-        return path.parent.resolve()
+        return path.expanduser().resolve(strict=False).parent
+    except (OSError, RuntimeError):
+        # Broken symlink or an invalid manifest path must degrade to a safe,
+        # non-resolved parent instead of preventing the API from starting.
+        return path.expanduser().absolute().parent
 
 
 def _resolve_local_path(
@@ -107,19 +125,21 @@ def _resolve_local_path(
     path: str,
     *,
     not_found_detail: str,
-    allowed_roots: list[Path],
+    allowed_roots: Sequence[Path],
     outside_detail: str,
 ) -> Path:
-    requested = Path(unquote(path))
-    if not requested.is_absolute():
-        requested = settings.project_root / requested
     try:
+        requested = Path(path)
+        if not requested.is_absolute():
+            requested = settings.project_root / requested
         resolved = requested.resolve(strict=True)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, OSError, RuntimeError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=404, detail=not_found_detail) from exc
 
     if not any(_is_relative_to(resolved, root) for root in allowed_roots):
         raise HTTPException(status_code=403, detail=outside_detail)
+    if not resolved.is_file():
+        raise HTTPException(status_code=404, detail=not_found_detail)
     return resolved
 
 

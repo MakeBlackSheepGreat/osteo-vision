@@ -94,6 +94,7 @@ describe("AnalysisWorkspaceCard frame details", () => {
       "analysis-quad-grid--stream-empty-with-outputs",
     );
     expect(wrapper.find(".output-viewport").classes()).toContain("has-image");
+    expect(wrapper.find(".preview-panel-meta p").text()).toBe("已分析 / 白光 + ICG / 0 - 1");
     expect(wrapper.find(".preview-path-details summary").text()).toContain("fusion.png");
     expect(wrapper.find(".preview-path-details code").text()).toContain("C:\\evidence\\fusion.png");
   });

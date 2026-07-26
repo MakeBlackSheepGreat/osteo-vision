@@ -13,6 +13,15 @@
       <strong>三维渲染已安全降级</strong>
       <span>{{ renderMessage }}</span>
     </div>
+    <button
+      v-if="hasModel && renderState === 'ready'"
+      class="three-d-viewport__reset"
+      type="button"
+      title="恢复模型完整居中的标准正面视角"
+      @click="resetStandardView"
+    >
+      重置视角
+    </button>
   </section>
 </template>
 
@@ -124,6 +133,7 @@ async function loadSnapshot() {
       return;
     }
     modelRoot = object;
+    applyDisplayOrientation(modelRoot);
     scene?.add(modelRoot);
     frameModel(modelRoot);
     addCandidateMarkers(props.snapshot.candidate_regions ?? []);
@@ -246,14 +256,17 @@ async function parseModel(data: ArrayBuffer, format: "stl" | "glb"): Promise<THR
 
 function addCandidateMarkers(candidates: RuntimeCandidate[]) {
   if (!scene || !modelRoot || !candidates.length || !canRenderSpatialCandidateMarkers(props.snapshot)) return;
+  const activeModel = modelRoot;
   markerRoot = new THREE.Group();
-  const bounds = new THREE.Box3().setFromObject(modelRoot);
+  const bounds = new THREE.Box3().setFromObject(activeModel);
   const size = bounds.getSize(new THREE.Vector3());
   const radius = Math.max(size.length() * 0.14, 5);
   candidates.forEach((candidate) => {
     if (!canRenderSpatialCandidateMarker(props.snapshot, candidate)) return;
     const position = candidatePosition(candidate);
     if (!position) return;
+    activeModel.updateMatrixWorld(true);
+    position.applyMatrix4(activeModel.matrixWorld);
     const marker = new THREE.Mesh(
       new THREE.SphereGeometry(radius, 22, 16),
       new THREE.MeshStandardMaterial({ color: candidateColor(candidate), emissive: candidateColor(candidate), emissiveIntensity: 0.24 }),
@@ -280,15 +293,50 @@ function candidateColor(candidate: RuntimeCandidate): number {
 function frameModel(object: THREE.Object3D) {
   if (!camera || !controls) return;
   const bounds = new THREE.Box3().setFromObject(object);
+  if (bounds.isEmpty()) return;
   const center = bounds.getCenter(new THREE.Vector3());
   const size = bounds.getSize(new THREE.Vector3());
-  const distance = Math.max(size.length() * 1.35, 90);
-  camera.position.copy(center.clone().add(new THREE.Vector3(distance * 0.7, distance * 0.48, distance * 0.72)));
-  camera.near = Math.max(distance / 1000, 0.01);
-  camera.far = Math.max(distance * 15, 1000);
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
+  const heightDistance = size.y / Math.max(2 * Math.tan(verticalFov / 2), 0.01);
+  const widthDistance = size.x / Math.max(2 * Math.tan(horizontalFov / 2), 0.01);
+  const distance = Math.max((Math.max(heightDistance, widthDistance) + size.z / 2) * 1.16, 90);
+  camera.up.set(0, 1, 0);
+  camera.position.copy(center.clone().add(new THREE.Vector3(0, 0, distance)));
+  camera.near = Math.max(distance - size.z * 2, 0.01);
+  camera.far = Math.max(distance + size.length() * 6, 1000);
   camera.updateProjectionMatrix();
   controls.target.copy(center);
   controls.update();
+  controls.saveState();
+}
+
+function applyDisplayOrientation(object: THREE.Object3D) {
+  const mapping = props.snapshot?.three_d_evidence?.view_space_mapping;
+  if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) return;
+  const record = mapping as Record<string, unknown>;
+  const rotationX = finiteDegrees(record.frontend_rotation_x_degrees);
+  const rotationY = finiteDegrees(record.frontend_rotation_y_degrees);
+  const rotationZ = finiteDegrees(record.frontend_rotation_z_degrees);
+  if (rotationX === null && rotationY === null && rotationZ === null) return;
+  const rotationOrder = record.frontend_rotation_order === "ZXY" ? "ZXY" : "XYZ";
+  object.rotation.set(
+    THREE.MathUtils.degToRad(rotationX ?? 0),
+    THREE.MathUtils.degToRad(rotationY ?? 0),
+    THREE.MathUtils.degToRad(rotationZ ?? 0),
+    rotationOrder,
+  );
+  object.updateMatrixWorld(true);
+}
+
+function finiteDegrees(value: unknown): number | null {
+  const degrees = Number(value);
+  return Number.isFinite(degrees) ? degrees : null;
+}
+
+function resetStandardView() {
+  if (!modelRoot) return;
+  frameModel(modelRoot);
 }
 
 function selectMarkerFromPointer(event: PointerEvent) {
@@ -318,6 +366,7 @@ function resizeRenderer() {
   renderer.setSize(width, height, false);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  if (modelRoot) frameModel(modelRoot);
 }
 
 function animate() {
@@ -410,6 +459,7 @@ function setRenderState(state: RenderState, message: string) {
 <style scoped>
 .three-d-viewport {
   position: relative;
+  height: 100%;
   min-height: 560px;
   overflow: hidden;
   border: 1px solid var(--runtime-border);
@@ -421,6 +471,7 @@ function setRenderState(state: RenderState, message: string) {
 }
 
 .three-d-viewport__canvas {
+  height: 100%;
   min-height: 560px;
   touch-action: none;
 }
@@ -428,12 +479,36 @@ function setRenderState(state: RenderState, message: string) {
 .three-d-viewport__canvas :deep(canvas) {
   display: block;
   width: 100%;
-  height: 560px;
+  height: 100%;
+  min-height: 560px;
   cursor: grab;
 }
 
 .three-d-viewport__canvas :deep(canvas):active {
   cursor: grabbing;
+}
+
+.three-d-viewport__reset {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  border: 1px solid var(--runtime-border-strong);
+  border-radius: 5px;
+  padding: 7px 10px;
+  background: color-mix(in srgb, var(--runtime-surface) 94%, transparent);
+  color: var(--runtime-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(30, 58, 57, 0.12);
+}
+
+.three-d-viewport__reset:hover,
+.three-d-viewport__reset:focus-visible {
+  border-color: var(--runtime-accent);
+  outline: 2px solid color-mix(in srgb, var(--runtime-accent) 35%, transparent);
+  outline-offset: 2px;
 }
 
 .three-d-viewport__empty,

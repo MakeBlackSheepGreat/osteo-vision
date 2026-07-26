@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from heapq import nlargest
+from math import isfinite
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -10,44 +12,58 @@ from backend.osteo_vision_api.domains.cases.schemas import CandidateRegion, Evid
 from backend.osteo_vision_api.services.video_keyframe_metrics import normalized_bbox, positive_float
 
 
-def summarize_hotspot_outputs(hotspot_outputs: list[dict[str, Any]]) -> dict[str, Any]:
-    fractions = [
-        float(output.get("quantification", {}).get("positive_area_fraction", 0.0)) for output in hotspot_outputs
-    ]
-    component_counts = [int(output.get("quantification", {}).get("component_count", 0)) for output in hotspot_outputs]
-    roi_fractions = [
-        float(output.get("quantification", {}).get("roi_positive_area_fraction", 0.0)) for output in hotspot_outputs
-    ]
+def summarize_hotspot_outputs(hotspot_outputs: list[Any]) -> dict[str, Any]:
+    fraction_sum = 0.0
+    roi_fraction_sum = 0.0
+    max_fraction = 0.0
+    max_roi_fraction = 0.0
+    candidate_count = 0
+    frame_count = 0
+    for output in hotspot_outputs:
+        quantification = _mapping(_mapping(output).get("quantification"))
+        fraction = _nonnegative_float(quantification.get("positive_area_fraction"))
+        roi_fraction = _nonnegative_float(quantification.get("roi_positive_area_fraction"))
+        frame_count += 1
+        fraction_sum += fraction
+        roi_fraction_sum += roi_fraction
+        max_fraction = max(max_fraction, fraction)
+        max_roi_fraction = max(max_roi_fraction, roi_fraction)
+        candidate_count += _nonnegative_int(quantification.get("component_count"))
     return {
-        "hotspot_frame_count": len(hotspot_outputs),
-        "hotspot_candidate_count": sum(component_counts),
-        "hotspot_max_positive_area_fraction": max(fractions) if fractions else 0.0,
-        "hotspot_mean_positive_area_fraction": sum(fractions) / len(fractions) if fractions else 0.0,
-        "hotspot_roi_max_positive_area_fraction": max(roi_fractions) if roi_fractions else 0.0,
-        "hotspot_roi_mean_positive_area_fraction": sum(roi_fractions) / len(roi_fractions) if roi_fractions else 0.0,
+        "hotspot_frame_count": frame_count,
+        "hotspot_candidate_count": candidate_count,
+        "hotspot_max_positive_area_fraction": max_fraction,
+        "hotspot_mean_positive_area_fraction": fraction_sum / frame_count if frame_count else 0.0,
+        "hotspot_roi_max_positive_area_fraction": max_roi_fraction,
+        "hotspot_roi_mean_positive_area_fraction": roi_fraction_sum / frame_count if frame_count else 0.0,
     }
 
 
 def build_hotspot_candidate_regions(
-    run_id: str, hotspot_outputs: list[dict[str, Any]], *, frame_details: list[dict[str, Any]]
+    run_id: str, hotspot_outputs: list[Any], *, frame_details: list[Any]
 ) -> list[CandidateRegion]:
-    details_by_order = {
-        str(detail.get("frame_order")): detail for detail in frame_details if detail.get("frame_order") is not None
-    }
-    details_by_index = {
-        str(detail.get("frame_index")): detail for detail in frame_details if detail.get("frame_index") is not None
-    }
-    ranked = sorted(
-        hotspot_outputs,
-        key=lambda item: float(item.get("quantification", {}).get("positive_area_fraction", 0.0)),
-        reverse=True,
+    details_by_order: dict[str, dict[str, Any]] = {}
+    details_by_index: dict[str, dict[str, Any]] = {}
+    for detail in frame_details:
+        valid_detail = _mapping(detail)
+        if not valid_detail:
+            continue
+        if valid_detail.get("frame_order") is not None:
+            details_by_order[str(valid_detail["frame_order"])] = valid_detail
+        if valid_detail.get("frame_index") is not None:
+            details_by_index[str(valid_detail["frame_index"])] = valid_detail
+    ranked = nlargest(
+        3,
+        (
+            (fraction, _mapping(output))
+            for output in hotspot_outputs
+            if (fraction := _positive_area_fraction(output)) > 0.0
+        ),
+        key=lambda item: item[0],
     )
     candidates: list[CandidateRegion] = []
-    for output in ranked[:3]:
-        quantification = output.get("quantification", {})
-        fraction = float(quantification.get("positive_area_fraction", 0.0))
-        if fraction <= 0:
-            continue
+    for fraction, output in ranked:
+        quantification = _mapping(output.get("quantification"))
         analysis_method = str(output.get("analysis_method") or "heuristic_hotspot_fallback")
         model_id = str(output.get("model_id") or "video_keyframe_hotspot_segmenter")
         metadata = _hotspot_candidate_metadata(output, quantification)
@@ -102,8 +118,10 @@ def build_hotspot_candidate_regions(
     return candidates
 
 
-def hotspot_artifacts(case_id: str, run_id: str, hotspot_outputs: list[dict[str, Any]]) -> list[EvidenceArtifact]:
+def hotspot_artifacts(case_id: str, run_id: str, hotspot_outputs: list[Any]) -> list[EvidenceArtifact]:
     artifacts: list[EvidenceArtifact] = []
+    seen: set[tuple[ArtifactKind, str]] = set()
+    checksums: dict[str, str] = {}
     mapping = [
         ("segmentation_mask", "path", ArtifactKind.ROI_MASK),
         ("lesion_evidence", "probability_path", ArtifactKind.PROBABILITY_MAP),
@@ -114,42 +132,33 @@ def hotspot_artifacts(case_id: str, run_id: str, hotspot_outputs: list[dict[str,
     ]
     for output in hotspot_outputs:
         for parent_key, path_key, kind in mapping:
-            parent = output.get(parent_key)
+            parent = _mapping(output).get(parent_key)
             path = parent.get(path_key) if isinstance(parent, dict) else None
-            if not path:
-                continue
-            artifacts.append(
-                EvidenceArtifact(
-                    artifact_id=f"artifact_{uuid4().hex[:10]}",
-                    case_id=case_id,
-                    run_id=run_id,
-                    kind=kind,
-                    path=str(path),
-                    checksum=checksum_for_file(path),
-                )
+            _append_artifact(
+                artifacts,
+                seen,
+                checksums,
+                case_id=case_id,
+                run_id=run_id,
+                kind=kind,
+                path=path,
             )
     return artifacts
 
 
 def video_manifest_artifacts(case_id: str, run_id: str, paths: list[Any]) -> list[EvidenceArtifact]:
     artifacts: list[EvidenceArtifact] = []
-    seen: set[str] = set()
+    seen: set[tuple[ArtifactKind, str]] = set()
+    checksums: dict[str, str] = {}
     for path in paths:
-        if not path:
-            continue
-        normalized = str(path)
-        if normalized in seen or not Path(normalized).exists():
-            continue
-        seen.add(normalized)
-        artifacts.append(
-            EvidenceArtifact(
-                artifact_id=f"artifact_{uuid4().hex[:10]}",
-                case_id=case_id,
-                run_id=run_id,
-                kind=ArtifactKind.REPORT_JSON,
-                path=normalized,
-                checksum=checksum_for_file(normalized),
-            )
+        _append_artifact(
+            artifacts,
+            seen,
+            checksums,
+            case_id=case_id,
+            run_id=run_id,
+            kind=ArtifactKind.REPORT_JSON,
+            path=path,
         )
     return artifacts
 
@@ -161,51 +170,45 @@ def video_segmentation_artifacts(case_id: str, run_id: str, outputs: dict[str, A
         ("mask_review_video_path", ArtifactKind.VIDEO_MASK),
     ]
     artifacts: list[EvidenceArtifact] = []
+    seen: set[tuple[ArtifactKind, str]] = set()
+    checksums: dict[str, str] = {}
     for path_key, kind in mapping:
-        path = outputs.get(path_key)
-        if not path or not Path(str(path)).exists():
-            continue
-        artifacts.append(
-            EvidenceArtifact(
-                artifact_id=f"artifact_{uuid4().hex[:10]}",
-                case_id=case_id,
-                run_id=run_id,
-                kind=kind,
-                path=str(path),
-                checksum=checksum_for_file(path),
-            )
+        _append_artifact(
+            artifacts,
+            seen,
+            checksums,
+            case_id=case_id,
+            run_id=run_id,
+            kind=kind,
+            path=_mapping(outputs).get(path_key),
         )
     return artifacts
 
 
 def _candidate_confidence(quantification: Any) -> float:
-    quant = quantification if isinstance(quantification, dict) else {}
+    quant = _mapping(quantification)
     for key in ("max_probability", "mean_probability", "p95_intensity", "max_intensity"):
-        value = quant.get(key)
-        if value is None:
-            continue
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            continue
+        value = _finite_nonnegative_float_or_none(quant.get(key))
+        if value is not None:
+            return value
     return 0.0
 
 
 def _dict_value(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
+    return _mapping(value)
 
 
 def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> dict[str, Any]:
-    quant = quantification if isinstance(quantification, dict) else {}
-    lesion_evidence = output.get("lesion_evidence") if isinstance(output.get("lesion_evidence"), dict) else {}
+    quant = _mapping(quantification)
+    lesion_evidence = _mapping(output.get("lesion_evidence"))
     signal_masks = output.get("signal_masks") or output.get("video_signal_segmentation")
     signal_masks = signal_masks if isinstance(signal_masks, dict) else {}
     hotspot_candidates = lesion_evidence.get("candidates") if isinstance(lesion_evidence, dict) else []
     top_candidate = hotspot_candidates[0] if isinstance(hotspot_candidates, list) and hotspot_candidates else {}
     top_candidate = top_candidate if isinstance(top_candidate, dict) else {}
-    segmentation_mask = output.get("segmentation_mask") if isinstance(output.get("segmentation_mask"), dict) else {}
-    width = positive_float(segmentation_mask.get("width")) if isinstance(segmentation_mask, dict) else 0.0
-    height = positive_float(segmentation_mask.get("height")) if isinstance(segmentation_mask, dict) else 0.0
+    segmentation_mask = _mapping(output.get("segmentation_mask"))
+    width = positive_float(segmentation_mask.get("width"))
+    height = positive_float(segmentation_mask.get("height"))
     bbox = top_candidate.get("bbox_xyxy")
     normalized = normalized_bbox(bbox, width=width, height=height)
     return {
@@ -216,11 +219,9 @@ def _hotspot_candidate_metadata(output: dict[str, Any], quantification: Any) -> 
         "frame_index": output.get("frame_index"),
         "timestamp_sec": output.get("timestamp_sec"),
         "source_path": output.get("source_path"),
-        "overlay_path": lesion_evidence.get("overlay_path") if isinstance(lesion_evidence, dict) else None,
-        "risk_mask_path": lesion_evidence.get("risk_mask_path") if isinstance(lesion_evidence, dict) else None,
-        "uncertain_mask_path": (
-            lesion_evidence.get("uncertain_mask_path") if isinstance(lesion_evidence, dict) else None
-        ),
+        "overlay_path": lesion_evidence.get("overlay_path"),
+        "risk_mask_path": lesion_evidence.get("risk_mask_path"),
+        "uncertain_mask_path": lesion_evidence.get("uncertain_mask_path"),
         "mask_path": segmentation_mask.get("path") if isinstance(segmentation_mask, dict) else None,
         "mask_type": "boundary_risk",
         "signal_masks": signal_masks,
@@ -255,3 +256,63 @@ def _sample_weight_for_review_state(state: str) -> float:
     if normalized == "rejected":
         return 0.5
     return 1.0
+
+
+def _positive_area_fraction(output: Any) -> float:
+    return _nonnegative_float(_mapping(_mapping(output).get("quantification")).get("positive_area_fraction"))
+
+
+def _nonnegative_float(value: Any) -> float:
+    parsed = _finite_nonnegative_float_or_none(value)
+    return parsed if parsed is not None else 0.0
+
+
+def _finite_nonnegative_float_or_none(value: Any) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if isfinite(parsed) and parsed >= 0.0 else None
+
+
+def _nonnegative_int(value: Any) -> int:
+    parsed = _nonnegative_float(value)
+    return int(parsed)
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _append_artifact(
+    artifacts: list[EvidenceArtifact],
+    seen: set[tuple[ArtifactKind, str]],
+    checksums: dict[str, str],
+    *,
+    case_id: str,
+    run_id: str,
+    kind: ArtifactKind,
+    path: Any,
+) -> None:
+    if not path:
+        return
+    normalized = str(path)
+    candidate = Path(normalized)
+    key = (kind, normalized)
+    if key in seen or not candidate.is_file():
+        return
+    seen.add(key)
+    checksum = checksums.get(normalized)
+    if checksum is None:
+        checksum = checksum_for_file(candidate)
+        checksums[normalized] = checksum
+    artifacts.append(
+        EvidenceArtifact(
+            artifact_id=f"artifact_{uuid4().hex[:10]}",
+            case_id=case_id,
+            run_id=run_id,
+            kind=kind,
+            path=normalized,
+            checksum=checksum,
+        )
+    )

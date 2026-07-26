@@ -2,9 +2,9 @@
   <section class="analysis-card">
     <header class="analysis-header">
       <div class="analysis-title-block">
-        <h2>双通道融合与风险提示</h2>
+        <h2>{{ analysisTitle }}</h2>
         <div class="analysis-summary-strip" aria-label="分析摘要">
-          <span v-for="kpi in kpiItems" :key="kpi.label" class="summary-chip">
+          <span v-for="kpi in displayKpiItems" :key="kpi.label" class="summary-chip">
             <AppIcon :name="kpi.icon" />
             <span>{{ kpi.label }}</span>
             <strong>{{ kpi.value }}</strong>
@@ -12,7 +12,7 @@
         </div>
       </div>
       <div class="analysis-header-actions">
-        <span class="run-pill" :class="analysisStatusClass">{{ latestRunStatusLabel }}</span>
+        <span class="run-pill" :class="displayAnalysisStatusClass">{{ displayRunStatusLabel }}</span>
         <AppButton
           class="header-export-button"
           variant="secondary"
@@ -57,9 +57,19 @@
       :export-links="exportLinks"
       :export-summary="exportSummary"
       :artifact-entries="exportArtifactEntries"
+      :case-id="caseId"
     />
 
+    <MultichannelVideoWorkspace
+      v-if="multichannelModeActive"
+      :mode="videoMode"
+      :session="multichannelSession"
+      :channel-paths="multichannelChannelPaths"
+      :task2-result="multichannelTask2Result"
+      :ai-preview-src="multichannelAiPreviewSrc"
+    />
     <AnalysisQuadGrid
+      v-else
       ref="analysisQuadGridRef"
       :panels="previewPanels"
       :camera-stream="cameraStream"
@@ -407,9 +417,9 @@
   >
     <div class="analysis-fullscreen-panel">
       <header class="fullscreen-header">
-        <h2>双通道融合与风险提示</h2>
+        <h2>{{ analysisTitle }}</h2>
         <div class="analysis-header-actions">
-          <span class="run-pill" :class="analysisStatusClass">{{ latestRunStatusLabel }}</span>
+          <span class="run-pill" :class="displayAnalysisStatusClass">{{ displayRunStatusLabel }}</span>
           <AppButton
             variant="ghost"
             size="sm"
@@ -422,7 +432,16 @@
         </div>
       </header>
 
+      <MultichannelVideoWorkspace
+        v-if="multichannelModeActive"
+        :mode="videoMode"
+        :session="multichannelSession"
+        :channel-paths="multichannelChannelPaths"
+        :task2-result="multichannelTask2Result"
+        :ai-preview-src="multichannelAiPreviewSrc"
+      />
       <AnalysisQuadGrid
+        v-else
         ref="fullscreenAnalysisQuadGridRef"
         :panels="previewPanels"
         :camera-stream="cameraStream"
@@ -455,6 +474,7 @@ import AnalysisQuadGrid from "@/components/AnalysisQuadGrid.vue";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import BoneGateMaskEditor from "@/components/BoneGateMaskEditor.vue";
+import MultichannelVideoWorkspace from "@/components/MultichannelVideoWorkspace.vue";
 import VideoStreamSyncPanel from "@/components/VideoStreamSyncPanel.vue";
 import {
   hotspotTimelineFilterOptions,
@@ -468,7 +488,12 @@ import {
 } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
 import { useVideoPlaybackSync } from "@/composables/useVideoPlaybackSync";
-import type { ReviewState } from "@/types/case";
+import type {
+  MultichannelVideoMode,
+  MultichannelVideoRole,
+  MultichannelVideoSession,
+  ReviewState,
+} from "@/types/case";
 import { computed, ref, watch } from "vue";
 
 // 分析视图组件只接收已经整理好的展示数据，避免把 store 和业务副作用带进展示层。
@@ -483,6 +508,7 @@ const props = withDefaults(
     loading: boolean;
     error: string;
     hasCase: boolean;
+    caseId?: string;
     exportPath: string;
     exportLinks: Array<{ label: string; path: string; href: string }>;
     exportSummary: Record<string, unknown>;
@@ -515,6 +541,11 @@ const props = withDefaults(
     liveFrameStatus?: string;
     liveModelLatencyMs?: number | null;
     liveEndToEndLatencyMs?: number | null;
+    videoMode?: MultichannelVideoMode;
+    multichannelChannelPaths?: Partial<Record<MultichannelVideoRole, string>>;
+    multichannelSession?: MultichannelVideoSession | null;
+    multichannelTask2Result?: Record<string, unknown> | null;
+    multichannelAiPreviewSrc?: string;
   }>(),
   {
     activeAnalysisJobCanceling: false,
@@ -523,6 +554,11 @@ const props = withDefaults(
     liveFrameStatus: "",
     liveModelLatencyMs: null,
     liveEndToEndLatencyMs: null,
+    videoMode: "single_video",
+    multichannelChannelPaths: () => ({}),
+    multichannelSession: null,
+    multichannelTask2Result: null,
+    multichannelAiPreviewSrc: "",
   },
 );
 
@@ -571,6 +607,32 @@ const analysisQuadGridRef = ref<InstanceType<typeof AnalysisQuadGrid> | null>(nu
 const fullscreenAnalysisQuadGridRef = ref<InstanceType<typeof AnalysisQuadGrid> | null>(null);
 const activePlaybackSurface = ref<"inline" | "fullscreen">("inline");
 const suppressFullscreenPlaybackEvents = ref(false);
+const multichannelModeActive = computed(() => props.videoMode !== "single_video");
+const analysisTitle = computed(() => {
+  if (props.videoMode === "paired_videos") return "双通道视频配准与融合";
+  if (props.videoMode === "composite_layout") return "合成三视图拆分与分析";
+  return "术中影像与风险提示";
+});
+const displayRunStatusLabel = computed(() =>
+  multichannelModeActive.value && !props.multichannelSession ? "待准备" : props.latestRunStatusLabel,
+);
+const displayAnalysisStatusClass = computed(() =>
+  multichannelModeActive.value && !props.multichannelSession ? "idle" : props.analysisStatusClass,
+);
+const displayKpiItems = computed<AnalysisKpiItem[]>(() => {
+  if (!multichannelModeActive.value || props.multichannelSession) return props.kpiItems;
+  const channelCount = Object.values(props.multichannelChannelPaths).filter(Boolean).length;
+  return [
+    {
+      label: "工作区",
+      value: props.videoMode === "composite_layout" ? "合成三视图" : "双通道视频",
+      icon: "video",
+    },
+    { label: "已选通道", value: `${channelCount} 路`, icon: "layers" },
+    { label: "同步状态", value: "待准备", icon: "load" },
+    { label: "分析状态", value: "未运行", icon: "document" },
+  ];
+});
 
 watch(
   () => props.selectedHotspotFrameDetail?.key,
@@ -711,9 +773,15 @@ function currentPlaybackTimeSec(): number | undefined {
   return grid?.currentPlaybackTime() ?? currentPlaybackTime.value;
 }
 
+function pausePlayback() {
+  analysisQuadGridRef.value?.pausePlayback();
+  fullscreenAnalysisQuadGridRef.value?.pausePlayback();
+}
+
 defineExpose({
   capturePlaybackFrame,
   currentPlaybackTimeSec,
+  pausePlayback,
 });
 
 </script>
@@ -1134,7 +1202,7 @@ defineExpose({
   width: 78px;
   height: 62px;
   border-radius: 4px;
-  object-fit: cover;
+  object-fit: contain;
   background: var(--ov-bg-media);
 }
 

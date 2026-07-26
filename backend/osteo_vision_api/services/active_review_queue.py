@@ -11,6 +11,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import isfinite
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -646,7 +647,7 @@ def _nonnegative_float(value: Any, *, default: float) -> float:
         parsed = float(value)
     except (TypeError, ValueError):
         return float(default)
-    return parsed if parsed >= 0 else float(default)
+    return parsed if isfinite(parsed) and parsed >= 0 else float(default)
 
 
 def _area_anomaly_score(area_fraction: float) -> float:
@@ -696,7 +697,9 @@ def _first_float(*values: Any) -> float:
     for value in values:
         try:
             if value is not None and value != "":
-                return float(value)
+                parsed = float(value)
+                if isfinite(parsed):
+                    return parsed
         except (TypeError, ValueError):
             continue
     return 0.0
