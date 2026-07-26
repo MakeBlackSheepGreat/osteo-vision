@@ -1,9 +1,9 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory, createWebHistory } from "vue-router";
 
 import { navigationMetaByPath } from "@/router/navigation";
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: import.meta.env.VITE_OSTEO_DESKTOP === "true" ? createWebHashHistory() : createWebHistory(),
   routes: [
     { path: "/", redirect: "/case" },
     {
@@ -38,8 +38,7 @@ export const router = createRouter({
     },
     {
       path: "/review",
-      component: () => import("@/pages/ReviewWorkspacePage.vue"),
-      meta: { navigation: navigationMetaByPath["/review"] },
+      redirect: (to) => ({ path: "/annotations", query: to.query }),
     },
     {
       path: "/annotations",

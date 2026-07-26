@@ -51,7 +51,7 @@
       <article v-for="candidate in paginatedCandidates" :key="candidate.record_id" class="candidate-card">
         <header class="candidate-card__header">
           <div>
-            <h2>{{ candidate.title || candidate.record_id }}</h2>
+            <h2>{{ videoCandidateDisplayTitle(candidate) }}</h2>
             <span>{{ candidate.record_id }}</span>
           </div>
           <span class="candidate-badge" :class="{ fluorescent: candidate.fluorescence === true }">
@@ -63,13 +63,6 @@
           <img v-if="candidate.preview_path" :src="apiClient.filePreviewUrl(candidate.preview_path)" alt="视频关键帧预览" />
           <figcaption v-else>正在生成关键帧预览...</figcaption>
         </figure>
-
-        <dl class="candidate-details">
-          <template v-for="detail in videoCandidateDetails(candidate)" :key="detail.label">
-            <dt>{{ detail.label }}</dt>
-            <dd>{{ detail.value }}</dd>
-          </template>
-        </dl>
 
         <div class="candidate-actions">
           <AppButton
@@ -163,7 +156,7 @@ import { errorMessage } from "@/utils/caseDisplay";
 import {
   filterVideoCandidates,
   formatBytes,
-  videoCandidateDetails,
+  videoCandidateDisplayTitle,
   videoCandidateFilterSummary,
   videoCandidateFluorescenceFilterOptions,
   videoCandidateFluorescenceLabel,
@@ -215,7 +208,7 @@ watch(pageCount, (count) => {
 
 const statusMessage = computed(() =>
   loading.value
-    ? "正在读取本地公开视频 manifest..."
+    ? "正在读取本地公开视频清单..."
     : `已显示 ${videoCandidateFilterSummary(candidates.value.length, filteredCandidates.value.length)}候选。`,
 );
 
@@ -548,31 +541,6 @@ onMounted(() => {
   color: var(--ov-text-muted);
   font-size: 12px;
   font-weight: 800;
-}
-
-.candidate-details {
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 6px 10px;
-  margin: 0;
-}
-
-.candidate-details dt,
-.candidate-details dd {
-  min-width: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.candidate-details dt {
-  color: var(--ov-text-muted);
-  font-weight: 900;
-}
-
-.candidate-details dd {
-  margin: 0;
-  color: var(--ov-text-secondary);
-  overflow-wrap: anywhere;
 }
 
 .candidate-actions {

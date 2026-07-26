@@ -7,6 +7,7 @@
 """
 
 import re
+import sys
 from pathlib import Path
 
 from docx import Document
@@ -196,22 +197,24 @@ def add_table_three_line(doc, header, rows, caption=None):
         tbl.insert(0, tblPr)
 
     tblBorders = OxmlElement("w:tblBorders")
-    for border_name in ["top", "bottom"]:
+    for border_name in ["top", "left", "bottom", "right"]:
         border = OxmlElement(f"w:{border_name}")
-        border.set(qn("w:val"), "single")
-        border.set(qn("w:sz"), "12")
-        border.set(qn("w:color"), "000000")
-        tblBorders.append(border)
-    for border_name in ["left", "right", "insideV"]:
-        border = OxmlElement(f"w:{border_name}")
-        border.set(qn("w:val"), "none")
+        if border_name in {"top", "bottom"}:
+            border.set(qn("w:val"), "single")
+            border.set(qn("w:sz"), "12")
+            border.set(qn("w:color"), "000000")
+        else:
+            border.set(qn("w:val"), "none")
         tblBorders.append(border)
     insideH = OxmlElement("w:insideH")
     insideH.set(qn("w:val"), "single")
     insideH.set(qn("w:sz"), "4")
     insideH.set(qn("w:color"), "000000")
     tblBorders.append(insideH)
-    tblPr.append(tblBorders)
+    insideV = OxmlElement("w:insideV")
+    insideV.set(qn("w:val"), "none")
+    tblBorders.append(insideV)
+    tblPr.insert(2, tblBorders)
 
     # 表头行底边加粗
     for cell in table.rows[0].cells:
@@ -413,7 +416,7 @@ def add_title_block(doc):
     set_line_spacing(p, 18)
     pf = p.paragraph_format
     pf.space_after = Pt(18)
-    run = p.add_run("——颌骨骨髓炎智能化荧光诊疗比赛方案附属数据文档")
+    run = p.add_run("——研发验证数据与工程核验汇总")
     set_run_font(run, HEI, TNR, 16, bold=False)
 
     # 作者：四号楷体_GB2312 居中
@@ -425,21 +428,12 @@ def add_title_block(doc):
     run = p.add_run("项目团队")
     set_run_font(run, KAI, TNR, PT_AUTHOR, bold=False)
 
-    # 单位
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_line_spacing(p, 18)
-    pf = p.paragraph_format
-    pf.space_after = Pt(18)
-    run = p.add_run("（osteo-vision 项目组）")
-    set_run_font(run, KAI, TNR, PT_SMALL, bold=False)
-
     # 摘要
     abstract_zh = (
-        "本文档对比赛方案各章节中出现的设备参数、数据集、模型指标、运行性能、"
-        "工程验证等数据按主题重新梳理，便于评审快速核验。所有模型性能指标均来自"
-        "公开、代理或伪标注的非目标域数据，目标域（真实术中 ICG 颌骨骨髓炎）"
-        "记录数为 0，训练准入记录为 0。"
+        "本文档汇总平台软件当前的官方输入边界、数据分层、模型工程验证、4K 融合与视频处理性能、"
+        "三维工程验证和质量核对结果。来源核验集合与分层数据注册表采用独立统计口径。"
+        "全部模型和性能数据均来自公开、代理、近域或数字仿体工程资料；真实术中 ICG 颌骨骨髓炎"
+        "记录与训练准入记录均为零。"
     )
     p = doc.add_paragraph()
     set_line_spacing(p, 16)
@@ -478,9 +472,13 @@ def setup_page(doc):
     if docGrid is None:
         docGrid = OxmlElement("w:docGrid")
         sectPr.append(docGrid)
-    docGrid.set(qn("w:type"), "lines")
+    docGrid.set(qn("w:type"), "linesAndChars")
     docGrid.set(qn("w:linePitch"), "312")
     docGrid.set(qn("w:charSpace"), "0")
+
+    zoom = doc.settings.element.find(qn("w:zoom"))
+    if zoom is not None:
+        zoom.set(qn("w:percent"), "100")
 
 
 def main():
@@ -492,9 +490,21 @@ def main():
     md_text = INPUT_FILE.read_text(encoding="utf-8")
     parse_markdown_to_docx(md_text, doc)
 
-    doc.save(str(OUTPUT_FILE))
-    size_kb = OUTPUT_FILE.stat().st_size / 1024
-    print(f"[OK] 已生成：{OUTPUT_FILE}")
+    output_file = OUTPUT_FILE
+    if len(sys.argv) == 2:
+        output_file = Path(sys.argv[1]).resolve()
+    elif len(sys.argv) > 2:
+        raise SystemExit("用法：python scripts/generate_data_summary_docx.py [输出 Word 路径]")
+
+    temporary_output = output_file.with_name(f".{output_file.stem}.tmp{output_file.suffix}")
+    try:
+        doc.save(str(temporary_output))
+        temporary_output.replace(output_file)
+    finally:
+        if temporary_output.exists():
+            temporary_output.unlink()
+    size_kb = output_file.stat().st_size / 1024
+    print(f"[OK] 已生成：{output_file}")
     print(f"     文件大小：{size_kb:.1f} KB")
 
 

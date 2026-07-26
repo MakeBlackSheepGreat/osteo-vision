@@ -898,10 +898,16 @@ class ManualAnnotationService:
         checksum = checksum_for_file(path)
         frame_index = int(frame["frame_index"])
         preview = self._ensure_source_preview(case.case_id, f"run_{run.run_id}_frame_{frame_index}", path, checksum)
+        source_record_id = str(frame.get("source_record_id") or run.fused_outputs.get("source_record_id") or "")
+        data_boundary = str(frame.get("data_boundary") or run.fused_outputs.get("data_boundary") or "")
         return AnnotationSourceDescriptor(
             source_key=f"video_keyframe:{run.run_id}:{frame_index}",
             source_id=f"video_keyframe:{run.run_id}:{frame_index}",
-            title=f"视频关键帧 {frame_index}",
+            title=(
+                f"OFDVDnet 示例关键帧 {frame_index}"
+                if source_record_id.startswith("OFDVDNET_")
+                else f"视频关键帧 {frame_index}"
+            ),
             source_type=AnnotationSourceType.VIDEO_KEYFRAME,
             input_id=video.input_id if video else None,
             run_id=run.run_id,
@@ -913,7 +919,12 @@ class ManualAnnotationService:
             original_width=width,
             original_height=height,
             source_checksum=checksum,
-            metadata={"analysis_mode": run.fused_outputs.get("mode")},
+            metadata={
+                "analysis_mode": run.fused_outputs.get("mode"),
+                "source_record_id": source_record_id,
+                "data_boundary": data_boundary,
+                "annotation_demo": bool(run.parameters.get("annotation_demo")),
+            },
         )
 
     def _descriptor_for_candidate(

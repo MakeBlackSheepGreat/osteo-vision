@@ -83,7 +83,7 @@
           </select>
         </label>
 
-        <div class="three-d-evidence-control__actions">
+        <div class="three-d-evidence-control__actions three-d-evidence-control__submit-actions">
           <AppButton
             variant="primary"
             size="sm"
@@ -1385,13 +1385,19 @@ function errorMessageFromUnknown(error: unknown, fallback: string): string {
 }
 
 .three-d-evidence-control--panel .three-d-evidence-control__section {
-  height: 100%;
+  height: auto;
+  min-height: 0;
+  align-content: start;
   padding: 14px;
   border: 0;
 }
 
 .three-d-evidence-control--panel .three-d-evidence-control__section > header small {
   text-align: left;
+}
+
+.three-d-evidence-control--panel .three-d-evidence-control__submit-actions > :deep(.app-button) {
+  flex: 1 1 100%;
 }
 
 @media (max-width: 1380px) {

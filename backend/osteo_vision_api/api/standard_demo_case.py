@@ -13,4 +13,8 @@ def router(service: StandardDemoCaseService) -> APIRouter:
     def ensure_standard_demo_case() -> CaseRecord:
         return service.ensure_case()
 
+    @api.post("/platform/demo-cases", response_model=list[CaseRecord])
+    def ensure_demo_cases() -> list[CaseRecord]:
+        return service.ensure_demo_catalog()
+
     return api

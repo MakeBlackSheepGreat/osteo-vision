@@ -76,12 +76,11 @@ describe("ManualAnnotationPage", () => {
         plugins: [pinia, router],
         stubs: {
           AppIcon: true,
-          ReviewIdentityPanel: true,
           MedicalDisclaimer: true,
           ManualAnnotationCanvas: {
-            props: ["sourceUrl", "sourceTitle", "geometry", "disabled", "disabledReason"],
+            props: ["sourceUrl", "sourceTitle", "geometry", "referenceLayers", "disabled", "disabledReason"],
             emits: ["geometry-change", "source-ready"],
-            template: '<button class="canvas-edit" type="button" @click="$emit(\'geometry-change\', fixtureGeometry)">描画病灶</button>',
+            template: '<button class="canvas-edit" type="button" :data-reference-layer-count="referenceLayers.length" @click="$emit(\'geometry-change\', fixtureGeometry)">描画病灶</button>',
             setup() {
               return { fixtureGeometry: geometry };
             },
@@ -94,6 +93,17 @@ describe("ManualAnnotationPage", () => {
     expect(wrapper.text()).toContain("ICG 图像");
     expect(wrapper.text()).toContain("无法判断区");
     await wrapper.get(".canvas-edit").trigger("click");
+    const fluorescenceLabel = wrapper.findAll(".label-options button").find((button) => button.text().includes("荧光信号"));
+    const lesionLabel = wrapper.findAll(".label-options button").find((button) => button.text().includes("疑似病灶"));
+    expect(fluorescenceLabel).toBeDefined();
+    expect(lesionLabel).toBeDefined();
+    expect((fluorescenceLabel!.element as HTMLButtonElement).disabled).toBe(false);
+    await fluorescenceLabel!.trigger("click");
+    expect(fluorescenceLabel!.classes()).toContain("selected");
+    expect(wrapper.get(".canvas-edit").attributes("data-reference-layer-count")).toBe("1");
+    await lesionLabel!.trigger("click");
+    expect(lesionLabel!.classes()).toContain("selected");
+    expect(wrapper.get(".canvas-edit").attributes("data-reference-layer-count")).toBe("0");
     const saveButton = wrapper.findAll("button").find((button) => button.text().includes("保存草稿"));
     expect(saveButton).toBeDefined();
     expect((saveButton!.element as HTMLButtonElement).disabled).toBe(false);
@@ -161,7 +171,6 @@ describe("ManualAnnotationPage", () => {
         plugins: [pinia, router],
         stubs: {
           AppIcon: true,
-          ReviewIdentityPanel: true,
           MedicalDisclaimer: true,
           ManualAnnotationCanvas: true,
         },
@@ -177,6 +186,68 @@ describe("ManualAnnotationPage", () => {
     expect(apiClient.createAnnotationTrainingManifest).toHaveBeenCalledWith(["case_annotation_001"], false);
     expect(wrapper.text()).toContain("artifacts/annotations/training_manifest.json");
     expect(wrapper.text()).toContain("1 条准入，1 条隔离");
+  });
+
+  it("loads OFDVDnet proxy keyframes into the annotation workspace", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useCaseStore();
+    const demoCase = {
+      ...caseRecord(),
+      case_id: "case_standard_demo",
+      title: "标准演示病例 · OFDVDnet 三视图荧光代理",
+    };
+    vi.spyOn(apiClient, "ensureStandardDemoCase").mockResolvedValue(demoCase);
+    vi.spyOn(store, "loadCase").mockImplementation(async () => {
+      store.currentCase = demoCase;
+      return demoCase;
+    });
+    vi.spyOn(apiClient, "listAnnotationSources").mockResolvedValue({
+      case_id: demoCase.case_id,
+      sources: [
+        {
+          source_id: "video_keyframe:standard_demo_ofdvdnet_annotation_frames:4",
+          source_type: "video_keyframe",
+          run_id: "standard_demo_ofdvdnet_annotation_frames",
+          frame_index: 4,
+          timestamp_sec: 0.5,
+          preview_path: "C:\\demo\\ofdvdnet_frame_000004.jpg",
+          original_width: 64,
+          original_height: 48,
+          title: "OFDVDnet 示例关键帧 4",
+          metadata: { source_record_id: "OFDVDNET_001" },
+        },
+      ],
+    });
+    vi.spyOn(apiClient, "listAnnotations").mockResolvedValue({ case_id: demoCase.case_id, items: [] });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/annotations", component: ManualAnnotationPage },
+        { path: "/cases", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/annotations");
+    await router.isReady();
+
+    const wrapper = mount(ManualAnnotationPage, {
+      global: {
+        plugins: [pinia, router],
+        stubs: { AppIcon: true, MedicalDisclaimer: true, ManualAnnotationCanvas: true },
+      },
+    });
+    await flushPromises();
+
+    const demoButton = wrapper.findAll("button").find((button) => button.text().includes("OFDVDnet 示例"));
+    expect(demoButton).toBeDefined();
+    await demoButton!.trigger("click");
+    await flushPromises();
+
+    expect(apiClient.ensureStandardDemoCase).toHaveBeenCalledOnce();
+    expect(store.loadCase).toHaveBeenCalledWith("case_standard_demo");
+    expect(router.currentRoute.value.query.caseId).toBe("case_standard_demo");
+    expect(wrapper.text()).toContain("OFDVDnet 示例关键帧 4");
+    expect(wrapper.text()).toContain("OFDVDnet 公开代理");
   });
 
   it("keeps an engineering-authored annotation isolated with truthful review copy", async () => {
@@ -233,7 +304,6 @@ describe("ManualAnnotationPage", () => {
         plugins: [pinia, router],
         stubs: {
           AppIcon: true,
-          ReviewIdentityPanel: true,
           MedicalDisclaimer: true,
           ManualAnnotationCanvas: true,
         },

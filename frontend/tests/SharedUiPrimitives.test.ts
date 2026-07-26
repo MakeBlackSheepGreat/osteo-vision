@@ -1,7 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 
-import AppCaseContext from "../src/components/AppCaseContext.vue";
 import AppEmptyState from "../src/components/AppEmptyState.vue";
 import AppEvidenceArtifactList from "../src/components/AppEvidenceArtifactList.vue";
 import AppFeedbackBanner from "../src/components/AppFeedbackBanner.vue";
@@ -59,17 +58,6 @@ describe("shared clinical workstation UI", () => {
 
     expect(wrapper.get("h2").text()).toBe("暂无病例");
     expect(wrapper.get("button").text()).toBe("建立病例");
-  });
-
-  it("shows the full case id and status", () => {
-    const caseId = "CASE-20260725-LONG-IDENTIFIER-00000000000000000001";
-    const wrapper = mount(AppCaseContext, {
-      props: { title: "颌骨荧光融合复核病例", caseId, status: "等待医生复核", tone: "warning" },
-    });
-
-    expect(wrapper.get("small").classes()).toContain("ov-breakable");
-    expect(wrapper.get("small").text()).toBe(caseId);
-    expect(wrapper.get(".ov-status-badge").classes()).toContain("is-warning");
   });
 
   it("renders evidence labels, sizes, and an empty fallback", () => {

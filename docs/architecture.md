@@ -34,7 +34,7 @@ flowchart LR
 
 ### 3.1 Vue 桌面工作站
 
-`frontend/` 使用 Vue 3、TypeScript、Pinia 和 Vue Router。主导航按数据准入、病例档案、病例工作台、三维导航、医生复核、报告导出和研发支持排列。`frontend/three-d-runtime/` 使用独立 Vue/Vite/Three.js 运行时提供 WebGL 场景。
+`frontend/` 使用 Vue 3、TypeScript、Pinia 和 Vue Router。主导航按数据准入、病例档案、病例工作台、三维导航、人工标注与医生复核、报告导出和研发支持排列。`frontend/three-d-runtime/` 使用独立 Vue/Vite/Three.js 运行时提供 WebGL 场景。
 
 病例工作台集中承载视频流输入、融合图、热图、归一化/分割结果和高频控制。三维导航使用独立路由，主平台承载 CBCT/STL 导入、建模、对象树、L1/L2 和医生复核；iframe 仅嵌入版本化场景渲染。渲染运行时释放 WebGL geometry、material、texture、事件监听器和动画帧，主平台保留二维证据与安全状态。
 

@@ -51,7 +51,7 @@
             <button
               type="button"
               :class="{ active: fluorescenceView === 'registered' }"
-              :disabled="!nearestFrame?.registered_fluorescence_path"
+              :disabled="!registeredFluorescenceSrc"
               @click="fluorescenceView = 'registered'"
             >
               配准后
@@ -75,15 +75,15 @@
             {{ effectiveMode === "composite_layout" ? "准备三视图拆分后显示荧光视图" : "请选择荧光 MP4" }}
           </div>
           <img
-            v-if="fluorescenceView === 'registered' && nearestFrame?.registered_fluorescence_path"
-            :src="apiClient.filePreviewUrl(nearestFrame.registered_fluorescence_path)"
-            alt="最近关键帧的配准后荧光图"
+            v-if="fluorescenceView === 'registered' && registeredFluorescenceSrc"
+            :src="registeredFluorescenceSrc"
+            alt="当前播放位置的配准后荧光图"
           />
           <span
-            v-if="fluorescenceView === 'registered' && nearestFrame?.registered_fluorescence_path"
+            v-if="fluorescenceView === 'registered' && registeredFluorescenceSrc"
             class="refresh-badge keyframe"
           >
-            离线关键帧 · {{ keyframeDeltaLabel }}
+            {{ liveRegisteredFluorescenceSrc ? "当前播放帧" : `离线关键帧 · ${keyframeDeltaLabel}` }}
           </span>
         </div>
         <footer>
@@ -114,7 +114,12 @@
         </header>
         <div class="media-viewport">
           <img
-            v-if="nearestFrame?.overlay_path"
+            v-if="liveFusionSrc && fusionView === 'software'"
+            :src="liveFusionSrc"
+            alt="当前播放位置的实时配准融合结果"
+          />
+          <img
+            v-else-if="nearestFrame?.overlay_path"
             v-show="fusionView === 'software'"
             :src="apiClient.filePreviewUrl(nearestFrame.overlay_path)"
             alt="最近关键帧的软件配准融合结果"
@@ -134,7 +139,10 @@
             :src="apiClient.filePreviewUrl(nearestFrame.device_overlay_difference_path)"
             alt="设备叠加与软件融合差异热图"
           />
-          <span v-if="activeFusionContentAvailable" class="refresh-badge" :class="fusionRefreshClass">
+          <span v-if="liveFusionSrc && fusionView === 'software'" class="refresh-badge continuous">
+            {{ liveFusionStatus || "当前时钟帧配准融合" }}
+          </span>
+          <span v-else-if="activeFusionContentAvailable" class="refresh-badge" :class="fusionRefreshClass">
             {{ fusionRefreshLabel }}
           </span>
           <div v-if="!activeFusionContentAvailable" class="empty-channel">
@@ -153,13 +161,17 @@
           </div>
         </header>
         <div class="media-viewport">
-          <img v-if="aiPreviewSrc" :src="aiPreviewSrc" alt="融合 RGB 关键帧的 AI 风险与不确定性结果" />
+          <img v-if="liveOverlaySrc" :src="liveOverlaySrc" alt="当前播放位置的实时 AI 叠加结果" />
+          <img v-else-if="aiPreviewSrc" :src="aiPreviewSrc" alt="融合 RGB 关键帧的 AI 风险与不确定性结果" />
           <img
             v-else-if="nearestFrame?.pseudocolor_path"
             :src="apiClient.filePreviewUrl(nearestFrame.pseudocolor_path)"
             alt="最近关键帧的荧光风险伪彩图"
           />
-          <span v-if="aiPreviewSrc" class="refresh-badge keyframe">
+          <span v-if="liveOverlaySrc" class="refresh-badge continuous">
+            当前时钟帧 AI · {{ liveFrameStatus || "正在刷新" }}
+          </span>
+          <span v-else-if="aiPreviewSrc" class="refresh-badge keyframe">
             AI 关键帧 {{ aiSourceFrameLabel }} · {{ aiPlaybackDeltaLabel }}
           </span>
           <span v-else-if="nearestFrame?.pseudocolor_path" class="refresh-badge keyframe">
@@ -201,10 +213,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
 import { apiClient } from "@/services/apiClient";
+import {
+  captureVideoFrameAsJpeg,
+  LIVE_FRAME_JPEG_QUALITY,
+  LIVE_FRAME_MAX_LONG_SIDE,
+} from "@/utils/browserFrameCapture";
 import type {
   MultichannelVideoMode,
   MultichannelVideoRole,
@@ -230,6 +247,13 @@ const props = withDefaults(
     channelPaths?: Partial<Record<MultichannelVideoRole, string>>;
     task2Result?: Record<string, unknown> | null;
     aiPreviewSrc?: string;
+    liveFusionSrc?: string;
+    liveRegisteredFluorescenceSrc?: string;
+    liveFusionStatus?: string;
+    realtimeAnalysisEnabled?: boolean;
+    realtimeAnalysisBusy?: boolean;
+    liveOverlaySrc?: string;
+    liveFrameStatus?: string;
   }>(),
   {
     mode: "paired_videos",
@@ -237,8 +261,19 @@ const props = withDefaults(
     channelPaths: () => ({}),
     task2Result: null,
     aiPreviewSrc: "",
+    liveFusionSrc: "",
+    liveRegisteredFluorescenceSrc: "",
+    liveFusionStatus: "",
+    realtimeAnalysisEnabled: false,
+    realtimeAnalysisBusy: false,
+    liveOverlaySrc: "",
+    liveFrameStatus: "",
   },
 );
+
+const emit = defineEmits<{
+  liveFrame: [payload: { timeSec: number; reason: string; whiteFrame?: Blob; fluorescenceFrame?: Blob }];
+}>();
 
 const whiteVideoRef = ref<HTMLVideoElement | null>(null);
 const fluorescenceVideoRef = ref<HTMLVideoElement | null>(null);
@@ -250,6 +285,8 @@ const fusionView = ref<"software" | "device" | "difference">("software");
 const fluorescenceDriftMs = ref(0);
 const deviceOverlayDriftMs = ref(0);
 let animationFrameId: number | null = null;
+const pendingLiveReason = ref("");
+let liveFrameDispatching = false;
 const effectiveMode = computed<MultichannelVideoMode>(() => props.session?.mode ?? props.mode);
 const workspaceTitle = computed(() =>
   effectiveMode.value === "composite_layout" ? "合成三视图拆分与配准" : "双通道同步配准",
@@ -303,8 +340,15 @@ const fluorescenceVideoSrc = computed(() => channelVideoUrl("fluorescence"));
 const hasDeviceOverlay = computed(() =>
   Boolean(channel("device_overlay") || props.channelPaths.device_overlay),
 );
+const registeredFluorescenceSrc = computed(() =>
+  props.liveRegisteredFluorescenceSrc ||
+  (nearestFrame.value?.registered_fluorescence_path
+    ? apiClient.filePreviewUrl(nearestFrame.value.registered_fluorescence_path)
+    : ""),
+);
 const degradedComposite = computed(() => !channel("white_light") && Boolean(channel("video")));
 const activeFusionContentAvailable = computed(() => {
+  if (fusionView.value === "software" && props.liveFusionSrc) return true;
   if (fusionView.value === "software") return Boolean(nearestFrame.value?.overlay_path);
   if (fusionView.value === "device") return hasDeviceOverlay.value;
   return Boolean(nearestFrame.value?.device_overlay_difference_path);
@@ -335,6 +379,9 @@ const aiInferenceMs = computed(() => {
   return Number.isFinite(value) && value >= 0 ? value : null;
 });
 const aiFooterLabel = computed(() => {
+  if (props.liveOverlaySrc) {
+    return "当前双通道同步预融合帧 AI 提示 · 任务2正式配准证据单独记录 · 医生复核必需";
+  }
   const latency = aiInferenceMs.value === null ? "推理耗时待记录" : `模型推理 ${formatLatency(aiInferenceMs.value)}`;
   return `输入语义：融合 RGB 关键帧 · ${latency} · 医生复核必需`;
 });
@@ -420,6 +467,7 @@ function syncPlayback(action: "play" | "pause" | "seek" | "rate" | "clock") {
 function handleMasterTimeUpdate() {
   handleMasterClockUpdate();
   syncPlayback("clock");
+  requestLiveFrame("播放位置更新");
 }
 
 function handleMasterClockUpdate() {
@@ -427,6 +475,7 @@ function handleMasterClockUpdate() {
   if (!master) return;
   currentTimeSec.value = Number.isFinite(master.currentTime) ? master.currentTime : 0;
   durationSec.value = Number.isFinite(master.duration) ? master.duration : 0;
+  requestLiveFrame("视频就绪");
 }
 
 function handleMasterPlay() {
@@ -438,12 +487,55 @@ function handleMasterPause() {
   stopClockLoop();
   syncPlayback("pause");
   handleMasterClockUpdate();
+  requestLiveFrame("暂停位置");
 }
 
 function handleMasterSeek() {
   syncPlayback("seek");
   handleMasterClockUpdate();
+  requestLiveFrame("拖动位置");
 }
+
+function requestLiveFrame(reason: string) {
+  if (!props.realtimeAnalysisEnabled || !whiteVideoRef.value) return;
+  pendingLiveReason.value = reason;
+  if (props.realtimeAnalysisBusy || liveFrameDispatching) return;
+  void dispatchLiveFrame();
+}
+
+async function dispatchLiveFrame() {
+  const video = whiteVideoRef.value;
+  if (!video || !props.realtimeAnalysisEnabled || props.realtimeAnalysisBusy || liveFrameDispatching) return;
+  liveFrameDispatching = true;
+  const reason = pendingLiveReason.value || "当前播放位置";
+  pendingLiveReason.value = "";
+  try {
+    const fluorescence = fluorescenceVideoRef.value;
+    const frames = fluorescence
+      ? await Promise.all([
+          captureVideoFrameAsJpeg(video, LIVE_FRAME_JPEG_QUALITY, LIVE_FRAME_MAX_LONG_SIDE, "白光视频"),
+          captureVideoFrameAsJpeg(fluorescence, LIVE_FRAME_JPEG_QUALITY, LIVE_FRAME_MAX_LONG_SIDE, "荧光视频"),
+        ])
+      : [];
+    emit("liveFrame", {
+      timeSec: Number.isFinite(video.currentTime) ? video.currentTime : currentTimeSec.value,
+      reason,
+      whiteFrame: frames[0],
+      fluorescenceFrame: frames[1],
+    });
+  } finally {
+    liveFrameDispatching = false;
+  }
+}
+
+watch(
+  () => [props.realtimeAnalysisEnabled, props.realtimeAnalysisBusy] as const,
+  ([enabled, busy]) => {
+    if (!enabled || busy) return;
+    if (!pendingLiveReason.value) pendingLiveReason.value = "实时分析已开启";
+    void dispatchLiveFrame();
+  },
+);
 
 function handleMasterRateChange() {
   syncPlayback("rate");
@@ -582,13 +674,14 @@ onBeforeUnmount(stopClockLoop);
 .multichannel-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
 }
 
 .channel-card {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: 42px minmax(0, 1fr) 32px;
   min-width: 0;
   border: 1px solid var(--ov-border);
   border-radius: 6px;
@@ -606,7 +699,8 @@ onBeforeUnmount(stopClockLoop);
 }
 
 .channel-card > header {
-  min-height: 28px;
+  box-sizing: border-box;
+  height: 42px;
   padding-bottom: 6px;
   color: var(--ov-text);
   font-size: 13px;
@@ -637,8 +731,11 @@ onBeforeUnmount(stopClockLoop);
 }
 
 .channel-card > footer {
-  min-height: 24px;
+  box-sizing: border-box;
+  height: 32px;
   padding-top: 5px;
+  align-content: center;
+  overflow: hidden;
   overflow-wrap: anywhere;
 }
 

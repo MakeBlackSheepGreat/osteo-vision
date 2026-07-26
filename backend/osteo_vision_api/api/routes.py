@@ -95,6 +95,7 @@ def build_router(settings: Settings) -> APIRouter:
         input_service,
         video_library_service,
         multichannel_video_service,
+        settings.artifact_root,
     )
     static_dataset_review_service = StaticDatasetReviewService(settings.project_root)
     hospital_intake_service = HospitalIntakeService(

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
 import subprocess
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from math import isfinite
 from pathlib import Path
 from typing import Any, Literal
+
+from PIL import Image
 
 from backend.osteo_vision_api.domains.cases.enums import InputChannel
 from backend.osteo_vision_api.domains.cases.repository import CaseRepository
@@ -22,10 +26,12 @@ from backend.osteo_vision_api.domains.cases.schemas import (
     Task2PairedSequenceManifest,
 )
 from backend.osteo_vision_api.services.input_service import InputService
+from backend.osteo_vision_api.services.task2_sequence_service import _analyze_frame_pair
 from backend.osteo_vision_api.services.video_library_service import VideoLibraryService
 from osteo_vision_core.core.executables import find_runtime_executable
 from osteo_vision_core.core.paths import ensure_dir
 from osteo_vision_core.io.video_io import video_metadata
+from osteo_vision_core.preprocess.temporal_registration import TemporalRegistrationSession
 
 SOURCE_BOUNDARY = "多通道视频结果用于公开/代理数据的软件工程验证与医生复核，不代表真实术中 ICG " "颌骨骨髓炎临床性能。"
 
@@ -49,6 +55,7 @@ class MultichannelVideoService:
         self.input_service = input_service
         self.video_library = video_library
         self.root = Path(artifact_root) / "multichannel_video"
+        self._realtime_registration_sessions: dict[str, TemporalRegistrationSession] = {}
 
     def create_session(
         self,
@@ -96,6 +103,100 @@ class MultichannelVideoService:
             self.repo.save(updated_case)
         self._write_session(session_path, session)
         return session
+
+    def analyze_realtime_frame(
+        self,
+        case: CaseRecord,
+        session_id: str,
+        timestamp_sec: float,
+        *,
+        alpha: float,
+        threshold: float,
+        colormap: str,
+        white_frame_base64: str | None = None,
+        fluorescence_frame_base64: str | None = None,
+    ) -> dict[str, Any]:
+        session = self.get_session(case, session_id)
+        manifest = session.paired_sequence_manifest
+        if not session.analysis_allowed or manifest is None:
+            raise MultichannelVideoError("multichannel_realtime_unavailable", "双通道同步会话尚未准备完成。")
+        if not isfinite(timestamp_sec):
+            raise MultichannelVideoError("multichannel_realtime_timestamp_invalid", "当前播放时间无效。")
+
+        reference = min(
+            manifest.frames,
+            key=lambda item: abs(float(item.white_timestamp_ms or 0.0) / 1000.0 - float(timestamp_sec)),
+        )
+        assets = {asset.input_id: asset for asset in case.inputs}
+        white = assets.get(reference.white_input_id)
+        fluorescence = assets.get(reference.fluorescence_input_id)
+        if white is None or fluorescence is None:
+            raise MultichannelVideoError(
+                "multichannel_realtime_asset_missing", "当前同步帧缺少已准入的白光或荧光输入。"
+            )
+        if bool(white_frame_base64) != bool(fluorescence_frame_base64):
+            raise MultichannelVideoError(
+                "multichannel_realtime_frame_pair_required", "实时配准需要同时提供白光与荧光当前画面。"
+            )
+        source_kind = "keyframe_fallback"
+        if white_frame_base64 and fluorescence_frame_base64:
+            source_dir = ensure_dir(self.root / case.case_id / session_id / "realtime_preview_input")
+            white = _realtime_preview_asset(
+                white_frame_base64,
+                source_dir / "white_light.jpg",
+                input_id=f"{session_id}:live:white_light",
+                channel=InputChannel.WHITE_LIGHT,
+            )
+            fluorescence = _realtime_preview_asset(
+                fluorescence_frame_base64,
+                source_dir / "fluorescence.jpg",
+                input_id=f"{session_id}:live:fluorescence",
+                channel=InputChannel.FLUORESCENCE,
+            )
+            reference = reference.model_copy(
+                update={
+                    "frame_index": 0,
+                    "white_input_id": white.input_id,
+                    "fluorescence_input_id": fluorescence.input_id,
+                    "device_overlay_input_id": None,
+                    "white_timestamp_ms": float(timestamp_sec) * 1000.0,
+                    "fluorescence_timestamp_ms": float(timestamp_sec) * 1000.0,
+                    "captured_at": datetime.now(UTC),
+                }
+            )
+            source_kind = "browser_current_frame"
+        realtime_manifest = manifest.model_copy(
+            update={
+                "sequence_id": f"{manifest.sequence_id}:live:{int(round(timestamp_sec * 1000.0))}",
+                "alpha": alpha,
+                "threshold": threshold,
+                "colormap": colormap,
+            }
+        )
+        frame_dir = ensure_dir(self.root / case.case_id / session_id / "realtime_preview")
+        record, _report = _analyze_frame_pair(
+            white,
+            fluorescence,
+            None,
+            reference=reference,
+            manifest=realtime_manifest,
+            session=self._realtime_registration_sessions.setdefault(
+                session_id,
+                TemporalRegistrationSession(temporal_smoothing_alpha=0.65),
+            ),
+            frame_dir=frame_dir,
+            display_only=True,
+        )
+        performance = record["performance"]
+        compute_ms = float(performance["registration_fusion_compute_ms"])
+        return {
+            "frame": record,
+            "requested_timestamp_sec": round(float(timestamp_sec), 6),
+            "source_timestamp_sec": round(float(reference.white_timestamp_ms or 0.0) / 1000.0, 6),
+            "frame_source": source_kind,
+            "compute_ms": compute_ms,
+            "compute_gate_passed": compute_ms < 100.0,
+        }
 
     @staticmethod
     def _case_with_session_summary(
@@ -852,3 +953,24 @@ def _extract_video_frame(source: Path, time_sec: float, output: Path) -> bool:
         return False
     ensure_dir(output.parent)
     return bool(cv2.imwrite(str(output), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 92]))
+
+
+def _realtime_preview_asset(
+    data_url: str,
+    output: Path,
+    *,
+    input_id: str,
+    channel: InputChannel,
+) -> CaseInputAsset:
+    try:
+        _prefix, encoded = data_url.split(",", 1)
+        payload = base64.b64decode(encoded, validate=True)
+        if not payload or len(payload) > 2_000_000:
+            raise ValueError("实时画面大小超出限制。")
+        with Image.open(BytesIO(payload)) as image:
+            image.verify()
+    except (ValueError, OSError) as exc:
+        raise MultichannelVideoError("multichannel_realtime_frame_invalid", "实时画面编码无效。") from exc
+    ensure_dir(output.parent)
+    output.write_bytes(payload)
+    return CaseInputAsset(input_id=input_id, channel=channel, path=str(output), mime_type="image/jpeg")

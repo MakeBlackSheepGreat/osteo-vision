@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 
 import CaseWorkspaceControls from "../src/components/CaseWorkspaceControls.vue";
+import type { MultichannelVideoSession } from "../src/types/case";
 
 const baseProps = {
   whiteLightPath: "",
@@ -194,11 +195,38 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.text()).toContain("更换荧光 MP4");
     expect(wrapper.text()).toContain("可选设备叠加 MP4");
     expect(wrapper.text()).toContain("准备同步预览");
-    expect(wrapper.text()).toContain("运行双通道融合分析");
+    expect(wrapper.text()).toContain("开启双通道实时分析");
+    const primaryAction = wrapper.findAll("button").find((button) => button.text().includes("开启双通道实时分析"));
+    const firstParameter = wrapper.get('input[placeholder="例如 0, 1.5, 3.0"]');
+    expect(primaryAction).toBeDefined();
+    expect(primaryAction!.element.compareDocumentPosition(firstParameter.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const prepare = wrapper.findAll("button").find((button) => button.text().includes("准备同步预览"));
     expect(prepare?.attributes("disabled")).toBeUndefined();
     await prepare?.trigger("click");
     expect(wrapper.emitted("prepareMultichannelSession")).toHaveLength(1);
+  });
+
+  it("uses one primary command to start and stop continuous multichannel analysis", async () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: { ...baseProps, videoMode: "paired_videos" },
+      global: { stubs: { AppIcon: true, SectionHeading: true } },
+    });
+
+    const start = wrapper.findAll("button").find((button) => button.text().includes("开启双通道实时分析"));
+    expect(start?.attributes("disabled")).toBeDefined();
+    await wrapper.setProps({
+      multichannelSession: { analysis_allowed: true } as unknown as MultichannelVideoSession,
+    });
+    expect(start?.attributes("disabled")).toBeUndefined();
+    await start?.trigger("click");
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(1);
+
+    await wrapper.setProps({ multichannelRealtimeAnalysisEnabled: true });
+    expect(wrapper.text()).toContain("关闭双通道实时分析");
+    expect(wrapper.find('input[role="switch"]').exists()).toBe(false);
+    const stop = wrapper.findAll("button").find((button) => button.text().includes("关闭双通道实时分析"));
+    await stop?.trigger("click");
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(2);
   });
 
   it("emits each video workspace mode from the visible tabs", async () => {

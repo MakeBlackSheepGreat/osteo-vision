@@ -1,16 +1,16 @@
 # 当前参赛材料入口
 
-适用工程版本：`0.3.0-rc.2`。
+适用工程版本：`0.3.0-rc.2`，报告数据更新至 2026-07-26。
 
 本目录只保存当前可提交说明、证据清单配置和由工具生成的当前证据索引。2026-07-11 提交包已移动至 `../archive/submission_20260711/`。
 
 ## 当前材料
 
-- 挑战杯精简可行性报告源稿：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.md`
-- 挑战杯精简可行性报告 Word：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.docx`
-- 挑战杯精简可行性报告 PDF：`challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.pdf`
-- 挑战杯完整证据版源稿：`challenge_cup_report_draft_20260721/challenge_cup_feasibility_report_20260722_zh.md`
-- 挑战杯完整证据版 Word/PDF：同目录 `challenge_cup_feasibility_report_20260722_zh.docx` 与 `.pdf`
+- 挑战杯精简可行性报告源稿：2026 年 7 月 26 日版本，面向评审提交。
+- 挑战杯精简可行性报告 Word 与 PDF：与精简源稿同步生成的提交渲染件。
+- 挑战杯完整证据版源稿：2026 年 7 月 26 日聚合版本，供团队审阅与答辩准备。
+- 挑战杯完整证据版 Word 与 PDF：与完整源稿同步生成的渲染件。
+- 挑战杯数据汇总：2026 年 7 月 26 日统一数据、模型、性能与三维工程口径。
 - 挑战杯软件展示答辩运行单：`challenge_cup_demo_runbook_20260721_zh.md`
 - 海南现场作品对标备忘录：`challenge_cup_hainan_benchmark_memo_20260722_zh.md`
 - 技术方案源稿：`osteo_vision_technical_solution_20260719_zh.md`
@@ -23,15 +23,15 @@
 
 ## 挑战杯报告重建
 
-精简提交版作为当前建议提交件，完整证据版保留给答辩准备、团队复核和后续内容裁剪。两份报告共用 `challenge_cup_report_draft_20260721/assets/` 图包，图像由本地 Markdown 以相对路径嵌入。图包的最小公开或合成重建输入已收敛到 `assets/sources/`，构建器不依赖被忽略的本地运行产物。
+精简提交版作为当前建议提交件，完整证据版保留给答辩准备、团队复核和后续内容裁剪。两份报告共用同一图包，图像由本地 Markdown 以相对位置嵌入。图包的最小公开或合成重建材料已收敛，构建过程不依赖被忽略的本地运行产物。
 
 ```powershell
 conda run -n osteo-vision python -X utf8 tools/build_challenge_cup_figures.py
-powershell -ExecutionPolicy Bypass -File research/reports/submission/build_submission_documents.ps1 `
-  -SourceMarkdown research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.md `
-  -OutputDocx research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.docx `
-  -OutputPdf research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260722_zh.pdf
+conda run -n osteo-vision python -X utf8 tools/build_challenge_cup_report.py
+powershell -ExecutionPolicy Bypass -File research/reports/submission/build_submission_documents.ps1
 ```
+
+报告正文遵循 2026 年 7 月 26 日事实基线。数据叙述必须区分两类统计范围：来源核验集合由 15 份来源清单、47 条记录和 138 个文件组成；分层数据注册表登记 504 条记录。两者均保留来源、日期和用途，不合并为单一数据规模。
 
 ## 重新生成 Word 与 PDF
 

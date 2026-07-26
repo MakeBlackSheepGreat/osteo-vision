@@ -8,30 +8,6 @@
           <h1>颌骨骨髓炎术中辅助决策平台</h1>
         </div>
       </div>
-      <div class="workspace-header-actions">
-        <AppCaseContext
-          class="workspace-context"
-          :title="store.currentCase?.title"
-          :case-id="store.currentCase?.case_id"
-          :status="latestRunStatusLabel"
-          :tone="analysisStatusTone"
-        >
-          <template #actions>
-            <RouterLink
-              v-if="store.currentCase"
-              class="navigation-workspace-link"
-              :to="navigationWorkspaceRoute"
-              title="打开与当前病例、视频候选区和配准证据联动的三维导航页面"
-            >
-              <AppIcon name="cube" />
-              <span>
-                <strong>三维导航</strong>
-                <small>{{ threeDWorkspaceStatus }}</small>
-              </span>
-            </RouterLink>
-          </template>
-        </AppCaseContext>
-      </div>
     </header>
 
     <section class="workspace-grid">
@@ -54,6 +30,7 @@
           :multichannel-fluorescence-path="multichannelFluorescencePath"
           :multichannel-device-overlay-path="multichannelDeviceOverlayPath"
           :multichannel-session="activeMultichannelSession"
+          :multichannel-realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled"
           :multichannel-preparing="multichannelPreparing"
           :loading="store.loading"
           :has-case="Boolean(store.currentCase)"
@@ -93,6 +70,7 @@
           @run-video-file-analysis="runVideoFileAnalysis"
           @prepare-multichannel-session="prepareMultichannelSession"
           @run-multichannel-analysis="runMultichannelAnalysis"
+          @toggle-multichannel-realtime-analysis="toggleMultichannelRealtimeAnalysis"
           @reset-multichannel-offsets="resetMultichannelOffsets"
           @start-camera="openCameraForLiveAnalysis"
           @stop-camera="stopCameraInput"
@@ -168,6 +146,11 @@
           :multichannel-session="activeMultichannelSession"
           :multichannel-task2-result="activeMultichannelSession ? multichannelTask2Result : null"
           :multichannel-ai-preview-src="activeMultichannelSession ? multichannelAiPreviewSrc : ''"
+          :multichannel-live-fusion-src="multichannelRealtimeFusionSrc"
+          :multichannel-live-registered-fluorescence-src="multichannelRealtimeRegisteredFluorescenceSrc"
+          :multichannel-live-fusion-status="multichannelRealtimeFusionStatus"
+          :multichannel-realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled"
+          :multichannel-realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
           @export="exportCase"
           @refresh-job="refreshAnalysisJob"
           @cancel-job="cancelAnalysisJob"
@@ -180,6 +163,8 @@
           @playback-started="startVideoPlaybackAnalysis"
           @playback-paused="pauseVideoPlaybackAnalysis"
           @playback-ended="endVideoPlaybackAnalysis"
+          @playback-frame-requested="analyzeCurrentSingleVideoFrame"
+          @multichannel-live-frame="analyzeMultichannelLiveFrame"
           @open-fullscreen="openAnalysisFullscreen"
           @close-fullscreen="closeAnalysisFullscreen"
         />
@@ -229,7 +214,6 @@ import { useRoute } from "vue-router";
 
 import AnalysisResultPanels from "@/components/AnalysisResultPanels.vue";
 import AnalysisWorkspaceCard from "@/components/AnalysisWorkspaceCard.vue";
-import AppCaseContext from "@/components/AppCaseContext.vue";
 import AppPageShell from "@/components/AppPageShell.vue";
 import BoneActivityCheckpointEvidencePanel from "@/components/BoneActivityCheckpointEvidencePanel.vue";
 import CaseWorkspaceControls from "@/components/CaseWorkspaceControls.vue";
@@ -315,6 +299,11 @@ const multichannelFluorescencePath = ref("");
 const multichannelDeviceOverlayPath = ref("");
 const multichannelSession = ref<MultichannelVideoSession | null>(null);
 const multichannelPreparing = ref(false);
+const multichannelRealtimeAnalysisEnabled = ref(false);
+const multichannelRealtimeAnalysisBusy = ref(false);
+const multichannelRealtimeFusionSrc = ref("");
+const multichannelRealtimeRegisteredFluorescenceSrc = ref("");
+const multichannelRealtimeFusionStatus = ref("");
 const fluorescenceOffsetMs = ref<number | null>(null);
 const deviceOverlayOffsetMs = ref<number | null>(null);
 const videoTimepoints = ref("");
@@ -525,13 +514,6 @@ const analysisStatusClass = computed(() => {
   if (latestRun.value?.status === "completed") return "completed";
   return "idle";
 });
-const analysisStatusTone = computed(() => {
-  if (analysisStatusClass.value === "running") return "warning";
-  if (analysisStatusClass.value === "completed") return "success";
-  if (analysisStatusClass.value === "failed") return "danger";
-  return "neutral";
-});
-
 const kpiItems = computed<Array<{ label: string; value: string; icon: AppIconName }>>(() => [
   {
     label: "分析任务",
@@ -706,19 +688,6 @@ const liveModelLatencyMs = computed(() =>
 const liveEndToEndLatencyMs = computed(() =>
   liveFrameIsDisplayable.value ? liveFrameResult.value?.inference_latency_ms ?? null : null,
 );
-const navigationWorkspaceRoute = computed(() => ({
-  path: "/navigation",
-  query: { caseId: store.currentCase?.case_id ?? "" },
-}));
-const threeDWorkspaceStatus = computed(() => {
-  const evidence = store.currentCase?.three_d_evidence;
-  if (!isRecord(evidence) || !Object.keys(evidence).length) return "模型待接入";
-  const registrationStatus = stringFrom(evidence.registration_status).toLowerCase();
-  const navigationReady = evidence.navigation_ready === true || stringFrom(evidence.navigation_ready).toLowerCase() === "true";
-  if (registrationStatus === "registered" && navigationReady) return "配准证据已记录";
-  if (stringFrom(evidence.model_path)) return "模型已接入 / 未配准";
-  return "三维证据待完善";
-});
 const previewOverlays = computed(() => [
   ...roiOverlaysFromRegions(store.currentCase?.rois ?? []),
   ...candidateOverlaysFromRegions(latestCandidates.value),
@@ -1189,6 +1158,84 @@ async function analyzeContinuousVideoFrame(blob: Blob, context: ContinuousCamera
   await analyzeCameraFrame(blob, {
     ...context,
     source: "video",
+  });
+}
+
+async function analyzeCurrentSingleVideoFrame(reason: "暂停位置" | "拖动位置") {
+  if (videoInputSource.value !== "file" || !fileVideoActive.value || !store.currentCase) return;
+  const timestampSec = analysisWorkspaceCardRef.value?.currentPlaybackTimeSec();
+  if (typeof timestampSec !== "number" || !Number.isFinite(timestampSec)) return;
+  try {
+    await analyzeContinuousVideoFrame(await captureVideoPlaybackFrame(), {
+      capturedAt: new Date().toISOString(),
+      sequence: Math.round(timestampSec * 1000),
+      sessionId: "single-video-interactive",
+      signal: new AbortController().signal,
+      trigger: "continuous",
+      timestampSec,
+    });
+  } catch (error) {
+    setOperationMessage(`MP4 ${reason}实时分析失败：${errorMessage(error)}`, "error");
+  }
+}
+
+async function analyzeMultichannelLiveFrame(payload: { timeSec: number; reason: string; whiteFrame?: Blob; fluorescenceFrame?: Blob }) {
+  if (!multichannelRealtimeAnalysisEnabled.value || multichannelRealtimeAnalysisBusy.value) return;
+  const session = activeMultichannelSession.value;
+  if (!session?.analysis_allowed || !store.currentCase) return;
+  multichannelRealtimeAnalysisBusy.value = true;
+  let fusionBlob: Blob | null = null;
+  try {
+    const [whiteFrameBase64, fluorescenceFrameBase64] = await Promise.all([
+      payload.whiteFrame ? blobToDataUrl(payload.whiteFrame) : Promise.resolve(undefined),
+      payload.fluorescenceFrame ? blobToDataUrl(payload.fluorescenceFrame) : Promise.resolve(undefined),
+    ]);
+    const result = await apiClient.analyzeRealtimeMultichannelFrame(store.currentCase.case_id, session.session_id, {
+      timestamp_sec: payload.timeSec,
+      alpha: alpha.value,
+      threshold: threshold.value,
+      colormap: colormap.value,
+      white_frame_base64: whiteFrameBase64,
+      fluorescence_frame_base64: fluorescenceFrameBase64,
+    });
+    const previewVersion = Date.now();
+    multichannelRealtimeFusionSrc.value = `${apiClient.filePreviewUrl(result.frame.overlay_path)}&v=${previewVersion}`;
+    multichannelRealtimeRegisteredFluorescenceSrc.value =
+      `${apiClient.filePreviewUrl(result.frame.registered_fluorescence_path)}&v=${previewVersion}`;
+    const fusionResponse = await fetch(multichannelRealtimeFusionSrc.value);
+    if (!fusionResponse.ok) throw new Error("无法读取当前帧融合结果。");
+    fusionBlob = await fusionResponse.blob();
+    const computeLabel = `${Math.round(result.compute_ms)} ms`;
+    multichannelRealtimeFusionStatus.value = `配准融合 ${computeLabel} · ${result.compute_gate_passed ? "<100 ms" : "超出 100 ms"}`;
+    setOperationMessage(
+      result.compute_gate_passed
+        ? `当前帧配准融合完成：${computeLabel}。AI 结果将独立刷新。`
+        : `当前帧配准融合计算 ${computeLabel}，超过 100 ms 工程门。`,
+      result.compute_gate_passed ? "info" : "error",
+    );
+  } catch (error) {
+    setOperationMessage(`双通道当前帧配准融合失败：${errorMessage(error)}`, "error");
+  } finally {
+    multichannelRealtimeAnalysisBusy.value = false;
+  }
+  if (!fusionBlob) return;
+  void analyzeCameraFrame(fusionBlob, {
+      capturedAt: new Date().toISOString(),
+      sequence: Math.round(payload.timeSec * 1000),
+      sessionId: `multichannel-live-${session.session_id}`,
+      trigger: "continuous",
+      source: "video",
+      timestampSec: payload.timeSec,
+    })
+    .catch((error) => setOperationMessage(`当前帧 AI 分析失败：${errorMessage(error)}`, "error"));
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("实时画面编码失败。")));
+    reader.onerror = () => reject(reader.error ?? new Error("实时画面编码失败。"));
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -1689,6 +1736,22 @@ async function runMultichannelAnalysis() {
   );
 }
 
+function toggleMultichannelRealtimeAnalysis() {
+  const session = activeMultichannelSession.value;
+  if (multichannelRealtimeAnalysisEnabled.value) {
+    multichannelRealtimeAnalysisEnabled.value = false;
+    invalidateLiveFrameRequest("video");
+    setOperationMessage("双通道实时分析已关闭，已停止持续处理当前播放画面。");
+    return;
+  }
+  if (!store.currentCase || !session?.analysis_allowed) {
+    setOperationMessage("请先准备可运行的双通道同步预览。", "error");
+    return;
+  }
+  multichannelRealtimeAnalysisEnabled.value = true;
+  setOperationMessage("双通道实时分析已开启，将持续跟随当前播放画面刷新。");
+}
+
 function resetMultichannelOffsets() {
   fluorescenceOffsetMs.value = null;
   deviceOverlayOffsetMs.value = null;
@@ -2116,104 +2179,6 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   margin: 0 0 4px;
   color: var(--ov-primary-strong);
   font-size: 11px;
-  font-weight: 700;
-}
-
-.workspace-context {
-  display: flex;
-  flex: 1 1 300px;
-  gap: var(--ov-space-3);
-  align-items: center;
-  justify-content: flex-end;
-  color: var(--ov-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.workspace-context span,
-.workspace-context strong {
-  border: 1px solid var(--ov-border);
-  border-radius: 6px;
-  padding: 6px 10px;
-  background: var(--ov-bg-elevated);
-}
-
-.workspace-context strong {
-  color: var(--ov-text-secondary);
-}
-
-.workspace-context strong.running {
-  color: var(--ov-warning);
-}
-
-.workspace-context strong.completed {
-  color: var(--ov-success);
-}
-
-.workspace-context strong.failed {
-  color: var(--ov-danger);
-}
-
-.workspace-header-actions {
-  display: flex;
-  flex: 1 1 300px;
-  flex-wrap: wrap;
-  gap: var(--ov-space-3);
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.navigation-workspace-link {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  min-height: 38px;
-  border: 1px solid var(--ov-border-accent);
-  border-radius: 6px;
-  padding: 6px 10px;
-  background: var(--ov-bg-elevated);
-  color: var(--ov-text);
-  text-decoration: none;
-  transition:
-    transform 140ms ease,
-    border-color 140ms ease,
-    background 140ms ease;
-}
-
-.navigation-workspace-link:hover {
-  transform: translateY(-1px);
-  border-color: var(--ov-primary-strong);
-  background: var(--ov-bg-hover);
-}
-
-.navigation-workspace-link:focus-visible {
-  outline: 2px solid var(--ov-focus-ring);
-  outline-offset: 2px;
-}
-
-.navigation-workspace-link :deep(.app-icon) {
-  width: 18px;
-  height: 18px;
-  color: var(--ov-primary-strong);
-}
-
-.navigation-workspace-link > span {
-  display: grid;
-  gap: 1px;
-}
-
-.navigation-workspace-link strong,
-.navigation-workspace-link small {
-  line-height: 1.2;
-}
-
-.navigation-workspace-link strong {
-  font-size: 12px;
-}
-
-.navigation-workspace-link small {
-  color: var(--ov-text-muted);
-  font-size: 10px;
   font-weight: 700;
 }
 

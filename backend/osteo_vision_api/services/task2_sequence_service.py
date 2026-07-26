@@ -251,6 +251,7 @@ def _analyze_frame_pair(
     manifest: Task2PairedSequenceManifest,
     session: TemporalRegistrationSession,
     frame_dir: Path,
+    display_only: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     total_started = perf_counter()
     decode_started = perf_counter()
@@ -302,22 +303,33 @@ def _analyze_frame_pair(
     )
     encode_started = perf_counter()
     registered_path = frame_dir / f"frame_{reference.frame_index:06d}_registered_fluorescence.jpg"
-    normalized_path = frame_dir / f"frame_{reference.frame_index:06d}_normalized.jpg"
-    pseudocolor_path = frame_dir / f"frame_{reference.frame_index:06d}_pseudocolor.jpg"
     overlay_path = frame_dir / f"frame_{reference.frame_index:06d}_overlay.jpg"
     registered_u8 = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
     Image.fromarray(registered_u8).save(registered_path, quality=90, optimize=False)
-    Image.fromarray(np.clip(normalized * 255.0, 0, 255).astype(np.uint8)).save(
-        normalized_path,
-        quality=90,
-        optimize=False,
-    )
-    Image.fromarray(pseudo_color).save(pseudocolor_path, quality=90, optimize=False)
     Image.fromarray(overlay).save(overlay_path, quality=90, optimize=False)
-    device_comparison = _device_overlay_comparison(
-        device_overlay,
-        overlay,
-        frame_dir / f"frame_{reference.frame_index:06d}_device_overlay_difference.jpg",
+    normalized_path: Path | None = None
+    pseudocolor_path: Path | None = None
+    if not display_only:
+        normalized_path = frame_dir / f"frame_{reference.frame_index:06d}_normalized.jpg"
+        pseudocolor_path = frame_dir / f"frame_{reference.frame_index:06d}_pseudocolor.jpg"
+        Image.fromarray(np.clip(normalized * 255.0, 0, 255).astype(np.uint8)).save(
+            normalized_path,
+            quality=90,
+            optimize=False,
+        )
+        Image.fromarray(pseudo_color).save(pseudocolor_path, quality=90, optimize=False)
+    device_comparison = (
+        _device_overlay_comparison(
+            device_overlay,
+            overlay,
+            frame_dir / f"frame_{reference.frame_index:06d}_device_overlay_difference.jpg",
+        )
+        if not display_only
+        else {
+            "device_overlay_path": None,
+            "device_overlay_difference_path": None,
+            "device_overlay_comparison": {"available": False, "reason": "realtime_display_not_compared"},
+        }
     )
     encode_ms = (perf_counter() - encode_started) * 1000.0
     registration_ms = float(registration.get("elapsed_ms") or 0.0)
@@ -330,9 +342,9 @@ def _analyze_frame_pair(
         "white_input_id": white.input_id,
         "fluorescence_input_id": fluorescence.input_id,
         "white_path": white.path,
-        "white_sha256": checksum_for_file(white.path),
+        "white_sha256": None if display_only else checksum_for_file(white.path),
         "fluorescence_path": fluorescence.path,
-        "fluorescence_sha256": checksum_for_file(fluorescence.path),
+        "fluorescence_sha256": None if display_only else checksum_for_file(fluorescence.path),
         "source_size": [int(white_array.shape[1]), int(white_array.shape[0])],
         "fluorescence_original_size": list(original_size),
         "fluorescence_resized_to_white_light": resized,
@@ -356,10 +368,10 @@ def _analyze_frame_pair(
         },
         "positive_area_fraction": round(float(np.mean(normalized >= manifest.threshold)), 6),
         "registered_fluorescence_path": str(registered_path),
-        "normalized_path": str(normalized_path),
-        "pseudocolor_path": str(pseudocolor_path),
+        "normalized_path": str(normalized_path) if normalized_path else None,
+        "pseudocolor_path": str(pseudocolor_path) if pseudocolor_path else None,
         "overlay_path": str(overlay_path),
-        "overlay_sha256": checksum_for_file(overlay_path),
+        "overlay_sha256": None if display_only else checksum_for_file(overlay_path),
         **device_comparison,
     }
     fusion_report = {

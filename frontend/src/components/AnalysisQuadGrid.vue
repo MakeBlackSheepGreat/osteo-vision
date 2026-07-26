@@ -27,9 +27,9 @@
           crossorigin="anonymous"
           @loadedmetadata="emitPlaybackState"
           @timeupdate="emitPlaybackState"
-          @seeked="emitPlaybackState"
+          @seeked="handlePlaybackSeeked"
           @play="emit('playbackStarted')"
-          @pause="emit('playbackPaused')"
+          @pause="handlePlaybackPaused"
           @ended="emit('playbackEnded')"
         ></video>
         <img
@@ -144,6 +144,7 @@ const emit = defineEmits<{
   playbackStarted: [];
   playbackPaused: [];
   playbackEnded: [];
+  playbackFrameRequested: [reason: "暂停位置" | "拖动位置"];
 }>();
 
 const cameraVideoRef = ref<HTMLVideoElement | null>(null);
@@ -208,6 +209,16 @@ function emitPlaybackState(event?: Event) {
   const timeSec = Number.isFinite(video.currentTime) ? video.currentTime : 0;
   const durationSec = Number.isFinite(video.duration) ? video.duration : 0;
   emit("playbackStateChange", timeSec, durationSec);
+}
+
+function handlePlaybackSeeked(event: Event) {
+  emitPlaybackState(event);
+  emit("playbackFrameRequested", "拖动位置");
+}
+
+function handlePlaybackPaused() {
+  emit("playbackPaused");
+  emit("playbackFrameRequested", "暂停位置");
 }
 
 async function capturePlaybackFrame(): Promise<Blob> {

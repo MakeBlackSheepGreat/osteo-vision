@@ -19,33 +19,40 @@
       <section class="management-card">
         <SectionHeading icon="case" title="病例 / 建立与加载" />
         <label class="field">
-          <span>病例标题</span>
-          <input v-model="caseTitle" type="text" placeholder="请输入病例标题" />
-        </label>
-        <AppButton
-          variant="primary"
-          icon="plus"
-          block
-          :disabled="store.loading"
-          :title="store.loading ? '病例请求处理中，请稍候' : '建立新的病例记录'"
-          @click="createCase"
-        >
-          新建病例
-        </AppButton>
-        <label class="field">
-          <span>病例 ID / 既有病例载入</span>
-          <input v-model="loadCaseId" type="text" placeholder="请输入病例 ID" />
+          <span>全部病例（{{ cases.length }}）</span>
+          <select v-model="selectedCaseId" :disabled="loadingCatalog || store.loading">
+            <option v-for="item in cases" :key="item.case_id" :value="item.case_id">
+              {{ item.title }} · {{ caseStatusLabel(item.status) }}
+            </option>
+          </select>
         </label>
         <AppButton
           variant="secondary"
           icon="load"
           block
-          :disabled="store.loading || !canLoadCase"
-          :title="store.loading ? '病例请求处理中，请稍候' : canLoadCase ? '载入指定病例' : '请输入病例 ID'"
-          @click="loadCase"
+          :disabled="loadingCatalog || store.loading || !selectedCaseId"
+          :title="store.loading ? '病例请求处理中，请稍候' : '加载选中的病例'"
+          @click="loadSelectedCase"
         >
           加载病例
         </AppButton>
+        <details class="create-case">
+          <summary>新建病例</summary>
+          <label class="field">
+            <span>病例标题</span>
+            <input v-model="caseTitle" type="text" placeholder="请输入病例标题" :disabled="store.loading" />
+          </label>
+          <AppButton
+            variant="primary"
+            icon="plus"
+            block
+            :disabled="store.loading"
+            :title="store.loading ? '病例请求处理中，请稍候' : '建立新的病例记录'"
+            @click="createCase"
+          >
+            新建病例
+          </AppButton>
+        </details>
         <p v-if="operationMessage" class="operation-message" :class="{ error: operationMessageType === 'error' }">
           {{ operationMessage }}
         </p>
@@ -80,17 +87,18 @@
 
       <section class="management-card">
         <SectionHeading icon="layers" icon-tone="cyan" title="输入清单 / 通道记录" />
-        <ul v-if="inputRows.length" class="asset-stack">
+        <ul class="asset-stack">
           <li v-for="asset in inputRows" :key="asset.id">
             <AppIcon class="file-icon" name="file" variant="tile" tone="cyan" />
             <div>
               <strong>{{ asset.channel }}</strong>
-              <p>{{ asset.path }}</p>
+              <p>{{ asset.name }}</p>
               <small>{{ asset.meta }}</small>
             </div>
           </li>
         </ul>
-        <p v-else class="empty-inline">暂无输入记录。请回到病例工作台写入白光、ICG 或摄像头输入。</p>
+        <p v-if="!inputRows.length" class="compact-state">当前病例暂无输入素材</p>
+        <p v-else-if="inputCount > inputRows.length" class="compact-state">另有 {{ inputCount - inputRows.length }} 项输入素材</p>
       </section>
 
       <section class="management-card">
@@ -113,13 +121,14 @@
           <AppIcon class="qc-icon" name="check" variant="badge" tone="green" />
           <p>暂无阻断性提示</p>
         </div>
+        <p v-if="warningCount > warningRows.length" class="compact-state">另有 {{ warningCount - warningRows.length }} 条提示</p>
       </section>
     </section>
   </AppPageShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -127,39 +136,41 @@ import AppPageHeader from "@/components/AppPageHeader.vue";
 import AppPageShell from "@/components/AppPageShell.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import { useOperationMessage } from "@/composables/useOperationMessage";
+import { apiClient } from "@/services/apiClient";
 import { useCaseStore } from "@/stores/caseStore";
+import type { CaseInputAsset, CaseRecord } from "@/types/case";
 import {
   caseStatusLabel,
   disclaimerVersionLabel,
   inputChannelLabel,
-  inputMetaLabel,
   normalizeWarning,
 } from "@/utils/caseDisplay";
 
 const store = useCaseStore();
-
-const caseTitle = ref("颌骨骨髓炎术中演示病例");
-const loadCaseId = ref("");
+const cases = ref<CaseRecord[]>([]);
+const selectedCaseId = ref("");
+const caseTitle = ref("");
+const loadingCatalog = ref(false);
 const { operationMessage, operationMessageType, setOperationMessage } = useOperationMessage();
 
 const latestRun = computed(() => store.currentCase?.analysis_runs.at(-1) ?? null);
-const canLoadCase = computed(() => Boolean(loadCaseId.value.trim() || store.currentCase?.case_id));
 const currentStatusLabel = computed(() => caseStatusLabel(store.currentCase?.status));
-const displayCaseTitle = computed(() => store.currentCase?.title ?? "未载入病例");
-const displayCaseId = computed(() => store.currentCase?.case_id ?? "待创建或加载");
-const displayCaseVersion = computed(() => (store.currentCase ? `v${store.currentCase.version}` : "待创建"));
+const displayCaseTitle = computed(() => store.currentCase?.title ?? "正在加载病例");
+const displayCaseId = computed(() => store.currentCase?.case_id ?? "--");
+const displayCaseVersion = computed(() => (store.currentCase ? `v${store.currentCase.version}` : "--"));
 const displayRunId = computed(() => latestRun.value?.run_id ?? "暂无运行记录");
+const inputCount = computed(() => store.currentCase?.inputs.length ?? 0);
 
 const inputRows = computed(() =>
-  (store.currentCase?.inputs ?? []).map((asset) => ({
+  (store.currentCase?.inputs ?? []).slice(0, 3).map((asset) => ({
     id: asset.input_id,
     channel: inputChannelLabel(asset.channel),
-    path: asset.path,
-    meta: inputMetaLabel(asset),
+    name: inputDisplayName(asset),
+    meta: inputDisplayMeta(asset),
   })),
 );
 
-const warningRows = computed(() => {
+const allWarnings = computed(() => {
   const caseWarnings = store.currentCase?.warnings ?? [];
   const caseQualityFlags = store.currentCase?.quality_flags ?? [];
   const runWarnings = latestRun.value?.warnings ?? [];
@@ -168,26 +179,71 @@ const warningRows = computed(() => {
     normalizeWarning(warning, index),
   );
 });
+const warningRows = computed(() => allWarnings.value.slice(0, 3));
+const warningCount = computed(() => allWarnings.value.length);
+
+onMounted(() => {
+  void initializeCatalog();
+});
+
+async function initializeCatalog() {
+  if (loadingCatalog.value) return;
+  loadingCatalog.value = true;
+  try {
+    const demoCatalog = await apiClient.ensureDemoCases();
+    const listedCases = await apiClient.listCases();
+    cases.value = orderCases(demoCatalog, listedCases);
+    const preferredCaseId = store.currentCase?.case_id || selectedCaseId.value || cases.value[0]?.case_id;
+    if (preferredCaseId && cases.value.some((item) => item.case_id === preferredCaseId)) {
+      selectedCaseId.value = preferredCaseId;
+      await loadSelectedCase(false);
+    }
+  } catch (error) {
+    setOperationMessage(error instanceof Error ? error.message : "病例目录加载失败", "error");
+  } finally {
+    loadingCatalog.value = false;
+  }
+}
+
+function orderCases(demoCatalog: CaseRecord[], listedCases: CaseRecord[]) {
+  const demoCaseIds = new Set(demoCatalog.map((item) => item.case_id));
+  return [...demoCatalog, ...listedCases.filter((item) => !demoCaseIds.has(item.case_id))];
+}
+
+async function loadSelectedCase(announce = true) {
+  if (!selectedCaseId.value || store.loading) return;
+  const loadedCase = await store.loadCase(selectedCaseId.value);
+  if (loadedCase) {
+    const index = cases.value.findIndex((item) => item.case_id === loadedCase.case_id);
+    if (index >= 0) cases.value.splice(index, 1, loadedCase);
+    if (announce) setOperationMessage(`病例已加载：${loadedCase.case_id}`);
+  } else if (store.error) {
+    setOperationMessage(store.error, "error");
+  }
+}
 
 async function createCase() {
-  setOperationMessage("正在创建病例...");
   const createdCase = await store.createCase(caseTitle.value.trim() || "颌骨骨髓炎术中演示病例");
   if (createdCase) {
-    loadCaseId.value = createdCase.case_id;
+    cases.value = [createdCase, ...cases.value];
+    selectedCaseId.value = createdCase.case_id;
+    caseTitle.value = "";
     setOperationMessage(`病例已创建：${createdCase.case_id}`);
   } else if (store.error) {
     setOperationMessage(store.error, "error");
   }
 }
 
-async function loadCase() {
-  const caseId = loadCaseId.value.trim() || store.currentCase?.case_id;
-  if (!caseId) return;
-  setOperationMessage("正在加载病例...");
-  const loadedCase = await store.loadCase(caseId);
-  setOperationMessage(loadedCase ? `病例已加载：${loadedCase.case_id}` : store.error, loadedCase ? "info" : "error");
+function inputDisplayName(asset: CaseInputAsset) {
+  const originalName = asset.metadata.original_filename;
+  if (typeof originalName === "string" && originalName) return originalName;
+  return asset.path.replace(/^.*[\\/]/, "");
 }
 
+function inputDisplayMeta(asset: CaseInputAsset) {
+  const [width, height] = asset.dimensions;
+  return width && height ? `${width} x ${height}` : asset.mime_type || "已载入";
+}
 </script>
 
 <style scoped>
@@ -234,14 +290,6 @@ async function loadCase() {
   height: 17px;
 }
 
-.management-title h1 {
-  margin: 0;
-  color: var(--ov-text);
-  font-size: var(--ov-font-page-title);
-  line-height: 1.15;
-  letter-spacing: 0;
-}
-
 .management-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -264,8 +312,8 @@ async function loadCase() {
 
 .management-card :deep(.ov-section-heading) {
   margin-bottom: 12px;
-  padding-bottom: 10px;
   border-bottom: 1px solid var(--ov-border-subtle);
+  padding-bottom: 10px;
 }
 
 .management-card :deep(.ov-section-heading__title) {
@@ -283,13 +331,15 @@ async function loadCase() {
   margin-bottom: 14px;
 }
 
-.field span {
+.field span,
+.create-case summary {
   color: var(--ov-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: 36px;
   border: 1px solid var(--ov-border-strong);
@@ -301,12 +351,25 @@ async function loadCase() {
   font-size: 13px;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: 2px solid var(--ov-focus-ring);
   border-color: var(--ov-border-accent);
 }
 
-.operation-message {
+.create-case {
+  margin-top: 16px;
+  border-top: 1px solid var(--ov-border-subtle);
+  padding-top: 12px;
+}
+
+.create-case summary {
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.operation-message,
+.compact-state {
   margin: 10px 0 0;
   border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
@@ -434,17 +497,6 @@ async function loadCase() {
   color: var(--ov-text-secondary);
   font-size: 12px;
   line-height: 1.45;
-}
-
-.empty-inline {
-  margin: 0;
-  border: 1px solid var(--ov-border-subtle);
-  border-radius: 5px;
-  padding: 10px 12px;
-  background: var(--ov-bg-soft);
-  color: var(--ov-text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 @media (max-width: 959px) {

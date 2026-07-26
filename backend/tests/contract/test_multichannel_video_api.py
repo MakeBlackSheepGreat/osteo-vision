@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 import cv2
@@ -15,6 +16,12 @@ def _write_video(path, *, fps: float, frame_count: int, value: int) -> None:
     for index in range(frame_count):
         writer.write(np.full((48, 64, 3), min(255, value + index), dtype=np.uint8))
     writer.release()
+
+
+def _jpeg_data_url(value: int) -> str:
+    ok, encoded = cv2.imencode(".jpg", np.full((48, 64, 3), value, dtype=np.uint8))
+    assert ok
+    return f"data:image/jpeg;base64,{base64.b64encode(encoded.tobytes()).decode('ascii')}"
 
 
 def _client(tmp_path, monkeypatch) -> tuple[TestClient, str, Path]:
@@ -73,6 +80,74 @@ def test_paired_video_session_builds_common_interval_and_task2_manifest(tmp_path
     assert case["review_summary"]["multichannel_session_id"] == payload["session_id"]
     paired_assets = [item for item in case["inputs"] if item["metadata"].get("source") == "multichannel_video_keyframe"]
     assert len(paired_assets) == 12
+
+
+def test_realtime_frame_runs_one_formal_task2_pair_without_batching_the_sequence(tmp_path, monkeypatch) -> None:
+    client, case_id, artifact_root = _client(tmp_path, monkeypatch)
+    white = artifact_root / "white.mp4"
+    fluorescence = artifact_root / "fluorescence.mp4"
+    _write_video(white, fps=8.0, frame_count=24, value=40)
+    _write_video(fluorescence, fps=8.0, frame_count=24, value=90)
+    session = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions",
+        json={
+            "mode": "paired_videos",
+            "white_light_path": str(white),
+            "fluorescence_path": str(fluorescence),
+            "keyframe_count": 3,
+        },
+    ).json()
+
+    response = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions/{session['session_id']}/realtime-frame",
+        json={"timestamp_sec": 0.6, "alpha": 0.45, "threshold": 0.6, "colormap": "green"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["frame"]["frame_index"] in {0, 1, 2}
+    assert len(payload["frame"]["performance"]) > 0
+    assert Path(payload["frame"]["overlay_path"]).is_file()
+    assert payload["compute_ms"] == payload["frame"]["performance"]["registration_fusion_compute_ms"]
+
+
+def test_realtime_frame_uses_current_browser_pair_instead_of_nearest_offline_keyframe(tmp_path, monkeypatch) -> None:
+    client, case_id, artifact_root = _client(tmp_path, monkeypatch)
+    white = artifact_root / "white.mp4"
+    fluorescence = artifact_root / "fluorescence.mp4"
+    _write_video(white, fps=8.0, frame_count=24, value=40)
+    _write_video(fluorescence, fps=8.0, frame_count=24, value=90)
+    session = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions",
+        json={
+            "mode": "paired_videos",
+            "white_light_path": str(white),
+            "fluorescence_path": str(fluorescence),
+            "keyframe_count": 3,
+        },
+    ).json()
+
+    response = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions/{session['session_id']}/realtime-frame",
+        json={
+            "timestamp_sec": 1.125,
+            "alpha": 0.45,
+            "threshold": 0.6,
+            "colormap": "green",
+            "white_frame_base64": _jpeg_data_url(40),
+            "fluorescence_frame_base64": _jpeg_data_url(90),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["frame_source"] == "browser_current_frame"
+    assert payload["source_timestamp_sec"] == 1.125
+    assert payload["frame"]["white_input_id"].endswith("live:white_light")
+    assert payload["frame"]["normalized_path"] is None
+    assert payload["frame"]["pseudocolor_path"] is None
+    assert payload["frame"]["device_overlay_difference_path"] is None
+    assert Path(payload["frame"]["overlay_path"]).is_file()
 
 
 def test_single_video_session_keeps_the_existing_analysis_path(tmp_path, monkeypatch) -> None:

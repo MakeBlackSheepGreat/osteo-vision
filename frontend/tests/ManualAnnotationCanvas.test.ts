@@ -12,6 +12,7 @@ interface CanvasContextHarness {
   beginPath: ReturnType<typeof vi.fn>;
   moveTo: ReturnType<typeof vi.fn>;
   lineTo: ReturnType<typeof vi.fn>;
+  drawImage: ReturnType<typeof vi.fn>;
   closePath: ReturnType<typeof vi.fn>;
   stroke: ReturnType<typeof vi.fn>;
   fill: ReturnType<typeof vi.fn>;
@@ -53,6 +54,7 @@ describe("ManualAnnotationCanvas", () => {
         beginPath: vi.fn(),
         moveTo: vi.fn(),
         lineTo: vi.fn(),
+        drawImage: vi.fn(),
         closePath: vi.fn(),
         stroke: vi.fn(),
         fill: vi.fn(),
@@ -148,6 +150,35 @@ describe("ManualAnnotationCanvas", () => {
     expect(wrapper.get<HTMLButtonElement>('button[aria-label="画笔"]').element.disabled).toBe(true);
     expect(wrapper.get<HTMLButtonElement>('button[aria-label="橡皮擦"]').element.disabled).toBe(true);
     expect(wrapper.text()).toContain("待医生复核，编辑已锁定");
+  });
+
+  it("keeps other labels visible on an isolated reference layer", async () => {
+    const wrapper = mount(ManualAnnotationCanvas, {
+      props: {
+        sourceUrl: "/frame.jpg",
+        originalWidth: 800,
+        originalHeight: 600,
+        referenceLayers: [{
+          id: "fluorescence_signal",
+          label: "fluorescence_signal",
+          color: "#1db996",
+          geometry: {
+            coordinate_space: "image_pixels",
+            operations: [{ tool: "brush", mode: "add", radius: 20, points: [{ x: 120, y: 140 }] }],
+          },
+        }],
+      },
+      global: { stubs: { AppIcon: true } },
+    });
+    const image = wrapper.get("img").element as HTMLImageElement;
+    Object.defineProperty(image, "naturalWidth", { configurable: true, value: 800 });
+    Object.defineProperty(image, "naturalHeight", { configurable: true, value: 600 });
+    await wrapper.get("img").trigger("load");
+
+    const canvases = wrapper.findAll("canvas");
+    expect(canvases).toHaveLength(3);
+    const referenceContext = canvasContexts.get(canvases[0].element as HTMLCanvasElement);
+    expect(referenceContext?.drawImage).toHaveBeenCalledTimes(1);
   });
 
   it("renders a 4K active stroke incrementally without replaying committed geometry per pointer sample", async () => {

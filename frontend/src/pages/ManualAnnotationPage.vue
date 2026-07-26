@@ -5,7 +5,7 @@
         <AppIcon name="brush" variant="badge" tone="amber" />
         <div class="annotation-title-copy">
           <span class="page-kicker">医生标注工作台</span>
-          <h1>病灶人工标注</h1>
+          <h1>病灶人工标注与医生复核</h1>
           <p>像素级标注、版本审计与训练准入</p>
         </div>
       </div>
@@ -30,10 +30,19 @@
         >
           {{ loadingCase ? "正在载入" : "载入病例" }}
         </AppButton>
+        <AppButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          icon="video"
+          :disabled="busy || hasUnsavedChanges"
+          :title="hasUnsavedChanges ? '请先保存或放弃当前修改' : '载入 OFDVDnet 公开代理视频的可标注关键帧'"
+          @click="loadOfdvdnetDemo"
+        >
+          OFDVDnet 示例
+        </AppButton>
       </form>
     </header>
-
-    <ReviewIdentityPanel />
 
     <div v-if="message" class="workspace-message" :class="`workspace-message--${messageTone}`" role="status">
       <AppIcon :name="messageTone === 'error' ? 'alert' : 'check'" />
@@ -115,6 +124,7 @@
           :original-height="selectedSource?.original_height"
           :geometry="geometry"
           :overlay-color="selectedLabelMeta.color"
+          :reference-layers="referenceLayers"
           :disabled="annotationLocked || saving"
           :disabled-reason="canvasDisabledReason"
           @geometry-change="handleGeometryChange"
@@ -136,8 +146,8 @@
               role="radio"
               :aria-checked="selectedLabel === option.value"
               :class="{ selected: selectedLabel === option.value }"
-              :disabled="hasUnsavedChanges || busy"
-              :title="hasUnsavedChanges ? '请先保存或放弃当前修改' : option.label"
+              :disabled="busy"
+              :title="option.label"
               @click="selectLabel(option.value)"
             >
               <span class="label-swatch" :style="{ background: option.color }" />
@@ -324,12 +334,12 @@ import AppIcon from "@/components/AppIcon.vue";
 import AppPageShell from "@/components/AppPageShell.vue";
 import ManualAnnotationCanvas from "@/components/ManualAnnotationCanvas.vue";
 import MedicalDisclaimer from "@/components/MedicalDisclaimer.vue";
-import ReviewIdentityPanel from "@/components/ReviewIdentityPanel.vue";
 import { ApiError, apiClient } from "@/services/apiClient";
 import { useCaseStore } from "@/stores/caseStore";
 import type {
   AnnotationGeometry,
   AnnotationLabel,
+  AnnotationOverlayLayer,
   AnnotationSource,
   AnnotationSourceReference,
   AnnotationSourceType,
@@ -341,6 +351,15 @@ import type { AppIconName } from "@/components/appIcons";
 
 type SourceFilter = "all" | AnnotationSourceType;
 type MessageTone = "info" | "success" | "error";
+
+interface AnnotationDraftState {
+  annotation: ManualAnnotation | null;
+  geometry: AnnotationGeometry;
+  notes: string;
+  dirty: boolean;
+  notesDirty: boolean;
+  versions: AnnotationVersion[];
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -358,6 +377,7 @@ const geometry = shallowRef<AnnotationGeometry>({ coordinate_space: "image_pixel
 const notes = ref("");
 const dirty = ref(false);
 const notesDirty = ref(false);
+const labelDrafts = ref(new Map<AnnotationLabel, AnnotationDraftState>());
 const loadingCase = ref(false);
 const loadingWorkspace = ref(false);
 const saving = ref(false);
@@ -392,12 +412,32 @@ const labelOptions: Array<{ value: AnnotationLabel; label: string; color: string
 const busy = computed(
   () => loadingCase.value || loadingWorkspace.value || saving.value || submitting.value || reviewing.value || deleting.value || buildingManifest.value,
 );
-const hasUnsavedChanges = computed(() => dirty.value || notesDirty.value);
+const currentLabelHasUnsavedChanges = computed(() => dirty.value || notesDirty.value);
+const hasUnsavedChanges = computed(
+  () => currentLabelHasUnsavedChanges.value || [...labelDrafts.value.values()].some((draft) => draft.dirty || draft.notesDirty),
+);
 const selectedSource = computed(() => sources.value.find((source) => sourceKey(source) === selectedSourceKey.value) ?? null);
 const filteredSources = computed(() =>
   sourceFilter.value === "all" ? sources.value : sources.value.filter((source) => source.source_type === sourceFilter.value),
 );
 const selectedLabelMeta = computed(() => labelOptions.find((option) => option.value === selectedLabel.value) ?? labelOptions[0]);
+const referenceLayers = computed<AnnotationOverlayLayer[]>(() => {
+  const source = selectedSource.value;
+  if (!source) return [];
+  const layers = new Map<AnnotationLabel, AnnotationGeometry>();
+  for (const annotation of annotations.value) {
+    if (annotation.label === selectedLabel.value || !sameSource(annotation.source, source)) continue;
+    if (annotation.geometry?.operations.length) layers.set(annotation.label, cloneGeometry(annotation.geometry));
+  }
+  for (const [label, draft] of labelDrafts.value) {
+    if (label === selectedLabel.value || !draft.geometry.operations.length) continue;
+    layers.set(label, cloneGeometry(draft.geometry));
+  }
+  return labelOptions.flatMap((option) => {
+    const geometry = layers.get(option.value);
+    return geometry ? [{ id: option.value, label: option.value, color: option.color, geometry }] : [];
+  });
+});
 const sourcePreviewUrl = computed(() => {
   const path = activeAnnotation.value?.source_snapshot_path || selectedSource.value?.preview_path || "";
   return path ? apiClient.filePreviewUrl(path) : "";
@@ -467,6 +507,25 @@ async function loadCaseWorkspace() {
   }
 }
 
+async function loadOfdvdnetDemo() {
+  if (busy.value || hasUnsavedChanges.value) return;
+  loadingCase.value = true;
+  clearMessage();
+  try {
+    const demo = await apiClient.ensureStandardDemoCase();
+    const loaded = await store.loadCase(demo.case_id);
+    if (!loaded) throw new Error(store.error || "OFDVDnet 示例病例载入失败");
+    caseIdInput.value = loaded.case_id;
+    await router.replace({ path: "/annotations", query: { caseId: loaded.case_id } });
+    await refreshWorkspace();
+    setMessage("已载入 OFDVDnet 公开代理视频的可标注关锥帧。", "success");
+  } catch (error) {
+    setMessage(errorMessage(error, "OFDVDnet 示例病例载入失败"), "error");
+  } finally {
+    loadingCase.value = false;
+  }
+}
+
 async function refreshWorkspace() {
   const caseId = store.currentCase?.case_id;
   if (!caseId || loadingWorkspace.value) return;
@@ -497,8 +556,13 @@ async function selectSource(source: AnnotationSource) {
 }
 
 async function selectLabel(label: AnnotationLabel) {
-  if (hasUnsavedChanges.value || label === selectedLabel.value) return;
+  if (label === selectedLabel.value || busy.value) return;
+  cacheCurrentDraft();
   selectedLabel.value = label;
+  if (restoreCachedDraft(label)) {
+    setMessage(`已切换至${selectedLabelMeta.value.label}，其他标签的未保存修改会保留在当前页面。`, "info");
+    return;
+  }
   await syncActiveAnnotation();
 }
 
@@ -537,6 +601,30 @@ function resetAnnotationState() {
   versions.value = [];
 }
 
+function cacheCurrentDraft() {
+  if (!currentLabelHasUnsavedChanges.value) return;
+  labelDrafts.value.set(selectedLabel.value, {
+    annotation: activeAnnotation.value,
+    geometry: cloneGeometry(geometry.value),
+    notes: notes.value,
+    dirty: dirty.value,
+    notesDirty: notesDirty.value,
+    versions: [...versions.value],
+  });
+}
+
+function restoreCachedDraft(label: AnnotationLabel): boolean {
+  const draft = labelDrafts.value.get(label);
+  if (!draft) return false;
+  activeAnnotation.value = draft.annotation;
+  geometry.value = cloneGeometry(draft.geometry);
+  notes.value = draft.notes;
+  dirty.value = draft.dirty;
+  notesDirty.value = draft.notesDirty;
+  versions.value = [...draft.versions];
+  return true;
+}
+
 function handleGeometryChange(nextGeometry: AnnotationGeometry) {
   geometry.value = nextGeometry;
   dirty.value = true;
@@ -568,6 +656,7 @@ async function saveDraft(): Promise<ManualAnnotation | null> {
     activeAnnotation.value = saved;
     dirty.value = false;
     notesDirty.value = false;
+    labelDrafts.value.delete(selectedLabel.value);
     await refreshAnnotationsAfterWrite(saved);
     setMessage(`标注 ${saved.annotation_id} 已保存为 v${saved.current_version}`, "success");
     return saved;
@@ -657,6 +746,7 @@ async function deleteDraft() {
 }
 
 function discardUnsavedChanges() {
+  labelDrafts.value.clear();
   if (activeAnnotation.value) {
     geometry.value = cloneGeometry(activeAnnotation.value.geometry);
     notes.value = activeAnnotation.value.notes ?? "";
@@ -740,6 +830,7 @@ function sourceTitle(source: AnnotationSource): string {
 
 function sourceMeta(source: AnnotationSource): string {
   const parts: string[] = [sourceTypeLabel(source.source_type)];
+  if (source.metadata?.source_record_id === "OFDVDNET_001") parts.push("OFDVDnet 公开代理");
   if (typeof source.frame_index === "number") parts.push(`帧 ${source.frame_index}`);
   if (typeof source.timestamp_sec === "number") parts.push(`${source.timestamp_sec.toFixed(2)} s`);
   if (source.original_width && source.original_height) parts.push(`${source.original_width} × ${source.original_height}`);
@@ -856,7 +947,6 @@ function errorMessage(error: unknown, fallback: string): string {
 .annotation-workspace,
 .workspace-message,
 .annotation-empty-page,
-.manual-annotation-page > :deep(.identity-panel),
 .manual-annotation-page > :deep(.medical-disclaimer) {
   width: min(100%, var(--ov-content-wide));
   margin-right: auto;

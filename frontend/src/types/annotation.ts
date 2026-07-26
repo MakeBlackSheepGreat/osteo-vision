@@ -32,6 +32,13 @@ export interface AnnotationGeometry {
   operations: AnnotationOperation[];
 }
 
+export interface AnnotationOverlayLayer {
+  id: string;
+  label: AnnotationLabel;
+  color: string;
+  geometry: AnnotationGeometry;
+}
+
 export interface AnnotationSourceReference {
   source_type: AnnotationSourceType;
   input_id?: string | null;
@@ -47,6 +54,7 @@ export interface AnnotationSource extends AnnotationSourceReference {
   label_hint?: string | null;
   original_width?: number | null;
   original_height?: number | null;
+  metadata?: Record<string, unknown>;
   preview_path: string;
   source_snapshot_path?: string | null;
 }

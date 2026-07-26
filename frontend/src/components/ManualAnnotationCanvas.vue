@@ -127,6 +127,14 @@
           @error="handleSourceError"
         />
         <canvas
+          v-if="referenceLayers.length"
+          ref="referenceCanvasEl"
+          class="annotation-reference-layer"
+          :width="imageWidth"
+          :height="imageHeight"
+          aria-hidden="true"
+        />
+        <canvas
           ref="canvasEl"
           :width="imageWidth"
           :height="imageHeight"
@@ -166,7 +174,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
-import type { AnnotationGeometry, AnnotationOperation, AnnotationPoint } from "@/types/annotation";
+import type { AnnotationGeometry, AnnotationOperation, AnnotationOverlayLayer, AnnotationPoint } from "@/types/annotation";
 import {
   appendAnnotationOperation,
   appendBoundedHistory,
@@ -186,6 +194,7 @@ const props = withDefaults(
     originalHeight?: number | null;
     geometry?: AnnotationGeometry | null;
     overlayColor?: string;
+    referenceLayers?: AnnotationOverlayLayer[];
     disabled?: boolean;
     disabledReason?: string;
   }>(),
@@ -196,6 +205,7 @@ const props = withDefaults(
     originalHeight: null,
     geometry: null,
     overlayColor: "#ffb22e",
+    referenceLayers: () => [],
     disabled: false,
     disabledReason: "",
   },
@@ -207,6 +217,7 @@ const emit = defineEmits<{
 }>();
 
 const viewportEl = ref<HTMLElement | null>(null);
+const referenceCanvasEl = ref<HTMLCanvasElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const draftCanvasEl = ref<HTMLCanvasElement | null>(null);
 const viewportWidth = ref(1);
@@ -295,6 +306,7 @@ watch(
 );
 
 watch(() => props.overlayColor, () => nextTick(renderAllCanvases));
+watch(() => props.referenceLayers, () => nextTick(renderAllCanvases), { deep: true });
 
 onMounted(() => {
   resizeObserver = new ResizeObserver((entries) => {
@@ -498,8 +510,25 @@ function pointerPoint(event: PointerEvent): AnnotationPoint {
 }
 
 function renderAllCanvases() {
+  renderReferenceCanvas();
   renderCommittedCanvas();
   renderDraftCanvas();
+}
+
+function renderReferenceCanvas() {
+  const context = referenceCanvasContext();
+  if (!context) return;
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  for (const layer of props.referenceLayers) {
+    if (!layer.geometry.operations.length) continue;
+    const layerCanvas = document.createElement("canvas");
+    layerCanvas.width = context.canvas.width;
+    layerCanvas.height = context.canvas.height;
+    const layerContext = layerCanvas.getContext("2d");
+    if (!layerContext) continue;
+    for (const operation of layer.geometry.operations) drawOperation(layerContext, operation, layer.color);
+    context.drawImage(layerCanvas, 0, 0);
+  }
 }
 
 function renderCommittedCanvas() {
@@ -523,6 +552,12 @@ function committedCanvasContext(): CanvasRenderingContext2D | null {
   return canvas.getContext("2d");
 }
 
+function referenceCanvasContext(): CanvasRenderingContext2D | null {
+  const canvas = referenceCanvasEl.value;
+  if (!canvas || canvas.width < 1 || canvas.height < 1) return null;
+  return canvas.getContext("2d");
+}
+
 function draftCanvasContext(): CanvasRenderingContext2D | null {
   const canvas = draftCanvasEl.value;
   if (!canvas || canvas.width < 1 || canvas.height < 1) return null;
@@ -539,14 +574,14 @@ function clearDraftCanvas() {
   clearCanvas(draftCanvasEl.value);
 }
 
-function drawOperation(context: CanvasRenderingContext2D, operation: AnnotationOperation) {
+function drawOperation(context: CanvasRenderingContext2D, operation: AnnotationOperation, color = props.overlayColor) {
   if (!operation.points.length) return;
   context.save();
   context.globalCompositeOperation = operation.mode === "erase" || operation.tool === "eraser"
     ? "destination-out"
     : "source-over";
-  context.strokeStyle = colorWithAlpha(props.overlayColor, 0.92);
-  context.fillStyle = colorWithAlpha(props.overlayColor, 0.38);
+  context.strokeStyle = colorWithAlpha(color, 0.92);
+  context.fillStyle = colorWithAlpha(color, 0.38);
   context.lineCap = "round";
   context.lineJoin = "round";
 
@@ -867,6 +902,10 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 .annotation-content .annotation-draft-layer {
+  pointer-events: none;
+}
+
+.annotation-content .annotation-reference-layer {
   pointer-events: none;
 }
 

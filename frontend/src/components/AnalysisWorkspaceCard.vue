@@ -3,13 +3,13 @@
     <header class="analysis-header">
       <div class="analysis-title-block">
         <h2>{{ analysisTitle }}</h2>
-        <div class="analysis-summary-strip" aria-label="分析摘要">
-          <span v-for="kpi in displayKpiItems" :key="kpi.label" class="summary-chip">
-            <AppIcon :name="kpi.icon" />
-            <span>{{ kpi.label }}</span>
-            <strong>{{ kpi.value }}</strong>
-          </span>
-        </div>
+      </div>
+      <div class="analysis-summary-strip" aria-label="分析摘要">
+        <span v-for="kpi in displayKpiItems" :key="kpi.label" class="summary-chip">
+          <AppIcon :name="kpi.icon" />
+          <span>{{ kpi.label }}</span>
+          <strong>{{ kpi.value }}</strong>
+        </span>
       </div>
       <div class="analysis-header-actions">
         <span class="run-pill" :class="displayAnalysisStatusClass">{{ displayRunStatusLabel }}</span>
@@ -67,6 +67,14 @@
       :channel-paths="multichannelChannelPaths"
       :task2-result="multichannelTask2Result"
       :ai-preview-src="multichannelAiPreviewSrc"
+      :live-fusion-src="multichannelLiveFusionSrc"
+      :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
+      :live-fusion-status="multichannelLiveFusionStatus"
+      :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled"
+      :realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
+      :live-overlay-src="liveOverlaySrc"
+      :live-frame-status="liveFrameStatus"
+      @live-frame="emit('multichannelLiveFrame', $event)"
     />
     <AnalysisQuadGrid
       v-else
@@ -88,6 +96,7 @@
       @playback-started="handleInlinePlaybackStarted"
       @playback-paused="handleInlinePlaybackPaused"
       @playback-ended="handleInlinePlaybackEnded"
+      @playback-frame-requested="handleInlinePlaybackFrameRequested"
     />
 
     <VideoStreamSyncPanel
@@ -437,8 +446,9 @@
         :mode="videoMode"
         :session="multichannelSession"
         :channel-paths="multichannelChannelPaths"
-        :task2-result="multichannelTask2Result"
-        :ai-preview-src="multichannelAiPreviewSrc"
+      :task2-result="multichannelTask2Result"
+      :ai-preview-src="multichannelAiPreviewSrc"
+      :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
       />
       <AnalysisQuadGrid
         v-else
@@ -460,6 +470,7 @@
         @playback-started="handleFullscreenPlaybackStarted"
         @playback-paused="handleFullscreenPlaybackPaused"
         @playback-ended="handleFullscreenPlaybackEnded"
+        @playback-frame-requested="handleFullscreenPlaybackFrameRequested"
         fullscreen
       />
     </div>
@@ -546,6 +557,11 @@ const props = withDefaults(
     multichannelSession?: MultichannelVideoSession | null;
     multichannelTask2Result?: Record<string, unknown> | null;
     multichannelAiPreviewSrc?: string;
+    multichannelLiveFusionSrc?: string;
+    multichannelLiveRegisteredFluorescenceSrc?: string;
+    multichannelLiveFusionStatus?: string;
+    multichannelRealtimeAnalysisEnabled?: boolean;
+    multichannelRealtimeAnalysisBusy?: boolean;
   }>(),
   {
     activeAnalysisJobCanceling: false,
@@ -559,6 +575,11 @@ const props = withDefaults(
     multichannelSession: null,
     multichannelTask2Result: null,
     multichannelAiPreviewSrc: "",
+    multichannelLiveFusionSrc: "",
+    multichannelLiveRegisteredFluorescenceSrc: "",
+    multichannelLiveFusionStatus: "",
+    multichannelRealtimeAnalysisEnabled: false,
+    multichannelRealtimeAnalysisBusy: false,
   },
 );
 
@@ -576,6 +597,8 @@ const emit = defineEmits<{
   playbackStarted: [];
   playbackPaused: [];
   playbackEnded: [];
+  playbackFrameRequested: [reason: "暂停位置" | "拖动位置"];
+  multichannelLiveFrame: [payload: { timeSec: number; reason: string; whiteFrame?: Blob; fluorescenceFrame?: Blob }];
   openFullscreen: [];
   closeFullscreen: [];
 }>();
@@ -730,6 +753,11 @@ function handleInlinePlaybackEnded() {
   emit("playbackEnded");
 }
 
+function handleInlinePlaybackFrameRequested(reason: "暂停位置" | "拖动位置") {
+  activePlaybackSurface.value = "inline";
+  emit("playbackFrameRequested", reason);
+}
+
 function handleFullscreenPlaybackStarted() {
   if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded) return;
   activePlaybackSurface.value = "fullscreen";
@@ -744,6 +772,11 @@ function handleFullscreenPlaybackPaused() {
 function handleFullscreenPlaybackEnded() {
   if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded || activePlaybackSurface.value !== "fullscreen") return;
   emit("playbackEnded");
+}
+
+function handleFullscreenPlaybackFrameRequested(reason: "暂停位置" | "拖动位置") {
+  if (suppressFullscreenPlaybackEvents.value || !props.analysisExpanded || activePlaybackSurface.value !== "fullscreen") return;
+  emit("playbackFrameRequested", reason);
 }
 
 function closeFullscreen() {
@@ -800,23 +833,21 @@ defineExpose({
 .analysis-header,
 .fullscreen-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
 }
 
 .analysis-header {
-  align-items: flex-start;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   margin-bottom: 10px;
 }
 
 .fullscreen-header {
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
 }
 
 .analysis-title-block {
-  display: grid;
-  flex-wrap: wrap;
-  gap: 8px 14px;
   min-width: 0;
 }
 
@@ -849,6 +880,7 @@ defineExpose({
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
   min-width: 0;
   margin: 0;
 }

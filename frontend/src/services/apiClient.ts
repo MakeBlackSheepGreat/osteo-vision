@@ -143,6 +143,12 @@ export const apiClient = {
   ensureStandardDemoCase(): Promise<CaseRecord> {
     return request<CaseRecord>("/platform/standard-demo-case", { method: "POST" });
   },
+  ensureDemoCases(): Promise<CaseRecord[]> {
+    return request<CaseRecord[]>("/platform/demo-cases", { method: "POST" });
+  },
+  listCases(): Promise<CaseRecord[]> {
+    return request<CaseRecord[]>("/cases");
+  },
   getCase(caseId: string): Promise<CaseRecord> {
     return request<CaseRecord>(`/cases/${caseId}`);
   },
@@ -381,6 +387,31 @@ export const apiClient = {
     return request<MultichannelVideoSession>(
       `/cases/${caseId}/multichannel-video-sessions/${encodeURIComponent(sessionId)}`,
     );
+  },
+  analyzeRealtimeMultichannelFrame(
+    caseId: string,
+    sessionId: string,
+    payload: {
+      timestamp_sec: number;
+      alpha: number;
+      threshold: number;
+      colormap: string;
+      white_frame_base64?: string;
+      fluorescence_frame_base64?: string;
+    },
+  ): Promise<{
+    frame: {
+      overlay_path: string;
+      registered_fluorescence_path: string;
+      performance: { registration_fusion_compute_ms: number };
+    };
+    compute_ms: number;
+    compute_gate_passed: boolean;
+  }> {
+    return request(`/cases/${caseId}/multichannel-video-sessions/${encodeURIComponent(sessionId)}/realtime-frame`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
   listDatasetReviewQueue(): Promise<DatasetReviewQueue> {
     return request<DatasetReviewQueue | DatasetReviewRecord[]>("/dataset-review/queue").then((payload) =>

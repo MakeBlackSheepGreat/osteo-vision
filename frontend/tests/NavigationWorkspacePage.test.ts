@@ -1,4 +1,6 @@
 import { mount, flushPromises } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -11,6 +13,17 @@ describe("NavigationWorkspacePage", () => {
     setActivePinia(createPinia());
   });
 
+  it("keeps the populated import panel content-sized instead of stretching empty space", () => {
+    const pageSource = readFileSync(resolve(process.cwd(), "src/pages/NavigationWorkspacePage.vue"), "utf8");
+    const controlSource = readFileSync(resolve(process.cwd(), "src/components/ThreeDEvidenceControlPanel.vue"), "utf8");
+
+    expect(pageSource).toMatch(/\.navigation-empty-workbench__imports\.is-populated\s*\{[\s\S]*?align-self:\s*start;[\s\S]*?overflow:\s*visible;/);
+    expect(pageSource).toMatch(/\.navigation-empty-workbench__left-rail\s*\{[\s\S]*?grid-area:\s*left;[\s\S]*?align-content:\s*start;/);
+    expect(pageSource).toMatch(/\.navigation-empty-workbench__left-rail > \.navigation-empty-workbench__imports,[\s\S]*?\.navigation-empty-workbench__left-rail > \.navigation-empty-workbench__tree\s*\{[\s\S]*?grid-area:\s*auto;/);
+    expect(controlSource).toMatch(/\.three-d-evidence-control--panel \.three-d-evidence-control__section\s*\{[\s\S]*?height:\s*auto;[\s\S]*?align-content:\s*start;/);
+    expect(controlSource).toMatch(/\.three-d-evidence-control--panel \.three-d-evidence-control__submit-actions > :deep\(\.app-button\)\s*\{[\s\S]*?flex:\s*1 1 100%;/);
+  });
+
   it("reads candidates and registration evidence from the shared case store", async () => {
     const router = createRouter({
       history: createMemoryHistory(),
@@ -18,7 +31,7 @@ describe("NavigationWorkspacePage", () => {
         { path: "/navigation", component: NavigationWorkspacePage },
         { path: "/case", component: { template: "<div />" } },
         { path: "/cases", component: { template: "<div />" } },
-        { path: "/review", component: { template: "<div />" } },
+        { path: "/annotations", component: { template: "<div />" } },
       ],
     });
     await router.push("/navigation?caseId=case_001");

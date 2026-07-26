@@ -5,12 +5,9 @@ import {
   filterVideoCandidates,
   findVideoCandidate,
   formatBytes,
-  videoCandidateDetails,
+  videoCandidateDisplayTitle,
   videoCandidateFilterSummary,
   videoCandidateFluorescenceLabel,
-  videoCandidateGeometryLabel,
-  videoCandidatePreviewLabel,
-  videoCandidateReadableLabel,
   videoCandidateSourceUrl,
   videoCandidateTrainingBucket,
 } from "../src/utils/videoCandidates";
@@ -52,32 +49,14 @@ describe("video candidate details", () => {
 
     expect(selected?.record_id).toBe("v002");
     expect(selected ? videoCandidateFluorescenceLabel(selected) : "").toBe("非荧光");
-    expect(selected ? videoCandidateReadableLabel(selected) : "").toBe("本地可读");
+    expect(selected ? videoCandidateDisplayTitle(selected) : "").toBe("公开视频候选 v002");
     expect(selected ? videoCandidateSourceUrl(selected) : "").toBe("https://example.org/source");
     expect(formatBytes(1536 * 1024)).toBe("1.5 MB");
   });
 
-  it("keeps domain boundary and training suitability visible", () => {
-    const details = videoCandidateDetails(candidate({ source_page_original_link: "", exists: false }));
-
+  it("uses Chinese display titles while keeping the source link available", () => {
     expect(videoCandidateSourceUrl(candidate({ source_page_original_link: "" }))).toBe("https://example.org/video.mp4");
-    expect(details).toContainEqual({ label: "训练可用性", value: "proxy_only" });
-    expect(details).toContainEqual({ label: "视频规格", value: "3840 × 2160 / 12.5 秒" });
-    expect(details).toContainEqual({ label: "预览状态", value: "未生成" });
-    expect(details).toContainEqual({ label: "读取状态", value: "未落地" });
-    expect(details).toContainEqual({ label: "数据边界", value: "non_target_domain_proxy" });
-  });
-
-  it("formats generated and failed preview states", () => {
-    expect(videoCandidatePreviewLabel(candidate({ preview_status: "cached", preview_path: "preview.jpg" }))).toBe(
-      "已生成",
-    );
-    expect(videoCandidatePreviewLabel(candidate({ preview_status: "failed", preview_error: "decode failed" }))).toBe(
-      "decode failed",
-    );
-    expect(videoCandidateGeometryLabel(candidate({ width: null, height: null, duration_sec: null }))).toBe(
-      "分辨率未知 / 时长未知",
-    );
+    expect(videoCandidateDisplayTitle(candidate({ record_id: "OFDVDNET_001" }))).toBe("OFDVDnet 荧光引导手术代理视频");
   });
 
   it("filters by fluorescence channel and training suitability", () => {

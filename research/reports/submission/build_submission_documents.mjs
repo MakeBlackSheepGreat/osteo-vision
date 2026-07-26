@@ -8,6 +8,7 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  DocumentGridType,
   ExternalHyperlink,
   Footer,
   Header,
@@ -46,8 +47,8 @@ const outputPath = path.resolve(process.argv[3] ?? DEFAULT_OUTPUT);
 
 const PAGE_WIDTH = 11906;
 const PAGE_HEIGHT = 16838;
-const MARGIN_LEFT = 1587;
-const MARGIN_RIGHT = 1440;
+const MARGIN_LEFT = 1134;
+const MARGIN_RIGHT = 1134;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 const BODY_FONT = {
   ascii: "Microsoft YaHei",
@@ -500,14 +501,19 @@ function sectionPageProperties(extra = {}) {
     page: {
       size: { width: PAGE_WIDTH, height: PAGE_HEIGHT },
       margin: {
-        top: 1360,
+        top: 1134,
         right: MARGIN_RIGHT,
-        bottom: 1300,
+        bottom: 1134,
         left: MARGIN_LEFT,
         header: 650,
         footer: 650,
       },
       ...page,
+    },
+    grid: {
+      type: DocumentGridType.LINES_AND_CHARS,
+      linePitch: 312,
+      charSpace: 0,
     },
     ...section,
   };

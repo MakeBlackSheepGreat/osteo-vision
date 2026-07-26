@@ -7,6 +7,7 @@
 | 类型 | 入口 | 用途 |
 |---|---|---|
 | 平台目标 | `planning/osteo_vision_platform_target_zh.md` | 完整软件目标与赛题映射 |
+| 当前事实基线 | `planning/current_facts_baseline_20260726_zh.md` | 代码、配置、数据、演示资产与统一表述 |
 | 三项持续目标 | `planning/three_priority_capabilities_target_20260717_zh.md` | 患者条件、骨活性、L1/L2 固定目标 |
 | 三项目标验收 | `planning/three_priority_capabilities_acceptance_v1_zh.md` | 数据契约、SOP、安全门和验收定义 |
 | 官方设备边界 | `planning/official_technical_document_alignment_zh.md` | 4K、JPEG、MP4、USB3.0 与扩展接口边界 |

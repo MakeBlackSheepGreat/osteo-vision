@@ -619,13 +619,13 @@ def add_title_block(doc):
     run = p.add_run("颌骨骨髓炎智能化荧光诊疗比赛方案")
     set_run_font(run, HEI, TNR, PT_TITLE, bold=True)
 
-    # 副标题（项目基线）
+    # 副标题
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_line_spacing(p, 18)
     pf = p.paragraph_format
     pf.space_after = Pt(18)
-    run = p.add_run("——研发验证版平台软件工程方案")
+    run = p.add_run("——研发验证与工程可行性方案")
     set_run_font(run, HEI, TNR, 16, bold=False)
 
     # 作者：四号楷体_GB2312 居中
@@ -637,25 +637,15 @@ def add_title_block(doc):
     run = p.add_run("项目团队")
     set_run_font(run, KAI, TNR, PT_AUTHOR, bold=False)
 
-    # 单位
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_line_spacing(p, 18)
-    pf = p.paragraph_format
-    pf.space_after = Pt(18)
-    run = p.add_run("（osteo-vision 项目组）")
-    set_run_font(run, KAI, TNR, PT_SMALL, bold=False)
-
     # 摘要标签 + 内容
     abstract_zh = (
-        "本方案面向颌骨骨髓炎术中辅助决策需求，围绕赛题方荧光手术显微镜平台构建"
-        "“新型荧光造影剂设计 + 多模态医学图像融合与处理 + 人工智能辅助显微成像判读”"
-        "的集成方案。平台软件以 4K MP4/JPEG 为一级输入，承担荧光分析、AI 与医生交互判读、"
-        "结果输出三层任务：基于 ICG 灌注层并补充四环素类骨活性文献证据与模块化新型骨亲和探针设计；"
-        "采用白光与 ICG 双通道配准、伪彩、融合、归一化、质控与 ROI 定量；"
-        "以 keyframe_residual_attention_unet_s 为主线模型输出骨面、荧光信号、风险、不确定性四类 mask "
-        "与骨活性连续评分；通过医生复核回灌、证据包导出与 L1/L2 三维工程验证形成端到端闭环。"
-        "所有输出属于研发验证证据，医生保留最终判断。"
+        "本方案围绕新型荧光造影剂设计、多模态医学图像融合处理和人工智能辅助显微成像判读三项要求，"
+        "构建术前数字化参考、术中多通道分析与医生复核、术后证据回顾的研发验证平台软件闭环。"
+        "平台以赛题方确认的 4K JPEG 图像和 MP4 视频为主输入，支持白光与荧光成对分析、"
+        "视频关键帧与连续帧串行分析、伪彩融合、感兴趣区量化、候选提示、人工标注复核、"
+        "三维参考和证据导出。公开离体荧光代理、公开人体 ICG 视频和数字仿体分别用于软件流程、"
+        "时序展示和三维工程验证。当前真实术中 ICG 颌骨骨髓炎记录与训练准入记录均为零。"
+        "所有结果均用于工程验证与医生复核辅助，不构成临床诊断、切除范围或真实术中导航结论。"
     )
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -677,7 +667,7 @@ def add_title_block(doc):
     set_first_indent_chars(p, 2, PT_SMALL)
     run = p.add_run("关键词：")
     set_run_font(run, SONG, TNR, PT_SMALL, bold=True)
-    run = p.add_run("颌骨骨髓炎；ICG 荧光成像；多模态融合；AI 辅助判读；医生复核")
+    run = p.add_run("颌骨骨髓炎；ICG 荧光成像；多模态图像融合；人工智能辅助判读；医生复核")
     set_run_font(run, SONG, TNR, PT_SMALL, bold=False)
 
 

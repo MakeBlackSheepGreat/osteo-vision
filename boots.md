@@ -297,6 +297,7 @@
 
 | 日期 | 文件 | 优化内容 | 验证证据 | 状态 |
 |---|---|---|---|---|
+| 2026-07-26 | `frontend/src/components/MultichannelVideoWorkspace.vue`、`frontend/src/components/AnalysisQuadGrid.vue`、`frontend/src/pages/CaseWorkspacePage.vue`、`backend/osteo_vision_api/services/multichannel_video_service.py`、`backend/osteo_vision_api/services/task2_sequence_service.py` | 双通道实时配准改为浏览器从当前白光/荧光播放画面同步抓取 512px JPEG 对，后端直接处理该帧对；移除“从 12 个离线关键帧中挑最近帧”导致的数秒级画面跳变。实时路径仅编码配准荧光图与融合图，跳过归一化/伪彩副本、设备差异图和 SHA256；重复覆盖实时预览文件并以版本参数刷新浏览器缓存。单路 MP4 在暂停和拖动完成后也立即抓取当前画面进入实时分割。正式关键帧证据与完整产物仍由 Task2 批处理保留。 | 新增当前浏览器帧、融合帧快照与单路 MP4 暂停/拖动回归；`pytest backend/tests/contract/test_multichannel_video_api.py -q` 14 项、前端定向 Vitest 12 项、`typecheck`、生产构建通过。 | 已完成 |
 | 2026-07-26 | `packaging/desktop/`、`backend/osteo_vision_api/api/app.py`、`scripts/build_desktop_package.ps1` | Electron 桌面宿主统一拉起 PyInstaller API；关闭最后窗口、应用退出、启动失败和渲染进程退出均先终止后端。后端接收 `SIGTERM` 后执行 CUDA 同步、缓存及 IPC 清理；5 秒内未退出时宿主使用 `taskkill /T /F` 清理进程树。发行包内置 FFmpeg/FFprobe 与依赖，严格运行预检可在脱离 Conda 的环境启动。 | `npm run desktop:test` 4 项、`pytest backend/tests/unit/test_desktop_runtime_shutdown.py -q` 2 项、前端 typecheck 与桌面 Vite build 通过。实机启动 `Osteo Vision Platform.exe` 后 `/ready` 返回 200，后端为该 Electron 主进程子进程；关闭主窗口后端端口关闭、`osteo-vision-api.exe` 和 Electron 全部退出。`nvidia-smi` 未发现该桌面包残留计算进程。 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/api/files.py` | 文件预览、下载和视频路由在应用构建时一次性解析并去重 artifact/公开视频/manifest 根目录，移除每请求重复根路径解析；删除仅做转发的私有包装函数和重复 URL 解码；非法路径、目录、损坏链接及文件系统异常统一安全降级，保留后缀白名单与越界 403 语义；字面百分号文件名可按原名访问 | 新增 `backend/tests/unit/test_files_api.py` 4 项；文件路由相关定向 40 项、后端全量 352 项、核心/Smoke 812 项通过；后端与共享核心 201 个源码文件 mypy 和 Ruff 全量通过，改动文件 Black/isort 通过。2,000 次路径解析中位数由 2,695.386 ms 降至 989.501 ms，约 2.72 倍 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/services/static_dataset_review.py` | D047/D048 队列、已复核清单和自动种子清单按文件签名缓存；队列同步建立 `record_id` 索引，单记录查找由重复 JSON 解析和线性扫描收敛为缓存后常量时间查找；图像尺寸与 SHA256 按文件签名复用；内部写入显式失效缓存，外部文件变化自动重载；异常记录字段按队列级降级计数跳过 | 新增 `backend/tests/unit/test_static_dataset_review.py` 3 项，数据集复核 API 7 项、后端全量 346 项通过；后端与共享核心 201 个源码文件 mypy 通过，Ruff 全量通过，定向 Black/isort 通过。20,000 条队列末项查找 25 次中位数由 29.549 ms 降至 1.655 ms，约 17.86 倍 | 已完成 |
@@ -328,6 +329,7 @@
 | 2026-07-25 | `backend/osteo_vision_api/services/static_registration_service.py` | 复用只读阈值批准与显微镜位姿载荷，移除注册请求处理中不必要的浅拷贝 | 导航作业生命周期测试 4 项、Ruff、Black 通过 | 已完成 |
 ## Latest Candidate
 
+- 已完成双通道播放帧实时路径收口：当前浏览器可见的白光/荧光帧直接进入配准融合，消除低密度离线关键帧带来的数秒级刷新间隔；后续需在真实 4K 浏览器播放和桌面包环境复核端到端刷新节奏。
 - 本轮已完成三维建模任务进度与取消边界增强，后端阶段状态可供前端持续轮询并在刷新后恢复。
 - 本轮已完成最近未审计核心文件 `osteo_vision_core/models/lesion_boundary.py` 的优化，候选优先级、每类上限、总上限、空间抑制和医学安全回退语义均由回归测试覆盖。
 - 本轮已完成 `backend/osteo_vision_api/reports/platform_report.py` 的序列化缓存优化，回归测试验证报告输出值保持一致。

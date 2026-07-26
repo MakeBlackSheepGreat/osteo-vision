@@ -51,11 +51,12 @@
       </header>
 
       <div class="navigation-empty-workbench__grid">
-        <section
-          class="navigation-empty-workbench__panel navigation-empty-workbench__imports"
-          :class="{ 'is-populated': store.currentCase }"
-          aria-label="CBCT 和 STL 导入"
-        >
+        <div class="navigation-empty-workbench__left-rail">
+          <section
+            class="navigation-empty-workbench__panel navigation-empty-workbench__imports"
+            :class="{ 'is-populated': store.currentCase }"
+            aria-label="CBCT 和 STL 导入"
+          >
           <ThreeDEvidenceControlPanel
             v-if="store.currentCase"
             presentation="panel"
@@ -94,13 +95,13 @@
             </div>
             <p>导入前需关联病例，确保来源、方向和处理记录可追溯。</p>
           </template>
-        </section>
+          </section>
 
-        <section
-          class="navigation-empty-workbench__panel navigation-empty-workbench__tree"
-          :class="{ 'is-populated': store.currentCase }"
-          aria-label="病例对象树"
-        >
+          <section
+            class="navigation-empty-workbench__panel navigation-empty-workbench__tree"
+            :class="{ 'is-populated': store.currentCase }"
+            aria-label="病例对象树"
+          >
           <ThreeDEvidenceControlPanel
             v-if="store.currentCase"
             presentation="panel"
@@ -123,7 +124,8 @@
               <li><span aria-hidden="true"></span><div><strong>坐标变换</strong><small>等待 L1/L2 验证</small></div><b>0</b></li>
             </ul>
           </template>
-        </section>
+          </section>
+        </div>
 
         <section
           class="navigation-empty-workbench__panel navigation-empty-workbench__viewport"
@@ -211,10 +213,10 @@
             <div><dt>导航显示</dt><dd>禁止就绪</dd></div>
           </dl>
           <p>{{ reviewBoundaryText }}</p>
-          <RouterLink v-if="store.currentCase" class="navigation-empty-workbench__review-link" :to="reviewRoute">进入医生复核</RouterLink>
+          <RouterLink v-if="store.currentCase" class="navigation-empty-workbench__review-link" :to="reviewRoute">进入人工标注与复核</RouterLink>
           <span v-else class="navigation-unavailable-state navigation-unavailable-state--block">
             <AppIcon name="case" />
-            载入病例后进入医生复核
+            载入病例后进入人工标注与复核
           </span>
         </section>
       </div>
@@ -297,7 +299,7 @@ const caseArchiveRoute = computed(() => {
   return caseId ? { path: "/cases", query: { caseId } } : { path: "/cases" };
 });
 const reviewRoute = computed(() => ({
-  path: "/review",
+  path: "/annotations",
   query: store.currentCase ? { caseId: store.currentCase.case_id } : {},
 }));
 const doctorReviewLabel = computed(() => {
@@ -574,8 +576,8 @@ function numberFrom(value: unknown): number | null {
 .navigation-empty-workbench__grid {
   display: grid;
   grid-template-areas:
-    "imports viewport checks"
-    "tree viewport review";
+    "left viewport checks"
+    "left viewport review";
   grid-template-columns: minmax(230px, 0.72fr) minmax(520px, 1.75fr) minmax(250px, 0.82fr);
   gap: 14px;
   align-items: stretch;
@@ -620,6 +622,30 @@ function numberFrom(value: unknown): number | null {
   display: block;
   overflow: auto;
   padding: 0;
+}
+
+.navigation-empty-workbench__left-rail {
+  grid-area: left;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.navigation-empty-workbench__left-rail > .navigation-empty-workbench__imports,
+.navigation-empty-workbench__left-rail > .navigation-empty-workbench__tree {
+  grid-area: auto;
+}
+
+.navigation-empty-workbench__imports.is-populated {
+  align-self: start;
+  overflow: visible;
+}
+
+.navigation-empty-workbench__imports.is-populated :deep(.three-d-evidence-control--panel),
+.navigation-empty-workbench__imports.is-populated :deep(.three-d-evidence-control--panel .three-d-evidence-control__section) {
+  height: auto;
+  min-height: 0;
 }
 
 .navigation-empty-workbench__viewport.is-populated {
@@ -1010,8 +1036,7 @@ function numberFrom(value: unknown): number | null {
 
   .navigation-empty-workbench__grid {
     grid-template-areas:
-      "imports viewport"
-      "tree viewport"
+      "left viewport"
       "checks review";
     grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.7fr);
   }

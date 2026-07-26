@@ -178,6 +178,18 @@
         </template>
 
         <template v-if="videoMode !== 'single_video'">
+          <div class="multichannel-primary-action">
+            <AppButton
+              :variant="multichannelRealtimeAnalysisEnabled ? 'secondary' : 'primary'"
+              size="sm"
+              :icon="multichannelRealtimeAnalysisEnabled ? 'stop' : 'play'"
+              block
+              :disabled="!multichannelRealtimeAnalysisEnabled && (loading || analysisJobPolling || !multichannelSession?.analysis_allowed)"
+              @click="emit('toggleMultichannelRealtimeAnalysis')"
+            >
+              {{ multichannelRealtimeAnalysisEnabled ? "关闭双通道实时分析" : "开启双通道实时分析" }}
+            </AppButton>
+          </div>
           <label class="field compact-field">
             <span>重点复核时间点（秒，可选）</span>
             <input
@@ -216,7 +228,7 @@
             <div><dt>同步状态</dt><dd>{{ synchronizationStatusLabel }}</dd></div>
             <div><dt>共同区间</dt><dd>{{ commonIntervalLabel }}</dd></div>
             <div><dt>起始时间差</dt><dd>{{ initialDeltaLabel }}</dd></div>
-            <div><dt>配准可用</dt><dd>{{ multichannelSession.analysis_allowed ? "可运行" : "不可运行" }}</dd></div>
+            <div><dt>同步会话</dt><dd>{{ multichannelSession.analysis_allowed ? "可运行" : "不可运行" }}</dd></div>
           </dl>
           <AppButton
             variant="secondary"
@@ -227,16 +239,6 @@
             @click="emit('prepareMultichannelSession')"
           >
             {{ multichannelPreparing ? "正在准备同步预览" : "准备同步预览" }}
-          </AppButton>
-          <AppButton
-            variant="primary"
-            size="sm"
-            icon="play"
-            block
-            :disabled="loading || analysisJobPolling || !multichannelSession?.analysis_allowed"
-            @click="emit('runMultichannelAnalysis')"
-          >
-            运行双通道融合分析
           </AppButton>
         </template>
       </div>
@@ -529,6 +531,7 @@ const emit = defineEmits<{
   prepareMultichannelSession: [];
   runMultichannelAnalysis: [];
   resetMultichannelOffsets: [];
+  toggleMultichannelRealtimeAnalysis: [];
   startCamera: [];
   stopCamera: [];
   captureCameraFrame: [];
@@ -550,6 +553,7 @@ const props = withDefaults(defineProps<{
   multichannelFluorescencePath?: string;
   multichannelDeviceOverlayPath?: string;
   multichannelSession?: MultichannelVideoSession | null;
+  multichannelRealtimeAnalysisEnabled?: boolean;
   multichannelPreparing?: boolean;
   fluorescenceOffsetMs?: number | null;
   deviceOverlayOffsetMs?: number | null;
@@ -592,6 +596,7 @@ const props = withDefaults(defineProps<{
   multichannelFluorescencePath: "",
   multichannelDeviceOverlayPath: "",
   multichannelSession: null,
+  multichannelRealtimeAnalysisEnabled: false,
   multichannelPreparing: false,
   fluorescenceOffsetMs: 0,
   deviceOverlayOffsetMs: 0,
@@ -846,6 +851,10 @@ function shortInputPath(path: string): string {
   min-height: 44px;
   justify-content: flex-start;
   text-align: left;
+}
+
+.multichannel-primary-action {
+  margin-top: 10px;
 }
 
 .offset-grid {

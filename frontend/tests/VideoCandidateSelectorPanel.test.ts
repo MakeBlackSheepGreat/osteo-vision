@@ -37,7 +37,7 @@ function candidate(overrides: Partial<VideoCandidate> = {}): VideoCandidate {
 }
 
 describe("VideoCandidateSelectorPanel", () => {
-  it("renders candidate details and keeps import actions delegated to the parent", async () => {
+  it("hides catalog metadata and keeps import actions delegated to the parent", async () => {
     const wrapper = mount(VideoCandidateSelectorPanel, {
       props: {
         loading: false,
@@ -56,8 +56,9 @@ describe("VideoCandidateSelectorPanel", () => {
     });
 
     expect(wrapper.text()).toContain("公开视频候选（1 条）");
-    expect(wrapper.text()).toContain("Fluorescence proxy video");
-    expect(wrapper.text()).toContain("fluorescence-guided surgery");
+    expect(wrapper.text()).toContain("公开视频候选 fluor");
+    expect(wrapper.text()).not.toContain("Fluorescence proxy video");
+    expect(wrapper.text()).not.toContain("fluorescence-guided surgery");
     expect(wrapper.find("img").attributes("src")).toBe("/preview?path=preview.jpg");
 
     await wrapper.find('[icon="upload"]').trigger("click");

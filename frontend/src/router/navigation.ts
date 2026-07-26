@@ -25,7 +25,7 @@ export const navigationGroups: NavigationGroup[] = [
       { to: "/cases", label: "病例档案", icon: "case", group: "clinical", order: 20 },
       { to: "/case", label: "病例工作台", icon: "target", group: "clinical", order: 30 },
       { to: "/navigation", label: "三维导航", icon: "cube", group: "clinical", order: 40 },
-      { to: "/review", label: "医生复核", icon: "review", group: "clinical", order: 50 },
+      { to: "/annotations", label: "人工标注与复核", icon: "brush", group: "clinical", order: 50 },
       { to: "/report", label: "报告导出", icon: "report", group: "clinical", order: 60 },
     ],
   },
@@ -35,7 +35,6 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { to: "/data", label: "视频库", icon: "video", group: "data", order: 70 },
       { to: "/dataset-review", label: "静态数据复核", icon: "database", group: "data", order: 80 },
-      { to: "/annotations", label: "人工标注", icon: "brush", group: "data", order: 90 },
     ],
   },
   {

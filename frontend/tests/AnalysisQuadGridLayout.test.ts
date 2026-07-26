@@ -40,6 +40,14 @@ describe("analysis quad grid layout", () => {
     expect(source).not.toContain("<strong>医生复核边界</strong>");
   });
 
+  it("keeps the case workspace header focused on the operative imaging workflow", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
+
+    expect(source).not.toContain("AppCaseContext");
+    expect(source).not.toContain('class="workspace-header-actions"');
+    expect(source).not.toContain('class="navigation-workspace-link"');
+  });
+
   it("keeps medical image and video previews fully visible", () => {
     const mediaComponents = [
       "src/components/AnalysisFusionEvidencePanel.vue",

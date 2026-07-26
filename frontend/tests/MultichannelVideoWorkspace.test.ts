@@ -1,4 +1,6 @@
 import { mount } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import MultichannelVideoWorkspace from "../src/components/MultichannelVideoWorkspace.vue";
@@ -59,6 +61,21 @@ function session(): MultichannelVideoSession {
 }
 
 describe("MultichannelVideoWorkspace", () => {
+  it("uses aligned card tracks while preserving fully visible media", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/components/MultichannelVideoWorkspace.vue"), "utf8");
+
+    expect(source).toMatch(/\.multichannel-grid\s*\{[\s\S]*?grid-auto-rows:\s*minmax\(0, 1fr\);/);
+    expect(source).toMatch(/\.channel-card\s*\{[\s\S]*?grid-template-rows:\s*42px minmax\(0, 1fr\) 32px;/);
+    expect(source).toMatch(/\.channel-card > header\s*\{[\s\S]*?height:\s*42px;/);
+    expect(source).toMatch(/\.channel-card > footer\s*\{[\s\S]*?height:\s*32px;/);
+    expect(source).toMatch(/\.media-viewport video,[\s\S]*?object-fit:\s*contain;/);
+    expect(source).not.toMatch(/\.media-viewport video,[\s\S]*?object-fit:\s*(?:cover|fill)/);
+    expect(source).toContain("requestLiveFrame(\"播放位置更新\")");
+    expect(source).toContain("requestLiveFrame(\"暂停位置\")");
+    expect(source).toContain("requestLiveFrame(\"拖动位置\")");
+    expect(source).toContain("whiteFrame?: Blob; fluorescenceFrame?: Blob");
+  });
+
   it("renders an immediate paired-video workspace before synchronization is prepared", () => {
     const wrapper = mount(MultichannelVideoWorkspace, {
       props: {
@@ -127,6 +144,22 @@ describe("MultichannelVideoWorkspace", () => {
     expect(wrapper.text()).toContain("关键帧同步结果 · 第 1 帧");
     expect(wrapper.text()).toContain("差异热图");
     expect(wrapper.text()).toContain("adaptive_multiscale_registration_v2");
+  });
+
+  it("enables the registered fluorescence view as soon as a live frame returns", async () => {
+    const wrapper = mount(MultichannelVideoWorkspace, {
+      props: {
+        session: session(),
+        liveRegisteredFluorescenceSrc: "/api/files/preview?path=live-registered.jpg",
+      },
+      global: { stubs: { AppIcon: true } },
+    });
+
+    const registeredButton = wrapper.findAll("button").find((button) => button.text() === "配准后");
+    expect(registeredButton).toBeDefined();
+    expect(registeredButton?.attributes("disabled")).toBeUndefined();
+    await registeredButton?.trigger("click");
+    expect(wrapper.find('img[alt="当前播放位置的配准后荧光图"]').attributes("src")).toContain("live-registered.jpg");
   });
 
   it("corrects follower drift beyond 80 ms using the white-light master clock", async () => {

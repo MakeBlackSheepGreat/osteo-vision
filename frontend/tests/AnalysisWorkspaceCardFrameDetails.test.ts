@@ -1,4 +1,6 @@
 import { mount } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import AnalysisQuadGrid from "../src/components/AnalysisQuadGrid.vue";
@@ -41,6 +43,14 @@ const frameDetails: HotspotFrameDetail[] = [
 ];
 
 describe("AnalysisWorkspaceCard frame details", () => {
+  it("aligns analysis summary chips with the desktop title row", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/components/AnalysisWorkspaceCard.vue"), "utf8");
+
+    expect(source).toMatch(/<div class="analysis-title-block">\s*<h2>\{\{ analysisTitle \}\}<\/h2>\s*<\/div>\s*<div class="analysis-summary-strip"/);
+    expect(source).toMatch(/\.analysis-header\s*\{[\s\S]*?grid-template-columns:\s*auto minmax\(0, 1fr\) auto;/);
+    expect(source).toMatch(/\.analysis-header\s*\{[\s\S]*?align-items:\s*center;/);
+  });
+
   it("marks and compacts an entirely empty viewport group until analysis imagery arrives", async () => {
     const wrapper = mount(AnalysisQuadGrid, {
       props: {

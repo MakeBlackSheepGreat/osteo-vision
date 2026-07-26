@@ -37,7 +37,7 @@ describe("ChallengeCupShowcasePage", () => {
     expect(wrapper.text()).toContain("医生复核与安全降级");
     expect(wrapper.get(".three-d-runtime-stub").text()).toContain("d024 / 独立三维渲染");
     expect(wrapper.get(".showcase-vision-frame img").attributes("src")).toBe("/showcase/d083_frame_05_overlay.png");
-    expect(wrapper.text()).toContain("D083，CC BY 4.0");
+    expect(wrapper.text()).toContain("D083 公开 ICG 骨移植视频，CC BY 4.0");
     expect(wrapper.text()).toContain("L0 未配准参考");
     expect(wrapper.text()).toContain("工程复核方案快照");
     expect(wrapper.get(".showcase-planning-snapshot__detail").text()).toContain("公开解剖参考");
@@ -59,7 +59,9 @@ describe("ChallengeCupShowcasePage", () => {
 
     expect(guardButton.attributes("aria-selected")).toBe("true");
     expect(wrapper.get(".showcase-planning-snapshot__detail").text()).toContain("空间安全门控");
-    expect(wrapper.get(".showcase-planning-snapshot__detail").text()).toContain("L0 未配准参考 / 非导航");
+    expect(wrapper.get(".showcase-planning-snapshot__detail").text()).toContain("L0 未配准参考（非导航）");
+    expect(wrapper.findAll(".showcase-flow__stage p")).toHaveLength(0);
+    expect(wrapper.findAll(".showcase-workspace__vision")).toHaveLength(1);
     expect(wrapper.get(".showcase-page__actions a").attributes("href")).toBe("/case");
   });
 });

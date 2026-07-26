@@ -6,7 +6,7 @@
         <div class="showcase-page__title">
           <p>挑战杯工程展示</p>
           <h1>荧光-三维证据闭环工作站</h1>
-          <span>将术前三维参考、术中荧光融合判读和医生复核后的证据回顾编排为一条可运行展示链。</span>
+          <span>术前三维参考、术中荧光判读与复核证据。</span>
         </div>
       </div>
       <div class="showcase-page__actions" aria-label="展示页快捷入口">
@@ -28,7 +28,6 @@
         <div>
           <small>{{ stage.eyebrow }}</small>
           <strong>{{ stage.title }}</strong>
-          <p>{{ stage.detail }}</p>
         </div>
       </article>
     </section>
@@ -74,14 +73,12 @@
                 <span>当前复核焦点</span>
                 <strong>{{ activePlanning.title }}</strong>
               </div>
-              <p>{{ activePlanning.detail }}</p>
               <dl>
                 <div v-for="item in activePlanning.evidence" :key="item.label">
                   <dt>{{ item.label }}</dt>
                   <dd>{{ item.value }}</dd>
                 </div>
               </dl>
-              <small>{{ activePlanning.boundary }}</small>
             </aside>
           </div>
         </section>
@@ -90,7 +87,7 @@
           reference-id="d024"
         />
         <p class="showcase-source-note">
-          D024 公开 CBCT 解剖参考模型；下颌曲线与复核平面以未配准示意元素进入工程规划界面，空间映射保持待验证状态。
+          D024 公开 CBCT 解剖参考，当前保持 L0 未配准状态。
         </p>
       </article>
 
@@ -121,7 +118,6 @@
           <img :src="activeEvidence.image" :alt="activeEvidence.alt" />
           <figcaption>
             <strong>{{ activeEvidence.title }}</strong>
-            <span>{{ activeEvidence.detail }}</span>
           </figcaption>
         </figure>
 
@@ -145,7 +141,7 @@
         </dl>
 
         <p class="showcase-source-note">
-          D083，CC BY 4.0。该公开人体 ICG 骨移植视频用于信号处理、关键帧和证据链工程验证，保留非目标域标记。
+          D083 公开 ICG 骨移植视频，CC BY 4.0，非目标域工程验证。
         </p>
       </article>
     </section>
@@ -163,7 +159,6 @@
           <div v-for="metric in runtimeMetrics" :key="metric.label" :class="`is-${metric.tone}`">
             <span>{{ metric.label }}</span>
             <strong>{{ metric.value }}</strong>
-            <small>{{ metric.detail }}</small>
           </div>
         </div>
       </article>
@@ -181,7 +176,6 @@
             <span :class="`is-${item.tone}`">{{ item.index }}</span>
             <div>
               <strong>{{ item.title }}</strong>
-              <small>{{ item.detail }}</small>
             </div>
           </li>
         </ol>
@@ -202,13 +196,12 @@
             <span>{{ item.stage }}</span>
             <div>
               <strong>{{ item.title }}</strong>
-              <small>{{ item.detail }}</small>
             </div>
             <em :class="`is-${item.tone}`">{{ item.status }}</em>
           </li>
         </ol>
         <p class="showcase-source-note">
-          L1/L2 仅验证离线软件链、坐标契约和失效回退。当前挑战杯展示保持 L0 未配准参考，不输出真实术中定位或手术边界。
+          L1/L2 为离线工程验证；当前展示保持 L0 未配准参考。
         </p>
       </article>
 
@@ -224,19 +217,14 @@
           <div v-for="item in reviewEvidenceItems" :key="item.label">
             <dt>{{ item.label }}</dt>
             <dd>{{ item.value }}</dd>
-            <small>{{ item.detail }}</small>
           </div>
         </dl>
         <p class="showcase-source-note">
-          原始文件、处理参数、模型身份、复核状态与导出摘要共同组成可回顾证据；演示材料中的公开数据均保留来源和非目标域标签。
+          原始文件、处理参数、模型身份与复核状态均可回到病例记录核对。
         </p>
       </article>
     </section>
 
-    <footer class="showcase-page__footer">
-      <AppIcon name="clipboard" />
-      <span>展示数据、模型身份、运行阈值与可导出证据均可回到病例工作台复核。</span>
-    </footer>
   </AppPageShell>
 </template>
 
@@ -367,7 +355,7 @@ const planningFocuses: Array<{
     tone: "cyan",
     evidence: [
       { label: "模型来源", value: "D024 公开 CBCT 解剖参考" },
-      { label: "坐标参考", value: "DICOM LPS / display reference" },
+      { label: "坐标参考", value: "DICOM LPS 显示参考" },
     ],
   },
   {
@@ -380,7 +368,7 @@ const planningFocuses: Array<{
     icon: "layers",
     tone: "green",
     evidence: [
-      { label: "标注状态", value: "illustrative_unregistered" },
+      { label: "标注状态", value: "示意未配准" },
       { label: "复核用途", value: "曲线、平面与几何检查" },
     ],
   },
@@ -394,8 +382,8 @@ const planningFocuses: Array<{
     icon: "alert",
     tone: "amber",
     evidence: [
-      { label: "配准状态", value: "unregistered" },
-      { label: "当前输出", value: "L0 未配准参考 / 非导航" },
+      { label: "配准状态", value: "未配准" },
+      { label: "当前输出", value: "L0 未配准参考（非导航）" },
     ],
   },
 ];
@@ -405,8 +393,8 @@ const activePlanning = computed(
 );
 
 const runtimeMetrics = [
-  { label: "4K 全证据", value: "5.78 s", detail: "端到端 P95，tiled 路径", tone: "cyan" },
-  { label: "连续帧输出", value: "176 ms", detail: "服务端 E2E P95，fast-output", tone: "green" },
+  { label: "4K 全证据", value: "5.78 s", detail: "端到端 P95，分块路径", tone: "cyan" },
+  { label: "连续帧输出", value: "176 ms", detail: "服务端端到端 P95", tone: "green" },
   { label: "代理模型", value: "Dice 0.9177", detail: "公开离体荧光代理测试集", tone: "amber" },
   { label: "证据输出", value: "5 类", detail: "JSON、CSV、Markdown、DICOM SC、ZIP", tone: "cyan" },
 ];
@@ -452,7 +440,7 @@ const reviewEvidenceItems = [
 <style scoped>
 .showcase-page {
   display: grid;
-  gap: 24px;
+  gap: 16px;
   width: min(100%, var(--ov-content-wide));
   margin: 0 auto;
   padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
@@ -474,13 +462,13 @@ const reviewEvidenceItems = [
 .showcase-page__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
+  gap: 16px;
   align-items: end;
 }
 
 .showcase-page__title {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .showcase-page__title p,
@@ -499,10 +487,10 @@ const reviewEvidenceItems = [
 }
 
 .showcase-page__title > span {
-  max-width: 800px;
+  max-width: 680px;
   color: var(--ov-text-secondary);
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .showcase-page__actions {
@@ -541,19 +529,19 @@ const reviewEvidenceItems = [
 .showcase-flow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .showcase-flow__stage {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  min-height: 132px;
+  gap: 9px;
+  align-items: center;
+  min-height: 88px;
   border: 1px solid var(--ov-border);
   border-left: 4px solid var(--ov-border-accent);
   border-radius: var(--ov-radius-surface);
-  padding: 16px;
+  padding: 11px 12px;
   background: var(--ov-bg-elevated);
   box-shadow: var(--ov-shadow);
 }
@@ -579,32 +567,25 @@ const reviewEvidenceItems = [
 
 .showcase-flow__stage div {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .showcase-flow__stage small {
   color: var(--ov-text-muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .showcase-flow__stage strong {
   color: var(--ov-text);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.35;
-}
-
-.showcase-flow__stage p {
-  margin: 0;
-  color: var(--ov-text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
 }
 
 .showcase-workspace {
   display: grid;
-  grid-template-columns: minmax(680px, 1.35fr) minmax(360px, 0.65fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.3fr) minmax(420px, 0.7fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .showcase-workspace__three-d,
@@ -614,13 +595,19 @@ const reviewEvidenceItems = [
   overflow: hidden;
 }
 
+.showcase-workspace__vision {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+}
+
 .showcase-panel-heading {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--ov-border-subtle);
-  padding: 16px 18px 14px;
+  min-height: 66px;
+  padding: 12px 14px;
 }
 
 .showcase-panel-heading > div {
@@ -630,7 +617,7 @@ const reviewEvidenceItems = [
 
 .showcase-panel-heading strong {
   color: var(--ov-text);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.3;
 }
 
@@ -657,11 +644,11 @@ const reviewEvidenceItems = [
 
 .showcase-planning-snapshot > header {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--ov-border-subtle);
-  padding: 12px 18px 10px;
+  padding: 10px 14px;
 }
 
 .showcase-planning-snapshot > header > div,
@@ -724,10 +711,10 @@ const reviewEvidenceItems = [
   gap: 7px;
   align-content: start;
   align-items: center;
-  min-height: 104px;
+  min-height: 84px;
   border: 0;
   border-bottom: 3px solid var(--ov-primary-strong);
-  padding: 14px 10px 11px;
+  padding: 10px 8px 8px;
   background: transparent;
   color: var(--ov-text);
   font: inherit;
@@ -810,26 +797,19 @@ const reviewEvidenceItems = [
 
 .showcase-planning-snapshot__detail {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   border-left: 1px solid var(--ov-border-subtle);
-  padding: 13px 16px;
+  padding: 10px 12px;
   background: var(--ov-bg-elevated);
 }
 
-.showcase-planning-snapshot__detail p,
 .showcase-planning-snapshot__detail small,
 .showcase-planning-snapshot__detail dt,
 .showcase-planning-snapshot__detail dd {
   min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.showcase-planning-snapshot__detail p {
-  color: var(--ov-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .showcase-planning-snapshot__detail dl {
@@ -858,14 +838,6 @@ const reviewEvidenceItems = [
   line-height: 1.4;
 }
 
-.showcase-planning-snapshot__detail > small {
-  border-left: 2px solid var(--ov-warning);
-  padding-left: 7px;
-  color: var(--ov-text-secondary);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
 .showcase-workspace__anatomy {
   border: 0;
   border-radius: 0;
@@ -874,17 +846,17 @@ const reviewEvidenceItems = [
 .showcase-source-note {
   margin: 0;
   border-top: 1px solid var(--ov-border-subtle);
-  padding: 10px 18px 13px;
+  padding: 8px 14px 10px;
   color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .showcase-vision-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  padding: 14px 16px 0;
+  gap: 4px;
+  padding: 10px 12px 0;
 }
 
 .showcase-vision-tabs button {
@@ -909,14 +881,17 @@ const reviewEvidenceItems = [
 
 .showcase-vision-frame {
   display: grid;
-  gap: 10px;
-  margin: 14px 16px 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+  min-height: 0;
+  margin: 10px 12px 0;
 }
 
 .showcase-vision-frame img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  min-height: 0;
+  height: 100%;
   border: 1px solid var(--ov-border-strong);
   border-radius: 6px;
   background: var(--ov-bg-media);
@@ -924,8 +899,7 @@ const reviewEvidenceItems = [
 }
 
 .showcase-vision-frame figcaption {
-  display: grid;
-  gap: 3px;
+  min-height: 20px;
 }
 
 .showcase-vision-frame figcaption strong {
@@ -933,23 +907,17 @@ const reviewEvidenceItems = [
   font-size: 14px;
 }
 
-.showcase-vision-frame figcaption span {
-  color: var(--ov-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .showcase-vision-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 14px 16px;
+  gap: 6px;
+  margin: 10px 12px;
 }
 
 .showcase-vision-metrics div {
   display: grid;
-  gap: 3px;
-  min-height: 60px;
+  gap: 2px;
+  min-height: 50px;
   border: 1px solid var(--ov-border-subtle);
   border-radius: 5px;
   padding: 9px 10px;
@@ -971,14 +939,31 @@ const reviewEvidenceItems = [
 
 .showcase-evidence {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .showcase-validation {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.showcase-evidence > article,
+.showcase-validation > article {
+  min-height: 270px;
+}
+
+.showcase-evidence__metrics,
+.showcase-evidence__safety {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.showcase-validation__spatial,
+.showcase-validation__review {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .showcase-validation__spatial,
@@ -988,6 +973,7 @@ const reviewEvidenceItems = [
 
 .showcase-spatial-list {
   display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin: 0;
   padding: 0 18px;
@@ -1000,7 +986,7 @@ const reviewEvidenceItems = [
   gap: 10px;
   align-items: center;
   border-bottom: 1px solid var(--ov-border-subtle);
-  padding: 13px 0;
+  padding: 8px 0;
 }
 
 .showcase-spatial-list li > span {
@@ -1032,12 +1018,6 @@ const reviewEvidenceItems = [
   color: var(--ov-text);
   font-size: 13px;
   line-height: 1.35;
-}
-
-.showcase-spatial-list small {
-  color: var(--ov-text-secondary);
-  font-size: 11px;
-  line-height: 1.45;
 }
 
 .showcase-spatial-list em {
@@ -1074,15 +1054,16 @@ const reviewEvidenceItems = [
 .showcase-review-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6px;
   margin: 0;
-  padding: 16px 18px;
+  padding: 12px 14px;
 }
 
 .showcase-review-grid div {
   display: grid;
-  gap: 4px;
-  min-height: 90px;
+  gap: 2px;
+  min-height: 68px;
   border: 1px solid var(--ov-border-subtle);
   border-top: 3px solid var(--ov-primary-strong);
   border-radius: 5px;
@@ -1098,8 +1079,7 @@ const reviewEvidenceItems = [
   overflow-wrap: anywhere;
 }
 
-.showcase-review-grid dt,
-.showcase-review-grid small {
+.showcase-review-grid dt {
   color: var(--ov-text-muted);
   font-size: 11px;
   line-height: 1.35;
@@ -1115,14 +1095,15 @@ const reviewEvidenceItems = [
 .showcase-metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  padding: 16px;
+  gap: 6px;
+  padding: 12px 14px;
+  align-items: stretch;
 }
 
 .showcase-metric-grid div {
   display: grid;
-  gap: 5px;
-  min-height: 112px;
+  gap: 3px;
+  min-height: 76px;
   border: 1px solid var(--ov-border-subtle);
   border-top: 3px solid var(--ov-primary-strong);
   border-radius: 5px;
@@ -1138,8 +1119,7 @@ const reviewEvidenceItems = [
   border-top-color: var(--ov-warning);
 }
 
-.showcase-metric-grid span,
-.showcase-metric-grid small {
+.showcase-metric-grid span {
   color: var(--ov-text-muted);
   font-size: 12px;
   line-height: 1.45;
@@ -1153,9 +1133,10 @@ const reviewEvidenceItems = [
 
 .showcase-safety-list {
   display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin: 0;
-  padding: 0 18px 6px;
+  padding: 0 14px 4px;
   list-style: none;
 }
 
@@ -1165,7 +1146,7 @@ const reviewEvidenceItems = [
   gap: 10px;
   align-items: start;
   border-bottom: 1px solid var(--ov-border-subtle);
-  padding: 13px 0;
+  padding: 8px 0;
 }
 
 .showcase-safety-list li:last-child {
@@ -1202,31 +1183,6 @@ const reviewEvidenceItems = [
 .showcase-safety-list strong {
   color: var(--ov-text);
   font-size: 14px;
-}
-
-.showcase-safety-list small {
-  color: var(--ov-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.showcase-page__footer {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  min-height: 42px;
-  border-top: 1px solid var(--ov-border-subtle);
-  padding: 14px 2px 0;
-  color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.showcase-page__footer :deep(.app-icon) {
-  flex: 0 0 auto;
-  width: 17px;
-  height: 17px;
-  color: var(--ov-primary-strong);
 }
 
 @media (max-width: 1280px) {

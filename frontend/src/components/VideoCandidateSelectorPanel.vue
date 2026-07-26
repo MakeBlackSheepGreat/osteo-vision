@@ -8,7 +8,7 @@
     >
       <option value="">公开视频候选（{{ videoCandidateListSummary }}）</option>
       <option v-for="candidate in filteredVideoCandidates" :key="candidate.record_id" :value="candidate.record_id">
-        {{ candidate.record_id }} · {{ candidate.medical_scene || candidate.title }}
+        {{ videoCandidateDisplayTitle(candidate) }}
       </option>
     </select>
     <div class="video-library-actions">
@@ -57,7 +57,7 @@
   <article v-if="selectedVideoCandidate" class="video-candidate-card" aria-label="公开视频候选详情">
     <header class="candidate-card-header">
       <div>
-        <strong>{{ selectedVideoCandidate.title || selectedVideoCandidate.record_id }}</strong>
+        <strong>{{ videoCandidateDisplayTitle(selectedVideoCandidate) }}</strong>
         <span>{{ selectedVideoCandidate.record_id }}</span>
       </div>
       <span class="candidate-badge" :class="{ fluorescent: selectedVideoCandidate.fluorescence === true }">
@@ -72,12 +72,6 @@
       />
       <figcaption v-else>正在生成关键帧预览...</figcaption>
     </figure>
-    <dl class="candidate-detail-grid">
-      <template v-for="detail in selectedVideoCandidateDetails" :key="detail.label">
-        <dt>{{ detail.label }}</dt>
-        <dd>{{ detail.value }}</dd>
-      </template>
-    </dl>
     <a
       v-if="selectedVideoCandidateSourceUrl"
       class="candidate-source-link"
@@ -98,7 +92,7 @@ import type { VideoCandidate } from "@/types/case";
 import {
   filterVideoCandidates,
   findVideoCandidate,
-  videoCandidateDetails,
+  videoCandidateDisplayTitle,
   videoCandidateFilterSummary,
   videoCandidateFluorescenceFilterOptions,
   videoCandidateFluorescenceLabel,
@@ -138,9 +132,6 @@ const videoCandidateListSummary = computed(() =>
 );
 const selectedVideoCandidate = computed(() =>
   findVideoCandidate(props.videoCandidates, props.selectedVideoCandidateId),
-);
-const selectedVideoCandidateDetails = computed(() =>
-  selectedVideoCandidate.value ? videoCandidateDetails(selectedVideoCandidate.value) : [],
 );
 const selectedVideoCandidateFluorescenceLabel = computed(() =>
   selectedVideoCandidate.value ? videoCandidateFluorescenceLabel(selectedVideoCandidate.value) : "未知通道",
@@ -269,13 +260,6 @@ watch(filteredVideoCandidates, (candidates) => {
   color: var(--ov-success);
 }
 
-.candidate-detail-grid {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 4px 8px;
-  margin: 0;
-}
-
 .candidate-preview {
   display: grid;
   gap: 4px;
@@ -300,24 +284,6 @@ watch(filteredVideoCandidates, (candidates) => {
   color: var(--ov-text-secondary);
   font-size: 11px;
   font-weight: 800;
-}
-
-.candidate-detail-grid dt,
-.candidate-detail-grid dd {
-  min-width: 0;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.candidate-detail-grid dt {
-  color: var(--ov-text-muted);
-  font-weight: 900;
-}
-
-.candidate-detail-grid dd {
-  margin: 0;
-  color: var(--ov-text-secondary);
-  overflow-wrap: anywhere;
 }
 
 .candidate-source-link {

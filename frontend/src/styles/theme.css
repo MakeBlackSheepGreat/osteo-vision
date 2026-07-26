@@ -679,38 +679,6 @@ select.ov-input {
   justify-content: flex-end;
 }
 
-.ov-case-context {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  min-width: 0;
-  border: 1px solid var(--ov-border-subtle);
-  border-radius: var(--ov-radius-surface);
-  padding: 10px 12px;
-  background: var(--ov-bg-elevated);
-}
-
-.ov-case-context__copy {
-  display: grid;
-  gap: 2px;
-  min-width: min(260px, 100%);
-  flex: 1 1 260px;
-}
-
-.ov-case-context__copy span,
-.ov-case-context__copy small {
-  color: var(--ov-text-muted);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.ov-case-context__copy strong {
-  color: var(--ov-text);
-  font-size: 14px;
-  line-height: 1.35;
-}
-
 .ov-status-badge {
   display: inline-flex;
   align-items: center;
