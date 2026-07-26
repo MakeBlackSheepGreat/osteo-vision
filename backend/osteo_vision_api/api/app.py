@@ -9,9 +9,27 @@ from backend.osteo_vision_api.core.settings import load_settings
 from backend.osteo_vision_api.domains.cases.repository import CaseVersionConflictError
 
 
+def _release_cuda_resources() -> None:
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    except Exception:
+        # Shutdown must proceed even when an accelerator driver is unavailable.
+        return
+
+
 def create_app() -> FastAPI:
     settings = load_settings()
     app = FastAPI(title=settings.app_name)
+
+    @app.on_event("shutdown")
+    async def release_runtime_resources() -> None:
+        _release_cuda_resources()
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.allowed_origins),

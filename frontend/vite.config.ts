@@ -6,8 +6,10 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig(() => {
   const port = Number(process.env.OSTEO_FRONTEND_PORT ?? "5174");
   const backendPort = Number(process.env.OSTEO_BACKEND_PORT ?? "8001");
+  const desktopBuild = process.env.VITE_OSTEO_DESKTOP === "true";
 
   return {
+    base: desktopBuild ? "./" : "/",
     plugins: [vue()],
     server: {
       host: "127.0.0.1",

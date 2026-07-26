@@ -15,10 +15,10 @@
 
 | 范围 | 文件数 | 总行数 | 最新文件 | 最新写入 |
 |---|---:|---:|---|---|
-| 生产 API 与服务层 | 85 | 29748 | `backend/osteo_vision_api/api/files.py` | 2026-07-26 08:08:42 |
-| 共享分析核心（由后端调用） | 116 | 23478 | `osteo_vision_core/preprocess/accelerated_fusion.py` | 2026-07-25 16:25:49 |
+| 生产 API 与服务层 | 85 | 27344 | `backend/osteo_vision_api/api/app.py` | 2026-07-26 17:22:00 |
+| 共享分析核心（由后端调用） | 116 | 21062 | `osteo_vision_core/preprocess/accelerated_fusion.py` | 2026-07-25 16:25:49 |
 | 应用启动与兼容入口 | 4 | 210 | `app/main.py` | 2026-07-23 13:47:25 |
-| 后端测试 | 55 | 15250 | `backend/tests/unit/test_files_api.py` | 2026-07-26 08:09:21 |
+| 后端测试 | 56 | 13455 | `backend/tests/unit/test_desktop_runtime_shutdown.py` | 2026-07-26 17:22:00 |
 
 ## 生产 API 与服务层
 
@@ -280,6 +280,7 @@
 - `backend/tests/unit/test_reviewed_ignore_annotation_sync.py` （389 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_roi_quantification.py` （14 行，最近写入 2026-07-23 13:47:26）
 - `backend/tests/unit/test_settings_runtime_paths.py` （70 行，最近写入 2026-07-23 13:47:26）
+- `backend/tests/unit/test_desktop_runtime_shutdown.py` （9 行，最近写入 2026-07-26 17:22:00）
 - `backend/tests/unit/test_standard_demo_case.py` （43 行，最近写入 2026-07-26 06:33:54）
 - `backend/tests/unit/test_static_dataset_review.py` （112 行，最近写入 2026-07-26 06:16:07）
 - `backend/tests/unit/test_three_d_runtime_snapshot.py` （34 行，最近写入 2026-07-26 07:02:27）
@@ -296,6 +297,7 @@
 
 | 日期 | 文件 | 优化内容 | 验证证据 | 状态 |
 |---|---|---|---|---|
+| 2026-07-26 | `packaging/desktop/`、`backend/osteo_vision_api/api/app.py`、`scripts/build_desktop_package.ps1` | Electron 桌面宿主统一拉起 PyInstaller API；关闭最后窗口、应用退出、启动失败和渲染进程退出均先终止后端。后端接收 `SIGTERM` 后执行 CUDA 同步、缓存及 IPC 清理；5 秒内未退出时宿主使用 `taskkill /T /F` 清理进程树。发行包内置 FFmpeg/FFprobe 与依赖，严格运行预检可在脱离 Conda 的环境启动。 | `npm run desktop:test` 4 项、`pytest backend/tests/unit/test_desktop_runtime_shutdown.py -q` 2 项、前端 typecheck 与桌面 Vite build 通过。实机启动 `Osteo Vision Platform.exe` 后 `/ready` 返回 200，后端为该 Electron 主进程子进程；关闭主窗口后端端口关闭、`osteo-vision-api.exe` 和 Electron 全部退出。`nvidia-smi` 未发现该桌面包残留计算进程。 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/api/files.py` | 文件预览、下载和视频路由在应用构建时一次性解析并去重 artifact/公开视频/manifest 根目录，移除每请求重复根路径解析；删除仅做转发的私有包装函数和重复 URL 解码；非法路径、目录、损坏链接及文件系统异常统一安全降级，保留后缀白名单与越界 403 语义；字面百分号文件名可按原名访问 | 新增 `backend/tests/unit/test_files_api.py` 4 项；文件路由相关定向 40 项、后端全量 352 项、核心/Smoke 812 项通过；后端与共享核心 201 个源码文件 mypy 和 Ruff 全量通过，改动文件 Black/isort 通过。2,000 次路径解析中位数由 2,695.386 ms 降至 989.501 ms，约 2.72 倍 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/services/static_dataset_review.py` | D047/D048 队列、已复核清单和自动种子清单按文件签名缓存；队列同步建立 `record_id` 索引，单记录查找由重复 JSON 解析和线性扫描收敛为缓存后常量时间查找；图像尺寸与 SHA256 按文件签名复用；内部写入显式失效缓存，外部文件变化自动重载；异常记录字段按队列级降级计数跳过 | 新增 `backend/tests/unit/test_static_dataset_review.py` 3 项，数据集复核 API 7 项、后端全量 346 项通过；后端与共享核心 201 个源码文件 mypy 通过，Ruff 全量通过，定向 Black/isort 通过。20,000 条队列末项查找 25 次中位数由 29.549 ms 降至 1.655 ms，约 17.86 倍 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/services/review_service.py` | 复核摘要将 ROI 与候选的多轮重复扫描分别收敛为一次计数，保持已接受、已修改、已拒绝状态统计语义 | 新增复核摘要单元回归；复核单元与 API 共 12 项、后端全量 346 项通过。10,000 个 ROI 与 1,000 个候选、5 次汇总由 12.474 ms 降至 4.746 ms | 已完成 |

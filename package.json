@@ -7,7 +7,7 @@
   "version": "0.3.0-rc.2",
   "private": true,
   "description": "颌骨骨髓炎术中荧光辅助决策研发验证版平台。",
-  "main": "index.js",
+  "main": "packaging/desktop/main.cjs",
   "directories": {
     "doc": "docs",
     "test": "tests"
@@ -17,6 +17,8 @@
     "frontend:e2e": "npm --prefix frontend run test:e2e",
     "frontend:test": "npm --prefix frontend test -- --run",
     "frontend:typecheck": "npm --prefix frontend run typecheck",
+    "desktop:test": "node --test packaging/desktop/tests/*.test.cjs",
+    "desktop:package": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build_desktop_package.ps1",
     "platform:three-d-runtime": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime -ThreeDRuntimePort 5175",
     "test": "npm run frontend:test",
     "three-d-runtime:build": "npm --prefix frontend/three-d-runtime run build",

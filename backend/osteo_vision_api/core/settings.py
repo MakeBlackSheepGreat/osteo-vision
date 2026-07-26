@@ -6,6 +6,9 @@ from pathlib import Path
 
 
 def _repo_root() -> Path:
+    packaged_root = os.environ.get("OSTEO_PROJECT_ROOT", "").strip()
+    if packaged_root:
+        return Path(packaged_root).expanduser().resolve()
     return Path(__file__).resolve().parents[3]
 
 
