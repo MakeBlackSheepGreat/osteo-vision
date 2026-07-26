@@ -66,12 +66,16 @@ def evaluate_keyframe_thresholds(args: argparse.Namespace) -> dict[str, Any]:
         for threshold in thresholds
     ]
     target_stats = numeric_stats([sample["target_positive_fraction"] for sample in samples])
-    recommendation = select_recommended_threshold(
-        threshold_rows,
-        target_positive_fraction_stats=target_stats,
-        max_empty_mask_rate=float(args.max_empty_mask_rate),
-        max_over_segmentation_rate=float(args.max_over_segmentation_rate),
-    )
+    fixed_threshold = getattr(args, "fixed_threshold", None)
+    if fixed_threshold is None:
+        recommendation = select_recommended_threshold(
+            threshold_rows,
+            target_positive_fraction_stats=target_stats,
+            max_empty_mask_rate=float(args.max_empty_mask_rate),
+            max_over_segmentation_rate=float(args.max_over_segmentation_rate),
+        )
+    else:
+        recommendation = fixed_threshold_recommendation(threshold_rows, threshold=float(fixed_threshold))
     output_dir = ensure_dir(resolve_path(args.output_dir))
     csv_path = output_dir / "keyframe_threshold_eval.csv"
     json_path = output_dir / "keyframe_threshold_eval.json"
@@ -278,6 +282,17 @@ def threshold_metrics(
         "video_group_bootstrap": group_intervals,
         "ece": calibration["ece"],
         "brier_score": calibration["brier_score"],
+    }
+
+
+def fixed_threshold_recommendation(rows: list[dict[str, Any]], *, threshold: float) -> dict[str, Any]:
+    selected = next((row for row in rows if abs(float(row["threshold"]) - threshold) <= 1e-9), None)
+    if selected is None:
+        raise ValueError(f"Fixed threshold {threshold} is absent from the threshold scan.")
+    return {
+        "threshold": float(threshold),
+        "selected_row": selected,
+        "reason": "fixed_threshold_from_validation",
     }
 
 
@@ -599,6 +614,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", nargs="+", default=[DEFAULT_MANIFEST])
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--thresholds", default=DEFAULT_THRESHOLDS)
+    parser.add_argument(
+        "--fixed-threshold",
+        type=float,
+        default=None,
+        help="Use a validation-selected threshold for this split instead of selecting a threshold from it.",
+    )
     parser.add_argument("--image-shape", default="160x256")
     parser.add_argument("--split", default="val", choices=["train", "val", "test", "all"])
     parser.add_argument("--max-samples", type=int, default=0)

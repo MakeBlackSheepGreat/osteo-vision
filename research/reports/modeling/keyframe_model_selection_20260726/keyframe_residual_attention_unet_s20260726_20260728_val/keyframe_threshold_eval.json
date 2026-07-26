@@ -1,0 +1,1249 @@
+{
+  "schema_version": "osteo-vision-keyframe-threshold-eval-v1",
+  "generated_at_utc": "2026-07-26T08:19:27.424615+00:00",
+  "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260726_20260728.pt",
+  "checkpoint_sha256": "8c64039057d0f7c823109830f24885392403cbf243915a8aaf88854a34c5e861",
+  "checkpoint_metadata": {
+    "model_id": "keyframe_residual_attention_unet_s20260726_20260728",
+    "model_family": "residual_attention_unet_keyframe_segmenter",
+    "checkpoint_metric_threshold": 0.5,
+    "checkpoint_metrics": {
+      "case_count": 168,
+      "foreground_mean_dice": 0.9121108821684297,
+      "foreground_mean_iou": 0.8386783974695711,
+      "prediction_positive_fraction": 0.11070571172805059,
+      "threshold": 0.5,
+      "temperature": 1.1973198652267456
+    },
+    "training": {
+      "source": "manifest",
+      "manifest_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260726_12f\\keyframe_segmentation_proxy_manifest.csv",
+      "manifest_paths": [
+        "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260726_12f\\keyframe_segmentation_proxy_manifest.csv"
+      ],
+      "manifest_summary_paths": [
+        "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260726_12f\\keyframe_segmentation_proxy_summary.json"
+      ],
+      "review_seed_csv_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260726_12f\\keyframe_segmentation_review_seed_manifest.csv",
+      "review_seed_count": 50,
+      "quality_gates": {
+        "min_positive_area_fraction": 0.0005,
+        "max_positive_area_fraction": 0.6,
+        "min_component_area": 32,
+        "include_empty": false
+      },
+      "data_boundary": "manifest rows may be pseudo-labeled or non-target-domain unless separately verified.",
+      "train_samples": 336,
+      "val_samples": 168,
+      "positive_area_fraction_stats": {
+        "count": 576,
+        "min": 0.0314757,
+        "median": 0.1075155,
+        "max": 0.44428825,
+        "mean": 0.10997939
+      },
+      "sample_weight_stats": {
+        "count": 576,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0
+      },
+      "sampling_weight_stats": {
+        "count": 0,
+        "min": null,
+        "median": null,
+        "max": null,
+        "mean": null
+      },
+      "review_state_counts": {
+        "unspecified": 576
+      },
+      "domain_tier_counts": {
+        "proxy": 576
+      },
+      "source_group_counts": {
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-121707-000004-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-121809-000007-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-121933-000010-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-123850-000005-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-123923-000006-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124515-000009-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124634-000012-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124746-000015-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124901-000018-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125008-000021-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125129-000024-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125329-000027-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125458-000030-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125621-000033-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125749-000036-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125913-000039-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130045-000042-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130202-000045-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130706-000003-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130832-000006-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131024-000009-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131158-000014-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131441-000017-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131630-000020-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131821-000023-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131944-000026-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132119-000029-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132231-000032-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132432-000035-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132704-000041-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132817-000044-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132923-000047-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133049-000050-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133219-000051-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133354-000054-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133844-000003-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134001-000006-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134139-000008-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134436-000013-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134653-000014-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134859-000017-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135026-000020-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135217-000023-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135327-000026-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135421-000029-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135546-000032-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135751-000034-record.mp4": 12,
+        "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135910-000037-record.mp4": 12
+      },
+      "domain_adaptation": {
+        "enabled": true,
+        "augmentation": {
+          "probability": 0.8,
+          "exposure_gain": [
+            0.75,
+            1.35
+          ],
+          "gamma": [
+            0.7,
+            1.5
+          ],
+          "channel_gain": [
+            0.85,
+            1.15
+          ],
+          "gaussian_noise_std": [
+            0.0,
+            10.0
+          ],
+          "blur_probability": 0.25,
+          "blur_kernel_choices": [
+            3,
+            5
+          ],
+          "specular_probability": 0.25,
+          "occlusion_probability": 0.2,
+          "jpeg_probability": 0.3,
+          "jpeg_quality": [
+            45,
+            90
+          ]
+        }
+      },
+      "domain_sampling": {
+        "sample_count": 3840,
+        "domain_tier_counts": {
+          "proxy": 3840
+        },
+        "source_group_counts": {
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135217-000023-record.mp4": 125,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125749-000036-record.mp4": 143,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135421-000029-record.mp4": 157,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132231-000032-record.mp4": 157,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130706-000003-record.mp4": 143,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134859-000017-record.mp4": 152,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133844-000003-record.mp4": 127,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135751-000034-record.mp4": 141,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131441-000017-record.mp4": 146,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124746-000015-record.mp4": 139,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125913-000039-record.mp4": 131,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-132119-000029-record.mp4": 140,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133354-000054-record.mp4": 132,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-121933-000010-record.mp4": 128,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134436-000013-record.mp4": 148,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-134001-000006-record.mp4": 125,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135327-000026-record.mp4": 153,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-121809-000007-record.mp4": 153,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-133219-000051-record.mp4": 137,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131024-000009-record.mp4": 111,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125458-000030-record.mp4": 122,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124901-000018-record.mp4": 119,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-131158-000014-record.mp4": 137,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125008-000021-record.mp4": 135,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-124634-000012-record.mp4": 115,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-130832-000006-record.mp4": 152,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-135546-000032-record.mp4": 118,
+          "c:/users/876762330/desktop/projects/osteo-vision/research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/raw/fluorescence_proxy/ofdvdnet_dryad_v6wwpzh3w/extracted/ol-2021-07-20-125621-000033-record.mp4": 154
+        },
+        "review_state_counts": {
+          "review_required": 3840
+        }
+      },
+      "label_source_counts": {
+        "fluorescence_intensity_proxy_mask": 576
+      },
+      "source_group_split": {
+        "row_count": 576,
+        "group_count": 48,
+        "split_group_counts": {
+          "test": 6,
+          "train": 28,
+          "val": 14
+        },
+        "leakage_detected": false,
+        "leaking_group_count": 0,
+        "leaking_groups": {},
+        "missing_group_row_count": 0,
+        "missing_group_rows_first20": [],
+        "group_keys": [
+          "source_group_id",
+          "group_id",
+          "source_video_path",
+          "source_path",
+          "video_path",
+          "patient_id",
+          "case_id"
+        ],
+        "split_key": "split"
+      },
+      "image_shape": [
+        160,
+        256
+      ],
+      "completed_train_batches": 480,
+      "previous_completed_train_batches": 0,
+      "total_completed_train_batches": 480,
+      "batch_size": 8,
+      "learning_rate": 0.0007,
+      "requested_learning_rate": 0.0007,
+      "seed": 20260728,
+      "elapsed_seconds": 143.096,
+      "mean_train_loss": 0.14620512947440148,
+      "fine_tuning": {
+        "mode": "fresh",
+        "source_checkpoint": null,
+        "source_checkpoint_sha256": null,
+        "source_model_id": null,
+        "source_optimizer_state": null,
+        "source_optimizer_state_sha256": null,
+        "model_weights_loaded": false,
+        "optimizer_restore_requested": false,
+        "optimizer_restored": false,
+        "encoder_frozen": false,
+        "encoder_prefixes": [],
+        "frozen_parameter_tensor_count": 0,
+        "frozen_parameter_count": 0,
+        "trainable_parameter_count": 403785
+      }
+    }
+  },
+  "manifest_paths": [
+    "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\datasets\\public-candidates\\d046_fluorescence_osteomyelitis_videos\\derived\\mp4_keyframe_segmentation_proxy_20260726_12f\\keyframe_segmentation_proxy_manifest.csv"
+  ],
+  "source_group_split": {
+    "row_count": 576,
+    "group_count": 48,
+    "split_group_counts": {
+      "test": 6,
+      "train": 28,
+      "val": 14
+    },
+    "leakage_detected": false,
+    "leaking_group_count": 0,
+    "leaking_groups": {},
+    "missing_group_row_count": 0,
+    "missing_group_rows_first20": [],
+    "group_keys": [
+      "source_group_id",
+      "group_id",
+      "source_video_path",
+      "source_path",
+      "video_path",
+      "patient_id",
+      "case_id"
+    ],
+    "split_key": "split"
+  },
+  "split": "val",
+  "image_shape": [
+    160,
+    256
+  ],
+  "sample_count": 168,
+  "target_positive_fraction_stats": {
+    "count": 168,
+    "min": 0.06242676,
+    "p25": 0.09403076,
+    "median": 0.10395508,
+    "p75": 0.11123047,
+    "max": 0.18442383,
+    "mean": 0.10541673
+  },
+  "calibration": {
+    "available": true,
+    "ece": 0.006414426976558238,
+    "brier_score": 0.013643186539411545,
+    "reliability_bins": [
+      {
+        "lower": 0.0,
+        "upper": 0.06666667014360428,
+        "count": 5905312,
+        "confidence": 0.002033333061262965,
+        "accuracy": 0.001052611623890698,
+        "gap": 0.0009807214373722672
+      },
+      {
+        "lower": 0.06666667014360428,
+        "upper": 0.13333334028720856,
+        "count": 68191,
+        "confidence": 0.09603611379861832,
+        "accuracy": 0.09268084913492203,
+        "gap": 0.003355264663696289
+      },
+      {
+        "lower": 0.13333334028720856,
+        "upper": 0.20000000298023224,
+        "count": 39626,
+        "confidence": 0.16465556621551514,
+        "accuracy": 0.14513199031352997,
+        "gap": 0.01952357590198517
+      },
+      {
+        "lower": 0.20000000298023224,
+        "upper": 0.2666666805744171,
+        "count": 29459,
+        "confidence": 0.23203429579734802,
+        "accuracy": 0.19406633079051971,
+        "gap": 0.03796796500682831
+      },
+      {
+        "lower": 0.2666666805744171,
+        "upper": 0.3333333432674408,
+        "count": 24740,
+        "confidence": 0.29926788806915283,
+        "accuracy": 0.2392885982990265,
+        "gap": 0.05997928977012634
+      },
+      {
+        "lower": 0.3333333432674408,
+        "upper": 0.4000000059604645,
+        "count": 21787,
+        "confidence": 0.3660335838794708,
+        "accuracy": 0.2914123237133026,
+        "gap": 0.07462126016616821
+      },
+      {
+        "lower": 0.4000000059604645,
+        "upper": 0.46666666865348816,
+        "count": 20317,
+        "confidence": 0.4330245554447174,
+        "accuracy": 0.335088849067688,
+        "gap": 0.09793570637702942
+      },
+      {
+        "lower": 0.46666666865348816,
+        "upper": 0.5333333611488342,
+        "count": 20157,
+        "confidence": 0.5000272989273071,
+        "accuracy": 0.3871607780456543,
+        "gap": 0.11286652088165283
+      },
+      {
+        "lower": 0.5333333611488342,
+        "upper": 0.6000000238418579,
+        "count": 20078,
+        "confidence": 0.5668613314628601,
+        "accuracy": 0.43624863028526306,
+        "gap": 0.13061270117759705
+      },
+      {
+        "lower": 0.6000000238418579,
+        "upper": 0.6666666865348816,
+        "count": 21188,
+        "confidence": 0.6335326433181763,
+        "accuracy": 0.4990560710430145,
+        "gap": 0.13447657227516174
+      },
+      {
+        "lower": 0.6666666865348816,
+        "upper": 0.7333333492279053,
+        "count": 23414,
+        "confidence": 0.7006795406341553,
+        "accuracy": 0.5561202764511108,
+        "gap": 0.14455926418304443
+      },
+      {
+        "lower": 0.7333333492279053,
+        "upper": 0.800000011920929,
+        "count": 27518,
+        "confidence": 0.7682022452354431,
+        "accuracy": 0.6209026575088501,
+        "gap": 0.14729958772659302
+      },
+      {
+        "lower": 0.800000011920929,
+        "upper": 0.8666666746139526,
+        "count": 36197,
+        "confidence": 0.8349757194519043,
+        "accuracy": 0.6971848607063293,
+        "gap": 0.13779085874557495
+      },
+      {
+        "lower": 0.8666666746139526,
+        "upper": 0.9333333373069763,
+        "count": 59420,
+        "confidence": 0.903934121131897,
+        "accuracy": 0.8001851439476013,
+        "gap": 0.10374897718429565
+      },
+      {
+        "lower": 0.9333333373069763,
+        "upper": 1.0,
+        "count": 563876,
+        "confidence": 0.9879554510116577,
+        "accuracy": 0.9794600009918213,
+        "gap": 0.008495450019836426
+      }
+    ]
+  },
+  "inference_benchmark": {
+    "warmup_samples_excluded": 1,
+    "measured_sample_count": 167,
+    "mean_latency_ms": 5.1721724548062005,
+    "median_latency_ms": 4.985499858856201,
+    "p95_latency_ms": 6.852330207824707,
+    "throughput_fps": 193.34235444349073,
+    "peak_gpu_memory_mb": 27.0166015625,
+    "parameter_count": 403785,
+    "parameter_memory_mb": 1.5403175354003906,
+    "input_batch_size": 1,
+    "device": "cuda"
+  },
+  "thresholds": [
+    {
+      "threshold": 0.1,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8603510203421271,
+      "foreground_mean_iou": 0.7555836072953428,
+      "foreground_precision_mean": 0.7632259690699316,
+      "foreground_recall_mean": 0.9876887709342524,
+      "boundary_f1_mean": 0.977003280352997,
+      "prediction_positive_fraction_mean": 0.13599097842261904,
+      "prediction_positive_fraction_median": 0.132080078125,
+      "prediction_positive_fraction_p25": 0.12662354111671448,
+      "prediction_positive_fraction_p75": 0.13960571587085724,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.860351026058197,
+            "ci95_low": 0.8506369590759277,
+            "ci95_high": 0.8688063025474548
+          },
+          "iou": {
+            "mean": 0.7555837035179138,
+            "ci95_low": 0.7409195303916931,
+            "ci95_high": 0.7684233784675598
+          },
+          "boundary_f1": {
+            "mean": 0.9770032167434692,
+            "ci95_low": 0.9725204706192017,
+            "ci95_high": 0.9815943837165833
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.15,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8758817713184405,
+      "foreground_mean_iou": 0.7797577481467324,
+      "foreground_precision_mean": 0.7919139082839599,
+      "foreground_recall_mean": 0.9817700476034877,
+      "boundary_f1_mean": 0.9815665569644084,
+      "prediction_positive_fraction_mean": 0.13025265648251488,
+      "prediction_positive_fraction_median": 0.12656250596046448,
+      "prediction_positive_fraction_p25": 0.121673583984375,
+      "prediction_positive_fraction_p75": 0.13388672471046448,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8758817315101624,
+            "ci95_low": 0.8671211004257202,
+            "ci95_high": 0.8837847113609314
+          },
+          "iou": {
+            "mean": 0.7797577977180481,
+            "ci95_low": 0.766132652759552,
+            "ci95_high": 0.792161226272583
+          },
+          "boundary_f1": {
+            "mean": 0.9815666079521179,
+            "ci95_low": 0.978276252746582,
+            "ci95_high": 0.9850443601608276
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.2,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8861048500388329,
+      "foreground_mean_iou": 0.796013281614907,
+      "foreground_precision_mean": 0.812754723758036,
+      "foreground_recall_mean": 0.9761101185750563,
+      "boundary_f1_mean": 0.9839409991513945,
+      "prediction_positive_fraction_mean": 0.12616126650855652,
+      "prediction_positive_fraction_median": 0.12271728366613388,
+      "prediction_positive_fraction_p25": 0.11768799275159836,
+      "prediction_positive_fraction_p75": 0.12961426377296448,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8861048817634583,
+            "ci95_low": 0.8778994083404541,
+            "ci95_high": 0.8933407664299011
+          },
+          "iou": {
+            "mean": 0.796013355255127,
+            "ci95_low": 0.7829691171646118,
+            "ci95_high": 0.8075079917907715
+          },
+          "boundary_f1": {
+            "mean": 0.9839410185813904,
+            "ci95_low": 0.981223464012146,
+            "ci95_high": 0.9868321418762207
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.25,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8936523297091453,
+      "foreground_mean_iou": 0.8081875727277354,
+      "foreground_precision_mean": 0.8296281197111519,
+      "foreground_recall_mean": 0.9705405362801126,
+      "boundary_f1_mean": 0.985727303571496,
+      "prediction_positive_fraction_mean": 0.12286318824404763,
+      "prediction_positive_fraction_median": 0.11977539211511612,
+      "prediction_positive_fraction_p25": 0.11474609375,
+      "prediction_positive_fraction_p75": 0.12645873427391052,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8936523795127869,
+            "ci95_low": 0.886446475982666,
+            "ci95_high": 0.9003356099128723
+          },
+          "iou": {
+            "mean": 0.8081876039505005,
+            "ci95_low": 0.7966076731681824,
+            "ci95_high": 0.819013774394989
+          },
+          "boundary_f1": {
+            "mean": 0.9857273101806641,
+            "ci95_low": 0.9833618998527527,
+            "ci95_high": 0.9882156252861023
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.3,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8994250708820233,
+      "foreground_mean_iou": 0.8176091091264209,
+      "foreground_precision_mean": 0.8440269656880941,
+      "foreground_recall_mean": 0.9648111501431338,
+      "boundary_f1_mean": 0.9870152239909411,
+      "prediction_positive_fraction_mean": 0.12002781459263392,
+      "prediction_positive_fraction_median": 0.11684569716453552,
+      "prediction_positive_fraction_p25": 0.11234130710363388,
+      "prediction_positive_fraction_p75": 0.12323608249425888,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8994250893592834,
+            "ci95_low": 0.893022358417511,
+            "ci95_high": 0.9054939150810242
+          },
+          "iou": {
+            "mean": 0.8176091313362122,
+            "ci95_low": 0.8070529103279114,
+            "ci95_high": 0.8275189995765686
+          },
+          "boundary_f1": {
+            "mean": 0.9870152473449707,
+            "ci95_low": 0.9849922060966492,
+            "ci95_high": 0.9891672730445862
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.35,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9040430916664093,
+      "foreground_mean_iou": 0.8252182422107033,
+      "foreground_precision_mean": 0.8570056216043068,
+      "foreground_recall_mean": 0.9588029613177528,
+      "boundary_f1_mean": 0.9880117771115221,
+      "prediction_positive_fraction_mean": 0.11744762602306548,
+      "prediction_positive_fraction_median": 0.11431884765625,
+      "prediction_positive_fraction_p25": 0.10996093600988388,
+      "prediction_positive_fraction_p75": 0.12089844048023224,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9040430188179016,
+            "ci95_low": 0.8984315395355225,
+            "ci95_high": 0.9094448089599609
+          },
+          "iou": {
+            "mean": 0.8252182006835938,
+            "ci95_low": 0.8159271478652954,
+            "ci95_high": 0.8341913819313049
+          },
+          "boundary_f1": {
+            "mean": 0.9880117177963257,
+            "ci95_low": 0.9862627387046814,
+            "ci95_high": 0.9899881482124329
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.4,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9074480984409138,
+      "foreground_mean_iou": 0.8308703051325361,
+      "foreground_precision_mean": 0.8683969276421422,
+      "foreground_recall_mean": 0.9524931027086984,
+      "boundary_f1_mean": 0.9887160541795788,
+      "prediction_positive_fraction_mean": 0.11511884416852679,
+      "prediction_positive_fraction_median": 0.11210937798023224,
+      "prediction_positive_fraction_p25": 0.10785522311925888,
+      "prediction_positive_fraction_p75": 0.11882934719324112,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9074481725692749,
+            "ci95_low": 0.9023116827011108,
+            "ci95_high": 0.9123523831367493
+          },
+          "iou": {
+            "mean": 0.8308702111244202,
+            "ci95_low": 0.8223044872283936,
+            "ci95_high": 0.8390220403671265
+          },
+          "boundary_f1": {
+            "mean": 0.9887161254882812,
+            "ci95_low": 0.9869416356086731,
+            "ci95_high": 0.9906717538833618
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.45,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9101360058090677,
+      "foreground_mean_iou": 0.8353640810177095,
+      "foreground_precision_mean": 0.8791595054729813,
+      "foreground_recall_mean": 0.9457775390852257,
+      "boundary_f1_mean": 0.9891873585186038,
+      "prediction_positive_fraction_mean": 0.1128811790829613,
+      "prediction_positive_fraction_median": 0.10991211235523224,
+      "prediction_positive_fraction_p25": 0.10587158799171448,
+      "prediction_positive_fraction_p75": 0.11670532822608948,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9101359248161316,
+            "ci95_low": 0.9054655432701111,
+            "ci95_high": 0.9148253798484802
+          },
+          "iou": {
+            "mean": 0.8353641629219055,
+            "ci95_low": 0.8275984525680542,
+            "ci95_high": 0.8431821465492249
+          },
+          "boundary_f1": {
+            "mean": 0.9891873598098755,
+            "ci95_low": 0.9872944355010986,
+            "ci95_high": 0.9911508560180664
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.5,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9121108821684297,
+      "foreground_mean_iou": 0.8386783974695711,
+      "foreground_precision_mean": 0.8893458907768451,
+      "foreground_recall_mean": 0.938534529204465,
+      "boundary_f1_mean": 0.9894425958351896,
+      "prediction_positive_fraction_mean": 0.11070571172805059,
+      "prediction_positive_fraction_median": 0.10786132514476776,
+      "prediction_positive_fraction_p25": 0.10370483249425888,
+      "prediction_positive_fraction_p75": 0.11460570991039276,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9121108651161194,
+            "ci95_low": 0.9078367948532104,
+            "ci95_high": 0.9164566993713379
+          },
+          "iou": {
+            "mean": 0.8386783003807068,
+            "ci95_low": 0.8315139412879944,
+            "ci95_high": 0.8459004759788513
+          },
+          "boundary_f1": {
+            "mean": 0.9894424676895142,
+            "ci95_low": 0.9874286651611328,
+            "ci95_high": 0.9914593696594238
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.55,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9132991159160155,
+      "foreground_mean_iou": 0.840695624741012,
+      "foreground_precision_mean": 0.8991685075721092,
+      "foreground_recall_mean": 0.930397569155337,
+      "boundary_f1_mean": 0.9895175374121488,
+      "prediction_positive_fraction_mean": 0.10851716541108633,
+      "prediction_positive_fraction_median": 0.10595703125,
+      "prediction_positive_fraction_p25": 0.10137329250574112,
+      "prediction_positive_fraction_p75": 0.11224365234375,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9132991433143616,
+            "ci95_low": 0.9091399312019348,
+            "ci95_high": 0.9174892902374268
+          },
+          "iou": {
+            "mean": 0.8406956791877747,
+            "ci95_low": 0.833796501159668,
+            "ci95_high": 0.8476725816726685
+          },
+          "boundary_f1": {
+            "mean": 0.9895175099372864,
+            "ci95_low": 0.9873701333999634,
+            "ci95_high": 0.9917094111442566
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.6,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9138013893135867,
+      "foreground_mean_iou": 0.8415681168742007,
+      "foreground_precision_mean": 0.9087331659310329,
+      "foreground_recall_mean": 0.9215151059629737,
+      "boundary_f1_mean": 0.9894310925484687,
+      "prediction_positive_fraction_mean": 0.10631931849888393,
+      "prediction_positive_fraction_median": 0.10383300483226776,
+      "prediction_positive_fraction_p25": 0.09937134385108948,
+      "prediction_positive_fraction_p75": 0.11030273139476776,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9138013124465942,
+            "ci95_low": 0.9095602035522461,
+            "ci95_high": 0.9180144667625427
+          },
+          "iou": {
+            "mean": 0.841568112373352,
+            "ci95_low": 0.8345438241958618,
+            "ci95_high": 0.8486047983169556
+          },
+          "boundary_f1": {
+            "mean": 0.9894310832023621,
+            "ci95_low": 0.9871402382850647,
+            "ci95_high": 0.9917639493942261
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.65,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9132156190404591,
+      "foreground_mean_iou": 0.840622786803571,
+      "foreground_precision_mean": 0.9180185512472286,
+      "foreground_recall_mean": 0.9111271080661015,
+      "boundary_f1_mean": 0.9891719434881561,
+      "prediction_positive_fraction_mean": 0.10402381533668156,
+      "prediction_positive_fraction_median": 0.1014404296875,
+      "prediction_positive_fraction_p25": 0.0970458984375,
+      "prediction_positive_fraction_p75": 0.10806884616613388,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9132155776023865,
+            "ci95_low": 0.9081544876098633,
+            "ci95_high": 0.9180811047554016
+          },
+          "iou": {
+            "mean": 0.8406227827072144,
+            "ci95_low": 0.8321787714958191,
+            "ci95_high": 0.8487472534179688
+          },
+          "boundary_f1": {
+            "mean": 0.9891719818115234,
+            "ci95_low": 0.986659049987793,
+            "ci95_high": 0.9916119575500488
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.7,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9117293175267035,
+      "foreground_mean_iou": 0.8381832072815938,
+      "foreground_precision_mean": 0.9273854579723342,
+      "foreground_recall_mean": 0.8992977447132149,
+      "boundary_f1_mean": 0.9886685888942462,
+      "prediction_positive_fraction_mean": 0.10160101027715773,
+      "prediction_positive_fraction_median": 0.09909668564796448,
+      "prediction_positive_fraction_p25": 0.09489136189222336,
+      "prediction_positive_fraction_p75": 0.10565185546875,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9117293357849121,
+            "ci95_low": 0.9059246182441711,
+            "ci95_high": 0.917475163936615
+          },
+          "iou": {
+            "mean": 0.8381832242012024,
+            "ci95_low": 0.8284607529640198,
+            "ci95_high": 0.8477720022201538
+          },
+          "boundary_f1": {
+            "mean": 0.9886686205863953,
+            "ci95_low": 0.9856755137443542,
+            "ci95_high": 0.9915131330490112
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.75,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9087251581053517,
+      "foreground_mean_iou": 0.8332354421977547,
+      "foreground_precision_mean": 0.9367999593346767,
+      "foreground_recall_mean": 0.88505965516304,
+      "boundary_f1_mean": 0.9878841599370684,
+      "prediction_positive_fraction_mean": 0.09894670758928571,
+      "prediction_positive_fraction_median": 0.09635009616613388,
+      "prediction_positive_fraction_p25": 0.09238891303539276,
+      "prediction_positive_fraction_p75": 0.10291137546300888,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9087252020835876,
+            "ci95_low": 0.9017819762229919,
+            "ci95_high": 0.915761411190033
+          },
+          "iou": {
+            "mean": 0.8332354426383972,
+            "ci95_low": 0.8216960430145264,
+            "ci95_high": 0.8448464274406433
+          },
+          "boundary_f1": {
+            "mean": 0.9878842234611511,
+            "ci95_low": 0.9842620491981506,
+            "ci95_high": 0.9912376403808594
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.8,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9036593141717039,
+      "foreground_mean_iou": 0.8249283047080112,
+      "foreground_precision_mean": 0.9469499482329553,
+      "foreground_recall_mean": 0.8669646573316973,
+      "boundary_f1_mean": 0.9865591886054574,
+      "prediction_positive_fraction_mean": 0.09583871023995534,
+      "prediction_positive_fraction_median": 0.09339599311351776,
+      "prediction_positive_fraction_p25": 0.08941650390625,
+      "prediction_positive_fraction_p75": 0.09981689602136612,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9036593437194824,
+            "ci95_low": 0.8953932523727417,
+            "ci95_high": 0.9122658371925354
+          },
+          "iou": {
+            "mean": 0.8249282836914062,
+            "ci95_low": 0.8113129138946533,
+            "ci95_high": 0.8391785621643066
+          },
+          "boundary_f1": {
+            "mean": 0.9865592122077942,
+            "ci95_low": 0.9823457598686218,
+            "ci95_high": 0.9904165863990784
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.85,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8952176432567692,
+      "foreground_mean_iou": 0.8112498784274522,
+      "foreground_precision_mean": 0.9579882565820965,
+      "foreground_recall_mean": 0.8429922878604557,
+      "boundary_f1_mean": 0.9844700013998041,
+      "prediction_positive_fraction_mean": 0.0920558384486607,
+      "prediction_positive_fraction_median": 0.08999022841453552,
+      "prediction_positive_fraction_p25": 0.08577270805835724,
+      "prediction_positive_fraction_p75": 0.09618529677391052,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8952177166938782,
+            "ci95_low": 0.8850163817405701,
+            "ci95_high": 0.906093418598175
+          },
+          "iou": {
+            "mean": 0.811249852180481,
+            "ci95_low": 0.7947064638137817,
+            "ci95_high": 0.8291683793067932
+          },
+          "boundary_f1": {
+            "mean": 0.9844698905944824,
+            "ci95_low": 0.9791514277458191,
+            "ci95_high": 0.9892988204956055
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.9,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8794816029444847,
+      "foreground_mean_iou": 0.7862455652958218,
+      "foreground_precision_mean": 0.9697182933162803,
+      "foreground_recall_mean": 0.807493307518833,
+      "boundary_f1_mean": 0.9806614957357487,
+      "prediction_positive_fraction_mean": 0.08702276320684524,
+      "prediction_positive_fraction_median": 0.08521728217601776,
+      "prediction_positive_fraction_p25": 0.08124389499425888,
+      "prediction_positive_fraction_p75": 0.09104004502296448,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.8794814944267273,
+            "ci95_low": 0.866409420967102,
+            "ci95_high": 0.893799901008606
+          },
+          "iou": {
+            "mean": 0.7862456440925598,
+            "ci95_low": 0.7653248310089111,
+            "ci95_high": 0.8093855977058411
+          },
+          "boundary_f1": {
+            "mean": 0.9806614518165588,
+            "ci95_low": 0.9739464521408081,
+            "ci95_high": 0.9866863489151001
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    {
+      "threshold": 0.95,
+      "case_count": 168,
+      "foreground_mean_dice": 0.8425950910620266,
+      "foreground_mean_iou": 0.7300749825873973,
+      "foreground_precision_mean": 0.9842825493048644,
+      "foreground_recall_mean": 0.7395403949453322,
+      "boundary_f1_mean": 0.9707832387723139,
+      "prediction_positive_fraction_mean": 0.07836492629278274,
+      "prediction_positive_fraction_median": 0.07698974013328552,
+      "prediction_positive_fraction_p25": 0.07350464165210724,
+      "prediction_positive_fraction_p75": 0.081878662109375,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.842595100402832,
+            "ci95_low": 0.8257455229759216,
+            "ci95_high": 0.8621635437011719
+          },
+          "iou": {
+            "mean": 0.7300748825073242,
+            "ci95_low": 0.7043949365615845,
+            "ci95_high": 0.759611964225769
+          },
+          "boundary_f1": {
+            "mean": 0.9707832932472229,
+            "ci95_low": 0.9616751074790955,
+            "ci95_high": 0.9788876175880432
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    }
+  ],
+  "recommendation": {
+    "threshold": 0.6,
+    "reason": "max_dice_with_empty_and_oversegmentation_guards",
+    "selected_row": {
+      "threshold": 0.6,
+      "case_count": 168,
+      "foreground_mean_dice": 0.9138013893135867,
+      "foreground_mean_iou": 0.8415681168742007,
+      "foreground_precision_mean": 0.9087331659310329,
+      "foreground_recall_mean": 0.9215151059629737,
+      "boundary_f1_mean": 0.9894310925484687,
+      "prediction_positive_fraction_mean": 0.10631931849888393,
+      "prediction_positive_fraction_median": 0.10383300483226776,
+      "prediction_positive_fraction_p25": 0.09937134385108948,
+      "prediction_positive_fraction_p75": 0.11030273139476776,
+      "empty_mask_count": 0,
+      "empty_mask_rate": 0.0,
+      "over_segmentation_count": 0,
+      "over_segmentation_rate": 0.0,
+      "over_segmentation_fraction": 0.6,
+      "video_group_bootstrap": {
+        "available": true,
+        "group_count": 14,
+        "iterations": 1000,
+        "metrics": {
+          "dice": {
+            "mean": 0.9138013124465942,
+            "ci95_low": 0.9095602035522461,
+            "ci95_high": 0.9180144667625427
+          },
+          "iou": {
+            "mean": 0.841568112373352,
+            "ci95_low": 0.8345438241958618,
+            "ci95_high": 0.8486047983169556
+          },
+          "boundary_f1": {
+            "mean": 0.9894310832023621,
+            "ci95_low": 0.9871402382850647,
+            "ci95_high": 0.9917639493942261
+          }
+        }
+      },
+      "ece": 0.006414426976558238,
+      "brier_score": 0.013643186539411545
+    },
+    "selection_policy": "Prefer thresholds with empty_mask_rate <= max_empty_mask_rate and over_segmentation_rate <= max_over_segmentation_rate; then maximize Dice and prefer prediction positive fraction close to pseudo-mask median.",
+    "max_empty_mask_rate": 0.05,
+    "max_over_segmentation_rate": 0.05,
+    "target_positive_fraction_median": 0.10395508
+  },
+  "outputs": {
+    "json": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_val\\keyframe_threshold_eval.json",
+    "csv": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_val\\keyframe_threshold_eval.csv",
+    "zh_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_val\\keyframe_threshold_eval_zh.md",
+    "en_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_val\\keyframe_threshold_eval_en.md"
+  },
+  "elapsed_seconds": 14.769,
+  "environment": {
+    "device": "cuda",
+    "torch_version": "2.11.0+cu128",
+    "cuda_available": true
+  },
+  "medical_boundary": "Threshold metrics are computed against pseudo masks from public/proxy keyframes only. Clinical performance on intraoperative ICG jaw osteomyelitis remains unmeasured."
+}

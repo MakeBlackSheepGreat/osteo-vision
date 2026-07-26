@@ -8,6 +8,8 @@ import torch
 from osteo_vision_core.models.adapters import ConvNeXt2DKeyframeSegmenterAdapter, build_adapter, model_spec_from_mapping
 from osteo_vision_core.models.keyframe_candidates import (
     MultiScaleDepthwiseUNet2D,
+    NestedSkipUNet2D,
+    PlainUNet2D,
     ResidualAttentionUNet2D,
 )
 from osteo_vision_core.models.keyframe_segmenter import (
@@ -19,6 +21,8 @@ from osteo_vision_core.models.keyframe_segmenter import (
 @pytest.mark.parametrize(
     ("architecture", "model_type"),
     [
+        ("plain_unet", PlainUNet2D),
+        ("nested_skip_unet", NestedSkipUNet2D),
         ("residual_attention_unet", ResidualAttentionUNet2D),
         ("multiscale_depthwise_unet", MultiScaleDepthwiseUNet2D),
     ],
@@ -45,7 +49,7 @@ def test_candidate_keyframe_architectures_preserve_spatial_shape(
 
 def test_candidate_checkpoint_round_trip(tmp_path: Path) -> None:
     config = {
-        "architecture": "multiscale_depthwise_unet",
+        "architecture": "nested_skip_unet",
         "in_channels": 3,
         "out_channels": 2,
         "base_channels": 4,
@@ -55,7 +59,7 @@ def test_candidate_checkpoint_round_trip(tmp_path: Path) -> None:
     torch.save(
         {
             "model_id": "candidate_round_trip",
-            "model_family": "multiscale_depthwise_unet_keyframe_segmenter",
+            "model_family": "nested_skip_unet_keyframe_segmenter",
             "model_config": config,
             "state_dict": model.state_dict(),
         },
@@ -64,9 +68,9 @@ def test_candidate_checkpoint_round_trip(tmp_path: Path) -> None:
 
     loaded, metadata = load_keyframe_segmenter_checkpoint(checkpoint_path, device=torch.device("cpu"))
 
-    assert isinstance(loaded, MultiScaleDepthwiseUNet2D)
+    assert isinstance(loaded, NestedSkipUNet2D)
     assert metadata["model_id"] == "candidate_round_trip"
-    assert metadata["model_config"]["architecture"] == "multiscale_depthwise_unet"
+    assert metadata["model_config"]["architecture"] == "nested_skip_unet"
 
 
 def test_unknown_candidate_architecture_fails_closed() -> None:
@@ -77,6 +81,8 @@ def test_unknown_candidate_architecture_fails_closed() -> None:
 @pytest.mark.parametrize(
     "family",
     [
+        "plain_unet_keyframe_segmenter",
+        "nested_skip_unet_keyframe_segmenter",
         "residual_attention_unet_keyframe_segmenter",
         "multiscale_depthwise_unet_keyframe_segmenter",
     ],

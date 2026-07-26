@@ -14,6 +14,7 @@ torchvision>=0.15
 timm>=0.9
 grad-cam>=1.4
 gradio>=4.0
+pyinstaller>=6.10,<7
 fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30,<1.0
 pydantic>=2.7,<3.0

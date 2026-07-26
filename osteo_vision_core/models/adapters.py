@@ -1084,6 +1084,8 @@ ADAPTER_CLASSES = {
     "fluorescence_hotspot_segmenter": FluorescenceHotspotSegmenterAdapter,
     "convnext2d_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
     "residual_attention_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
+    "plain_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
+    "nested_skip_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
     "multiscale_depthwise_unet_keyframe_segmenter": ConvNeXt2DKeyframeSegmenterAdapter,
     "dual_channel_segmenter": DualChannelSegmenterAdapter,
     "patient_conditioned_segmenter": PatientConditionedSegmenterAdapter,

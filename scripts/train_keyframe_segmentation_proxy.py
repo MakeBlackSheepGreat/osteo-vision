@@ -447,6 +447,8 @@ def model_config_for_initialization(
 def model_family_for_architecture(architecture: str) -> str:
     families = {
         "convnext_unet": "convnext2d_keyframe_segmenter",
+        "plain_unet": "plain_unet_keyframe_segmenter",
+        "nested_skip_unet": "nested_skip_unet_keyframe_segmenter",
         "residual_attention_unet": "residual_attention_unet_keyframe_segmenter",
         "multiscale_depthwise_unet": "multiscale_depthwise_unet_keyframe_segmenter",
     }
@@ -1009,7 +1011,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--architecture",
         default="convnext_unet",
-        choices=("convnext_unet", "residual_attention_unet", "multiscale_depthwise_unet"),
+        choices=(
+            "convnext_unet",
+            "plain_unet",
+            "nested_skip_unet",
+            "residual_attention_unet",
+            "multiscale_depthwise_unet",
+        ),
     )
     parser.add_argument("--base-channels", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=1e-3)

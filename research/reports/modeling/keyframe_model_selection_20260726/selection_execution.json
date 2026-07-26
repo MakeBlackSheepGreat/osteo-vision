@@ -1,0 +1,138 @@
+{
+  "config_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\configs\\training\\keyframe_model_selection_20260726.yml",
+  "selection_root": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726",
+  "runs": [
+    {
+      "model_id": "keyframe_convnext_unet_s20260726",
+      "architecture": "convnext_unet",
+      "seed": 20260726,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_convnext_unet_s20260726_20260726.pt",
+      "validation_threshold": 0.65,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_convnext_unet_s20260726_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_convnext_unet_s20260726_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_plain_unet_s20260726_20260726",
+      "architecture": "plain_unet",
+      "seed": 20260726,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_plain_unet_s20260726_20260726.pt",
+      "validation_threshold": 0.5,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260726_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260726_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_plain_unet_s20260726_20260727",
+      "architecture": "plain_unet",
+      "seed": 20260727,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_plain_unet_s20260726_20260727.pt",
+      "validation_threshold": 0.4,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260727_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260727_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_plain_unet_s20260726_20260728",
+      "architecture": "plain_unet",
+      "seed": 20260728,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_plain_unet_s20260726_20260728.pt",
+      "validation_threshold": 0.5,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260728_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_plain_unet_s20260726_20260728_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_nested_skip_unet_s20260726_20260726",
+      "architecture": "nested_skip_unet",
+      "seed": 20260726,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_nested_skip_unet_s20260726_20260726.pt",
+      "validation_threshold": 0.6,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260726_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260726_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_nested_skip_unet_s20260726_20260727",
+      "architecture": "nested_skip_unet",
+      "seed": 20260727,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_nested_skip_unet_s20260726_20260727.pt",
+      "validation_threshold": 0.4,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260727_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260727_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_nested_skip_unet_s20260726_20260728",
+      "architecture": "nested_skip_unet",
+      "seed": 20260728,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_nested_skip_unet_s20260726_20260728.pt",
+      "validation_threshold": 0.65,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260728_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_nested_skip_unet_s20260726_20260728_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_residual_attention_unet_s20260726_20260726",
+      "architecture": "residual_attention_unet",
+      "seed": 20260726,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260726_20260726.pt",
+      "validation_threshold": 0.55,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260726_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260726_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_residual_attention_unet_s20260726_20260727",
+      "architecture": "residual_attention_unet",
+      "seed": 20260727,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260726_20260727.pt",
+      "validation_threshold": 0.35,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260727_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260727_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_residual_attention_unet_s20260726_20260728",
+      "architecture": "residual_attention_unet",
+      "seed": 20260728,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260726_20260728.pt",
+      "validation_threshold": 0.6,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_residual_attention_unet_s20260726_20260728_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_multiscale_depthwise_unet_s20260726_20260726",
+      "architecture": "multiscale_depthwise_unet",
+      "seed": 20260726,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_s20260726_20260726.pt",
+      "validation_threshold": 0.5,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260726_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260726_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_multiscale_depthwise_unet_s20260726_20260727",
+      "architecture": "multiscale_depthwise_unet",
+      "seed": 20260727,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_s20260726_20260727.pt",
+      "validation_threshold": 0.5,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260727_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260727_test\\keyframe_threshold_eval.json"
+    },
+    {
+      "model_id": "keyframe_multiscale_depthwise_unet_s20260726_20260728",
+      "architecture": "multiscale_depthwise_unet",
+      "seed": 20260728,
+      "checkpoint_path": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_multiscale_depthwise_unet_s20260726_20260728.pt",
+      "validation_threshold": 0.65,
+      "validation_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260728_val\\keyframe_threshold_eval.json",
+      "test_report": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_multiscale_depthwise_unet_s20260726_20260728_test\\keyframe_threshold_eval.json"
+    }
+  ],
+  "summary": {
+    "json": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_model_selection_summary_20260726.json",
+    "csv": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_20260726\\keyframe_model_selection_summary_20260726.csv",
+    "zh": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_summary_20260726_zh.md",
+    "en": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\research\\reports\\modeling\\keyframe_model_selection_summary_20260726_en.md"
+  },
+  "recommendation": {
+    "selected_family": "residual_attention_unet_keyframe_segmenter",
+    "selected_checkpoint": "C:\\Users\\876762330\\Desktop\\projects\\osteo-vision\\artifacts\\checkpoints\\osteo_vision\\keyframe_residual_attention_unet_s20260726_20260727.pt",
+    "selected_model_id": "keyframe_residual_attention_unet_s20260726_20260727",
+    "selected_threshold": 0.35,
+    "runtime_replacement_allowed": false,
+    "next_gate": "strict_4k_tiled_runtime_and_competition_flow_validation",
+    "reason": "multi_seed_accuracy_and_safety_gates_passed; checkpoint chosen by validation Dice"
+  }
+}

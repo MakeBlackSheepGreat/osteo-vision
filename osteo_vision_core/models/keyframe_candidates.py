@@ -58,6 +58,89 @@ class AttentionGate2D(nn.Module):
         return skip * weights
 
 
+class PlainConvBlock2D(nn.Module):
+    """Conventional U-Net block used as a lightweight architecture reference."""
+
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__()
+        groups = _group_count(out_channels)
+        self.body = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1, bias=False),
+            nn.GroupNorm(groups, out_channels),
+            nn.SiLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1, bias=False),
+            nn.GroupNorm(groups, out_channels),
+            nn.SiLU(inplace=True),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.body(x)
+
+
+class PlainUNet2D(nn.Module):
+    """Plain 2D U-Net reference without residual or attention modules."""
+
+    def __init__(self, in_channels: int = 3, out_channels: int = 2, base_channels: int = 12) -> None:
+        super().__init__()
+        c1, c2, c3 = base_channels, base_channels * 2, base_channels * 4
+        self.enc0 = PlainConvBlock2D(in_channels, c1)
+        self.down1 = nn.Conv2d(c1, c2, 3, stride=2, padding=1, bias=False)
+        self.enc1 = PlainConvBlock2D(c2, c2)
+        self.down2 = nn.Conv2d(c2, c3, 3, stride=2, padding=1, bias=False)
+        self.bottleneck = PlainConvBlock2D(c3, c3)
+        self.dec1 = PlainConvBlock2D(c3 + c2, c2)
+        self.dec0 = PlainConvBlock2D(c2 + c1, c1)
+        self.head = nn.Conv2d(c1, out_channels, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x0 = self.enc0(x)
+        x1 = self.enc1(self.down1(x0))
+        x2 = self.bottleneck(self.down2(x1))
+        y1 = F.interpolate(x2, size=x1.shape[2:], mode="bilinear", align_corners=False)
+        y1 = self.dec1(torch.cat([y1, x1], dim=1))
+        y0 = F.interpolate(y1, size=x0.shape[2:], mode="bilinear", align_corners=False)
+        return self.head(self.dec0(torch.cat([y0, x0], dim=1)))
+
+
+class NestedSkipUNet2D(nn.Module):
+    """Compact U-Net++-style reference with dense decoder skip paths."""
+
+    def __init__(self, in_channels: int = 3, out_channels: int = 2, base_channels: int = 12) -> None:
+        super().__init__()
+        c1, c2, c3 = base_channels, base_channels * 2, base_channels * 4
+        self.x0_0 = PlainConvBlock2D(in_channels, c1)
+        self.down1 = nn.Conv2d(c1, c2, 3, stride=2, padding=1, bias=False)
+        self.x1_0 = PlainConvBlock2D(c2, c2)
+        self.down2 = nn.Conv2d(c2, c3, 3, stride=2, padding=1, bias=False)
+        self.x2_0 = PlainConvBlock2D(c3, c3)
+        self.x0_1 = PlainConvBlock2D(c1 + c2, c1)
+        self.x1_1 = PlainConvBlock2D(c2 + c3, c2)
+        self.x0_2 = PlainConvBlock2D(c1 + c1 + c2, c1)
+        self.head = nn.Conv2d(c1, out_channels, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x0_0 = self.x0_0(x)
+        x1_0 = self.x1_0(self.down1(x0_0))
+        x2_0 = self.x2_0(self.down2(x1_0))
+        x0_1 = self.x0_1(
+            torch.cat([x0_0, F.interpolate(x1_0, size=x0_0.shape[2:], mode="bilinear", align_corners=False)], dim=1)
+        )
+        x1_1 = self.x1_1(
+            torch.cat([x1_0, F.interpolate(x2_0, size=x1_0.shape[2:], mode="bilinear", align_corners=False)], dim=1)
+        )
+        x0_2 = self.x0_2(
+            torch.cat(
+                [
+                    x0_0,
+                    x0_1,
+                    F.interpolate(x1_1, size=x0_0.shape[2:], mode="bilinear", align_corners=False),
+                ],
+                dim=1,
+            )
+        )
+        return self.head(x0_2)
+
+
 class ResidualAttentionUNet2D(nn.Module):
     """Residual U-Net with channel and skip attention for keyframe masks."""
 
@@ -183,6 +266,10 @@ def build_candidate_keyframe_segmenter(config: dict[str, Any]) -> nn.Module:
     }
     if architecture == "residual_attention_unet":
         return ResidualAttentionUNet2D(**kwargs)
+    if architecture == "plain_unet":
+        return PlainUNet2D(**kwargs)
+    if architecture == "nested_skip_unet":
+        return NestedSkipUNet2D(**kwargs)
     if architecture == "multiscale_depthwise_unet":
         return MultiScaleDepthwiseUNet2D(**kwargs)
     raise ValueError(f"Unsupported candidate keyframe architecture: {architecture}")

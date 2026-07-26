@@ -1,0 +1,39 @@
+# 2D Keyframe Segmentation Threshold Sweep
+
+## Summary
+
+- Checkpoint: `C:\Users\876762330\Desktop\projects\osteo-vision\artifacts\checkpoints\osteo_vision\keyframe_nested_skip_unet_s20260726_20260728.pt`
+- Manifests: 1; split: `test`; samples: 72.
+- Recommended runtime threshold: `0.65`; reason: `fixed_threshold_from_validation`.
+- Recommended Dice: 0.9132; IoU: 0.8419.
+- Precision: 0.9258; recall: 0.9048.
+- Empty-mask rate: 0.0000; over-segmentation rate: 0.0000.
+- Per-frame latency: 2.3690 ms; P95: 3.0128 ms; peak GPU memory: 27.0381 MB.
+
+## Threshold Table
+
+| Threshold | Recommended | Dice | IoU | Precision | Recall | Pred Pos Mean | Empty Rate | OverSeg Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.1 | False | 0.8795 | 0.7855 | 0.8011 | 0.9779 | 0.1352 | 0.0000 | 0.0000 |
+| 0.15 | False | 0.8907 | 0.8036 | 0.8253 | 0.9707 | 0.1302 | 0.0000 | 0.0000 |
+| 0.2 | False | 0.8980 | 0.8155 | 0.8426 | 0.9645 | 0.1267 | 0.0000 | 0.0000 |
+| 0.25 | False | 0.9028 | 0.8235 | 0.8561 | 0.9583 | 0.1238 | 0.0000 | 0.0000 |
+| 0.3 | False | 0.9065 | 0.8298 | 0.8677 | 0.9525 | 0.1214 | 0.0000 | 0.0000 |
+| 0.35 | False | 0.9094 | 0.8347 | 0.8778 | 0.9468 | 0.1192 | 0.0000 | 0.0000 |
+| 0.4 | False | 0.9112 | 0.8379 | 0.8868 | 0.9406 | 0.1172 | 0.0000 | 0.0000 |
+| 0.45 | False | 0.9128 | 0.8406 | 0.8954 | 0.9346 | 0.1153 | 0.0000 | 0.0000 |
+| 0.5 | False | 0.9138 | 0.8424 | 0.9034 | 0.9281 | 0.1134 | 0.0000 | 0.0000 |
+| 0.55 | False | 0.9142 | 0.8432 | 0.9110 | 0.9211 | 0.1116 | 0.0000 | 0.0000 |
+| 0.6 | False | 0.9140 | 0.8430 | 0.9185 | 0.9133 | 0.1097 | 0.0000 | 0.0000 |
+| 0.65 | True | 0.9132 | 0.8419 | 0.9258 | 0.9048 | 0.1078 | 0.0000 | 0.0000 |
+| 0.7 | False | 0.9118 | 0.8397 | 0.9334 | 0.8952 | 0.1057 | 0.0000 | 0.0000 |
+| 0.75 | False | 0.9092 | 0.8354 | 0.9413 | 0.8831 | 0.1034 | 0.0000 | 0.0000 |
+| 0.8 | False | 0.9050 | 0.8287 | 0.9497 | 0.8684 | 0.1007 | 0.0000 | 0.0000 |
+| 0.85 | False | 0.8981 | 0.8176 | 0.9591 | 0.8484 | 0.0974 | 0.0000 | 0.0000 |
+| 0.9 | False | 0.8852 | 0.7969 | 0.9698 | 0.8183 | 0.0928 | 0.0000 | 0.0000 |
+| 0.95 | False | 0.8540 | 0.7485 | 0.9838 | 0.7584 | 0.0847 | 0.0000 | 0.0000 |
+
+## Medical Boundary
+
+Threshold metrics are computed against pseudo masks from public/proxy keyframes only. Clinical performance on intraoperative ICG jaw osteomyelitis remains unmeasured.
+ICG mainly reflects perfusion and tissue-activity differences. This report supports MP4/JPEG keyframe segmentation stability tuning only.
