@@ -3,10 +3,15 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
 from backend.osteo_vision_api.domains.cases.enums import InputChannel
 from backend.osteo_vision_api.domains.cases.schemas import CaseInputAsset
-from backend.osteo_vision_api.services.three_d_evidence import build_three_d_evidence, three_d_evidence_summary
+from backend.osteo_vision_api.services.three_d_evidence import (
+    _validate_transform_file,
+    build_three_d_evidence,
+    three_d_evidence_summary,
+)
 
 
 def _write_transform(path: Path, matrix: list[list[float]] | None = None) -> str:
@@ -168,6 +173,33 @@ def test_three_d_evidence_rejects_missing_or_tampered_transform(tmp_path: Path) 
     assert evidence["navigation_ready"] is False
     assert evidence["navigation_level"] == "L0"
     assert "transform_sha256_mismatch" in evidence["failure_reasons"]
+
+
+def test_transform_validation_reuses_one_file_read_for_hash_and_matrix(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    transform_path = tmp_path / "transform.json"
+    transform_sha256 = _write_transform(transform_path)
+    original_read_bytes = Path.read_bytes
+    reads = 0
+
+    def tracked_read_bytes(path: Path) -> bytes:
+        nonlocal reads
+        if path == transform_path:
+            reads += 1
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", tracked_read_bytes)
+
+    validation = _validate_transform_file(
+        transform_path=str(transform_path),
+        expected_sha256=transform_sha256,
+        declared_format="json",
+    )
+
+    assert validation["valid"] is True
+    assert reads == 1
 
 
 def test_three_d_evidence_rejects_invalid_matrix_and_chain(tmp_path: Path) -> None:

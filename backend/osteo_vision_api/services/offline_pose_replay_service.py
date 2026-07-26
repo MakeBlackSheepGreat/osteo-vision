@@ -1702,7 +1702,7 @@ def _render_overlay_video(
     try:
         for replay_frame in replay_frames:
             ok, frame = capture.read()
-            if not ok:
+            if not ok or frame is None:
                 raise OfflinePoseReplayRequestError(
                     "overlay_source_ended_early",
                     "Overlay source MP4 ended before all replay frames were rendered.",
@@ -1714,11 +1714,12 @@ def _render_overlay_video(
                 )
             rendered = frame.copy()
             points = replay_frame.projected_points_px
+            visible: list[tuple[int, int]] = []
             for x, y in points:
                 pixel = (int(round(x)), int(round(y)))
                 if 0 <= pixel[0] < width and 0 <= pixel[1] < height:
+                    visible.append(pixel)
                     cv2.circle(rendered, pixel, 5, (0, 255, 255), 2, lineType=cv2.LINE_AA)
-            visible = [(int(round(x)), int(round(y))) for x, y in points if 0 <= x < width and 0 <= y < height]
             if len(visible) >= 2:
                 cv2.polylines(
                     rendered,
@@ -1740,8 +1741,8 @@ def _render_overlay_video(
             )
             writer.write(rendered)
             written += 1
-        extra_frame, _ = capture.read()
-        if extra_frame:
+        extra_ok, _ = capture.read()
+        if extra_ok:
             raise OfflinePoseReplayRequestError(
                 "overlay_frame_count_mismatch",
                 "Overlay source MP4 contains frames without replay evidence.",

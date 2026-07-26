@@ -790,21 +790,23 @@ class ReviewService:
         return updated
 
     def _review_summary(self, case: CaseRecord) -> dict[str, object]:
-        accepted = sum(1 for roi in case.rois if roi.review_state == ReviewState.ACCEPTED)
-        modified = sum(1 for roi in case.rois if roi.review_state == ReviewState.MODIFIED)
-        rejected = sum(1 for roi in case.rois if roi.review_state == ReviewState.REJECTED)
-        candidates = [candidate for run in case.analysis_runs for candidate in run.candidate_regions]
-        candidate_accepted = sum(1 for candidate in candidates if candidate.status == ReviewState.ACCEPTED)
-        candidate_modified = sum(1 for candidate in candidates if candidate.status == ReviewState.MODIFIED)
-        candidate_rejected = sum(1 for candidate in candidates if candidate.status == ReviewState.REJECTED)
+        region_counts = {state: 0 for state in (ReviewState.ACCEPTED, ReviewState.MODIFIED, ReviewState.REJECTED)}
+        for roi in case.rois:
+            if roi.review_state in region_counts:
+                region_counts[roi.review_state] += 1
+        candidate_counts = {state: 0 for state in (ReviewState.ACCEPTED, ReviewState.MODIFIED, ReviewState.REJECTED)}
+        for run in case.analysis_runs:
+            for candidate in run.candidate_regions:
+                if candidate.status in candidate_counts:
+                    candidate_counts[candidate.status] += 1
         return {
             **case.review_summary,
-            "accepted_regions": accepted,
-            "modified_regions": modified,
-            "rejected_regions": rejected,
-            "accepted_candidates": candidate_accepted,
-            "modified_candidates": candidate_modified,
-            "rejected_candidates": candidate_rejected,
+            "accepted_regions": region_counts[ReviewState.ACCEPTED],
+            "modified_regions": region_counts[ReviewState.MODIFIED],
+            "rejected_regions": region_counts[ReviewState.REJECTED],
+            "accepted_candidates": candidate_counts[ReviewState.ACCEPTED],
+            "modified_candidates": candidate_counts[ReviewState.MODIFIED],
+            "rejected_candidates": candidate_counts[ReviewState.REJECTED],
             "total_review_events": len(case.review_events),
             "status": case.status,
         }

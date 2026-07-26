@@ -174,14 +174,14 @@ class StandardDemoCaseService:
         return self.repo.save(case.model_copy(update={"review_summary": summary}))
 
     def _selected_video_candidate(self) -> dict[str, Any] | None:
-        candidates = self.video_library.list_candidates(accepted_only=True, limit=500).get("items", [])
-        readable = [item for item in candidates if isinstance(item, dict) and item.get("system_readable")]
-        if not readable:
-            return None
-        return next(
-            (item for item in readable if item.get("record_id") == STANDARD_DEMO_VIDEO_RECORD_ID),
-            readable[0],
-        )
+        preferred = self.video_library.get_candidate(STANDARD_DEMO_VIDEO_RECORD_ID)
+        if isinstance(preferred, dict) and preferred.get("system_readable"):
+            return preferred
+        candidates = self.video_library.list_candidates(accepted_only=True, limit=1).get("items", [])
+        for candidate in candidates:
+            if isinstance(candidate, dict) and candidate.get("system_readable"):
+                return candidate
+        return None
 
     @staticmethod
     def _video_input(candidate: dict[str, Any]) -> InputCreateRequest:

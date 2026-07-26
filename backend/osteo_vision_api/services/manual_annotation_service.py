@@ -798,13 +798,19 @@ class ManualAnnotationService:
             if asset is None:
                 raise AnnotationValidationError("case JPEG input was not found")
             descriptor = self._descriptor_for_case_jpeg(case, asset)
-            return descriptor, _readable_image_path(asset.path)
+            return descriptor, Path(descriptor.source_path)
 
         if request.source_type == AnnotationSourceType.VIDEO_KEYFRAME:
             run = _find_run(case, request.run_id)
             frame = _find_frame(run, request.frame_index)
             source_path = _frame_image_path(frame)
-            descriptor = self._descriptor_for_frame(case, run, frame, source_path)
+            descriptor = self._descriptor_for_frame(
+                case,
+                run,
+                frame,
+                source_path,
+                video=_run_video_asset(case, run),
+            )
             if request.input_id and descriptor.input_id != request.input_id:
                 raise AnnotationValidationError("video keyframe input_id does not match the analysis run source")
             return descriptor, source_path
@@ -816,7 +822,13 @@ class ManualAnnotationService:
             candidate_path = _frame_image_path(frame)
         if candidate_path is None:
             raise AnnotationValidationError("model candidate has no readable source image")
-        descriptor = self._descriptor_for_candidate(case, run, candidate, candidate_path)
+        descriptor = self._descriptor_for_candidate(
+            case,
+            run,
+            candidate,
+            candidate_path,
+            video=_run_video_asset(case, run),
+        )
         return descriptor, candidate_path
 
     def _descriptor_for_case_jpeg(self, case: CaseRecord, asset: CaseInputAsset) -> AnnotationSourceDescriptor:
@@ -842,6 +854,7 @@ class ManualAnnotationService:
 
     def _descriptors_for_run(self, case: CaseRecord, run: AnalysisRun) -> list[AnnotationSourceDescriptor]:
         descriptors: list[AnnotationSourceDescriptor] = []
+        video = _run_video_asset(case, run)
         frames = run.fused_outputs.get("frame_details") or run.fused_outputs.get("keyframes") or []
         if isinstance(frames, list):
             for frame in frames:
@@ -849,16 +862,25 @@ class ManualAnnotationService:
                     continue
                 try:
                     path = _frame_image_path(frame)
-                    descriptors.append(self._descriptor_for_frame(case, run, frame, path))
+                    descriptors.append(self._descriptor_for_frame(case, run, frame, path, video=video))
                 except AnnotationValidationError:
                     continue
+        frame_index_lookup: dict[int, dict[str, Any]] | None = None
         for candidate in run.candidate_regions:
             try:
                 candidate_path = _candidate_image_path(candidate)
-                if candidate_path is None and candidate.metadata.get("frame_index") is not None:
-                    candidate_path = _frame_image_path(_find_frame(run, int(candidate.metadata["frame_index"])))
+                frame_index = _optional_int(candidate.metadata.get("frame_index"))
+                if candidate_path is None and frame_index is not None:
+                    if frame_index_lookup is None:
+                        frame_index_lookup = _frame_index_lookup(run)
+                    frame = frame_index_lookup.get(frame_index)
+                    if frame is None:
+                        raise AnnotationValidationError("video keyframe was not found in the selected analysis run")
+                    candidate_path = _frame_image_path(frame)
                 if candidate_path is not None:
-                    descriptors.append(self._descriptor_for_candidate(case, run, candidate, candidate_path))
+                    descriptors.append(
+                        self._descriptor_for_candidate(case, run, candidate, candidate_path, video=video)
+                    )
             except AnnotationValidationError:
                 continue
         return descriptors
@@ -869,12 +891,13 @@ class ManualAnnotationService:
         run: AnalysisRun,
         frame: dict[str, Any],
         path: Path,
+        *,
+        video: CaseInputAsset | None,
     ) -> AnnotationSourceDescriptor:
         width, height = _image_size(path)
         checksum = checksum_for_file(path)
         frame_index = int(frame["frame_index"])
         preview = self._ensure_source_preview(case.case_id, f"run_{run.run_id}_frame_{frame_index}", path, checksum)
-        video = _run_video_asset(case, run)
         return AnnotationSourceDescriptor(
             source_key=f"video_keyframe:{run.run_id}:{frame_index}",
             source_id=f"video_keyframe:{run.run_id}:{frame_index}",
@@ -899,11 +922,12 @@ class ManualAnnotationService:
         run: AnalysisRun,
         candidate: CandidateRegion,
         path: Path,
+        *,
+        video: CaseInputAsset | None,
     ) -> AnnotationSourceDescriptor:
         width, height = _image_size(path)
         checksum = checksum_for_file(path)
         preview = self._ensure_source_preview(case.case_id, f"candidate_{candidate.candidate_id}", path, checksum)
-        video = _run_video_asset(case, run)
         label_hint = _candidate_label_hint(candidate)
         return AnnotationSourceDescriptor(
             source_key=f"model_candidate:{candidate.candidate_id}",
@@ -1270,6 +1294,21 @@ def _find_frame(run: AnalysisRun, frame_index: int | None) -> dict[str, Any]:
             if isinstance(item, dict) and _optional_int(item.get("frame_index")) == frame_index:
                 return item
     raise AnnotationValidationError("video keyframe was not found in the selected analysis run")
+
+
+def _frame_index_lookup(run: AnalysisRun) -> dict[int, dict[str, Any]]:
+    lookup: dict[int, dict[str, Any]] = {}
+    for key in ("frame_details", "keyframes", "hotspot_outputs"):
+        items = run.fused_outputs.get(key)
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            frame_index = _optional_int(item.get("frame_index"))
+            if frame_index is not None:
+                lookup.setdefault(frame_index, item)
+    return lookup
 
 
 def _find_candidate(
