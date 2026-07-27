@@ -11,7 +11,7 @@
         :class="{
           active: streamActive,
           'has-file-video': fileVideoActive,
-          'has-live-overlay': Boolean(liveOverlaySrc),
+          'has-live-overlay': Boolean(liveOverlaySrc) && !hasLiveInference,
           'is-empty': !streamActive,
         }"
       >
@@ -33,12 +33,12 @@
           @ended="emit('playbackEnded')"
         ></video>
         <img
-          v-if="liveOverlaySrc"
+          v-if="liveOverlaySrc && !hasLiveInference"
           class="live-segmentation-overlay"
           :src="liveOverlaySrc"
           alt="当前实时分割叠加"
         />
-        <div v-if="liveFrameStatus" class="live-frame-status" aria-live="polite">
+        <div v-if="liveFrameStatus && !hasLiveInference" class="live-frame-status" aria-live="polite">
           <strong>{{ liveFrameStatus }}</strong>
           <span v-if="liveModelLatencyMs !== null">模型 {{ Math.round(liveModelLatencyMs) }} ms</span>
           <span v-if="liveEndToEndLatencyMs !== null">端到端 {{ Math.round(liveEndToEndLatencyMs) }} ms</span>
@@ -49,6 +49,24 @@
         </div>
       </div>
       <p>{{ streamFooterLabel }}</p>
+    </article>
+
+    <article v-if="hasLiveInference" class="analysis-quad-card analysis-quad-card--inference">
+      <header>
+        <AppIcon name="target" />
+        <span>AI 逐帧连续推理</span>
+        <strong class="active">连续刷新</strong>
+      </header>
+      <div class="analysis-quad-viewport output-viewport inference-output-viewport">
+        <InferenceViewSwitcher
+          :sources="effectiveLiveInferenceViewSources"
+          source-mode="continuous"
+          :status-label="liveFrameStatus || '正在刷新当前帧'"
+        />
+      </div>
+      <div class="preview-panel-meta">
+        <p>{{ liveInferenceFooterLabel }}</p>
+      </div>
     </article>
 
     <article v-for="panel in visiblePanels" :key="panel.title" class="analysis-quad-card">
@@ -103,6 +121,8 @@ import { computed, nextTick, ref, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import type { AnalysisPreviewPanel, VideoPlaybackAnalysis } from "@/components/analysisPreview";
 import type { AppIconName } from "@/components/appIcons";
+import InferenceViewSwitcher from "@/components/InferenceViewSwitcher.vue";
+import type { InferenceViewSources } from "@/components/inferenceViews";
 import {
   captureVideoFrameAsJpeg,
   LIVE_FRAME_JPEG_QUALITY,
@@ -121,6 +141,7 @@ const props = withDefaults(
     playbackSeekTimeSec?: number | null;
     playbackSeekToken?: number;
     liveOverlaySrc?: string;
+    liveInferenceViewSources?: InferenceViewSources;
     liveFrameStatus?: string;
     liveModelLatencyMs?: number | null;
     liveEndToEndLatencyMs?: number | null;
@@ -133,6 +154,7 @@ const props = withDefaults(
     playbackSeekToken: 0,
     fullscreen: false,
     liveOverlaySrc: "",
+    liveInferenceViewSources: () => ({}),
     liveFrameStatus: "",
     liveModelLatencyMs: null,
     liveEndToEndLatencyMs: null,
@@ -153,9 +175,17 @@ const playbackVideoRef = ref<HTMLVideoElement | null>(null);
 // 文件视频与摄像头共用同一主视口，由页面层传入当前选中的互斥输入源。
 const fileVideoActive = computed(() => Boolean(props.videoPlayback?.videoSrc));
 const streamActive = computed(() => props.cameraActive || fileVideoActive.value);
-const visiblePanels = computed(() => props.panels.slice(0, 3));
+const effectiveLiveInferenceViewSources = computed<InferenceViewSources>(() => ({
+  ...props.liveInferenceViewSources,
+  signal: props.liveInferenceViewSources.signal || props.liveOverlaySrc,
+}));
+const hasLiveInference = computed(() => Object.values(effectiveLiveInferenceViewSources.value).some(Boolean));
+const visiblePanels = computed(() => props.panels.slice(0, hasLiveInference.value ? 2 : 3));
 const hasVisualContent = computed(
-  () => streamActive.value || Boolean(props.liveOverlaySrc) || visiblePanels.value.some((panel) => Boolean(panel.previewSrc)),
+  () =>
+    streamActive.value
+    || hasLiveInference.value
+    || visiblePanels.value.some((panel) => Boolean(panel.previewSrc)),
 );
 const hasOutputVisualContent = computed(() => visiblePanels.value.some((panel) => Boolean(panel.previewSrc)));
 const gridClass = computed(() => [
@@ -178,6 +208,13 @@ const streamFooterLabel = computed(() => {
     return `${formatPlaybackTime(props.currentPlaybackTime)} / ${formatPlaybackTime(props.playbackDuration)} · ${props.videoPlayback.sourceLabel}`;
   }
   return props.cameraStatusLabel;
+});
+const liveInferenceFooterLabel = computed(() => {
+  const model = props.liveModelLatencyMs === null ? "模型耗时待记录" : `模型 ${Math.round(props.liveModelLatencyMs)} ms`;
+  const total = props.liveEndToEndLatencyMs === null
+    ? "端到端耗时待记录"
+    : `端到端 ${Math.round(props.liveEndToEndLatencyMs)} ms`;
+  return `${model} / ${total} / 医生复核必需`;
 });
 
 watch(

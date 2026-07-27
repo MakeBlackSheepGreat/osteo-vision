@@ -8,8 +8,10 @@ describe("analysis quad grid layout", () => {
     const source = readFileSync(resolve(process.cwd(), "src/components/AnalysisQuadGrid.vue"), "utf8");
     const pageSource = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
 
-    expect(source).toContain("const visiblePanels = computed(() => props.panels.slice(0, 3));");
+    expect(source).toContain("props.panels.slice(0, hasLiveInference.value ? 2 : 3)");
     expect(source).toContain('v-for="panel in visiblePanels"');
+    expect(source).toContain("AI 逐帧连续推理");
+    expect(source).toContain('source-mode="continuous"');
     expect(pageSource).toContain("].slice(0, 3).map((panel) => ({ ...panel, overlays }));");
     expect(pageSource).toContain('activeAnalysisVideoMode.value === "paired_videos"');
     expect(pageSource).toContain('"双通道配准融合"');
@@ -70,7 +72,7 @@ describe("analysis quad grid layout", () => {
       "utf8",
     );
     expect(multichannelSource).toMatch(
-      /\.media-viewport video,[\s\S]*?width:\s*auto;[\s\S]*?height:\s*auto;[\s\S]*?max-width:\s*100%;[\s\S]*?max-height:\s*100%;[\s\S]*?object-fit:\s*contain;/,
+      /\.media-viewport video,[\s\S]*?inset:\s*0;[\s\S]*?width:\s*100%;[\s\S]*?height:\s*100%;[\s\S]*?max-width:\s*100%;[\s\S]*?max-height:\s*100%;[\s\S]*?object-fit:\s*contain;/,
     );
   });
 });

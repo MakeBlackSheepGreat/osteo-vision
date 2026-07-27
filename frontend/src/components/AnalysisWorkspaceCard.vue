@@ -67,13 +67,18 @@
       :channel-paths="multichannelChannelPaths"
       :task2-result="multichannelTask2Result"
       :ai-preview-src="multichannelAiPreviewSrc"
+      :ai-view-sources="multichannelAiViewSources"
+      :live-frame-record="multichannelLiveFrameRecord"
       :live-fusion-src="multichannelLiveFusionSrc"
       :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
       :live-fusion-status="multichannelLiveFusionStatus"
-      :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled"
+      :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && !analysisExpanded"
       :realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
       :live-overlay-src="liveOverlaySrc"
+      :live-inference-view-sources="liveInferenceViewSources"
       :live-frame-status="liveFrameStatus"
+      :white-camera-stream="multichannelWhiteCameraStream"
+      :fluorescence-camera-stream="multichannelFluorescenceCameraStream"
       @live-frame="emit('multichannelLiveFrame', $event)"
     />
     <AnalysisQuadGrid
@@ -89,6 +94,7 @@
       :playback-seek-time-sec="playbackSeekTimeSec"
       :playback-seek-token="playbackSeekToken"
       :live-overlay-src="liveOverlaySrc"
+      :live-inference-view-sources="liveInferenceViewSources"
       :live-frame-status="liveFrameStatus"
       :live-model-latency-ms="liveModelLatencyMs"
       :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
@@ -100,7 +106,7 @@
     />
 
     <VideoStreamSyncPanel
-      v-if="videoPlayback"
+      v-if="showVideoArtifacts && videoPlayback"
       :video-playback="videoPlayback"
       :nearest-frame-detail="nearestPlaybackFrameDetail"
       :loading="loading"
@@ -114,9 +120,9 @@
       @edit-bone-gate="openBoneGateEditorForNearestFrame"
     />
 
-    <AnalysisFusionEvidencePanel v-if="fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
+    <AnalysisFusionEvidencePanel v-if="showVideoArtifacts && fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
 
-    <section v-if="hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
+    <section v-if="showVideoArtifacts && hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
       <header>
         <AppIcon name="video" />
         <strong>MP4 分割时间轴</strong>
@@ -446,9 +452,21 @@
         :mode="videoMode"
         :session="multichannelSession"
         :channel-paths="multichannelChannelPaths"
-      :task2-result="multichannelTask2Result"
-      :ai-preview-src="multichannelAiPreviewSrc"
-      :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
+        :task2-result="multichannelTask2Result"
+        :ai-preview-src="multichannelAiPreviewSrc"
+        :ai-view-sources="multichannelAiViewSources"
+        :live-frame-record="multichannelLiveFrameRecord"
+        :live-fusion-src="multichannelLiveFusionSrc"
+        :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
+        :live-fusion-status="multichannelLiveFusionStatus"
+        :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && analysisExpanded"
+        :realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
+        :live-overlay-src="liveOverlaySrc"
+        :live-inference-view-sources="liveInferenceViewSources"
+        :live-frame-status="liveFrameStatus"
+        :white-camera-stream="multichannelWhiteCameraStream"
+        :fluorescence-camera-stream="multichannelFluorescenceCameraStream"
+        @live-frame="emit('multichannelLiveFrame', $event)"
       />
       <AnalysisQuadGrid
         v-else
@@ -463,6 +481,7 @@
         :playback-seek-time-sec="playbackSeekTimeSec"
         :playback-seek-token="playbackSeekToken"
         :live-overlay-src="liveOverlaySrc"
+        :live-inference-view-sources="liveInferenceViewSources"
         :live-frame-status="liveFrameStatus"
         :live-model-latency-ms="liveModelLatencyMs"
         :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
@@ -482,6 +501,7 @@ import AnalysisExportPanel from "@/components/AnalysisExportPanel.vue";
 import AnalysisFusionEvidencePanel from "@/components/AnalysisFusionEvidencePanel.vue";
 import AnalysisJobPanel from "@/components/AnalysisJobPanel.vue";
 import AnalysisQuadGrid from "@/components/AnalysisQuadGrid.vue";
+import type { InferenceViewSources } from "@/components/inferenceViews";
 import AppButton from "@/components/AppButton.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import BoneGateMaskEditor from "@/components/BoneGateMaskEditor.vue";
@@ -549,37 +569,51 @@ const props = withDefaults(
     cameraStatusLabel: string;
     analysisExpanded: boolean;
     liveOverlaySrc?: string;
+    liveInferenceViewSources?: InferenceViewSources;
     liveFrameStatus?: string;
     liveModelLatencyMs?: number | null;
     liveEndToEndLatencyMs?: number | null;
     videoMode?: MultichannelVideoMode;
     multichannelChannelPaths?: Partial<Record<MultichannelVideoRole, string>>;
     multichannelSession?: MultichannelVideoSession | null;
+    multichannelPreparing?: boolean;
     multichannelTask2Result?: Record<string, unknown> | null;
     multichannelAiPreviewSrc?: string;
+    multichannelAiViewSources?: InferenceViewSources;
+    multichannelLiveFrameRecord?: Record<string, unknown> | null;
     multichannelLiveFusionSrc?: string;
     multichannelLiveRegisteredFluorescenceSrc?: string;
     multichannelLiveFusionStatus?: string;
     multichannelRealtimeAnalysisEnabled?: boolean;
     multichannelRealtimeAnalysisBusy?: boolean;
+    multichannelWhiteCameraStream?: MediaStream | null;
+    multichannelFluorescenceCameraStream?: MediaStream | null;
+    showVideoArtifacts?: boolean;
   }>(),
   {
     activeAnalysisJobCanceling: false,
     boneGateCandidateFrameIndexes: () => [],
     liveOverlaySrc: "",
+    liveInferenceViewSources: () => ({}),
     liveFrameStatus: "",
     liveModelLatencyMs: null,
     liveEndToEndLatencyMs: null,
     videoMode: "single_video",
     multichannelChannelPaths: () => ({}),
     multichannelSession: null,
+    multichannelPreparing: false,
     multichannelTask2Result: null,
     multichannelAiPreviewSrc: "",
+    multichannelAiViewSources: () => ({}),
+    multichannelLiveFrameRecord: null,
     multichannelLiveFusionSrc: "",
     multichannelLiveRegisteredFluorescenceSrc: "",
     multichannelLiveFusionStatus: "",
     multichannelRealtimeAnalysisEnabled: false,
     multichannelRealtimeAnalysisBusy: false,
+    multichannelWhiteCameraStream: null,
+    multichannelFluorescenceCameraStream: null,
+    showVideoArtifacts: true,
   },
 );
 
@@ -634,25 +668,43 @@ const multichannelModeActive = computed(() => props.videoMode !== "single_video"
 const analysisTitle = computed(() => {
   if (props.videoMode === "paired_videos") return "双通道视频配准与融合";
   if (props.videoMode === "composite_layout") return "合成三视图拆分与分析";
+  if (props.videoMode === "browser_cameras") return "双通道摄像头实时配准与融合";
   return "术中影像与风险提示";
 });
 const displayRunStatusLabel = computed(() =>
-  multichannelModeActive.value && !props.multichannelSession ? "待准备" : props.latestRunStatusLabel,
+  multichannelModeActive.value && !props.multichannelSession
+    ? props.multichannelPreparing ? "准备中" : "等待重试"
+    : props.latestRunStatusLabel,
 );
 const displayAnalysisStatusClass = computed(() =>
-  multichannelModeActive.value && !props.multichannelSession ? "idle" : props.analysisStatusClass,
+  multichannelModeActive.value && !props.multichannelSession
+    ? props.multichannelPreparing ? "running" : "idle"
+    : props.analysisStatusClass,
 );
 const displayKpiItems = computed<AnalysisKpiItem[]>(() => {
   if (!multichannelModeActive.value || props.multichannelSession) return props.kpiItems;
   const channelCount = Object.values(props.multichannelChannelPaths).filter(Boolean).length;
+  const expectedChannelCount = props.videoMode === "composite_layout" ? 3 : channelCount;
   return [
     {
       label: "工作区",
-      value: props.videoMode === "composite_layout" ? "合成三视图" : "双通道视频",
+      value: props.videoMode === "composite_layout"
+        ? "合成三视图"
+        : props.videoMode === "browser_cameras"
+          ? "双通道摄像头"
+          : "双通道视频",
       icon: "video",
     },
-    { label: "已选通道", value: `${channelCount} 路`, icon: "layers" },
-    { label: "同步状态", value: "待准备", icon: "load" },
+    {
+      label: "已选通道",
+      value: channelCount ? `${channelCount} 路` : `${expectedChannelCount} 路待接入`,
+      icon: "layers",
+    },
+    {
+      label: "同步状态",
+      value: props.multichannelPreparing ? "自动准备中" : "等待重试",
+      icon: "load",
+    },
     { label: "分析状态", value: "未运行", icon: "document" },
   ];
 });

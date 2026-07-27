@@ -401,7 +401,7 @@ class Task2PairedSequenceManifest(BaseModel):
 class MultichannelVideoSessionCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    mode: Literal["single_video", "paired_videos", "composite_layout"]
+    mode: Literal["single_video", "paired_videos", "composite_layout", "browser_cameras"]
     video_input_id: str | None = Field(default=None, max_length=160)
     video_path: str | None = None
     white_light_input_id: str | None = Field(default=None, max_length=160)
@@ -435,6 +435,20 @@ class MultichannelVideoSessionCreateRequest(BaseModel):
                 raise ValueError("paired_videos requires a fluorescence video")
         if self.mode == "composite_layout" and not self.composite_record_id:
             raise ValueError("composite_layout requires composite_record_id")
+        if self.mode == "browser_cameras" and any(
+            (
+                self.video_input_id,
+                self.video_path,
+                self.white_light_input_id,
+                self.white_light_path,
+                self.fluorescence_input_id,
+                self.fluorescence_path,
+                self.device_overlay_input_id,
+                self.device_overlay_path,
+                self.composite_record_id,
+            )
+        ):
+            raise ValueError("browser_cameras does not accept file-backed inputs")
         return self
 
 
@@ -456,7 +470,7 @@ class MultichannelVideoSession(BaseModel):
     schema_version: Literal["osteo-vision-multichannel-video-session-v1"]
     session_id: str
     case_id: str
-    mode: Literal["single_video", "paired_videos", "composite_layout"]
+    mode: Literal["single_video", "paired_videos", "composite_layout", "browser_cameras"]
     status: Literal["ready", "degraded", "blocked"]
     analysis_allowed: bool
     channels: list[MultichannelVideoChannel] = Field(default_factory=list)

@@ -771,7 +771,7 @@ export interface VideoCandidateList {
   items: VideoCandidate[];
 }
 
-export type MultichannelVideoMode = "single_video" | "paired_videos" | "composite_layout";
+export type MultichannelVideoMode = "single_video" | "paired_videos" | "composite_layout" | "browser_cameras";
 export type MultichannelVideoRole = "video" | "white_light" | "fluorescence" | "device_overlay";
 
 export interface MultichannelVideoSessionCreateRequest {

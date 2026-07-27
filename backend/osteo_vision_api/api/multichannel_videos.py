@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -19,9 +21,10 @@ class RealtimeMultichannelFrameRequest(BaseModel):
     timestamp_sec: float = Field(ge=0.0, le=86_400.0)
     alpha: float = Field(default=0.45, ge=0.0, le=1.0)
     threshold: float = Field(default=0.6, ge=0.0, le=1.0)
-    colormap: str = Field(default="green", pattern="^(green|amber|magenta)$")
+    colormap: Literal["green", "amber", "magenta"] = "green"
     white_frame_base64: str | None = Field(default=None, max_length=3_000_000)
     fluorescence_frame_base64: str | None = Field(default=None, max_length=3_000_000)
+
 
 def router(repo: CaseRepository, service: MultichannelVideoService) -> APIRouter:
     api = APIRouter()

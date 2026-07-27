@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isDisplayableLiveFrame,
   isCurrentLiveFrameDisplay,
+  resolveLiveFrameDisplaySource,
   useContinuousCameraAnalysis,
 } from "../src/composables/useContinuousCameraAnalysis";
 import { ApiError, apiClient } from "../src/services/apiClient";
@@ -447,6 +448,36 @@ describe("continuous camera analysis", () => {
     expect(isDisplayableLiveFrame({ ...result, case_id: "case-2" }, identity, options)).toBe(false);
     expect(isCurrentLiveFrameDisplay({ ...result, captured_at: "2026-07-19T12:00:01.000Z" }, identity, identity, options)).toBe(false);
     expect(isDisplayableLiveFrame({ ...result, captured_at: "2026-07-19T12:00:01.000Z" }, identity, options)).toBe(false);
+  });
+
+  it("keeps multichannel MP4 and camera results displayable during continuous inference", () => {
+    expect(
+      resolveLiveFrameDisplaySource({
+        inputSource: "file",
+        cameraActive: false,
+        fileVideoActive: false,
+        multichannelModeActive: true,
+        multichannelRealtimeEnabled: true,
+      }),
+    ).toBe("video");
+    expect(
+      resolveLiveFrameDisplaySource({
+        inputSource: "camera",
+        cameraActive: true,
+        fileVideoActive: false,
+        multichannelModeActive: true,
+        multichannelRealtimeEnabled: true,
+      }),
+    ).toBe("camera");
+    expect(
+      resolveLiveFrameDisplaySource({
+        inputSource: "file",
+        cameraActive: false,
+        fileVideoActive: false,
+        multichannelModeActive: true,
+        multichannelRealtimeEnabled: false,
+      }),
+    ).toBe("");
   });
 
   it("reads Retry-After from a live-frame capacity response", async () => {

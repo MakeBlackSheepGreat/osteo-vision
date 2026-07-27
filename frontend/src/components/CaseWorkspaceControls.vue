@@ -47,7 +47,7 @@
       <div v-if="videoInputSource === 'file' && inputMode === 'video'" class="input-mode-panel" role="tabpanel">
         <div class="input-mode-heading">
           <strong>术中 MP4 视频</strong>
-          <span>{{ multichannelSession ? "同步会话已准备" : videoReady ? "已导入病例" : "待选择文件" }}</span>
+          <span>{{ videoInputStatusLabel }}</span>
         </div>
         <div class="video-mode-tabs" role="tablist" aria-label="MP4 视频模式">
           <button
@@ -166,11 +166,12 @@
           <VideoCandidateSelectorPanel
             :loading="loading"
             :has-case="hasCase"
-            :is-loading-video-candidates="isLoadingVideoCandidates"
+            :is-loading-video-candidates="isLoadingVideoCandidates || multichannelPreparing"
             :is-loading-video-preview="isLoadingVideoPreview"
             :selected-video-candidate-id="selectedVideoCandidateId"
             :selected-video-candidate-preview-src="selectedVideoCandidatePreviewSrc"
             :video-candidates="compositeVideoCandidates"
+            :show-actions="false"
             @load-video-candidates="emit('loadVideoCandidates')"
             @select-video-candidate="emit('selectVideoCandidate', $event)"
             @import-video-candidate="emit('importVideoCandidate')"
@@ -238,7 +239,7 @@
             :disabled="multichannelPrepareDisabled"
             @click="emit('prepareMultichannelSession')"
           >
-            {{ multichannelPreparing ? "正在准备同步预览" : "准备同步预览" }}
+            {{ multichannelPrepareLabel }}
           </AppButton>
         </template>
       </div>
@@ -379,10 +380,30 @@
     </section>
 
     <section v-if="videoInputSource === 'camera'" class="control-card live-stream-control-card">
-      <SectionHeading icon="camera" icon-tone="cyan" title="单路浏览器摄像头" />
+      <SectionHeading icon="camera" icon-tone="cyan" title="浏览器摄像头输入" />
       <div class="camera-control-status" aria-live="polite">
-        <strong>{{ cameraActive ? "摄像头已连接" : "摄像头未连接" }}</strong>
+        <strong>{{ dualCameraActive ? "双通道摄像头已连接" : cameraActive ? "白光摄像头已连接" : "摄像头未连接" }}</strong>
         <span>{{ cameraStatusLabel }}</span>
+      </div>
+      <div v-if="cameraActive || cameraDevices.length" class="camera-device-grid">
+        <label class="field compact-field">
+          <span>白光摄像头</span>
+          <select :value="whiteCameraDeviceId" aria-label="白光摄像头" @change="emitWhiteCameraDevice">
+            <option value="" disabled>选择白光摄像头</option>
+            <option v-for="device in cameraDevices" :key="device.deviceId" :value="device.deviceId">
+              {{ device.label }}
+            </option>
+          </select>
+        </label>
+        <label class="field compact-field">
+          <span>荧光摄像头</span>
+          <select :value="fluorescenceCameraDeviceId" aria-label="荧光摄像头" @change="emitFluorescenceCameraDevice">
+            <option value="" disabled>选择荧光摄像头</option>
+            <option v-for="device in fluorescenceCameraOptions" :key="device.deviceId" :value="device.deviceId">
+              {{ device.label }}
+            </option>
+          </select>
+        </label>
       </div>
       <div class="camera-control-actions">
         <AppButton
@@ -406,58 +427,68 @@
           >
             关闭摄像头
           </AppButton>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            icon="play"
-            block
-            :disabled="manualCameraAnalysisDisabled"
-            :title="manualCameraAnalysisHint"
-            :aria-busy="cameraManualAnalysisBusy"
-            @click="emit('captureCameraFrame')"
-          >
-            {{ manualCameraAnalysisLabel }}
-          </AppButton>
-          <label class="field compact-field camera-interval-control">
-            <span>下一帧等待</span>
-            <select
-              :value="cameraAnalysisIntervalSec"
-              :disabled="cameraContinuousAnalysisActive"
-              aria-label="连续关键帧采样间隔"
-              @change="emitCameraAnalysisInterval"
+          <template v-if="dualCameraActive">
+            <AppButton
+              :variant="multichannelRealtimeAnalysisEnabled ? 'secondary' : 'primary'"
+              size="sm"
+              :icon="multichannelRealtimeAnalysisEnabled ? 'stop' : 'play'"
+              block
+              :disabled="!multichannelRealtimeAnalysisEnabled && !cameraMultichannelSession?.analysis_allowed"
+              @click="emit('toggleMultichannelRealtimeAnalysis')"
             >
-              <option :value="0">推理完成后立即继续</option>
-              <option :value="1">1 秒</option>
-              <option :value="2">2 秒</option>
-              <option :value="3">3 秒</option>
-              <option :value="5">5 秒</option>
-              <option :value="10">10 秒</option>
-            </select>
-          </label>
-          <AppButton
-            v-if="!cameraContinuousAnalysisActive"
-            variant="primary"
-            size="sm"
-            icon="play"
-            block
-            :disabled="continuousCameraAnalysisStartDisabled"
-            :title="continuousCameraAnalysisHint"
-            :aria-busy="cameraContinuousAnalysisStarting"
-            @click="emit('startContinuousCameraAnalysis')"
-          >
-            开始实时分割
-          </AppButton>
-          <AppButton
-            v-else
-            variant="ghost"
-            size="sm"
-            icon="close"
-            block
-            @click="emit('stopContinuousCameraAnalysis')"
-          >
-            停止实时分割
-          </AppButton>
-          <p class="camera-control-note">{{ cameraContinuousAnalysisStatus }}</p>
+              {{ multichannelRealtimeAnalysisEnabled ? "关闭双通道实时分析" : "开启双通道实时分析" }}
+            </AppButton>
+            <p class="camera-control-note">{{ cameraMultichannelSession ? "白光与荧光当前帧持续配准融合，硬件同步状态需医生复核。" : "正在准备浏览器双通道实时会话。" }}</p>
+          </template>
+          <template v-else>
+            <AppButton
+              v-if="!cameraFluorescenceActive"
+              variant="secondary"
+              size="sm"
+              icon="camera"
+              block
+              :disabled="cameraFluorescenceOpening"
+              @click="emit('startFluorescenceCamera')"
+            >
+              {{ cameraFluorescenceOpening ? "请求荧光摄像头权限中" : "连接荧光摄像头" }}
+            </AppButton>
+            <AppButton
+              variant="secondary"
+              size="sm"
+              icon="play"
+              block
+              :disabled="manualCameraAnalysisDisabled"
+              :title="manualCameraAnalysisHint"
+              :aria-busy="cameraManualAnalysisBusy"
+              @click="emit('captureCameraFrame')"
+            >
+              {{ manualCameraAnalysisLabel }}
+            </AppButton>
+            <AppButton
+              v-if="!cameraContinuousAnalysisActive"
+              variant="primary"
+              size="sm"
+              icon="play"
+              block
+              :disabled="continuousCameraAnalysisStartDisabled"
+              :title="continuousCameraAnalysisHint"
+              :aria-busy="cameraContinuousAnalysisStarting"
+              @click="emit('startContinuousCameraAnalysis')"
+            >
+              开始实时分割
+            </AppButton>
+            <AppButton
+              v-else
+              variant="ghost"
+              size="sm"
+              icon="close"
+              block
+              @click="emit('stopContinuousCameraAnalysis')"
+            >
+              停止实时分割
+            </AppButton>
+            <p class="camera-control-note">{{ cameraContinuousAnalysisStatus }} · 上一帧完成后立即处理当前画面</p>
+          </template>
         </template>
         <p v-else class="camera-control-note">连接摄像头后可抓取关键帧或启动连续实时分割。</p>
       </div>
@@ -504,6 +535,7 @@ import { computed, ref } from "vue";
 import AppButton from "@/components/AppButton.vue";
 import SectionHeading from "@/components/SectionHeading.vue";
 import VideoCandidateSelectorPanel from "@/components/VideoCandidateSelectorPanel.vue";
+import type { BrowserCameraDevice } from "@/composables/useBrowserCamera";
 import type { MultichannelVideoMode, MultichannelVideoSession, VideoCandidate } from "@/types/case";
 
 type ImageChannel = "white_light" | "fluorescence" | "device_overlay";
@@ -533,11 +565,13 @@ const emit = defineEmits<{
   resetMultichannelOffsets: [];
   toggleMultichannelRealtimeAnalysis: [];
   startCamera: [];
+  startFluorescenceCamera: [];
   stopCamera: [];
+  updateWhiteCameraDevice: [deviceId: string];
+  updateFluorescenceCameraDevice: [deviceId: string];
   captureCameraFrame: [];
   startContinuousCameraAnalysis: [];
   stopContinuousCameraAnalysis: [];
-  updateCameraAnalysisInterval: [intervalSec: number];
   selectImagePair: [pairKey: string];
 }>();
 
@@ -581,11 +615,17 @@ const props = withDefaults(defineProps<{
   videoReady: boolean;
   cameraActive: boolean;
   cameraOpening: boolean;
+  cameraFluorescenceActive?: boolean;
+  cameraFluorescenceOpening?: boolean;
+  dualCameraActive?: boolean;
+  cameraDevices?: BrowserCameraDevice[];
+  whiteCameraDeviceId?: string;
+  fluorescenceCameraDeviceId?: string;
+  cameraMultichannelSession?: MultichannelVideoSession | null;
   cameraManualAnalysisBusy: boolean;
   cameraAnalysisRunning: boolean;
   cameraContinuousAnalysisStarting: boolean;
   cameraContinuousAnalysisActive: boolean;
-  cameraAnalysisIntervalSec: number;
   cameraContinuousAnalysisStatus: string;
   cameraStatusLabel: string;
   liveSessionReady: boolean;
@@ -596,6 +636,13 @@ const props = withDefaults(defineProps<{
   multichannelFluorescencePath: "",
   multichannelDeviceOverlayPath: "",
   multichannelSession: null,
+  cameraMultichannelSession: null,
+  cameraFluorescenceActive: false,
+  cameraFluorescenceOpening: false,
+  dualCameraActive: false,
+  cameraDevices: () => [],
+  whiteCameraDeviceId: "",
+  fluorescenceCameraDeviceId: "",
   multichannelRealtimeAnalysisEnabled: false,
   multichannelPreparing: false,
   fluorescenceOffsetMs: 0,
@@ -619,8 +666,38 @@ const videoModes: Array<{ value: MultichannelVideoMode; label: string }> = [
 const compositeVideoCandidates = computed(() =>
   props.videoCandidates.filter((candidate) => candidate.composite_layout_available),
 );
+const selectedCompositeCandidate = computed(() =>
+  compositeVideoCandidates.value.find((candidate) => candidate.record_id === props.selectedVideoCandidateId),
+);
+const videoInputStatusLabel = computed(() => {
+  if (props.videoMode === "composite_layout") {
+    if (props.multichannelSession) return "三通道已准备";
+    if (props.multichannelPreparing || props.isLoadingVideoCandidates) return "正在准备三通道";
+    if (selectedCompositeCandidate.value) return "三通道等待重试";
+    return "等待 OFDVDnet 候选";
+  }
+  return props.multichannelSession ? "同步会话已准备" : props.videoReady ? "已导入病例" : "待选择文件";
+});
+const multichannelPrepareLabel = computed(() => {
+  if (props.multichannelPreparing) {
+    return props.videoMode === "composite_layout" ? "正在准备三通道" : "正在准备同步预览";
+  }
+  if (props.videoMode === "composite_layout" && selectedCompositeCandidate.value && !props.multichannelSession) {
+    return "重试三通道准备";
+  }
+  return "准备同步预览";
+});
+const fluorescenceCameraOptions = computed(() =>
+  props.cameraDevices.filter((device) => device.deviceId !== props.whiteCameraDeviceId),
+);
 const multichannelPrepareDisabled = computed(() => {
-  if (props.loading || props.multichannelPreparing || !props.hasCase || props.isUploadingVideo) return true;
+  if (
+    props.loading
+    || props.multichannelPreparing
+    || props.isLoadingVideoCandidates
+    || !props.hasCase
+    || props.isUploadingVideo
+  ) return true;
   if (props.videoMode === "paired_videos") {
     return !props.multichannelWhitePath || !props.multichannelFluorescencePath;
   }
@@ -727,8 +804,12 @@ function emitColormap(event: Event) {
   emit("update:colormap", (event.target as HTMLSelectElement).value as Colormap);
 }
 
-function emitCameraAnalysisInterval(event: Event) {
-  emit("updateCameraAnalysisInterval", Number((event.target as HTMLSelectElement).value));
+function emitWhiteCameraDevice(event: Event) {
+  emit("updateWhiteCameraDevice", (event.target as HTMLSelectElement).value);
+}
+
+function emitFluorescenceCameraDevice(event: Event) {
+  emit("updateFluorescenceCameraDevice", (event.target as HTMLSelectElement).value);
 }
 
 function emitSelectedImagePair(event: Event) {
@@ -1193,7 +1274,10 @@ function shortInputPath(path: string): string {
   min-width: 0;
 }
 
-.camera-interval-control {
-  gap: 5px;
+.camera-device-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
 }
+
 </style>

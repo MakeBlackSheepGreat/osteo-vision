@@ -399,6 +399,7 @@ export const apiClient = {
       white_frame_base64?: string;
       fluorescence_frame_base64?: string;
     },
+    signal?: AbortSignal,
   ): Promise<{
     frame: {
       overlay_path: string;
@@ -411,6 +412,7 @@ export const apiClient = {
     return request(`/cases/${caseId}/multichannel-video-sessions/${encodeURIComponent(sessionId)}/realtime-frame`, {
       method: "POST",
       body: JSON.stringify(payload),
+      signal,
     });
   },
   listDatasetReviewQueue(): Promise<DatasetReviewQueue> {

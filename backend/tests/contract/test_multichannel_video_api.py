@@ -150,6 +150,79 @@ def test_realtime_frame_uses_current_browser_pair_instead_of_nearest_offline_key
     assert Path(payload["frame"]["overlay_path"]).is_file()
 
 
+def test_browser_camera_session_requires_and_processes_two_current_frames(tmp_path, monkeypatch) -> None:
+    client, case_id, _artifact_root = _client(tmp_path, monkeypatch)
+    session_response = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions",
+        json={"mode": "browser_cameras", "synchronization_tolerance_ms": 33.34},
+    )
+
+    assert session_response.status_code == 200
+    session = session_response.json()
+    assert session["mode"] == "browser_cameras"
+    assert session["analysis_allowed"] is True
+    assert session["synchronization_status"] == "review_required"
+    assert session["paired_sequence_manifest"] is None
+    assert [channel["path"] for channel in session["channels"]] == [
+        "browser://white-light",
+        "browser://fluorescence",
+    ]
+
+    missing_both = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions/{session['session_id']}/realtime-frame",
+        json={"timestamp_sec": 0.0},
+    )
+    assert missing_both.status_code == 422
+    assert missing_both.json()["detail"]["code"] == "multichannel_realtime_frame_pair_required"
+
+    missing_pair = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions/{session['session_id']}/realtime-frame",
+        json={
+            "timestamp_sec": 0.0,
+            "white_frame_base64": _jpeg_data_url(40),
+        },
+    )
+    assert missing_pair.status_code == 422
+    assert missing_pair.json()["detail"]["code"] == "multichannel_realtime_frame_pair_required"
+
+    response = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions/{session['session_id']}/realtime-frame",
+        json={
+            "timestamp_sec": 0.25,
+            "alpha": 0.45,
+            "threshold": 0.6,
+            "colormap": "green",
+            "white_frame_base64": _jpeg_data_url(40),
+            "fluorescence_frame_base64": _jpeg_data_url(90),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["frame_source"] == "browser_current_frame"
+    assert payload["source_timestamp_sec"] == 0.25
+    assert Path(payload["frame"]["overlay_path"]).is_file()
+    case = client.get(f"/cases/{case_id}").json()
+    assert case["inputs"] == []
+    assert case["review_summary"]["multichannel_video_mode"] == "browser_cameras"
+
+
+def test_browser_camera_session_rejects_file_backed_inputs(tmp_path, monkeypatch) -> None:
+    client, case_id, artifact_root = _client(tmp_path, monkeypatch)
+    stale_video = artifact_root / "stale.mp4"
+    _write_video(stale_video, fps=5.0, frame_count=5, value=80)
+
+    response = client.post(
+        f"/cases/{case_id}/multichannel-video-sessions",
+        json={
+            "mode": "browser_cameras",
+            "video_path": str(stale_video),
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_single_video_session_keeps_the_existing_analysis_path(tmp_path, monkeypatch) -> None:
     client, case_id, artifact_root = _client(tmp_path, monkeypatch)
     video = artifact_root / "single.mp4"

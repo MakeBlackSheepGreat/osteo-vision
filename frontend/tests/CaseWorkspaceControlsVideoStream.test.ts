@@ -38,7 +38,6 @@ const baseProps = {
   cameraAnalysisRunning: false,
   cameraContinuousAnalysisStarting: false,
   cameraContinuousAnalysisActive: false,
-  cameraAnalysisIntervalSec: 5,
   cameraContinuousAnalysisStatus: "连续关键帧分析未启动",
   cameraStatusLabel: "未连接，需浏览器授权后使用",
   liveSessionReady: false,
@@ -170,9 +169,8 @@ describe("CaseWorkspaceControls video stream area", () => {
     await continuousStart?.trigger("click");
     expect(wrapper.emitted("startContinuousCameraAnalysis")).toHaveLength(1);
 
-    await wrapper.get('select[aria-label="连续关键帧采样间隔"]').setValue("10");
-    expect(wrapper.emitted("updateCameraAnalysisInterval")?.[0]).toEqual([10]);
-    expect(wrapper.text()).toContain("推理完成后立即继续");
+    expect(wrapper.find('select[aria-label="连续关键帧采样间隔"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("上一帧完成后立即处理当前画面");
   });
 
   it("supports paired MP4 inputs and exposes synchronization commands", async () => {
@@ -204,6 +202,60 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(prepare?.attributes("disabled")).toBeUndefined();
     await prepare?.trigger("click");
     expect(wrapper.emitted("prepareMultichannelSession")).toHaveLength(1);
+  });
+
+  it("treats an OFDVDnet composite candidate as an automatic three-channel workflow", async () => {
+    const compositeCandidate = {
+      record_id: "OFDVDNET_001",
+      title: "OFDVDnet 荧光引导手术代理视频",
+      local_path: "C:/demo/ofdvdnet.mp4",
+      system_readable: true,
+      composite_layout_available: true,
+      fluorescence: true,
+      source_page_original_link: "https://example.org/ofdvdnet",
+      direct_download_link: "",
+      group: "ofdvdnet",
+      medical_scene: "公开荧光手术代理",
+      usable_for_training: "review_only",
+      notes: "",
+      download_status: "exists",
+      error_or_note: "",
+      sha256: "",
+      downloaded_at_utc: "",
+      exists: true,
+      input_type: "video/mp4",
+      domain_boundary: "公开非目标域代理",
+    };
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: {
+        ...baseProps,
+        videoMode: "composite_layout",
+        selectedVideoCandidateId: "OFDVDNET_001",
+        selectedVideoCandidatePreviewSrc: "/preview.jpg",
+        videoCandidates: [compositeCandidate],
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+          SectionHeading: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("三通道等待重试");
+    expect(wrapper.text()).not.toContain("待选择文件");
+    expect(wrapper.findAll("button").some((button) => button.text() === "加载")).toBe(false);
+    expect(wrapper.findAll("button").some((button) => button.text() === "导入")).toBe(false);
+    expect(wrapper.text()).toContain("重试三通道准备");
+
+    await wrapper.setProps({ multichannelPreparing: true });
+    expect(wrapper.text()).toContain("正在准备三通道");
+
+    await wrapper.setProps({
+      multichannelPreparing: false,
+      multichannelSession: { analysis_allowed: true } as unknown as MultichannelVideoSession,
+    });
+    expect(wrapper.text()).toContain("三通道已准备");
   });
 
   it("uses one primary command to start and stop continuous multichannel analysis", async () => {
@@ -250,9 +302,19 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.emitted("update:videoMode")?.[1]).toEqual(["composite_layout"]);
   });
 
-  it("labels the browser camera as a single-channel extension", () => {
+  it("labels the browser camera as a dual-channel capable input", () => {
     const wrapper = mount(CaseWorkspaceControls, {
-      props: { ...baseProps, videoInputSource: "camera" },
+      props: {
+        ...baseProps,
+        videoInputSource: "camera",
+        cameraActive: true,
+        cameraDevices: [
+          { deviceId: "camera-white", label: "白光摄像头" },
+          { deviceId: "camera-fluorescence", label: "荧光摄像头" },
+        ],
+        whiteCameraDeviceId: "camera-white",
+        fluorescenceCameraDeviceId: "camera-fluorescence",
+      },
       global: {
         stubs: {
           AppIcon: true,
@@ -261,7 +323,8 @@ describe("CaseWorkspaceControls video stream area", () => {
       },
     });
 
-    expect(wrapper.find(".live-stream-control-card").html()).toContain('title="单路浏览器摄像头"');
+    expect(wrapper.find(".live-stream-control-card").html()).toContain('title="浏览器摄像头输入"');
+    expect(wrapper.find(".live-stream-control-card").html()).toContain("连接荧光摄像头");
   });
 
   it("places live stream controls before analysis parameters", () => {

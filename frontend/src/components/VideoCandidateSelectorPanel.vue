@@ -11,7 +11,7 @@
         {{ videoCandidateDisplayTitle(candidate) }}
       </option>
     </select>
-    <div class="video-library-actions">
+    <div v-if="showActions" class="video-library-actions">
       <AppButton
         variant="ghost"
         size="sm"
@@ -102,7 +102,7 @@ import {
   type VideoCandidateTrainingFilter,
 } from "@/utils/videoCandidates";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   loading: boolean;
   hasCase: boolean;
   isLoadingVideoCandidates: boolean;
@@ -110,7 +110,10 @@ const props = defineProps<{
   selectedVideoCandidateId: string;
   selectedVideoCandidatePreviewSrc: string;
   videoCandidates: VideoCandidate[];
-}>();
+  showActions?: boolean;
+}>(), {
+  showActions: true,
+});
 
 const emit = defineEmits<{
   loadVideoCandidates: [];

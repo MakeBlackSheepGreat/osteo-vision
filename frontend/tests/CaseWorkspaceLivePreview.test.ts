@@ -22,12 +22,29 @@ describe("case workspace live preview retention", () => {
 
   it("captures the current fusion preview before allowing the next multichannel frame", () => {
     const source = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
-    const fetchIndex = source.indexOf("const fusionResponse = await fetch(multichannelRealtimeFusionSrc.value);");
+    const fetchIndex = source.indexOf(
+      "const fusionResponse = await fetch(multichannelRealtimeFusionSrc.value, { signal: requestController.signal });",
+    );
     const releaseIndex = source.indexOf("multichannelRealtimeAnalysisBusy.value = false;");
 
     expect(fetchIndex).toBeGreaterThan(-1);
     expect(releaseIndex).toBeGreaterThan(fetchIndex);
-    expect(source).toContain("void analyzeCameraFrame(fusionBlob, {");
+    expect(source).toContain("queueMultichannelLiveAi(");
+    expect(source).toContain('const source = activeAnalysisVideoMode.value === "browser_cameras" ? "camera" : "video";');
+    expect(source).toContain("while (pendingMultichannelLiveAi)");
+    expect(source).toContain("error instanceof ApiError");
+    expect(source).toContain("error.status === 429");
+    expect(source).toContain("isCurrentMultichannelRealtimeRequest(");
+    expect(source).toContain("multichannelRealtimeRequestController?.abort()");
+  });
+
+  it("clears multichannel previews and pending AI work when the input source changes", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
+
+    expect(source).toContain('resetMultichannelRealtimeState({ clearBrowserSession: source === "file" });');
+    expect(source).toContain("multichannelRealtimeFrameRecord.value = null;");
+    expect(source).toContain("pendingMultichannelLiveAi = null;");
+    expect(source).toContain('liveFrameStaleStatus.value = "";');
   });
 
   it("analyzes the current single-video frame after pause or seeking", () => {
@@ -39,5 +56,30 @@ describe("case workspace live preview retention", () => {
     expect(grid).toContain('emit("playbackFrameRequested", "暂停位置")');
     expect(workspace).toContain('@playback-frame-requested="analyzeCurrentSingleVideoFrame"');
     expect(workspace).toContain("await analyzeContinuousVideoFrame(await captureVideoPlaybackFrame(), {");
+  });
+
+  it("keeps exactly one multichannel playback surface active for real-time analysis", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/components/AnalysisWorkspaceCard.vue"), "utf8");
+
+    expect(source).toContain(':realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && !analysisExpanded"');
+    expect(source).toContain(':realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && analysisExpanded"');
+    expect(source).toContain('@live-frame="emit(\'multichannelLiveFrame\', $event)"');
+  });
+
+  it("automatically imports and prepares the selected OFDVDnet composite candidate", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
+    const controls = readFileSync(resolve(process.cwd(), "src/components/CaseWorkspaceControls.vue"), "utf8");
+    const workspace = readFileSync(resolve(process.cwd(), "src/components/AnalysisWorkspaceCard.vue"), "utf8");
+
+    expect(source).toContain("async function ensureCompositeWorkspaceReady");
+    expect(source).toContain("preferredCompositeCandidate(videoCandidates.value, requestedRecordId)");
+    expect(source).toContain("caseIncludesVideoCandidate(currentCase, candidate)");
+    expect(source).toContain("sessionIncludesCompositeCandidate(multichannelSession.value");
+    expect(source).toContain("return prepareMultichannelSession();");
+    expect(source).toContain('if (mode === "composite_layout")');
+    expect(source).toContain("void ensureCompositeWorkspaceReady();");
+    expect(controls).toContain(':show-actions="false"');
+    expect(workspace).toContain('`${expectedChannelCount} 路待接入`');
+    expect(workspace).not.toContain('{ label: "已选通道", value: `${channelCount} 路`');
   });
 });

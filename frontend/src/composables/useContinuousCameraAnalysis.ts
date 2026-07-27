@@ -45,6 +45,23 @@ export interface LiveFrameDisplayResultIdentity {
   captured_at: string;
 }
 
+export function resolveLiveFrameDisplaySource(options: {
+  inputSource: "file" | "camera";
+  cameraActive: boolean;
+  fileVideoActive: boolean;
+  multichannelModeActive: boolean;
+  multichannelRealtimeEnabled: boolean;
+}): "camera" | "video" | "" {
+  if (options.inputSource === "camera" && options.cameraActive) return "camera";
+  if (
+    options.inputSource === "file"
+    && (options.fileVideoActive || (options.multichannelModeActive && options.multichannelRealtimeEnabled))
+  ) {
+    return "video";
+  }
+  return "";
+}
+
 export function isCurrentLiveFrameDisplay(
   result: LiveFrameDisplayResultIdentity | null,
   display: LiveFrameDisplayIdentity | null,
@@ -120,12 +137,12 @@ export function useContinuousCameraAnalysis(options: ContinuousCameraAnalysisOpt
 
   const statusLabel = computed(() => {
     if (starting.value) return "正在启动连续分析";
-    if (running.value) return `正在分析第 ${completedCount.value + failedCount.value + 1} 个关键帧`;
+    if (running.value) return `正在分析第 ${completedCount.value + failedCount.value + 1} 帧`;
     if (active.value) return `连续分析已启动，已完成 ${completedCount.value} 帧`;
     if (completedCount.value || failedCount.value) {
       return `连续分析已停止，完成 ${completedCount.value} 帧，失败 ${failedCount.value} 帧`;
     }
-    return "连续关键帧分析未启动";
+    return "逐帧连续分析未启动";
   });
 
   function setIntervalSec(value: number) {
@@ -196,7 +213,7 @@ export function useContinuousCameraAnalysis(options: ContinuousCameraAnalysisOpt
     if (!active.value || disposed || generation !== runGeneration) return;
     if (!options.canAnalyze()) {
       stop(false);
-      options.onMessage?.("连续关键帧分析已停止，请确认病例和摄像头仍处于可用状态。", "error");
+      options.onMessage?.("逐帧连续分析已停止，请确认输入源仍处于可用状态。", "error");
       return;
     }
     if (running.value) {
@@ -368,7 +385,7 @@ function continuousAnalysisErrorText(error: unknown): string {
     if (status === 429) return "实时分割请求过多，服务正在限流";
     if (status === 503) return "实时分割服务繁忙或暂时不可用";
   }
-  return error instanceof Error ? error.message : "连续摄像头关键帧分析失败。";
+  return error instanceof Error ? error.message : "逐帧连续分析失败。";
 }
 
 function timeoutError(timeoutMs: number): Error {

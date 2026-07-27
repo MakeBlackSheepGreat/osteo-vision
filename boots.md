@@ -1,6 +1,6 @@
 # Backend Optimization Ledger
 
-更新时间：2026-07-26
+更新时间：2026-07-27
 
 本文件记录项目后端生产代码、共享分析核心、应用入口和后端测试代码清单，并维护后端性能/健壮性优化台账。清单只收录源码与测试 `.py` 文件，不收录 `artifacts/`、`output/`、缓存和生成目录。
 
@@ -297,6 +297,7 @@
 
 | 日期 | 文件 | 优化内容 | 验证证据 | 状态 |
 |---|---|---|---|---|
+| 2026-07-27 | `backend/osteo_vision_api/api/multichannel_videos.py`、`backend/osteo_vision_api/domains/cases/schemas.py`、`backend/osteo_vision_api/services/multichannel_video_service.py`、`frontend/src/composables/useBrowserCamera.ts`、`frontend/src/pages/CaseWorkspacePage.vue`、`frontend/src/components/CaseWorkspaceControls.vue`、`frontend/src/components/MultichannelVideoWorkspace.vue` | 浏览器摄像头输入扩展为独立白光与荧光双路采集；新增不接受文件路径的 `browser_cameras` 会话，实时接口强制提交成对当前帧。输入源、视频模式或摄像头设备变化时中止在途配准、清空融合/AI 队列并通过 generation 校验丢弃迟到响应；摄像头模式隐藏 MP4 关键帧、离线 AI、时间轴和历史证据，避免文件结果混入。双通道实时分析保持显式开启/关闭控制，白光与荧光通道禁止选择同一设备。 | `test_multichannel_video_api.py` 16 项、前端 56 个测试文件共 248 项、`typecheck` 与生产构建通过；定向 Ruff、Black、isort、mypy 和 `git diff --check` 通过。Playwright 使用两路动态 Canvas 摄像头完成浏览器实测：会话建立成功，单次配准融合约 31 ms，2.5 秒内融合 URL 与时间标签持续更新；切换回文件输入后摄像头结果立即清除，MP4 工作流恢复。 | 已完成 |
 | 2026-07-26 | `frontend/src/components/MultichannelVideoWorkspace.vue`、`frontend/src/components/AnalysisQuadGrid.vue`、`frontend/src/pages/CaseWorkspacePage.vue`、`backend/osteo_vision_api/services/multichannel_video_service.py`、`backend/osteo_vision_api/services/task2_sequence_service.py` | 双通道实时配准改为浏览器从当前白光/荧光播放画面同步抓取 512px JPEG 对，后端直接处理该帧对；移除“从 12 个离线关键帧中挑最近帧”导致的数秒级画面跳变。实时路径仅编码配准荧光图与融合图，跳过归一化/伪彩副本、设备差异图和 SHA256；重复覆盖实时预览文件并以版本参数刷新浏览器缓存。单路 MP4 在暂停和拖动完成后也立即抓取当前画面进入实时分割。正式关键帧证据与完整产物仍由 Task2 批处理保留。 | 新增当前浏览器帧、融合帧快照与单路 MP4 暂停/拖动回归；`pytest backend/tests/contract/test_multichannel_video_api.py -q` 14 项、前端定向 Vitest 12 项、`typecheck`、生产构建通过。 | 已完成 |
 | 2026-07-26 | `packaging/desktop/`、`backend/osteo_vision_api/api/app.py`、`scripts/build_desktop_package.ps1` | Electron 桌面宿主统一拉起 PyInstaller API；关闭最后窗口、应用退出、启动失败和渲染进程退出均先终止后端。后端接收 `SIGTERM` 后执行 CUDA 同步、缓存及 IPC 清理；5 秒内未退出时宿主使用 `taskkill /T /F` 清理进程树。发行包内置 FFmpeg/FFprobe 与依赖，严格运行预检可在脱离 Conda 的环境启动。 | `npm run desktop:test` 4 项、`pytest backend/tests/unit/test_desktop_runtime_shutdown.py -q` 2 项、前端 typecheck 与桌面 Vite build 通过。实机启动 `Osteo Vision Platform.exe` 后 `/ready` 返回 200，后端为该 Electron 主进程子进程；关闭主窗口后端端口关闭、`osteo-vision-api.exe` 和 Electron 全部退出。`nvidia-smi` 未发现该桌面包残留计算进程。 | 已完成 |
 | 2026-07-26 | `backend/osteo_vision_api/api/files.py` | 文件预览、下载和视频路由在应用构建时一次性解析并去重 artifact/公开视频/manifest 根目录，移除每请求重复根路径解析；删除仅做转发的私有包装函数和重复 URL 解码；非法路径、目录、损坏链接及文件系统异常统一安全降级，保留后缀白名单与越界 403 语义；字面百分号文件名可按原名访问 | 新增 `backend/tests/unit/test_files_api.py` 4 项；文件路由相关定向 40 项、后端全量 352 项、核心/Smoke 812 项通过；后端与共享核心 201 个源码文件 mypy 和 Ruff 全量通过，改动文件 Black/isort 通过。2,000 次路径解析中位数由 2,695.386 ms 降至 989.501 ms，约 2.72 倍 | 已完成 |
@@ -329,6 +330,7 @@
 | 2026-07-25 | `backend/osteo_vision_api/services/static_registration_service.py` | 复用只读阈值批准与显微镜位姿载荷，移除注册请求处理中不必要的浅拷贝 | 导航作业生命周期测试 4 项、Ruff、Black 通过 | 已完成 |
 ## Latest Candidate
 
+- 已完成浏览器白光/荧光双摄像头实时闭环及文件输入隔离：当前帧成对进入配准融合与 AI 提示，切换来源后旧请求、旧预览、旧关键帧和等待队列会立即失效。
 - 已完成双通道播放帧实时路径收口：当前浏览器可见的白光/荧光帧直接进入配准融合，消除低密度离线关键帧带来的数秒级刷新间隔；后续需在真实 4K 浏览器播放和桌面包环境复核端到端刷新节奏。
 - 本轮已完成三维建模任务进度与取消边界增强，后端阶段状态可供前端持续轮询并在刷新后恢复。
 - 本轮已完成最近未审计核心文件 `osteo_vision_core/models/lesion_boundary.py` 的优化，候选优先级、每类上限、总上限、空间抑制和医学安全回退语义均由回归测试覆盖。
@@ -359,6 +361,7 @@
 - Python 环境：`C:\Users\876762330\.conda\envs\osteo-vision\python.exe`。
 - 目标质量门：`pytest`、`ruff`、必要的运行基准和严格平台 smoke。
 - 每次优化需记录行为回归、性能变化、异常输入处理和剩余未优化候选。
+- 2026-07-27 双摄像头输入隔离验证：后端多通道契约 16 项、前端 248 项测试、typecheck、生产构建及定向质量门通过；动态 Canvas 浏览器实测持续刷新，配准融合约 31 ms，摄像头与 MP4 结果切换边界通过。
 - 本轮验证：后端 352 项测试通过，`tests/unit + tests/smoke + backend/tests/unit` 共 812 项测试通过；后端与共享核心 201 个源码文件通过 mypy，Ruff 对 `backend/`、`osteo_vision_core/` 和 `app/` 全量检查通过。项目外部 `C:\tmp` 作为 `pytest --basetemp` 时，输入路径安全白名单会按设计拒绝仓库外测试文件；项目仓库内受控临时目录运行结果为全绿。
 - 当前 Task 2 静态 4K 复现门：5 次计时的配准与 GPU 融合合计 P95 为 73.354 ms，平移误差 P95 为 1.260 px，内部 100 ms 工程门通过。
 - 当前 Task 2 连续 4K 序列门：12 帧配准与 GPU 融合合计 P95 为 76.547 ms，含 JPEG 预览编码的显示就绪 P95 为 93.600 ms，连续预算漏帧率为 0，倍率 1.3x/17x 与工作距离 200/630 mm 的上下文切换均被覆盖。

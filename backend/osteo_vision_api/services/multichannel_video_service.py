@@ -76,6 +76,8 @@ class MultichannelVideoService:
         try:
             if request.mode == "single_video":
                 session, updated_case = self._single_session(case, request, session_id)
+            elif request.mode == "browser_cameras":
+                session, updated_case = self._browser_camera_session(case, request, session_id)
             else:
                 session, updated_case = self._paired_session(case, request, session_id, session_dir)
         except MultichannelVideoError as exc:
@@ -112,32 +114,36 @@ class MultichannelVideoService:
         *,
         alpha: float,
         threshold: float,
-        colormap: str,
+        colormap: Literal["green", "amber", "magenta"],
         white_frame_base64: str | None = None,
         fluorescence_frame_base64: str | None = None,
     ) -> dict[str, Any]:
         session = self.get_session(case, session_id)
-        manifest = session.paired_sequence_manifest
-        if not session.analysis_allowed or manifest is None:
+        if not session.analysis_allowed:
             raise MultichannelVideoError("multichannel_realtime_unavailable", "双通道同步会话尚未准备完成。")
         if not isfinite(timestamp_sec):
             raise MultichannelVideoError("multichannel_realtime_timestamp_invalid", "当前播放时间无效。")
-
-        reference = min(
-            manifest.frames,
-            key=lambda item: abs(float(item.white_timestamp_ms or 0.0) / 1000.0 - float(timestamp_sec)),
-        )
-        assets = {asset.input_id: asset for asset in case.inputs}
-        white = assets.get(reference.white_input_id)
-        fluorescence = assets.get(reference.fluorescence_input_id)
-        if white is None or fluorescence is None:
-            raise MultichannelVideoError(
-                "multichannel_realtime_asset_missing", "当前同步帧缺少已准入的白光或荧光输入。"
-            )
         if bool(white_frame_base64) != bool(fluorescence_frame_base64):
             raise MultichannelVideoError(
                 "multichannel_realtime_frame_pair_required", "实时配准需要同时提供白光与荧光当前画面。"
             )
+
+        manifest = session.paired_sequence_manifest
+        reference = (
+            min(
+                manifest.frames,
+                key=lambda item: abs(float(item.white_timestamp_ms or 0.0) / 1000.0 - float(timestamp_sec)),
+            )
+            if manifest is not None
+            else Task2PairedFrameReference(
+                frame_index=0,
+                white_input_id=f"{session_id}:live:white_light",
+                fluorescence_input_id=f"{session_id}:live:fluorescence",
+                white_timestamp_ms=float(timestamp_sec) * 1000.0,
+                fluorescence_timestamp_ms=float(timestamp_sec) * 1000.0,
+                captured_at=datetime.now(UTC),
+            )
+        )
         source_kind = "keyframe_fallback"
         if white_frame_base64 and fluorescence_frame_base64:
             source_dir = ensure_dir(self.root / case.case_id / session_id / "realtime_preview_input")
@@ -165,6 +171,34 @@ class MultichannelVideoService:
                 }
             )
             source_kind = "browser_current_frame"
+            if manifest is None:
+                manifest = _browser_camera_realtime_manifest(
+                    session_id,
+                    reference,
+                    synchronization_tolerance_ms=session.synchronization_tolerance_ms,
+                    alpha=alpha,
+                    threshold=threshold,
+                    colormap=colormap,
+                )
+        else:
+            if manifest is None:
+                raise MultichannelVideoError(
+                    "multichannel_realtime_frame_pair_required",
+                    "浏览器双通道会话需要同时提供白光与荧光当前画面。",
+                )
+            reference = min(
+                manifest.frames,
+                key=lambda item: abs(float(item.white_timestamp_ms or 0.0) / 1000.0 - float(timestamp_sec)),
+            )
+            assets = {asset.input_id: asset for asset in case.inputs}
+            white_asset = assets.get(reference.white_input_id)
+            fluorescence_asset = assets.get(reference.fluorescence_input_id)
+            if white_asset is None or fluorescence_asset is None:
+                raise MultichannelVideoError(
+                    "multichannel_realtime_asset_missing", "当前同步帧缺少已准入的白光或荧光输入。"
+                )
+            white = white_asset
+            fluorescence = fluorescence_asset
         realtime_manifest = manifest.model_copy(
             update={
                 "sequence_id": f"{manifest.sequence_id}:live:{int(round(timestamp_sec * 1000.0))}",
@@ -294,6 +328,50 @@ class MultichannelVideoService:
                     }
                 ],
                 source_boundary=SOURCE_BOUNDARY,
+            ),
+            case,
+        )
+
+    @staticmethod
+    def _browser_camera_session(
+        case: CaseRecord,
+        request: MultichannelVideoSessionCreateRequest,
+        session_id: str,
+    ) -> tuple[MultichannelVideoSession, CaseRecord]:
+        return (
+            MultichannelVideoSession(
+                schema_version="osteo-vision-multichannel-video-session-v1",
+                session_id=session_id,
+                case_id=case.case_id,
+                mode="browser_cameras",
+                status="ready",
+                analysis_allowed=True,
+                channels=[
+                    MultichannelVideoChannel(
+                        role="white_light",
+                        input_id=f"{session_id}:browser:white_light",
+                        path="browser://white-light",
+                        probe={"source": "browser_media_devices", "role": "white_light"},
+                        source_boundary="浏览器白光摄像头当前帧，仅用于软件工程验证与医生复核。",
+                    ),
+                    MultichannelVideoChannel(
+                        role="fluorescence",
+                        input_id=f"{session_id}:browser:fluorescence",
+                        path="browser://fluorescence",
+                        probe={"source": "browser_media_devices", "role": "fluorescence"},
+                        source_boundary="浏览器荧光摄像头当前帧，仅用于软件工程验证与医生复核。",
+                    ),
+                ],
+                synchronization_tolerance_ms=request.synchronization_tolerance_ms,
+                synchronization_status="review_required",
+                warnings=[
+                    {
+                        "code": "browser_camera_clock_review_required",
+                        "message": "浏览器双摄像头使用本地采集时钟，硬件级同步与标定状态需由医生复核。",
+                        "blocking": False,
+                    }
+                ],
+                source_boundary="浏览器白光与荧光双路当前帧用于研发验证配准融合，缺少硬件时间戳和标定证据时需医生复核。",
             ),
             case,
         )
@@ -953,6 +1031,36 @@ def _extract_video_frame(source: Path, time_sec: float, output: Path) -> bool:
         return False
     ensure_dir(output.parent)
     return bool(cv2.imwrite(str(output), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 92]))
+
+
+def _browser_camera_realtime_manifest(
+    session_id: str,
+    reference: Task2PairedFrameReference,
+    *,
+    synchronization_tolerance_ms: float,
+    alpha: float,
+    threshold: float,
+    colormap: Literal["green", "amber", "magenta"],
+) -> Task2PairedSequenceManifest:
+    next_reference = reference.model_copy(
+        update={
+            "frame_index": 1,
+            "white_input_id": f"{session_id}:live:white_light:next",
+            "fluorescence_input_id": f"{session_id}:live:fluorescence:next",
+            "white_timestamp_ms": float(reference.white_timestamp_ms or 0.0) + 1.0,
+            "fluorescence_timestamp_ms": float(reference.fluorescence_timestamp_ms or 0.0) + 1.0,
+        }
+    )
+    return Task2PairedSequenceManifest(
+        schema_version="osteo-vision-task2-paired-sequence-v1",
+        sequence_id=f"{session_id}:browser-live",
+        frames=[reference, next_reference],
+        synchronization_tolerance_ms=synchronization_tolerance_ms,
+        alpha=alpha,
+        threshold=threshold,
+        colormap=colormap,
+        prefer_gpu=True,
+    )
 
 
 def _realtime_preview_asset(
