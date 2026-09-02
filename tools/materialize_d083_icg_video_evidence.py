@@ -47,7 +47,7 @@ DEFAULT_SOURCE_MANIFEST = (
     ROOT / "research/datasets/public-candidates/bone_activity_gap_20260718/" "bone_activity_gap_manifest.json"
 )
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts/data_review/d083_icg_video_evidence_20260718"
-DEFAULT_CONFIG = ROOT / "configs/inference/osteo_vision_competition_strict.yml"
+DEFAULT_CONFIG = ROOT / "configs/inference/osteo_vision_strict.yml"
 DEFAULT_MODEL_ID = "keyframe_residual_attention_unet_s20260715_20260715"
 DEFAULT_MEMBER_NAME = "Video1.mpeg"
 DATASET_ID = "D083"

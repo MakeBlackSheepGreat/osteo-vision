@@ -23,7 +23,7 @@ def test_platform_report_sections_keep_empty_state_and_safety_boundary() -> None
     assert latest_quantification_from_report(report) == {}
     assert quality_flag_markdown_lines(case) == ["- No blocking quality flags recorded."]
     assert artifact_markdown_lines(case) == ["- No evidence artifacts recorded."]
-    assert "Platform software for research and competition validation" in platform_safety_lines()[0]
+    assert "Platform software for research and engineering validation" in platform_safety_lines()[0]
     assert report["video_signal_segmentation"]["available"] is False
     assert report["three_d_evidence"]["available"] is False
 

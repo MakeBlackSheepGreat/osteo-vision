@@ -13,7 +13,7 @@ from osteo_vision_core.experiments.spec import write_experiment_spec
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment-id", default="medical_competition_demo_fixture")
+    parser.add_argument("--experiment-id", default="medical_demo_fixture")
     parser.add_argument("--task-package", default="configs/tasks/osteo_vision.yml")
     parser.add_argument("--manifest", default="tests/fixtures/benchmark_manifest_v2.csv")
     parser.add_argument("--model-id", default="fixture_default")
@@ -50,7 +50,7 @@ def build_experiment_spec(args: argparse.Namespace) -> ExperimentSpec:
         "device_policy": "cpu" if args.model_family == "fixture" else "auto",
         "precision": "deterministic" if args.model_family == "fixture" else "fp32",
         "enabled": True,
-        "intended_use": "research_competition_platform_validation",
+        "intended_use": "research_platform_platform_validation",
         "clinical_claim_allowed": False,
     }
     return ExperimentSpec(

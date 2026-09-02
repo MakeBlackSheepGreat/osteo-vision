@@ -13,7 +13,7 @@
 3. **Dual-modality PET-CT 骨感染分割**：2026 CVPR Workshop/ArXiv 工作，提出 PET 代谢信号 + CT 骨窗解剖早期融合的 U-Net 框架，并强调骨感染边界模糊、标注策略差异和多源监督。这是“骨感染分割”关键词下最接近骨髓炎本体的深度学习分割研究。
 4. **DentalSegmentator 预训练模型**：公开 Zenodo checkpoint 与 3D Slicer 扩展，基于 nnU-Net v2.2，可分割 upper skull、mandible、upper teeth、lower teeth、mandibular canal。它不是病灶模型，但可直接作为颌骨解剖先验和 ROI 裁剪工具。
 
-## 2. 对比赛模型路线的影响
+## 2. 对平台模型路线的影响
 
 | 来源 | 是否可直接使用 | 对本项目帮助 | 当前决策 |
 |---|---|---|---|
@@ -36,11 +36,11 @@
 - Lesion sensitivity：0.6756。
 - Lesion precision：0.6932。
 
-与 MRONJ CBCT nnU-Net v2 文献 Dice 约 0.716 相比，我们的 D025 代理模型仍有差距，但已经从初始 smoke 模型 Dice 约 0.136 提升到可作为比赛阶段性证据的水平。下一步应优先补 nnU-Net/SegResNetDS baseline，而不是继续只调 tiny ConvNeXt-U-Net。
+与 MRONJ CBCT nnU-Net v2 文献 Dice 约 0.716 相比，我们的 D025 代理模型仍有差距，但已经从初始 smoke 模型 Dice 约 0.136 提升到可作为平台阶段性证据的水平。下一步应优先补 nnU-Net/SegResNetDS baseline，而不是继续只调 tiny ConvNeXt-U-Net。
 
 ## 4. 建议执行路线
 
-### P0：短期比赛可交付
+### P0：短期平台可交付
 
 1. 保留当前 D025 base12 checkpoint 作为“CBCT 病灶代理分割模型 v0.2”。
 2. 报告中引用 MRONJ CBCT nnU-Net v2 和良性颌骨病灶 nnU-Net v2，说明我们选 nnU-Net/CBCT 代理路线的依据。

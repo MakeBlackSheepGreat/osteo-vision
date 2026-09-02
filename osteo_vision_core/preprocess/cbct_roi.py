@@ -14,7 +14,7 @@ IMAGE_KEYS = ("image", "volume", "ct", "cbct")
 LABEL_KEYS = ("label", "mask", "segmentation", "anatomy_mask")
 SCHEMA_VERSION = "osteo-vision-cbct-anatomy-roi-v1"
 MEDICAL_BOUNDARY = (
-    "CBCT anatomy ROI preprocessing is a research/competition platform validation step. "
+    "CBCT anatomy ROI preprocessing is a research platform validation step. "
     "It is not intraoperative ICG jaw osteomyelitis diagnosis and requires physician review."
 )
 DATASET_BOUNDARY = (

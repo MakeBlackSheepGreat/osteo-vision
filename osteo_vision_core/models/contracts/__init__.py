@@ -1,4 +1,4 @@
-"""Model contracts for the medical imaging competition framework.
+"""Model contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for model adapters, registries, and checkpoints.
 """

@@ -58,7 +58,7 @@ const checking = ref(expectStrict);
 const strictMismatch = computed(
   () =>
     Boolean(readiness.value) &&
-    (readiness.value?.runtime_profile !== "competition_strict" || readiness.value?.strict_startup !== true),
+    (readiness.value?.runtime_profile !== "strict_runtime" || readiness.value?.strict_startup !== true),
 );
 const blocking = computed(
   () => expectStrict && (checking.value || requestFailed.value || strictMismatch.value || readiness.value?.passed !== true),
@@ -66,7 +66,7 @@ const blocking = computed(
 const strictVerified = computed(
   () =>
     readiness.value?.passed === true &&
-    readiness.value.runtime_profile === "competition_strict" &&
+    readiness.value.runtime_profile === "strict_runtime" &&
     readiness.value.strict_startup === true,
 );
 const visible = computed(() => checking.value || requestFailed.value || Boolean(readiness.value));
@@ -75,18 +75,18 @@ const tone = computed(() => {
   return strictVerified.value ? "success" : "warning";
 });
 const title = computed(() => {
-  if (checking.value) return "正在核验比赛运行环境";
+  if (checking.value) return "正在核验平台运行环境";
   if (requestFailed.value) return "运行环境核验失败";
-  if (blocking.value) return "比赛运行已阻断";
-  if (strictVerified.value) return "比赛严格运行已核验";
+  if (blocking.value) return "平台运行已阻断";
+  if (strictVerified.value) return "严格运行运行已核验";
   return "当前为研发运行档位";
 });
 const detail = computed(() => {
   if (checking.value) return "严格配置核验完成前，病例工作流保持锁定。";
   if (requestFailed.value) return "无法读取后端就绪状态，请检查后端服务和网络配置。";
-  if (blocking.value) return "后端未满足 competition_strict、严格启动和模型校验要求。";
+  if (blocking.value) return "后端未满足 strict_runtime、严格启动和模型校验要求。";
   if (strictVerified.value) return "配置、主线模型、checkpoint 校验和视频工具均通过严格启动门。";
-  return "当前实例允许夹具或研发模型，仅用于工程验证；比赛演示请使用严格启动入口。";
+  return "当前实例允许夹具或研发模型，仅用于工程验证；平台演示请使用严格启动入口。";
 });
 const modelLabel = computed(() => {
   const models = readiness.value?.required_model_ids ?? [];

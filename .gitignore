@@ -6,7 +6,6 @@ research/datasets/**/metadata/Supplementary_Information.docx
 research/literature/inventory/papers/
 DentVoxel_Dataset/
 *.pdf
-!research/reports/submission/osteo_vision_technical_solution_20260719_zh.pdf
 !docs/release/*.pdf
 *.zip
 *.pt

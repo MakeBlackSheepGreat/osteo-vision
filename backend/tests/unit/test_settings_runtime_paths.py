@@ -33,7 +33,7 @@ def test_inference_config_relative_path_is_resolved_from_project_root(
     monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(tmp_path / "runtime-artifacts"))
     monkeypatch.setenv(
         "OSTEO_INFERENCE_CONFIG",
-        "configs/inference/osteo_vision_competition_strict.yml",
+        "configs/inference/osteo_vision_strict.yml",
     )
     monkeypatch.setenv(
         "OSTEO_PROMOTION_TRUSTED_KEYS_PATH",
@@ -42,7 +42,7 @@ def test_inference_config_relative_path_is_resolved_from_project_root(
 
     settings = load_settings()
 
-    expected = (settings.project_root / "configs" / "inference" / "osteo_vision_competition_strict.yml").resolve()
+    expected = (settings.project_root / "configs" / "inference" / "osteo_vision_strict.yml").resolve()
     assert settings.inference_config_path == expected
     assert settings.inference_config_path.is_file()
     assert settings.artifact_root == tmp_path / "runtime-artifacts"

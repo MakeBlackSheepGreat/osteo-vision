@@ -5,7 +5,7 @@
 - Recommended family: `residual_attention_unet_keyframe_segmenter`.
 - Validation-selected checkpoint: `C:\Users\876762330\Desktop\projects\osteo-vision\artifacts\checkpoints\osteo_vision\keyframe_residual_attention_unet_s20260726_20260727.pt`.
 - Locked threshold: `0.35`.
-- `runtime_replacement_allowed=false` remains in force until strict 4K tiled and competition-flow gates pass.
+- `runtime_replacement_allowed=false` remains in force until strict 4K tiled and platform-flow gates pass.
 
 ## Held-out test comparison
 

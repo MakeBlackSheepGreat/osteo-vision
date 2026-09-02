@@ -1,4 +1,4 @@
-"""Runtime utilities for the medical imaging competition framework.
+"""Runtime utilities for the Osteo Vision medical imaging platform.
 
 This module provides utilities for runtime environment detection, device management,
 and performance monitoring.

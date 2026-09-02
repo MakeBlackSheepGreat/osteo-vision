@@ -17,4 +17,4 @@
 - 患者条件与骨活性：`patient_conditioning_*`、`bone_activity_*`。
 - 配准、阈值、校准和模型晋级：按文件名中的 `registration`、`threshold`、`promotion`、`runtime_gate` 检索。
 
-旧 ConvNeXt、hotspot、D024/D025 单模型报告和伪标注指标仍可用于历史对比，不能替代严格配置中的主线模型，也不能作为目标域临床性能证据。当前运行和提交事实优先读取根目录 README、严格配置、最新 release 快照及 `research/reports/submission/`。
+旧 ConvNeXt、hotspot、D024/D025 单模型报告和伪标注指标仍可用于历史对比，不能替代当前配置中的主线模型，也不能作为目标域临床性能证据。当前运行事实优先读取根目录 README、平台配置和最新 release 快照。

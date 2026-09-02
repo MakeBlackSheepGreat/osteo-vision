@@ -12,7 +12,7 @@ from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
 def _strict_config(checkpoint: Path, sidecar: Path) -> dict:
     return {
         "runtime": {
-            "runtime_profile": "competition_strict",
+            "runtime_profile": "strict_runtime",
             "strict_startup": True,
             "use_fixture_model": False,
             "allow_fixture_on_missing_checkpoint": False,
@@ -67,7 +67,7 @@ def test_strict_runtime_preflight_accepts_matching_promoted_sidecar(tmp_path: Pa
     report = check_runtime_readiness(config)
 
     assert report["passed"] is True
-    assert report["runtime_profile"] == "competition_strict"
+    assert report["runtime_profile"] == "strict_runtime"
     assert report["error_count"] == 0
     assert report["required_model_ids"] == ["required_segmenter"]
     assert report["verified_models"] == [
@@ -252,7 +252,7 @@ def test_development_profile_reports_fixture_as_warning(tmp_path: Path) -> None:
     assert report["warning_count"] == 2
 
 
-def test_competition_launcher_rejects_development_profile(tmp_path: Path) -> None:
+def test_strict_launcher_rejects_development_profile(tmp_path: Path) -> None:
     config = tmp_path / "configs/inference/dev.yml"
     config.parent.mkdir(parents=True)
     config.write_text(
@@ -273,8 +273,8 @@ def test_competition_launcher_rejects_development_profile(tmp_path: Path) -> Non
     codes = {error["code"] for error in report["errors"]}
 
     assert report["passed"] is False
-    assert "competition_launcher_requires_strict_startup" in codes
-    assert "competition_launcher_requires_competition_profile" in codes
+    assert "strict_launcher_requires_strict_startup" in codes
+    assert "strict_launcher_requires_strict_profile" in codes
 
 
 def test_runtime_preflight_reports_invalid_sidecar(tmp_path: Path) -> None:

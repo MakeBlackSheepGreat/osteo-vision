@@ -24,7 +24,7 @@ def build_candidate_runtime_gate(
     tiling_smoke_path: str | Path,
     mainline_comparator_path: str | Path,
     runtime_preflight_path: str | Path,
-    competition_flow_path: str | Path,
+    platform_flow_path: str | Path,
     production_preflight_path: str | Path,
     production_config_path: str | Path,
 ) -> dict[str, Any]:
@@ -34,7 +34,7 @@ def build_candidate_runtime_gate(
     smoke_path = Path(tiling_smoke_path).resolve()
     comparator_path = Path(mainline_comparator_path).resolve()
     preflight_path = Path(runtime_preflight_path).resolve()
-    flow_path = Path(competition_flow_path).resolve()
+    flow_path = Path(platform_flow_path).resolve()
     production_preflight_path = Path(production_preflight_path).resolve()
     production_path = Path(production_config_path).resolve()
     selection = _load_json(selection_path)
@@ -113,36 +113,36 @@ def build_candidate_runtime_gate(
         "mainline_4k_comparator_matches_protocol": comparable_protocol,
         "strict_runtime_preflight_passed": preflight.get("passed") is True
         and preflight.get("strict_startup") is True
-        and preflight.get("runtime_profile") == "competition_strict",
+        and preflight.get("runtime_profile") == "strict_runtime",
         "strict_runtime_candidate_verified": str(verified_candidate.get("checkpoint_sha256")) == checkpoint_sha
         and verified_candidate.get("runtime_allowed") is True,
-        "competition_flow_passed": flow_demo_check.get("pass") is True,
-        "competition_flow_runtime_matches_preflight": flow_runtime.get("config_bound") is True
+        "platform_flow_passed": flow_demo_check.get("pass") is True,
+        "platform_flow_runtime_matches_preflight": flow_runtime.get("config_bound") is True
         and flow_runtime.get("readiness_passed") is True
         and flow_runtime.get("strict_startup") is True
-        and flow_runtime.get("runtime_profile") == "competition_strict"
+        and flow_runtime.get("runtime_profile") == "strict_runtime"
         and str(flow_runtime.get("config_sha256") or "") == str(preflight.get("config_sha256") or ""),
-        "competition_flow_candidate_configured": str(flow_models.get("configured_segmentation_model_id") or "")
+        "platform_flow_candidate_configured": str(flow_models.get("configured_segmentation_model_id") or "")
         == model_id,
-        "competition_flow_candidate_exercised": model_id in flow_model_ids
+        "platform_flow_candidate_exercised": model_id in flow_model_ids
         and "trainable_keyframe_segmenter" in flow_analysis_methods
         and flow_demo_check.get("keyframe_mainline_model_exercised") is True,
-        "competition_flow_no_heuristic_fallback": flow_demo_check.get("keyframe_fallback_used") is False
+        "platform_flow_no_heuristic_fallback": flow_demo_check.get("keyframe_fallback_used") is False
         and "heuristic_hotspot_fallback" not in flow_analysis_methods,
-        "competition_flow_probability_map_exported": "probability_map" not in flow_missing_formats
+        "platform_flow_probability_map_exported": "probability_map" not in flow_missing_formats
         and "probability_map" in [str(value) for value in flow_demo_check.get("required_formats_present") or []],
-        "competition_flow_frame_models_verified": flow_frame_evidence["frame_count"] > 0
+        "platform_flow_frame_models_verified": flow_frame_evidence["frame_count"] > 0
         and flow_frame_evidence["all_candidate_model_and_method"],
-        "competition_flow_frame_probability_files_verified": flow_frame_evidence["frame_count"] > 0
+        "platform_flow_frame_probability_files_verified": flow_frame_evidence["frame_count"] > 0
         and flow_frame_evidence["all_probability_files_exist"],
-        "competition_flow_claim_boundary_preserved": flow_demo_check.get("clinical_claim_allowed") is False
+        "platform_flow_claim_boundary_preserved": flow_demo_check.get("clinical_claim_allowed") is False
         and flow_demo_check.get("non_target_domain_disclosed") is True,
         "production_config_candidate_not_selected": model_id not in production_required_ids
         and model_id not in production_model_ids
         and production_selected_model != model_id,
         "production_strict_runtime_remains_ready": production_preflight.get("passed") is True
         and production_preflight.get("strict_startup") is True
-        and production_preflight.get("runtime_profile") == "competition_strict"
+        and production_preflight.get("runtime_profile") == "strict_runtime"
         and str(production_preflight.get("config_sha256")) == _sha256_file(production_path),
     }
     checks["pass"] = all(checks.values())
@@ -186,12 +186,12 @@ def build_candidate_runtime_gate(
             "threshold": promotion.get("threshold"),
         },
         "technical_gate_passed": checks["pass"],
-        "competition_runtime_selected": False,
+        "platform_runtime_selected": False,
         "automatic_replacement_performed": False,
         "checks": checks,
         "runtime_metrics": _runtime_metrics(smoke_inference, smoke_input),
         "mainline_comparison": comparison,
-        "competition_flow": {
+        "platform_flow": {
             "passed": flow_demo_check.get("pass") is True,
             "case_id": flow.get("case_id"),
             "configured_segmentation_model_id": flow_models.get("configured_segmentation_model_id"),
@@ -226,8 +226,8 @@ def build_candidate_runtime_gate(
             "tiling_smoke": _evidence(smoke_path),
             "mainline_4k_comparator": _evidence(comparator_path),
             "runtime_preflight": _evidence(preflight_path),
-            "competition_flow": _evidence(flow_path),
-            "competition_flow_video_segmentation_manifest": flow_frame_evidence["manifest_evidence"],
+            "platform_flow": _evidence(flow_path),
+            "platform_flow_video_segmentation_manifest": flow_frame_evidence["manifest_evidence"],
             "production_runtime_preflight_after_gate": _evidence(production_preflight_path),
         },
         "medical_boundary": (
@@ -246,7 +246,7 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
     mainline_metrics = _mapping(comparison.get("mainline_metrics"))
     deltas = _mapping(comparison.get("candidate_delta_percent"))
     risks = _mapping(report.get("runtime_risks"))
-    flow = _mapping(report.get("competition_flow"))
+    flow = _mapping(report.get("platform_flow"))
     policy = _mapping(report.get("gate_policy"))
     checks = _mapping(report.get("checks"))
     failed = [name for name, passed in checks.items() if name != "pass" and passed is not True]
@@ -258,7 +258,7 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 - 技术门控通过：`{report.get('technical_gate_passed')}`
 - 候选模型：`{candidate.get('model_id')}`
 - 阈值：`{candidate.get('threshold')}`
-- 比赛配置已选择候选：`{report.get('competition_runtime_selected')}`
+- 平台配置已选择候选：`{report.get('platform_runtime_selected')}`
 - 自动替换已执行：`{report.get('automatic_replacement_performed')}`
 - 失败检查：`{failed}`
 
@@ -292,7 +292,7 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 - 连续播放全证据延迟风险：`{risks.get('continuous_playback_full_evidence_latency')}`。
 - 候选端到端 P95 为 `{risks.get('candidate_end_to_end_p95_ms')}` ms；该结果只支持离线关键帧全证据处理，无法支持逐帧实时播放刷新。
 
-## 完整比赛流
+## 完整平台流
 
 - 完整流程通过：`{flow.get('passed')}`；病例：`{flow.get('case_id')}`。
 - 配置模型：`{flow.get('configured_segmentation_model_id')}`；实际执行模型：`{flow.get('executed_model_ids')}`。
@@ -302,9 +302,9 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 
 ## 配置边界
 
-- 当前比赛分割模型：`{production.get('selected_segmentation_model')}`。
-- 当前比赛必需模型：`{production.get('required_model_ids')}`。
-- 候选模型仍未写入比赛配置；本轮仅生成独立候选门控配置与运行证据。
+- 当前平台分割模型：`{production.get('selected_segmentation_model')}`。
+- 当前平台必需模型：`{production.get('required_model_ids')}`。
+- 候选模型仍未写入平台配置；本轮仅生成独立候选门控配置与运行证据。
 - 门控完成后主线严格预检：`{production.get('preflight_passed_after_gate')}`。
 
 ## 医学边界
@@ -318,7 +318,7 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 - Technical gate passed: `{report.get('technical_gate_passed')}`
 - Candidate model: `{candidate.get('model_id')}`
 - Threshold: `{candidate.get('threshold')}`
-- Candidate selected by competition config: `{report.get('competition_runtime_selected')}`
+- Candidate selected by platform config: `{report.get('platform_runtime_selected')}`
 - Automatic replacement performed: `{report.get('automatic_replacement_performed')}`
 - Failed checks: `{failed}`
 
@@ -352,7 +352,7 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 - Continuous-playback full-evidence latency risk: `{risks.get('continuous_playback_full_evidence_latency')}`.
 - Candidate end-to-end P95 is `{risks.get('candidate_end_to_end_p95_ms')}` ms. This supports offline full-evidence keyframes and cannot sustain per-frame playback refresh.
 
-## Full Competition Flow
+## Full Platform Flow
 
 - Full flow passed: `{flow.get('passed')}`; case: `{flow.get('case_id')}`.
 - Configured model: `{flow.get('configured_segmentation_model_id')}`; executed models: `{flow.get('executed_model_ids')}`.
@@ -362,9 +362,9 @@ def render_report(report: dict[str, Any], *, language: str) -> str:
 
 ## Configuration Boundary
 
-- Current competition segmentation model: `{production.get('selected_segmentation_model')}`.
-- Current competition required models: `{production.get('required_model_ids')}`.
-- The candidate remains outside the competition config; this run produced isolated candidate-gate evidence.
+- Current platform segmentation model: `{production.get('selected_segmentation_model')}`.
+- Current platform required models: `{production.get('required_model_ids')}`.
+- The candidate remains outside the platform config; this run produced isolated candidate-gate evidence.
 - Mainline strict preflight after the gate: `{production.get('preflight_passed_after_gate')}`.
 
 ## Medical Boundary
@@ -382,9 +382,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--tiling-smoke", required=True)
     parser.add_argument("--mainline-comparator", required=True)
     parser.add_argument("--runtime-preflight", required=True)
-    parser.add_argument("--competition-flow", required=True)
+    parser.add_argument("--platform-flow", required=True)
     parser.add_argument("--production-preflight", required=True)
-    parser.add_argument("--production-config", default="configs/inference/osteo_vision_competition_strict.yml")
+    parser.add_argument("--production-config", default="configs/inference/osteo_vision_strict.yml")
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--report-zh", required=True)
     parser.add_argument("--report-en", required=True)
@@ -401,7 +401,7 @@ def main(argv: list[str] | None = None) -> int:
         tiling_smoke_path=args.tiling_smoke,
         mainline_comparator_path=args.mainline_comparator,
         runtime_preflight_path=args.runtime_preflight,
-        competition_flow_path=args.competition_flow,
+        platform_flow_path=args.platform_flow,
         production_preflight_path=args.production_preflight,
         production_config_path=args.production_config,
     )

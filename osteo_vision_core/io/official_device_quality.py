@@ -40,7 +40,7 @@ def assess_official_image_profile(metadata: dict[str, Any]) -> tuple[dict[str, A
         warnings.append(
             warning(
                 "official_image_format_mismatch",
-                "Image is readable, but it is not the official JPEG profile required by the competition device.",
+                "Image is readable, but it does not match the configured JPEG device profile.",
                 False,
                 expected_format="jpeg",
                 observed_extension=extension,

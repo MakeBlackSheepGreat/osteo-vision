@@ -24,7 +24,7 @@ class LocalJobWorker:
 
     This is intentionally small: it drains jobs from the same persistent
     registry used by the FastAPI app, so interrupted queued jobs can be resumed
-    without introducing Redis/Celery during the competition platform stage.
+    without introducing Redis/Celery during the platform software stage.
     """
 
     def __init__(self, settings: Settings) -> None:

@@ -1,6 +1,6 @@
 """Run a direct JPEG/MP4-keyframe tiling smoke for the trainable segmenter.
 
-The script validates the part of the competition flow that matters most for
+The script validates the part of the platform flow that matters most for
 official 4K MP4/JPEG inputs: a single extracted keyframe can be segmented with
 patch/tiling inference, and the full-resolution mask, probability map,
 pseudocolor overlay, uncertainty map, and metadata are written without shape drift.
@@ -224,7 +224,7 @@ def run_keyframe_tiling_smoke(args: argparse.Namespace) -> dict[str, Any]:
         "checks": checks,
         "medical_boundary": {
             "disclaimer": (
-                "Platform keyframe segmentation workflow for research and competition validation; "
+                "Platform keyframe segmentation workflow for research and engineering validation; "
                 "physician review is required and this is not a clinical diagnosis."
             ),
             "data_boundary": "Synthetic keyframe proxy; not real intraoperative ICG jaw osteomyelitis data.",

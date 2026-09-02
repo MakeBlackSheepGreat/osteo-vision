@@ -1,0 +1,102 @@
+paths_config: configs/paths.example.yml
+runtime:
+  runtime_profile: strict_runtime
+  live_frames:
+    max_concurrent_inferences: 1
+    max_retained_frames_per_case: 1800
+    asynchronous_retention: true
+  strict_startup: true
+  warmup_task2_fusion: true
+  model_version: osteo-vision-keyframe-residual-attention-v1
+  framework_version: v2
+  task_package: configs/tasks/osteo_vision.yml
+  default_task_type: segmentation
+  default_threshold: 0.5
+  low_confidence_margin: 0.15
+  device_policy: auto
+  use_fixture_model: false
+  allow_fixture_on_missing_checkpoint: false
+  model_selection_policy: explicit
+  require_explicit_runtime_allowed: true
+  allow_heuristic_keyframe_fallback: false
+  allow_prompt_fallback: false
+  required_tools:
+    - ffmpeg
+    - ffprobe
+  required_model_ids:
+    - keyframe_residual_attention_unet_s20260715_20260715
+  models:
+    - model_id: keyframe_residual_attention_unet_s20260715_20260715
+      family: residual_attention_unet_keyframe_segmenter
+      task_types: [segmentation]
+      input_types: [2d_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715.pt
+      source_url: local://d046-layered-registry-fluorescence-keyframe-proxy
+      license: internal
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: Strict platform JPEG/MP4 keyframe fluorescence-signal segmentation after model-selection and runtime gates
+      clinical_claim_allowed: false
+      extra:
+        runtime_allowed: true
+        runtime_sidecar_path: artifacts/checkpoints/osteo_vision/keyframe_residual_attention_unet_s20260715_20260715_runtime_promotion.json
+        checkpoint_model_id: keyframe_residual_attention_unet_s20260715_20260715
+        threshold: 0.4
+        output_dir: artifacts/visual_evidence/osteo_vision/keyframe_model_masks
+        input_domain: public_or_synthetic_proxy_keyframe_non_target_domain
+        training_data_boundary: admitted_proxy_rows_retain_non_target_domain_provenance
+        target_domain: false
+        tile_size: 512
+        tile_overlap: 64
+        tile_batch_size: 4
+        max_whole_pixels: 1048576
+        evidence_png_compression: 1
+        overlay_format: jpeg
+        overlay_jpeg_quality: 90
+        candidate_min_component_area: 64
+        candidate_min_area_fraction: 0.00002
+        candidate_max_count: 256
+        live_stream:
+          uncertainty_tta_enabled: false
+          max_whole_pixels: 1048576
+          tile_batch_size: 8
+          fast_output: true
+          overlay_format: jpeg
+          overlay_jpeg_quality: 82
+          use_amp: true
+    - model_id: bone_activity_multitask_d074_proxy_candidate
+      family: bone_activity_multitask
+      task_types: [segmentation, multitask]
+      input_types: [dual_channel_image]
+      spatial_dims: [2]
+      checkpoint_path: artifacts/bone_activity_d074_proxy/training/bone_activity_multitask_d074_proxy.pt
+      source_url: https://zenodo.org/records/15260349
+      license: CC-BY-4.0
+      dependency_group: torch
+      device_policy: auto
+      precision: fp32
+      enabled: true
+      intended_use: Candidate-only bone activity engineering evidence; spatial use remains gated
+      clinical_claim_allowed: false
+      extra:
+        runtime_allowed: true
+        candidate_only: true
+        engineering_candidate_execution_allowed: true
+        runtime_replacement_allowed: false
+        mainline_replacement_allowed: false
+        strict_promotion_authorized: false
+        checkpoint_manifest_path: artifacts/bone_activity_d074_proxy/training/bone_activity_multitask_d074_proxy_manifest.json
+        checkpoint_manifest_sha256: 50816b29384766fdc6b7dc23d7a04d523958343351b89ff6a1d2e7dc4f5d7a8f
+        input_shape: [192, 256]
+        output_dir: artifacts/visual_evidence/osteo_vision/bone_activity_multitask
+        input_domain: human_brain_ppix_fluorescence_proxy
+        target_domain: false
+        engineering_utility_ready: false
+        safe_fallback: all_spatial_candidates_unavailable
+  tasks:
+    segmentation:
+      pipeline: segmentation
+      model_id: keyframe_residual_attention_unet_s20260715_20260715

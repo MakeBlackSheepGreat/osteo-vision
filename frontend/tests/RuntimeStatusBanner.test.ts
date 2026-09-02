@@ -1,8 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-function readyPayload(profile: "development" | "competition_strict") {
-  const strict = profile === "competition_strict";
+function readyPayload(profile: "development" | "strict_runtime") {
+  const strict = profile === "strict_runtime";
   return {
     status: "ok",
     inference_config: `configs/inference/${profile}.yml`,
@@ -45,7 +45,7 @@ function readyPayload(profile: "development" | "competition_strict") {
   };
 }
 
-async function mountBanner(profile: "development" | "competition_strict", expectStrict: boolean) {
+async function mountBanner(profile: "development" | "strict_runtime", expectStrict: boolean) {
   vi.stubEnv("VITE_OSTEO_EXPECT_STRICT_RUNTIME", String(expectStrict));
   vi.stubGlobal(
     "fetch",
@@ -78,9 +78,9 @@ describe("RuntimeStatusBanner", () => {
   });
 
   it("shows model and configuration evidence for a verified strict runtime", async () => {
-    const wrapper = await mountBanner("competition_strict", true);
+    const wrapper = await mountBanner("strict_runtime", true);
 
-    expect(wrapper.text()).toContain("比赛严格运行已核验");
+    expect(wrapper.text()).toContain("严格运行运行已核验");
     expect(wrapper.text()).toContain("segmenter");
     expect(wrapper.text()).toContain("abcdef123456");
     expect(wrapper.text()).toContain("GPU：NVIDIA Test GPU");
@@ -88,10 +88,10 @@ describe("RuntimeStatusBanner", () => {
     expect(wrapper.emitted("blockingChange")?.at(-1)).toEqual([false]);
   });
 
-  it("blocks a competition frontend connected to a development backend", async () => {
+  it("blocks a platform frontend connected to a development backend", async () => {
     const wrapper = await mountBanner("development", true);
 
-    expect(wrapper.text()).toContain("比赛运行已阻断");
+    expect(wrapper.text()).toContain("平台运行已阻断");
     expect(wrapper.attributes("role")).toBe("alert");
     expect(wrapper.emitted("blockingChange")?.at(-1)).toEqual([true]);
   });

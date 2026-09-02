@@ -185,7 +185,7 @@ def analyze_task2_paired_sequence(
         "continuous_display_internal_gate": {
             "budget_ms": CONTINUOUS_DISPLAY_INTERNAL_BUDGET_MS,
             "scope": "file decode, background correction, registration, fusion, and overlay encoding",
-            "competition_requirement": False,
+            "platform_requirement": False,
         },
         "medical_boundary": (
             "Paired-sequence outputs are engineering fusion evidence for physician review. Real-device timing, "

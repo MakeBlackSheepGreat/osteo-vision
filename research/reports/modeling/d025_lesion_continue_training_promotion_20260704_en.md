@@ -31,10 +31,10 @@ The continued candidate improves Mean Dice, Mean IoU, Mean HD95, Mean NSD, sensi
 
 - The model remains a CBCT lesion ROI proxy segmenter, not an intraoperative ICG video/JPEG model.
 - The validation set is D025 proxy data and must not be extrapolated to clinical diagnostic performance.
-- The competition demo must keep physician review and platform safety disclaimers.
+- The platform demonstration must keep physician review and platform safety disclaimers.
 
 ## Next Steps
 
-1. Keep the continued `d025_lesion_smoke.pt` as the local competition-flow mainline checkpoint.
+1. Keep the continued `d025_lesion_smoke.pt` as the local platform-flow mainline checkpoint.
 2. Prioritize nnU-Net v2/DynUNet high-resolution or patch-level training next.
 3. If more 64-cubed D025 training is attempted, write to an isolated candidate output and promote only after evaluation.

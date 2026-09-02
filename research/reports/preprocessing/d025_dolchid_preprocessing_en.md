@@ -40,4 +40,4 @@
 
 ## Project Use and Boundary
 
-DOLCHID is the closest current dataset for competition point 2 because it contains CBCT lesion masks and paired histology images. It is still not intraoperative ICG fluorescence data. Diagnosis-group meanings must be verified from source documentation before any clinical wording is used.
+DOLCHID is the closest current dataset for the multimodal processing capability because it contains CBCT lesion masks and paired histology images. It is still not intraoperative ICG fluorescence data. Diagnosis-group meanings must be verified from source documentation before any clinical wording is used.

@@ -4,7 +4,7 @@
 
 The main checkpoint should not be switched from the ConvNeXt-style 3D proxy segmenter to MONAI SegResNetDS at this stage. This round continued training from the original ConvNeXt-style checkpoint for 1500 additional batches and promoted the improved candidate to the local `d025_lesion_smoke.pt` mainline checkpoint.
 
-Under the same D025 CBCT lesion ROI 64 cubed cache, 209 training cases, and 53 validation cases, SegResNetDS underperforms the current ConvNeXt-style baseline on Mean Dice and Mean IoU. The continued ConvNeXt-style mainline now reaches Mean Dice 0.6567, Mean IoU 0.5553, and Mean HD95 15.2370. For the competition demo, the ConvNeXt-style path remains the more stable mainline choice.
+Under the same D025 CBCT lesion ROI 64 cubed cache, 209 training cases, and 53 validation cases, SegResNetDS underperforms the current ConvNeXt-style baseline on Mean Dice and Mean IoU. The continued ConvNeXt-style mainline now reaches Mean Dice 0.6567, Mean IoU 0.5553, and Mean HD95 15.2370. For the platform demonstration, the ConvNeXt-style path remains the more stable mainline choice.
 
 ## Comparison
 

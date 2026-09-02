@@ -950,7 +950,7 @@ def _set_seed(seed: int) -> None:
 
 def _medical_boundary() -> str:
     return (
-        "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the competition mainline, "
+        "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the platform mainline, "
         "cannot establish jaw-osteomyelitis clinical performance, and requires physician-reviewed bone gates."
     )
 

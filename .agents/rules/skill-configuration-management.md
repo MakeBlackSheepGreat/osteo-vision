@@ -31,7 +31,7 @@ configs/
 │   ├── breast_ultrasound_classification.example.yml  # 乳腺超声分类任务
 │   ├── ct_nodule_risk.example.yml                    # CT 结节风险任务
 │   ├── generic_segmentation.example.yml              # 通用分割任务
-│   └── medical_competition_demo.yml                  # 医学竞赛演示任务
+│   └── medical_demo.yml                  # 医学研发演示任务
 └── paths.example.yml                               # 路径配置示例
 ```
 
@@ -44,7 +44,7 @@ paths_config: configs/paths.example.yml
 runtime:
   model_version: micf-fixture-v0
   framework_version: v2
-  task_package: configs/tasks/medical_competition_demo.yml
+  task_package: configs/tasks/medical_demo.yml
   default_task_type: classification
   default_threshold: 0.5
   low_confidence_margin: 0.1
@@ -53,7 +53,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/demo_model.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  disclaimer: Platform software for research and competition validation...
+  disclaimer: Platform software for research and engineering validation...
   models:
     - model_id: biomedclip_zero_shot
       family: vlm_encoder
@@ -78,11 +78,11 @@ runtime:
     # ... 其他任务
 ```
 
-#### 任务配置 (`configs/tasks/medical_competition_demo.yml`)
+#### 任务配置 (`configs/tasks/medical_demo.yml`)
 
 ```yaml
-task_id: medical_competition_demo
-task_name: Medical Imaging Competition Demo
+task_id: medical_demo
+task_name: Medical Imaging Platform Demo
 modality: generic
 input_contract:
   input_types: [2d_image, npz_roi, dicom_series, nifti_volume]
@@ -240,7 +240,7 @@ runtime:
   pin_memory: true
 
   # 声明
-  disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
+  disclaimer: Platform software for research and engineering validation. This result is not a clinical diagnosis and must not replace physician review.
 
   # 模型列表
   models:

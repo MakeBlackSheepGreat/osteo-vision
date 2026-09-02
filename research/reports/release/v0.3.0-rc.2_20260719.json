@@ -84,7 +84,7 @@
         "sha256": "7bf4b3ef3f87c10e8bd36045c4aeb147aa1b3a6f434f1f313d38eeb434f75372"
       },
       {
-        "path": "configs/inference/osteo_vision_competition_strict.yml",
+        "path": "configs/inference/osteo_vision_strict.yml",
         "bytes": 2436,
         "sha256": "9a2247035c27ba8f142d628f721bfb61d2e9b296a1201ccef375a98fc5f5e855"
       },
@@ -96,7 +96,7 @@
     ]
   },
   "runtime": {
-    "profile": "competition_strict",
+    "profile": "strict_runtime",
     "strict_startup": true,
     "readiness_passed": true,
     "error_count": 0,
@@ -195,43 +195,6 @@
       "fallback_mode": "unregistered_3d_reference"
     }
   },
-  "submission_documents": {
-    "source": {
-      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.md",
-      "bytes": 9831,
-      "sha256": "88e0423635839c81e99932ce3687abac65ff5ec7e8892d5e66d391171fea423e"
-    },
-    "docx": {
-      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.docx",
-      "bytes": 30716,
-      "sha256": "7d6f151fc3183fea03c942f5bf6caf6ba5d8623e78040e0c1bdbf8d9da37232b",
-      "validation": "passed",
-      "paragraphs": 164
-    },
-    "pdf": {
-      "path": "research/reports/submission/osteo_vision_technical_solution_20260719_zh.pdf",
-      "bytes": 427843,
-      "sha256": "faf896c42698ba5231c1445b42cde680f35a4d310b91ef0409aafcf7755e8ddb",
-      "pages": 10,
-      "page_size": "A4",
-      "pdf_version": "1.7",
-      "render_review": "passed"
-    }
-  },
-  "official_documents": [
-    {
-      "path": "HT-202604成都科奥达光电技术有限公司-面向颌骨骨髓炎的智能化荧光诊疗比赛方案.pdf",
-      "bytes": 237484,
-      "sha256": "b134be0c4bddd4ef7745e46b982fcbfb9df00c9e89f1385bb44ecefb30a55ddc",
-      "distribution": "local_ignored"
-    },
-    {
-      "path": "research/literature/inventory/official/competition_official_technical_document_20260527.pdf",
-      "bytes": 121814,
-      "sha256": "b8cfa6937f2f37b01e7fcf426031a779dc4f8c1a8c4573d5aaef1032f852bf12",
-      "distribution": "local_ignored"
-    }
-  ],
   "validation": [
     {
       "gate": "core_pytest",
@@ -295,7 +258,7 @@
     {
       "gate": "strict_runtime",
       "result": "passed",
-      "command": "python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict"
+      "command": "python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_strict.yml --require-strict"
     },
     {
       "gate": "dataset_manifests",
@@ -333,7 +296,7 @@
       "tests",
       "configuration",
       "formal_reports",
-      "submission_docx_pdf",
+      "platform_docs",
       "dataset_manifests",
       "download_receipts",
       "source_metadata",

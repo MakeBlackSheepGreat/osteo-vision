@@ -8,7 +8,7 @@
 
 ## 1. 文档目的
 
-本文固定患者条件分割、骨活性分层和显微影像—三维参考配准三项软件能力，作为后续软件开发、数据集获取、医生协作、工程验证、模型训练和比赛证据整理的共同目标。三项软件能力主要映射官方赛题第二项“多模态医学图像融合与处理”和第三项“AI 辅助显微成像判读”；官方第一项“新型荧光造影剂设计及必要验证”继续独立维护和交付。所有能力均以患者安全、医生复核、证据可追溯和失败闭合为前提。
+本文固定患者条件分割、骨活性分层和显微影像—三维参考配准三项软件能力，作为后续软件开发、数据集获取、医生协作、工程验证和模型训练的共同目标。三项软件能力覆盖多模态医学图像融合处理、AI 辅助显微成像判读和荧光成像方案验证。所有能力均以患者安全、医生复核、证据可追溯和失败闭合为前提。
 
 ## 2. 目标一：患者临床变量参与受限空间分割
 
@@ -61,7 +61,7 @@
 6. 完成 L2 离线动态 AR、误差统计和失效注入。
 7. 建立少量真实目标域病例的采集、标注、取样和病理对应流程。
 8. 最后训练患者条件分割和骨活性多任务模型，并执行患者级、机构级和时间级独立验证。
-9. 通过严格运行、概率校准、亚组审计、4K/实时性能、医生复核和失败闭合后，才允许申请启用空间自适应或替换比赛主线。
+9. 通过生产运行、概率校准、亚组审计、4K/实时性能、医生复核和失败闭合后，才允许申请启用空间自适应或替换生产主线。
 
 ## 6. 数据集获取原则
 
@@ -109,7 +109,7 @@
 本轮已完成模型重训练前的共同安全门控：
 
 - 临床上下文 `verified` 只允许可信医生或项目复核者提交；普通工程会话保持待复核状态。平台持久化复核人、角色、机构、认证来源和 UTC 时间，并在再次编辑后清除旧核验快照。
-- 严格比赛配置与 artifact 输出目录解耦；骨面 prompt fallback 统一受当前运行配置控制。严格模式关闭 fallback 时，API 失败闭合并返回 `prompt_fallback_disabled_by_runtime_policy`。
+- 生产配置与 artifact 输出目录解耦；骨面 prompt fallback 统一受当前运行配置控制。生产模式关闭 fallback 时，API 失败闭合并返回 `prompt_fallback_disabled_by_runtime_policy`。
 - 三维证据升级为 v2 门控：验证变换文件存在性、SHA256、支持格式、4×4 有限齐次矩阵、可逆性、坐标链方向和单位连续性、配准误差与阈值来源、倍率/工作距离标定范围、医生复核，以及 L2 的位姿同步、TRE 和漂移。
 - 三维任一门控失败时统一输出 `navigation_ready=false`、`navigation_level=L0` 和 `fallback_mode=unregistered_3d_reference`。
 - 前端已展示临床核验凭证、L1/L2 安全状态和新增三维失败原因；L1 通过时明确显示静态配准验证状态。
@@ -118,11 +118,11 @@
 
 三项目标数据清单已通过扩展统一机器校验：15 个 manifest 共 47 条逻辑记录、138 个本地文件、5,514,559,510 字节，逐文件存在性、声明大小、SHA256 和 18 项来源字段全部通过。最新验证结果位于 `research/datasets/public-candidates/three_priority_manifest_verification_20260719_d095.json`，复核工具为 `tools/verify_three_priority_dataset_manifests.py`。全部源记录继续保持 `target_domain_flag=false`、`training_eligible=false` 和独立的数据域边界。当前公开检索仍未确认同时具备颌骨骨髓炎术中白光/ICG、患者临床变量、可信骨面及坏死/过渡/活骨像素标注的可直接下载联合目标域数据。
 
-当前 `v0.3.0-rc.2` 工程基线：`backend/tests` 281 项通过；核心测试 603 项通过；前端 49 个测试文件、207 项通过，1 项跳过；Playwright E2E 5 项通过；`vue-tsc`、Vite build、全量 Ruff、Black、isort、严格 mypy、Python 3.11 compileall 和严格运行预检通过。`NavigationWorkspacePage` 路由块约 63.71 kB，三维视口作为约 710.17 kB 的异步块按需加载。上述结果均为项目工程自测，赛题方评审、真实下颌仿体和目标域验证保持独立。
+当前 `v0.3.0-rc.2` 工程基线：`backend/tests` 281 项通过；核心测试 603 项通过；前端 49 个测试文件、207 项通过，1 项跳过；Playwright E2E 5 项通过；`vue-tsc`、Vite build、全量 Ruff、Black、isort、严格 mypy、Python 3.11 compileall 和严格运行预检通过。`NavigationWorkspacePage` 路由块约 63.71 kB，三维视口作为约 710.17 kB 的异步块按需加载。上述结果均为项目工程自测，设备方复核、真实下颌仿体和目标域验证保持独立。
 
 公开真实视频 4K 工程验证已通过：使用 OFDVDnet 离体荧光手术代理视频与胫骨骨髓炎清创视频，完成来源追溯、抽帧可视化、不同帧率解码、不可读容器拒绝、4K JPEG 强制 tiling、短时内存观察和目标域声明阻断。当前 4K 单图强制 tiling 为 45 个 tile，端到端工程耗时约 3272 ms，峰值 GPU 显存约 724.8 MB；这些数值只反映本机单次工程运行。
 
-严格比赛流工程自查已通过：4K JPEG 白光/ICG 融合、4K MP4 关键帧分割、工程复核、报告与证据包导出全部闭环，主线模型实际执行且未触发 keyframe fallback。结果分别位于 `artifacts/platform_competition/runtime_readiness_three_priority_20260718.json`、`artifacts/platform_competition/public_video_4k_three_priority_20260718/` 和 `artifacts/platform_competition/competition_flow_three_priority_20260718/`。上述检查属于项目工程自测，仍需与赛题方评审和后续目标域验证分开表述。
+平台流工程自查已通过：4K JPEG 白光/ICG 融合、4K MP4 关键帧分割、工程复核、报告与证据包导出全部闭环，主线模型实际执行且未触发 keyframe fallback。结果分别位于 `artifacts/platform_validation/runtime_readiness_three_priority_20260718.json`、`artifacts/platform_validation/public_video_4k_three_priority_20260718/` 和 `artifacts/platform_validation/platform_flow_three_priority_20260718/`。上述检查属于项目工程自测，仍需与目标域验证分开表述。
 
 ## 10. L1 静态配准工程闭环
 
@@ -160,7 +160,7 @@ KiTS23 五患者公开代理闭环进一步完成了 5 例 CT、像素 mask 和�
 
 按最终契约复跑完成 288 个训练批次，`restricted_spatial_effect_passed=true`、`engineering_ready=true`；checkpoint SHA256 为 `74844abe17efd6ad2b411afe7569af84cfd4aa403c0336e531a0a1328ca501c1`，source CSV SHA256 为 `f2e57ac9d3fcb5f7901b5aac18ab90105ba5b3570019d25703bee196df194ba9`。代理测试集条件 Dice、IoU、召回率和精确率分别为 `0.243974`、`0.151192`、`0.195572`、`0.553163`，影像基础 Dice 为 `0.244188`，`conditioned_minus_image_only_dice=-0.000214`，测试 ECE 为 `0.005700`，最差代理亚组 Dice 差为 `-0.000214`，最大物理边界位移为 `183.478281 mm`。10/10 测试记录均具有可用边界位移证据；该最大值远超 provisional `2 mm` 门。no-harm、亚组和物理边界门继续失败，`target_domain_promotion_ready=false`、`runtime_replacement_allowed=false`、`clinical_claim_allowed=false`。六类 checkpoint-SHA 绑定证据覆盖 split、逐样本 prediction、calibration、subgroup、safety 和 physician review，训练证据位于 `artifacts/patient_conditioned_kits23_proxy/training/patient_conditioned_manifest_proxy_manifest.json`。
 
-患者条件代理已接入平台开发配置的病例双通道分析调用链。`PatientConditionedSegmenterAdapter` 在 warmup 阶段校验 checkpoint、训练 manifest 及其 SHA256，并强制代理模型保持 `candidate_only=true`、`runtime_replacement_allowed=false` 和 `clinical_claim_allowed=false`；严格比赛配置未登记该代理候选。针对开发配置中实际登记的 KiTS23 checkpoint，端到端配置回归已生成完整证据文件，并核对 `proxy_checkpoint=true`、患者条件概率与影像基础概率完全一致、`delta=0` 和 `runtime_replacement_allowed=false`。`AnalysisService` 只选择一份由可信医生接受或修改、绑定当前白光 JPEG 的 `exposed_bone` 标注作为骨面门控，多份合格标注、来源不一致、尺寸或校验和异常均失败闭合。分析结果持久化 `image-only`、患者条件概率、差异图、空间门控、不确定性、逐项原因码和证据 manifest，并登记病例 artifact；病例工作台、结构化 JSON、Markdown 报告和量化 CSV 已展示同一份患者条件证据。当前 KiTS23 checkpoint 属于非目标域代理，目标域输入与正式晋级门均未通过，因此运行结果继续强制 `spatial_effect_applied=false`、患者条件概率等于影像基础概率且差异为零，不能据此声称患者指标已经改变颌骨病灶边界。
+患者条件代理已接入平台开发配置的病例双通道分析调用链。`PatientConditionedSegmenterAdapter` 在 warmup 阶段校验 checkpoint、训练 manifest 及其 SHA256，并强制代理模型保持 `candidate_only=true`、`runtime_replacement_allowed=false` 和 `clinical_claim_allowed=false`；生产配置未登记该代理候选。针对开发配置中实际登记的 KiTS23 checkpoint，端到端配置回归已生成完整证据文件，并核对 `proxy_checkpoint=true`、患者条件概率与影像基础概率完全一致、`delta=0` 和 `runtime_replacement_allowed=false`。`AnalysisService` 只选择一份由可信医生接受或修改、绑定当前白光 JPEG 的 `exposed_bone` 标注作为骨面门控，多份合格标注、来源不一致、尺寸或校验和异常均失败闭合。分析结果持久化 `image-only`、患者条件概率、差异图、空间门控、不确定性、逐项原因码和证据 manifest，并登记病例 artifact；病例工作台、结构化 JSON、Markdown 报告和量化 CSV 已展示同一份患者条件证据。当前 KiTS23 checkpoint 属于非目标域代理，目标域输入与正式晋级门均未通过，因此运行结果继续强制 `spatial_effect_applied=false`、患者条件概率等于影像基础概率且差异为零，不能据此声称患者指标已经改变颌骨病灶边界。
 
 ## 13. 骨活性多任务代理训练闭环
 
@@ -186,13 +186,13 @@ T134-T135 聚焦回归已覆盖逐病例证据重放、签名模型、bundle 独
 
 ## 15. D083 公开骨移植 ICG 视频工程证据
 
-平台已对 D083 `Video1.mpeg` 完成源 ZIP SHA256、成员 CRC32、安全提取和浏览器兼容 H.264 MP4 转码，并使用严格比赛配置的主线关键帧模型完成 12 个全时段均匀关键帧的分割、时序量化、联系表和证据 manifest。源视频为 1024×768、约 29.97 FPS、约 105 秒的血管化骨移植物 ICG 灌注视频，属于人骨灌注近似域，缺少颌骨骨髓炎标签、患者—视频对应、固定 ROI、注射时间戳、曝光增益和像素金标准。
+平台已对 D083 `Video1.mpeg` 完成源 ZIP SHA256、成员 CRC32、安全提取和浏览器兼容 H.264 MP4 转码，并使用生产配置的主线关键帧模型完成 12 个全时段均匀关键帧的分割、时序量化、联系表和证据 manifest。源视频为 1024×768、约 29.97 FPS、约 105 秒的血管化骨移植物 ICG 灌注视频，属于人骨灌注近似域，缺少颌骨骨髓炎标签、患者—视频对应、固定 ROI、注射时间戳、曝光增益和像素金标准。
 
 全时段采样显示前 4 帧处于暗场，代理模型在暗场仍产生非空候选 mask，平台已写入 `d083_dark_baseline_nonempty_mask` 安全警告。荧光解码亮度曲线可用于验证时序处理链路，空间 mask 只能作为待复核信号候选。所有结果保持 `target_domain_flag=false`、`training_eligible=false`、`runtime_replacement_allowed=false` 和 `navigation_ready=false`。证据位于 `artifacts/data_review/d083_icg_video_evidence_20260718/`，复现工具为 `tools/materialize_d083_icg_video_evidence.py`。
 
 ## 16. 患者条件分割 4K 可配准运行证据
 
-官方 4K 代理生成器已加入固定种子的跨通道共享纹理，使白光/荧光代理在保持合成数据边界的同时具备可验证共同几何结构。新严格比赛流 `case_98d0ff0d9c` 的相位相关配准响应为 `0.366592`，超过 `0.08` 安全门；JPEG/MP4 官方规格检查、严格配置绑定、主线关键帧模型、工程复核和证据包均通过。输入路径、字节数、SHA256、官方规格档案和配准详情已直接写入机器摘要 `artifacts/platform_competition/competition_flow_three_priority_registered_20260719/competition_flow_demo_check_summary.json`。
+4K 代理生成器已加入固定种子的跨通道共享纹理，使白光/荧光代理在保持合成数据边界的同时具备可验证共同几何结构。平台流 `case_98d0ff0d9c` 的相位相关配准响应为 `0.366592`，超过 `0.08` 安全门；JPEG/MP4 规格检查、生产配置绑定、主线关键帧模型、工程复核和证据包均通过。输入路径、字节数、SHA256、输入规格档案和配准详情已直接写入机器摘要 `artifacts/platform_validation/platform_flow_three_priority_registered_20260719/platform_flow_demo_check_summary.json`。
 
 开发配置病例 `case_516176330f` 使用同一对 3840×2160 JPEG 实际执行 `patient_conditioned_kits23_proxy_candidate`，生成影像基础概率、患者条件概率、空间差异图和模型不确定性四张 4K 证据。代理门控使基础与条件概率逐字节一致、差异 mask 全零、`spatial_effect_applied=false` 和主线替换关闭。前端已中文化全部患者条件失败原因，并在 1600×1000、1280×800 的日间/夜间桌面视口通过无水平溢出、无破损图片和零控制台错误检查。完整证据见 `research/reports/modeling/patient_conditioning_4k_registered_runtime_20260719_zh.md`。该结果保留非目标域、非临床性能和医生复核边界。
 

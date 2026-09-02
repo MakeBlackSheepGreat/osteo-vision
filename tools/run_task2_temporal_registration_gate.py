@@ -386,13 +386,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--white-path",
         default=(
-            "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/" "competition_white_4k.jpg"
+            "tests/fixtures/platform/platform_white_4k.jpg"
         ),
     )
     parser.add_argument(
         "--fluorescence-path",
         default=(
-            "research/reports/submission/challenge_cup_report_draft_20260721/assets/sources/" "competition_icg_4k.jpg"
+            "tests/fixtures/platform/platform_icg_4k.jpg"
         ),
     )
     parser.add_argument(

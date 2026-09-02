@@ -1206,7 +1206,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         "patch_caches": patch_caches,
         "results": results,
         "nnunet": nnunet,
-        "medical_boundary": "Research and competition validation platform; D024/D036 are anatomy segmentation datasets.",
+        "medical_boundary": "Research and engineering validation platform; D024/D036 are anatomy segmentation datasets.",
     }
     summary["paths"] = {
         "summary_json": str(write_json(output_dir / "anatomy_highres_patch_experiment_summary.json", summary)),

@@ -1,4 +1,4 @@
-"""Logging utilities for the medical imaging competition framework.
+"""Logging utilities for the Osteo Vision medical imaging platform.
 
 This module provides a unified logging interface with support for different log levels,
 formatters, and handlers.
@@ -20,7 +20,7 @@ def utc_timestamp() -> str:
 
 class Logger:
     """
-    Unified logger for the medical imaging competition framework.
+    Unified logger for the Osteo Vision medical imaging platform.
 
     Provides standard logging methods plus specialized methods for
     performance, lifecycle, inference, and training events.

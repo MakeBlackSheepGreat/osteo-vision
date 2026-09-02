@@ -27,7 +27,7 @@ TRAINING_INTAKE_ADMISSION_STATES = {"engineering_analysis_ready", "target_regist
 TRAINING_SCOPE_TOKENS = {"train", "training"}
 TRAINING_SCOPE_DENY_MARKERS = {
     "analysis only",
-    "competition only",
+    "platform only",
     "exclude training",
     "no training",
     "not for training",

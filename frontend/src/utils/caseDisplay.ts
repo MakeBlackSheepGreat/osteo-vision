@@ -205,7 +205,7 @@ function translateApiError(status: number | null, code: string, message: string)
     return "上传文件内容与图片后缀不匹配，请确认选择的是 JPEG/PNG/BMP/TIFF 图像。";
   }
   if (message.includes("uploaded MP4 container signature is missing")) {
-    return "上传文件不是有效 MP4 容器，请确认使用赛题设备导出的 MP4 文件。";
+    return "上传文件不是有效 MP4 容器，请确认使用项目输入规范设备导出的 MP4 文件。";
   }
   if (message.includes("Unsupported file type")) {
     return "当前仅支持 JPEG/PNG/BMP/TIFF 图像和 MP4 视频。";

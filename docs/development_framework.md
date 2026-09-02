@@ -55,7 +55,7 @@ Pydantic schema、枚举和 SQLite repository 保存病例、输入、分析任�
 
 | 配置 | 用途 |
 |---|---|
-| `configs/inference/osteo_vision_competition_strict.yml` | 比赛演示和严格运行 |
+| `configs/inference/osteo_vision_strict.yml` | 平台演示和严格运行 |
 | `configs/inference/osteo_vision.yml` | 研发、模型清单和安全关闭的代理能力 |
 | `configs/tasks/osteo_vision.yml` | 颌骨骨髓炎任务契约 |
 | `configs/paths.local.yml` | 本机路径覆盖，Git 忽略 |
@@ -76,7 +76,7 @@ Pydantic schema、枚举和 SQLite repository 保存病例、输入、分析任�
 
 所有 adapter 通过 `ModelSpec` 描述依赖、输入、任务、checkpoint、设备、运行许可和医学声明。`MedicalImagingInferenceService` 是通用推理入口，病例工作台通过应用服务复用同一 adapter 体系。
 
-比赛严格模式关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。患者条件与骨活性代理 checkpoint 可生成离线工程证据，其目标域替换权限保持关闭。
+严格运行模式关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。患者条件与骨活性代理 checkpoint 可生成离线工程证据，其目标域替换权限保持关闭。
 
 ## 三维安全分级
 

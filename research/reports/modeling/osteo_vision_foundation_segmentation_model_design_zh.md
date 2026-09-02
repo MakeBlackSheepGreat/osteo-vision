@@ -45,7 +45,7 @@
 参考：
 
 - https://arxiv.org/html/2411.17213v2
-- 本地快照：`research/model-snapshots/code/nnunet/documentation/competitions/Toothfairy2/readme.md`
+- 本地快照：`research/model-snapshots/code/nnunet/documentation/competitions/Toothfairy2/readme.md`（第三方资料目录）
 
 关键做法：
 
@@ -169,7 +169,7 @@
 
 用途：
 
-- 作为比赛和演示更稳定的解剖先验。
+- 作为平台演示更稳定的解剖先验。
 - 先获得可解释的大结构 ROI。
 - 降低 D036 42 类、D024 39 类从零训练的类别稀疏问题。
 

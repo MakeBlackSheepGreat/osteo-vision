@@ -1,1 +1,1 @@
-"""Medical Imaging Competition Framework package."""
+"""Osteo Vision medical imaging platform package."""

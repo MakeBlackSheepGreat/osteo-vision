@@ -13,12 +13,12 @@
 <!--
   Confirm that the feature aligns with the Osteo Vision constitution.
   Keep this technology-agnostic in the spec, but be concrete about medical and
-  competition boundaries.
+  platform scope boundaries.
 -->
 
 **Platform Layer**: [fluorescence analysis / AI + physician review / result export / cross-cutting]
 
-**Competition Value**: [Which competition point this supports: pseudo-color fluorescence enhancement, AI-assisted review, standardized output/collaboration]
+**Platform Value**: [Which platform capability this supports: pseudo-color fluorescence enhancement, AI-assisted review, standardized output/collaboration]
 
 **Medical Safety Boundary**: [How the feature avoids unsupported diagnosis claims and preserves physician review]
 

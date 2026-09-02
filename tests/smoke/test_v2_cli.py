@@ -41,7 +41,7 @@ def test_model_inventory_cli_reports_fixture() -> None:
     assert payload["schema_version"] == "osteo-vision-runtime-model-inventory-v1"
     assert payload["config_sha256"]
     assert payload["runtime_profile"] == "development"
-    assert payload["task_package"]["task_id"] == "medical_competition_demo"
+    assert payload["task_package"]["task_id"] == "medical_demo"
     assert any(row["spec"]["family"] == "fixture" and row["status"]["available"] for row in payload["models"])
     assert any(row["spec"]["family"] != "fixture" and not row["status"]["available"] for row in payload["models"])
     model_ids = [row["spec"]["model_id"] for row in payload["models"]]

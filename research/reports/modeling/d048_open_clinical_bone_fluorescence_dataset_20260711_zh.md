@@ -77,7 +77,7 @@ Europe PMC `supplementaryFiles` 接口已核查本轮相关开放论文。发现
 | 文献 | 许可核验 | 处理 |
 |---|---|---|
 | [10.1016/j.pdpdt.2023.103867](https://doi.org/10.1016/j.pdpdt.2023.103867) | Crossref 记录为 CC BY-NC-ND 4.0 | 禁止衍生裁图与训练，仅作论文参考 |
-| [10.1016/j.pdpdt.2024.104370](https://doi.org/10.1016/j.pdpdt.2024.104370) | Crossref 记录为 CC BY-NC 4.0 | 未纳入 D048；用途需另行审查比赛与训练的非商业边界 |
+| [10.1016/j.pdpdt.2024.104370](https://doi.org/10.1016/j.pdpdt.2024.104370) | Crossref 记录为 CC BY-NC 4.0 | 未纳入 D048；用途需另行审查平台研究与训练的非商业边界 |
 | [10.1016/j.oooo.2020.10.018](https://doi.org/10.1016/j.oooo.2020.10.018) | Crossref 未给出开放衍生许可 | 未下载训练资产 |
 | [10.1016/j.joms.2017.10.024](https://doi.org/10.1016/j.joms.2017.10.024) | Crossref 未给出开放衍生许可 | 未下载训练资产 |
 

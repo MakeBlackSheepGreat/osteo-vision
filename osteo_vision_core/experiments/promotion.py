@@ -46,7 +46,7 @@ def evaluate_promotion_gate(
                         "input_types": ["*"],
                         "checkpoint_path": checkpoint_path,
                         "enabled": True,
-                        "intended_use": "research_competition_platform_validation",
+                        "intended_use": "research_platform_validation",
                         "clinical_claim_allowed": False,
                     }
                 ],

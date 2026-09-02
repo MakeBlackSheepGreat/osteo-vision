@@ -4,7 +4,7 @@ Date: 2026-07-11
 
 ## Scope
 
-The competition device document specifies 3840x2160 capture, JPEG images, and MP4 videos. This validation covers visually reviewed public videos, long MP4 inputs, multiple frame rates, an unreadable MP4, a source-derived 4K JPEG, forced tiled inference, model fallback, and a short sustained-memory observation.
+The target device document specifies 3840x2160 capture, JPEG images, and MP4 videos. This validation covers visually reviewed public videos, long MP4 inputs, multiple frame rates, an unreadable MP4, a source-derived 4K JPEG, forced tiled inference, model fallback, and a short sustained-memory observation.
 
 The platform mode is recorded as `keyframe-based playback analysis`. No full-frame 4K 30 FPS AI claim is supported by this run.
 

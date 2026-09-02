@@ -6,7 +6,7 @@
 
 本轮没有下载或接入 DentalSegmentator 的大型 checkpoint，而是先把它在本项目中的可复用位置固化为一个本地预处理契约：**CBCT/NPZ + 可选解剖 mask -> 颌骨/牙颌面 ROI 裁剪 NPZ + manifest**。
 
-这一步直接服务后续比赛闭环中的 AI 模型训练和术前 CBCT 代理分割：先把颌骨相关区域从全体积中稳定裁出来，再交给 D025 病灶代理模型、nnU-Net/DynUNet 或其他 3D segmentation baseline。它不是术中 ICG MP4/JPEG 目标域模型，也不是 DentalSegmentator 权重推理结果。
+这一步直接服务后续平台闭环中的 AI 模型训练和术前 CBCT 代理分割：先把颌骨相关区域从全体积中稳定裁出来，再交给 D025 病灶代理模型、nnU-Net/DynUNet 或其他 3D segmentation baseline。它不是术中 ICG MP4/JPEG 目标域模型，也不是 DentalSegmentator 权重推理结果。
 
 ## 外部来源核验
 
@@ -75,12 +75,12 @@ ROI 来源优先级：
 
 所有 fallback 都会写入 manifest warning，避免把粗糙代理 ROI 误解为模型分割结果。
 
-## 对比赛模型闭环的帮助
+## 对平台模型闭环的帮助
 
 1. 为 CBCT 代理训练提供稳定 ROI 裁剪入口，减少全体积背景对 3D 分割模型的干扰。
 2. 给未来 DentalSegmentator 权重接入预留明确边界：真实权重只需要产出 anatomy mask，即可复用当前 ROI 契约。
 3. 支持 nnU-Net/DynUNet 高分辨率 patch 训练前的统一 ROI manifest，便于追踪病例、bbox、标签来源和非目标域声明。
-4. 与当前赛题软件主线互补：官方 MP4/JPEG 走术中荧光融合和 2D keyframe 代理分割，hotspot 作为回退；CBCT ROI 作为术前解剖先验和模型训练代理，不替代术中荧光输入。
+4. 与当前平台软件主线互补：MP4/JPEG 走术中荧光融合和 2D keyframe 代理分割，hotspot 作为回退；CBCT ROI 作为术前解剖先验和模型训练代理，不替代术中荧光输入。
 
 ## 医学和数据边界
 

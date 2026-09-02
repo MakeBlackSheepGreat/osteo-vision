@@ -157,7 +157,7 @@ def test_review_api_returns_reason_code_when_prompt_fallback_is_disabled(
         yaml.safe_dump(
             {
                 "runtime": {
-                    "runtime_profile": "competition_safety_test",
+                    "runtime_profile": "platform_safety_test",
                     "strict_startup": False,
                     "allow_prompt_fallback": False,
                     "use_fixture_model": False,
@@ -210,7 +210,7 @@ def test_review_api_returns_reason_code_when_prompt_fallback_is_disabled(
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "prompt_fallback_disabled_by_runtime_policy"
-    assert response.json()["detail"]["runtime_profile"] == "competition_safety_test"
+    assert response.json()["detail"]["runtime_profile"] == "platform_safety_test"
 
 
 def test_review_api_generates_prompt_assisted_bone_gate_mask(tmp_path, monkeypatch) -> None:

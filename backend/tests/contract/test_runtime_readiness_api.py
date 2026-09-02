@@ -52,7 +52,7 @@ def test_strict_runtime_failure_prevents_backend_construction(tmp_path: Path, mo
         yaml.safe_dump(
             {
                 "runtime": {
-                    "runtime_profile": "competition_strict",
+                    "runtime_profile": "strict_runtime",
                     "strict_startup": True,
                     "use_fixture_model": True,
                     "allow_fixture_on_missing_checkpoint": False,

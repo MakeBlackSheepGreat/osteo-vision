@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 from scripts.generate_model_checkpoint_manifest import build_model_checkpoint_manifest  # noqa: E402
 from osteo_vision_core.models.runtime_preflight import check_runtime_readiness  # noqa: E402
 
-STRICT_CONFIG = "configs/inference/osteo_vision_competition_strict.yml"
+STRICT_CONFIG = "configs/inference/osteo_vision_strict.yml"
 
 
 def status(ok: bool) -> str:
@@ -120,7 +120,7 @@ def check_runtime_profiles() -> bool:
         f"errors={development['error_count']} warnings={development['warning_count']}"
     )
     print(
-        f"{'OK' if strict['passed'] else 'MISSING':8} competition strict runtime "
+        f"{'OK' if strict['passed'] else 'MISSING':8} platform strict runtime "
         f"errors={strict['error_count']} warnings={strict['warning_count']} "
         f"config_sha256={strict['config_sha256']}"
     )
@@ -173,7 +173,8 @@ def main() -> int:
         "tools/check_runtime_readiness.py",
         "research/reports/README.md",
         "research/reports/planning/osteo_vision_platform_target_zh.md",
-        "research/reports/planning/official_competition_problem_alignment_20260704_zh.md",
+        "research/reports/planning/platform_input_boundary_zh.md",
+        "research/reports/planning/device_input_spec_extracted_text.md",
         "research/literature/inventory/literature_and_dataset_summary.md",
         "research/literature/inventory/paper_inventory.csv",
         "research/literature/inventory/dataset_inventory.csv",

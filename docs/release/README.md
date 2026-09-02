@@ -4,10 +4,10 @@
 
 ## 下载与解压
 
-GitHub 单个附件容量有限，发行包以分卷 7z 文件上传。请下载同一发行版中全部 `Osteo-Vision-Competition-Disc-win32-x64-20260831-r28.7z.00*` 文件和 `SHA256SUMS.txt`，并放入同一目录。
+GitHub 单个附件容量有限，发行包以分卷 7z 文件上传。请下载同一发行版中全部 `Osteo-Vision-Offline-Release-win32-x64-20260831-r28.7z.00*` 文件和 `SHA256SUMS.txt`，并放入同一目录。
 
 1. 使用 7-Zip 在 `.7z.001` 文件上执行“解压到当前目录”。
-2. 解压完成后保留生成的 `Osteo-Vision-Competition-Disc-win32-x64-20260831-r28` 目录结构。
+2. 解压完成后保留生成的 `Osteo-Vision-Offline-Release-win32-x64-20260831-r28` 目录结构。
 3. 双击该目录根部的 `Osteo Vision Platform.exe` 启动平台。
 
 `Osteo Vision Platform.exe` 是面向使用者的唯一启动入口。`resources`、`locales` 及其他同级文件夹均为运行时组成部分，复制或刻录时须完整保留。
@@ -17,7 +17,7 @@ GitHub 单个附件容量有限，发行包以分卷 7z 文件上传。请下载
 发行页的 `SHA256SUMS.txt` 列出每个分卷的 SHA256。Windows PowerShell 可执行以下命令后与清单比对：
 
 ```powershell
-Get-FileHash .\Osteo-Vision-Competition-Disc-win32-x64-20260831-r28.7z.001 -Algorithm SHA256
+Get-FileHash .\Osteo-Vision-Offline-Release-win32-x64-20260831-r28.7z.001 -Algorithm SHA256
 ```
 
 解压后，运行包根目录的 `verify_release.ps1` 会检查启动文件、示例数据、文件长度和每个受控文件的 SHA256。

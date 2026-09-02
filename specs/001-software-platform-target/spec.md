@@ -13,10 +13,10 @@
 
 **Platform Layer**: cross-cutting
 
-**Competition Value**: supports pseudo-color fluorescence enhancement, AI-assisted review,
+**Platform Value**: supports pseudo-color fluorescence enhancement, AI-assisted review,
 and standardized output/collaboration
 
-**Medical Safety Boundary**: the platform remains a research and competition validation platform,
+**Medical Safety Boundary**: the platform remains a research and engineering validation platform,
 keeps physician review as the final decision layer, and avoids automatic diagnosis or
 unsupported clinical claims
 
@@ -70,7 +70,7 @@ with an accepted review state.
 As a researcher or platform administrator, I can export a case package containing the key
 visuals, quantitative summary, review states, and report for sharing or later review.
 
-**Why this priority**: The competition requires evidence, not just on-screen analysis.
+**Why this priority**: The platform requires evidence, not just on-screen analysis.
 
 **Independent Test**: Complete a reviewed sample case and verify that the exported package contains
 the required artifacts and reproduces the reviewed state.

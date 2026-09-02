@@ -24,7 +24,7 @@ DEFAULT_TEST_EVAL = (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Promote a keyframe checkpoint for competition runtime after auditable validation gates."
+        description="Promote a keyframe checkpoint for platform runtime after auditable validation gates."
     )
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
     parser.add_argument("--training-sidecar", default=DEFAULT_TRAINING_SIDECAR)

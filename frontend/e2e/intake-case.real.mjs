@@ -12,8 +12,8 @@ const defaultPackageRoot = path.join(
   repoRoot,
   "artifacts",
   "release",
-  "competition-disc",
-  "Osteo-Vision-Competition-Disc-win32-x64-20260831-r28",
+  "offline-release",
+  "Osteo-Vision-Offline-Release-win32-x64-20260831-r28",
 );
 const physicianToken = "playwright-physician-token-20260715";
 const options = parseOptions(process.argv.slice(2));
@@ -265,7 +265,7 @@ async function fillIntakeHeader(page, batchId, organization, authorization) {
   await page.getByLabel("来源机构", { exact: true }).fill(organization);
   await page.getByLabel("接收人", { exact: true }).fill("r28_test_receiver");
   await page.locator(".form-grid label").filter({ hasText: "机构授权状态" }).locator("select").selectOption(authorization);
-  await page.getByLabel("允许用途", { exact: true }).fill("competition_research_validation");
+  await page.getByLabel("允许用途", { exact: true }).fill("research_validation");
   await page.getByLabel("脱敏方法", { exact: true }).fill("institutional export review");
 }
 

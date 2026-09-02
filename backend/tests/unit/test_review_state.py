@@ -101,7 +101,7 @@ def test_strict_runtime_disables_prompt_fallback_before_adapter_execution(
         yaml.safe_dump(
             {
                 "runtime": {
-                    "runtime_profile": "competition_strict",
+                    "runtime_profile": "strict_runtime",
                     "strict_startup": True,
                     "allow_prompt_fallback": False,
                     "models": [
@@ -162,4 +162,4 @@ def test_strict_runtime_disables_prompt_fallback_before_adapter_execution(
         )
 
     assert exc_info.value.code == "prompt_fallback_disabled_by_runtime_policy"
-    assert exc_info.value.runtime_profile == "competition_strict"
+    assert exc_info.value.runtime_profile == "strict_runtime"

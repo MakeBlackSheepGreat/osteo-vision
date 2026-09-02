@@ -55,7 +55,7 @@ time for live demo, with batch export and later multi-case expansion kept open
 
 **Osteo Vision Layer**: cross_cutting
 
-**Medical Safety Boundary**: The platform remains a research and competition
+**Medical Safety Boundary**: The platform remains a research and platform
 platform, treats ICG as a perfusion/viability signal, preserves physician
 review states, and avoids unsupported clinical certainty language
 
@@ -74,9 +74,9 @@ case evidence bundles out
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **Competition scope**: The feature stays inside the three post-acquisition
+- **Platform scope**: The feature stays inside the three post-acquisition
   layers: fluorescence analysis, AI + physician review, and result export.
-- **Medical safety**: All outputs remain research/competition evidence; review
+- **Medical safety**: All outputs remain research/platform evidence; review
   states and disclaimers are preserved; no automatic diagnosis or resection
   guidance is claimed.
 - **Configurable architecture**: Case behavior enters through configs,

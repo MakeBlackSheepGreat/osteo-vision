@@ -99,7 +99,7 @@ def build_summary(
             else None
         ),
         "runtime_replacement_allowed": False,
-        "next_gate": "strict_4k_tiled_runtime_and_competition_flow_validation",
+        "next_gate": "strict_4k_tiled_runtime_and_platform_flow_validation",
         "reason": (
             "multi_seed_accuracy_and_safety_gates_passed; checkpoint chosen by validation Dice"
             if selected
@@ -262,7 +262,7 @@ def _render_report(summary: dict[str, Any], *, language: str) -> str:
                 f"- 推荐候选族：`{recommendation['selected_family']}`。",
                 f"- 验证集选定 checkpoint：`{recommendation['selected_checkpoint']}`。",
                 f"- 锁定阈值：`{recommendation['selected_threshold']}`。",
-                "- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与比赛闭环门控。",
+                "- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与平台闭环门控。",
                 "",
                 "## 独立测试集比较",
                 "",
@@ -276,7 +276,7 @@ def _render_report(summary: dict[str, Any], *, language: str) -> str:
                 f"- Recommended family: `{recommendation['selected_family']}`.",
                 f"- Validation-selected checkpoint: `{recommendation['selected_checkpoint']}`.",
                 f"- Locked threshold: `{recommendation['selected_threshold']}`.",
-                "- `runtime_replacement_allowed=false` remains in force until strict 4K tiled and competition-flow gates pass.",
+                "- `runtime_replacement_allowed=false` remains in force until strict 4K tiled and platform-flow gates pass.",
                 "",
                 "## Held-out test comparison",
                 "",

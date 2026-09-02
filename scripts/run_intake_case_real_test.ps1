@@ -1,5 +1,5 @@
 param(
-    [string]$PackageRoot = "artifacts\release\competition-disc\Osteo-Vision-Competition-Disc-win32-x64-20260831-r28",
+    [string]$PackageRoot = "artifacts\release\offline-release\Osteo-Vision-Offline-Release-win32-x64-20260831-r28",
     [int]$TimeoutMs = 600000
 )
 
@@ -25,7 +25,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $repoRoot "frontend\node_modules\pla
     throw "未找到 frontend/node_modules/playwright。请先执行 npm --prefix frontend ci。"
 }
 
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "packaging\competition_disc\verify_release.ps1") -PackageRoot $resolvedPackageRoot
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "packaging\offline_release\verify_release.ps1") -PackageRoot $resolvedPackageRoot
 if ($LASTEXITCODE -ne 0) { throw "发行包完整性校验失败：$resolvedPackageRoot" }
 
 & node.exe $testScript --package-root $resolvedPackageRoot --timeout-ms $TimeoutMs

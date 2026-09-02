@@ -45,7 +45,7 @@ def build_candidate_strict_config(
 
     candidate = copy.deepcopy(production)
     runtime = _mapping(candidate.get("runtime"))
-    runtime["model_version"] = f"{model_id}-strict-competition-flow-gate-v1"
+    runtime["model_version"] = f"{model_id}-strict-platform-flow-gate-v1"
     runtime["required_model_ids"] = [model_id]
     runtime["models"] = [
         {
@@ -61,7 +61,7 @@ def build_candidate_strict_config(
             "device_policy": "cuda",
             "precision": "fp32",
             "enabled": True,
-            "intended_use": "Strict competition-flow gate for a non-target-domain keyframe signal candidate",
+            "intended_use": "Strict platform-flow gate for a non-target-domain keyframe signal candidate",
             "clinical_claim_allowed": False,
             "extra": {
                 "runtime_allowed": True,
@@ -102,7 +102,7 @@ def build_candidate_strict_config(
         "production_config_path": str(production_path),
         "production_config_sha256": _sha256_bytes(production_bytes),
         "automatic_replacement_performed": False,
-        "competition_runtime_selected": False,
+        "platform_runtime_selected": False,
     }
     candidate["runtime"] = runtime
 
@@ -112,7 +112,7 @@ def build_candidate_strict_config(
         encoding="utf-8",
     )
     if production_path.read_bytes() != production_bytes:
-        raise RuntimeError("Production competition config changed while building the isolated candidate config")
+        raise RuntimeError("Production platform config changed while building the isolated candidate config")
     return {
         "schema_version": "osteo-vision-keyframe-candidate-strict-config-v1",
         "output_path": str(destination),
@@ -131,7 +131,7 @@ def build_candidate_strict_config(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build an isolated strict config for a promoted keyframe candidate.")
-    parser.add_argument("--production-config", default="configs/inference/osteo_vision_competition_strict.yml")
+    parser.add_argument("--production-config", default="configs/inference/osteo_vision_strict.yml")
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--runtime-sidecar", required=True)
     parser.add_argument("--output", required=True)

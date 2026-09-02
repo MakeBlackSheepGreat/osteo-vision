@@ -23,14 +23,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_ru
 启动严格平台并额外尝试启动渲染运行时：
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictRuntime -StartThreeDRuntime
 ```
 
 主平台在三维运行时目录缺失、依赖安装失败、端口冲突、Web 服务未就绪或浏览器 WebGL 不可用时保持主工作流可用。二维证据、L0/L1/L2 状态和医生复核入口继续由主平台提供。
 
 `start_three_d_runtime.ps1 -PreflightOnly` 输出启动器检查结果，其中 `runtime_dependencies_ready` 表示独立包自身的 Vue、Three.js、Vite、Vue 插件和类型检查依赖是否齐备。正常启动会在本地依赖不完整时执行 `npm ci`；传入 `-NoInstall` 会明确失败。`-SkipBackendCheck` 仅用于本地启动器检查或前端离线测试，不可用于受控演示部署。
 
-严格比赛模式由主平台控制病例存储、推理配置和主前端状态。独立渲染运行时保持无业务模式的受控渲染职责。
+严格平台模式由主平台控制病例存储、推理配置和主前端状态。独立渲染运行时保持无业务模式的受控渲染职责。
 
 根平台启动器要求三端口两两不同；独立启动器还会拒绝与 `MainAppOrigin` 使用同一端口。端口已被占用时，`start_three_d_runtime.ps1` 会读取 `/runtime-manifest.json`，再核对 `artifacts/runtime_logs/three_d_runtime_<port>.json` 内的 API 地址和主平台 origin。配置不一致或无法核验时启动器停止复用，避免连接到错误的渲染实例。
 

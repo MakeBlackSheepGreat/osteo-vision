@@ -77,8 +77,8 @@ benchmark: ## 运行通用推理基准
 performance-baseline: ## 运行核心热路径性能与输出一致性基准
 	$(PYTHON) tools/benchmark_core_hotpaths.py --output artifacts/performance/core_hotpaths_current.json
 
-platform: ## 启动比赛严格模式平台
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition
+platform: ## 启动严格运行模式平台
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictRuntime
 
 platform-backend: ## 启动 FastAPI 后端
 	$(PYTHON) -m backend.osteo_vision_api.main
@@ -107,7 +107,7 @@ three-d-runtime-build: ## 构建独立三维渲染运行时静态产物
 	npm --prefix $(THREE_D_RUNTIME_DIR) run build
 
 platform-three-d-runtime: ## 启动严格平台并尝试启动独立三维渲染运行时
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition -StartThreeDRuntime -ThreeDRuntimePort $(THREE_D_RUNTIME_PORT)
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictRuntime -StartThreeDRuntime -ThreeDRuntimePort $(THREE_D_RUNTIME_PORT)
 
 demo-compat: ## 启动 Gradio 兼容性入口
 	$(PYTHON) app/main.py --config configs/inference/osteo_vision.yml
@@ -117,7 +117,7 @@ docs-audit: ## 审计活动文档、版本和本地链接
 
 readiness: ## 运行严格环境与模型就绪检查
 	$(PYTHON) tools/check_project_readiness.py
-	$(PYTHON) tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict
+	$(PYTHON) tools/check_runtime_readiness.py --config configs/inference/osteo_vision_strict.yml --require-strict
 
 clean: ## 清理缓存、临时测试目录和构建输出
 	$(PYTHON) tools/clean_workspace.py --apply

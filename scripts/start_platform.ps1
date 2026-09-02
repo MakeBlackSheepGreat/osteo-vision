@@ -5,7 +5,7 @@ param(
     [string]$HostAddress = "127.0.0.1",
     [string]$CondaEnv = "osteo-vision",
     [string]$InferenceConfig = "configs/inference/osteo_vision.yml",
-    [switch]$StrictCompetition,
+    [switch]$StrictRuntime,
     [switch]$PreflightOnly,
     [switch]$NoInstall,
     [switch]$NoBrowser,
@@ -134,8 +134,8 @@ if (($runtimePorts | Select-Object -Unique).Count -ne 3) {
 if ($StartThreeDRuntime -and $SkipThreeDRuntime) {
     throw "StartThreeDRuntime and SkipThreeDRuntime cannot be used together."
 }
-if ($StrictCompetition) {
-    $InferenceConfig = "configs/inference/osteo_vision_competition_strict.yml"
+if ($StrictRuntime) {
+    $InferenceConfig = "configs/inference/osteo_vision_strict.yml"
 }
 $inferenceConfigPath = if ([System.IO.Path]::IsPathRooted($InferenceConfig)) {
     (Resolve-Path -LiteralPath $InferenceConfig).Path
@@ -159,7 +159,7 @@ if (-not $projectPython) {
     throw "Python for conda environment '$CondaEnv' was not found. Expected the dedicated osteo-vision environment."
 }
 $preflightArguments = @($runtimeCheck, "--config", $inferenceConfigPath)
-if ($StrictCompetition) {
+if ($StrictRuntime) {
     $preflightArguments += "--require-strict"
 }
 $preflightRaw = & $projectPython @preflightArguments 2>&1
@@ -186,10 +186,10 @@ $allowedOrigins = "http://localhost:$FrontendPort,http://${HostAddress}:$Fronten
 $apiUrl = "http://${HostAddress}:$BackendPort"
 $frontendUrl = "http://${HostAddress}:$FrontendPort"
 $threeDRuntimeUrl = "http://${HostAddress}:$ThreeDRuntimePort"
-$expectStrictRuntime = if ($StrictCompetition) { "true" } else { "false" }
-$competitionArtifactRoot = Join-Path $repoRoot "artifacts\platform_competition"
-$competitionCaseStore = Join-Path $competitionArtifactRoot "cases.sqlite"
-$competitionJobStore = Join-Path $competitionArtifactRoot "jobs\jobs.json"
+$expectStrictRuntime = if ($StrictRuntime) { "true" } else { "false" }
+$platformArtifactRoot = Join-Path $repoRoot "artifacts\platform_platform"
+$platformCaseStore = Join-Path $platformArtifactRoot "cases.sqlite"
+$platformJobStore = Join-Path $platformArtifactRoot "jobs\jobs.json"
 
 $backendRunning = Test-TcpPort -Address $HostAddress -Port $BackendPort
 $frontendRunning = Test-TcpPort -Address $HostAddress -Port $FrontendPort
@@ -208,8 +208,8 @@ if ($backendRunning) {
     if ($existingReady.runtime_readiness.config_sha256 -ne $preflight.config_sha256) {
         throw "Existing backend runtime config does not match $inferenceConfigPath. Stop the old backend before starting."
     }
-    if ($StrictCompetition -and [System.IO.Path]::GetFullPath([string]$existingReady.storage) -ne [System.IO.Path]::GetFullPath($competitionCaseStore)) {
-        throw "Existing strict backend does not use the isolated competition case store. Stop it before starting."
+    if ($StrictRuntime -and [System.IO.Path]::GetFullPath([string]$existingReady.storage) -ne [System.IO.Path]::GetFullPath($platformCaseStore)) {
+        throw "Existing strict backend does not use the isolated platform case store. Stop it before starting."
     }
     $liveFrameRoute = "/cases/{case_id}/live-frames"
     $existingRoutes = @($existingOpenApi.paths.psobject.Properties.Name)
@@ -225,7 +225,7 @@ else {
 `$env:OSTEO_FRONTEND_PORT = '$FrontendPort'
 `$env:OSTEO_ALLOWED_ORIGINS = '$allowedOrigins'
 `$env:OSTEO_INFERENCE_CONFIG = '$inferenceConfigPath'
-$(if ($StrictCompetition) { "`$env:OSTEO_ARTIFACT_ROOT = '$competitionArtifactRoot'`n`$env:OSTEO_CASE_STORE_PATH = '$competitionCaseStore'`n`$env:OSTEO_JOB_STORE_PATH = '$competitionJobStore'" })
+$(if ($StrictRuntime) { "`$env:OSTEO_ARTIFACT_ROOT = '$platformArtifactRoot'`n`$env:OSTEO_CASE_STORE_PATH = '$platformCaseStore'`n`$env:OSTEO_JOB_STORE_PATH = '$platformJobStore'" })
 $backendRun
 "@
     Start-DevWindow -Title "Osteo Vision Backend :$BackendPort" -Command $backendCommand -WorkingDirectory $repoRoot -Headless:$Headless
@@ -246,8 +246,8 @@ for ($i = 0; $i -lt 60; $i++) {
             elseif ($ready.runtime_readiness.config_sha256 -ne $preflight.config_sha256) {
                 $backendFailure = "Backend runtime config does not match $inferenceConfigPath."
             }
-            elseif ($StrictCompetition -and [System.IO.Path]::GetFullPath([string]$ready.storage) -ne [System.IO.Path]::GetFullPath($competitionCaseStore)) {
-                $backendFailure = "Strict backend storage does not match $competitionCaseStore."
+            elseif ($StrictRuntime -and [System.IO.Path]::GetFullPath([string]$ready.storage) -ne [System.IO.Path]::GetFullPath($platformCaseStore)) {
+                $backendFailure = "Strict backend storage does not match $platformCaseStore."
             }
             elseif ($routes -notcontains "/cases/{case_id}/live-frames") {
                 $backendFailure = "Backend is missing the live-frame analysis route."

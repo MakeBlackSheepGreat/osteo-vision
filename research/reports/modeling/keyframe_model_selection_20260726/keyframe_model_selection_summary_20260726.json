@@ -1650,7 +1650,7 @@
     "selected_model_id": "keyframe_residual_attention_unet_s20260726_20260727",
     "selected_threshold": 0.35,
     "runtime_replacement_allowed": false,
-    "next_gate": "strict_4k_tiled_runtime_and_competition_flow_validation",
+    "next_gate": "strict_4k_tiled_runtime_and_platform_flow_validation",
     "reason": "multi_seed_accuracy_and_safety_gates_passed; checkpoint chosen by validation Dice"
   },
   "medical_boundary": "All metrics use public non-target-domain fluorescence proxy masks. They do not measure clinical performance on intraoperative ICG jaw osteomyelitis and cannot justify an autonomous diagnosis claim."

@@ -1,6 +1,6 @@
 # Osteo Vision Export Schema V1
 
-本文件描述当前平台使用的导出 schema v1 病例证据包结构。schema 版本与平台发布版本独立演进。该结构用于科研、比赛和受控演示，不能作为临床诊断报告或正式 DICOM SR/SEG 实现。
+本文件描述当前平台使用的导出 schema v1 病例证据包结构。schema 版本与平台发布版本独立演进。该结构用于科研、平台和受控演示，不能作为临床诊断报告或正式 DICOM SR/SEG 实现。
 
 ## 适用范围
 
@@ -169,5 +169,5 @@ CSV 每行按 `record_type` 区分 `candidate_region`、`roi` 和 `review_event`
 
 - 所有导出必须保留平台安全边界免责声明。
 - ICG 信号只能表述为灌注、组织活性或风险提示证据，不能写成颌骨骨髓炎特异性诊断。
-- evidence bundle 可用于竞赛评审和科研复查，不得直接作为临床诊断结论。
+- evidence bundle 可用于工程复查和科研复查，不得直接作为临床诊断结论。
 - 原始医疗影像、大型视频、checkpoint 和患者身份信息不得进入 Git。

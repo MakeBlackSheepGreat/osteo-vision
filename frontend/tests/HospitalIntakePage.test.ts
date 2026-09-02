@@ -210,7 +210,7 @@ describe("HospitalIntakePage", () => {
     expect(wrapper.text()).toContain("已准入");
     expect(wrapper.text()).toContain("目标域来源就绪");
     expect(wrapper.text()).toContain("样本仍需医生复核");
-    expect(wrapper.text()).toContain("图像可读取，但分辨率不符合赛题设备的 3840x2160 规格");
+    expect(wrapper.text()).toContain("图像可读取，但分辨率不符合项目输入规范设备的 3840x2160 规格");
     expect(wrapper.text()).not.toContain("Image is readable");
     expect(wrapper.text()).toContain("保持禁入");
     expect(wrapper.text()).toContain("病例证据已关联 1/1");

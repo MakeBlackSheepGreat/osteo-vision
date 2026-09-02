@@ -140,7 +140,7 @@ const executionLabel = computed(() => inferenceExecuted.value ? "已执行并保
 const spatialStatusLabel = computed(() => spatialCandidatesAvailable.value ? "已生成，等待医生复核" : "已关闭，仅保留工程数组");
 const replacementLabel = computed(() => props.evidence?.runtime_replacement_allowed === true
   ? "已获严格运行授权"
-  : "禁止替换比赛主线");
+  : "禁止替换生产主线");
 
 const trainingDomainLabel = computed(() => {
   const trainingDomain = props.evidence?.training_domain ?? props.evidence?.input_domain;

@@ -24,7 +24,7 @@
 3. 在开发配置登记 `bone_activity_multitask_d074_proxy_candidate`。该候选只能显式选择，保持 `candidate_only=true`、`runtime_replacement_allowed=false`、`mainline_replacement_allowed=false`、`strict_promotion_authorized=false`。
 4. 代理 checkpoint 可执行真实前向推理并输出 SHA256 绑定的原始工程数组、来源图像校验码和证据 JSON。安全输出保持所有空间候选不可用。
 5. 空间候选解锁同时要求目标域输入、已批准模型晋级、已验证双通道配准，以及绑定标注版本、源图 SHA256、像素数、时间和可信医生身份的骨面门控。
-6. 比赛严格配置继续排除该代理候选，当前主线模型配置保持原状。
+6. 严格生产配置继续排除该代理候选，当前主线模型配置保持原状。
 
 真实 D074 checkpoint 已经通过统一适配器执行：
 

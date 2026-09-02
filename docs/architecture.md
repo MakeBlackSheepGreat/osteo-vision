@@ -86,7 +86,7 @@ flowchart LR
 
 ## 5. 模型与晋级
 
-比赛严格配置为 `configs/inference/osteo_vision_competition_strict.yml`，当前主线为 `keyframe_residual_attention_unet_s20260715_20260715`。严格模式要求显式运行许可、checkpoint、sidecar 和 SHA256 一致，并关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。
+严格运行配置为 `configs/inference/osteo_vision_strict.yml`，当前主线为 `keyframe_residual_attention_unet_s20260715_20260715`。严格模式要求显式运行许可、checkpoint、sidecar 和 SHA256 一致，并关闭 fixture、缺权重回退、启发式关键帧回退和 prompt fallback。
 
 患者条件与骨活性 checkpoint 仅能生成受控工程证据。目标域替换需要患者级独立验证、概率校准、亚组审计、no-harm/效用门、可信医生复核和双签晋级证据。任一条件失败时保持影像基础结果或无法判断状态。
 
@@ -108,7 +108,7 @@ flowchart LR
 conda run -n osteo-vision python tools/benchmark_core_hotpaths.py --repeats 3 --output artifacts/performance/core_hotpaths_current.json
 ```
 
-当前基准覆盖连通域候选统计、4K 全分辨率质量直方图、时间有序位姿最近邻查找和任务状态缓存，并校验优化前后输出一致性。质量路径保留全分辨率统计与原始证据，显式传入 `quality_evaluation_max_side` 时才启用缩略评估。模型端性能继续通过 4K tiling、live fast-output 和完整比赛流工具验证。
+当前基准覆盖连通域候选统计、4K 全分辨率质量直方图、时间有序位姿最近邻查找和任务状态缓存，并校验优化前后输出一致性。质量路径保留全分辨率统计与原始证据，显式传入 `quality_evaluation_max_side` 时才启用缩略评估。模型端性能继续通过 4K tiling、live fast-output 和完整平台流工具验证。
 
 工作区质量门覆盖 Ruff、mypy、Black、isort、pytest、Vitest、`vue-tsc`、Vite build、Playwright、严格运行预检、数据 manifest 与活动文档审计。
 

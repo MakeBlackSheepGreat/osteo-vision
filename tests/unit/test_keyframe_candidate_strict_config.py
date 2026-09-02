@@ -10,12 +10,12 @@ from tools.build_keyframe_candidate_strict_config import build_candidate_strict_
 
 
 def test_candidate_strict_config_writes_segmentation_task_and_preserves_production_config(tmp_path: Path) -> None:
-    production = tmp_path / "competition_strict.yml"
+    production = tmp_path / "strict_runtime.yml"
     production.write_text(
         yaml.safe_dump(
             {
                 "runtime": {
-                    "runtime_profile": "competition_strict",
+                    "runtime_profile": "strict_runtime",
                     "strict_startup": True,
                     "model_selection_policy": "explicit",
                     "required_model_ids": ["mainline"],

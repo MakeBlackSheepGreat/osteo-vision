@@ -48,7 +48,7 @@ extra:
 - `quantification.positive_area_fraction`
 - warning：`medsam_like_prompt_fallback_non_diagnostic`
 
-## 对比赛闭环的帮助
+## 对平台闭环的帮助
 
 1. 让“医生 ROI/bbox -> promptable segmentation -> mask/overlay -> 医生复核”这条链路有可运行接口。
 2. 为后续真实 MedSAM/SAM2 checkpoint 替换预留稳定输出契约。

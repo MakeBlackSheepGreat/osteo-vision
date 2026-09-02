@@ -10,7 +10,7 @@ from osteo_vision_core.models.adapters import build_adapters, select_adapter
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision.yml"
-STRICT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision_competition_strict.yml"
+STRICT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision_strict.yml"
 MODEL_ID = "bone_activity_multitask_d074_proxy_candidate"
 MAINLINE_MODEL_ID = "keyframe_residual_attention_unet_s20260715_20260715"
 MANIFEST_SHA256 = "50816b29384766fdc6b7dc23d7a04d523958343351b89ff6a1d2e7dc4f5d7a8f"

@@ -4,7 +4,7 @@ Date: 2026-07-03
 
 ## Summary
 
-The project should not rely on public CBCT datasets alone. The official competition device outputs 4K MP4 video and JPEG images, so the training plan needs two connected tracks:
+The project should not rely on public CBCT datasets alone. The target imaging system outputs 4K MP4 video and JPEG images, so the training plan needs two connected tracks:
 
 1. **Intraoperative white-light/ICG MP4-JPEG track**: the target domain for the software. Before expert labels exist, this track should be used for upload, QC, keyframe extraction, ROI annotation, fluorescence visualization, and evidence packaging, not for claims of clinical-grade lesion segmentation.
 2. **CBCT anatomy and lesion-proxy track**: public dental CBCT datasets can train jaw/tooth/canal anatomy priors and lesion-proxy segmentation models. These models support the AI-assistance platform capability but do not replace intraoperative ICG labels.
@@ -38,11 +38,11 @@ The recommended near-term route is: use nnU-Net/SegResNetDS on CBCT anatomy and 
 
 ## Medical Boundary
 
-ICG is a perfusion and tissue-viability reference signal, not a jaw osteomyelitis-specific probe. D024/D036 are anatomy datasets and D025 is an odontogenic lesion proxy. Competition and research outputs should be described as candidate regions, boundary-risk hints, and physician-review support, not automatic diagnosis.
+ICG is a perfusion and tissue-viability reference signal, not a jaw osteomyelitis-specific probe. D024/D036 are anatomy datasets and D025 is an odontogenic lesion proxy. Platform and research outputs should be described as candidate regions, boundary-risk hints, and physician-review support, not automatic diagnosis.
 
 ## References
 
-- Official technical alignment: `research/reports/planning/official_technical_document_alignment_zh.md`
+- Platform input boundary: `research/reports/planning/platform_input_boundary_zh.md`
 - DentVoxel: https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889
 - ToothFairy2: https://toothfairy2.grand-challenge.org/
 - Scaling nnU-Net for CBCT Segmentation: https://arxiv.org/abs/2411.17213

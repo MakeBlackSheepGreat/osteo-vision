@@ -31,7 +31,7 @@ const e2ePhysicianToken = "playwright-physician-token-20260715";
 const e2eIndependentPhysicianToken = "playwright-independent-physician-token-20260719";
 const e2eInferenceConfig = path.resolve(
   repoRoot,
-  process.env.OSTEO_E2E_INFERENCE_CONFIG ?? "configs/inference/osteo_vision_competition_strict.yml",
+  process.env.OSTEO_E2E_INFERENCE_CONFIG ?? "configs/inference/osteo_vision_strict.yml",
 );
 const configuredPython = process.env.OSTEO_E2E_PYTHON?.trim();
 const projectPython = path.join(process.env.USERPROFILE ?? "", ".conda", "envs", "osteo-vision", "python.exe");

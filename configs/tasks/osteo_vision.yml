@@ -163,4 +163,4 @@ safety:
   clinical_claim_allowed: false
   user_upload_policy: transient_inference_only
   anonymize_logs: true
-  intended_use: research competition platform software for intraoperative decision support
+  intended_use: research platform software software for intraoperative decision support

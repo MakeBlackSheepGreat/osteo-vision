@@ -2,33 +2,33 @@
 
 更新日期：2026-07-26
 适用代码基线：Git `7fd2ed88bb6849b173c68d70d8c3891275e2a2ea`；工程版本 `0.3.0-rc.2`
-核对范围：当前工作区代码、受控配置、本地数据与展示资产、官方赛题资料、模型与质量门。
+核对范围：当前工作区代码、受控配置、本地数据与展示资产、设备资料、模型与质量门。
 文档属性：当前事实基线。历史报告仅保留其日期化证据属性，不覆盖本口径。
 
 ## 1. 结论摘要
 
 - 平台是本地部署的 Vue 3 + FastAPI + PyTorch 研发验证版平台，主流程覆盖文件准入、病例、JPEG/MP4 分析、医生复核、证据导出与三维参考。
 - 官方设备资料确认 4K `3840x2160`、USB3.0 存储、JPEG 图片和 MP4 视频。企业 SDK、驱动和实时设备接口未列入本仓库交付边界。
-- 严格比赛运行配置可通过运行预检，主线为 `keyframe_residual_attention_unet_s20260715_20260715`，checkpoint 与 sidecar 已核验，启发式与 prompt 回退在严格模式关闭。
+- 生产运行配置可通过运行预检，主线为 `keyframe_residual_attention_unet_s20260715_20260715`，checkpoint 与 sidecar 已核验，启发式与 prompt 回退在生产模式关闭。
 - 当前目标域真实术中 ICG 颌骨骨髓炎记录为 `0`，目标域训练准入记录为 `0`。公开、近域、异域、合成及伪标注资源均只能支持工程验证、数据管线和候选模型开发。
 - 默认展示病例为 `OFDVDNET_001` 公开离体鸡腿荧光手术代理；前端静态展示图采用 D083 公开人体 ICG 骨移植视频关键帧。两者均保留非目标域边界。
-- 本轮质量检查通过 Python 测试、后端测试、Ruff、mypy、前端类型检查、前端构建、前端测试、独立三维运行时检查、活动文档审计及严格运行预检。
-- 发现一个需收口的配置事实：`configs/inference/osteo_vision.yml` 含 `dual_channel_image`，任务包允许的输入类型列表未含该值，因此通用配置校验返回失败；严格比赛配置校验与运行预检均通过。
+- 本轮质量检查通过 Python 测试、后端测试、Ruff、mypy、前端类型检查、前端构建、前端测试、独立三维运行时检查、当前文档审计及运行预检。
+- 发现一个需收口的配置事实：`configs/inference/osteo_vision.yml` 含 `dual_channel_image`，任务包允许的输入类型列表未含该值，因此通用配置校验返回失败；生产配置校验与运行预检均通过。
 
 ## 2. 证据优先级与统一表述
 
 | 优先级 | 事实来源 | 可用于表述的内容 |
 | --- | --- | --- |
-| P0 | 本地官方赛题 PDF 与官方技术文档 PDF | 赛题核心要求、设备文件输入边界、官方确认参数 |
+| P0 | 设备提供方技术资料与输入规范 | 设备文件输入边界、已确认参数 |
 | P1 | 当前代码、严格运行配置、测试与运行预检 | 当前可运行功能、启用模型、配置开关、质量门结论 |
 | P2 | 本地 manifest、校验记录、模型卡与受控展示资产 | 数据来源、许可、域别、校验、工程指标与展示素材 |
-| P3 | 日期化报告、规划稿、提交材料与历史归档 | 对应日期的设计依据、历史结果、待验证计划 |
+| P3 | 日期化报告、规划稿与历史归档 | 对应日期的设计依据、历史结果、待验证计划 |
 
 统一使用以下边界：
 
 - 平台输出用于研发验证、工程证据和医生复核辅助，不构成临床诊断、切除范围结论或真实术中导航结论。
 - ICG 反映灌注、血管通透性与组织活性相关信号；不得将其解释为颌骨骨髓炎特异性真值。
-- DICOM Secondary Capture、ZIP 证据包和远程协作属于平台扩展能力；赛题三项核心要求为造影剂设计、多模态融合处理和 AI 辅助显微判读。
+- DICOM Secondary Capture、ZIP 证据包和远程协作属于平台扩展能力；平台核心能力为造影剂设计验证、多模态融合处理和 AI 辅助显微判读。
 - 公开代理数据、文献图、合成输入、数字仿体和伪标注指标均须带上来源域、用途边界和医生复核状态。
 
 ## 3. 官方输入与交付边界
@@ -43,13 +43,13 @@
 - 显微镜总放大倍率为 `1.3x-17x`，工作距离为 `200-630 mm`。
 - ICG 资料描述约 `750-810 nm` 激发与约 `830 nm` 发射，并将其用于术中血流和灌注相关可视化。
 
-对应证据：`HT-202604成都科奥达光电技术有限公司-面向颌骨骨髓炎的智能化荧光诊疗比赛方案.pdf`、`research/literature/inventory/official/competition_official_technical_document_20260527.pdf` 与 `research/reports/planning/official_technical_document_extracted_text.md`。
+对应证据：设备提供方的受控技术资料与 `research/reports/planning/device_input_spec_extracted_text.md` 摘录。原始资料保留在本地受控位置，不进入版本库。
 
 ### 3.2 平台软件边界
 
 | 范围 | 当前口径 |
 | --- | --- |
-| 赛题主输入 | 4K JPEG、MP4 文件上传与分析 |
+| 平台主输入 | 4K JPEG、MP4 文件上传与分析 |
 | JPEG 工作流 | 白光与荧光成对输入、配准、伪彩、融合、ROI 定量与质控 |
 | MP4 工作流 | 原始播放、关键帧分析、连续帧串行分析及最近结果同步展示 |
 | 医院扩展输入 | JPG 与 AVI；AVI 通过受控转码进入 MP4 通道并保留源文件映射和 SHA256 |
@@ -90,13 +90,13 @@
 
 ## 5. 当前模型与运行配置
 
-### 5.1 严格比赛配置
+### 5.1 生产运行配置
 
-权威运行文件为 `configs/inference/osteo_vision_competition_strict.yml`：
+权威运行文件为 `configs/inference/osteo_vision_strict.yml`：
 
 | 项目 | 当前值 |
 | --- | --- |
-| 运行档位 | `competition_strict` |
+| 运行档位 | `strict_runtime` |
 | fixture 模型 | 关闭 |
 | 缺 checkpoint 回退 | 关闭 |
 | 启发式关键帧回退 | 关闭 |
@@ -107,7 +107,7 @@
 | 4K 分块 | `512 px` tile、`64 px` overlap、批大小 `4` |
 | 直播快速路径 | 批大小 `8`、AMP、JPEG overlay、关闭不确定性 TTA |
 
-本轮严格运行预检通过。配置 SHA256 为 `ecea4d2694ab77d8256756ab9af9aa37ec828249a0eaab5f4536774fe6f26e80`；主线 checkpoint SHA256 为 `826e90c2ee3efd45d0d0d979e85a2a3e2dcd60d853d8497f6328e46a406e0d39`；checkpoint sidecar 存在且 `runtime_allowed=true`。
+本轮生产运行预检通过。配置 SHA256 为 `ecea4d2694ab77d8256756ab9af9aa37ec828249a0eaab5f4536774fe6f26e80`；主线 checkpoint SHA256 为 `826e90c2ee3efd45d0d0d979e85a2a3e2dcd60d853d8497f6328e46a406e0d39`；checkpoint sidecar 存在且 `runtime_allowed=true`。
 
 ### 5.2 模型证据与可声称范围
 
@@ -135,7 +135,7 @@
 
 当前活动状态文档记录 15 份来源 manifest、47/47 条记录通过结构检查、138/138 个本地文件通过存在性和 SHA256 检查、核验体积约 5.51 GB。完整分层注册表的日期化快照记录 504 条记录、质量门通过 504 条、目标域记录 0、训练准入记录 0、可进入训练准入检查记录 393 条。
 
-两套统计的范围不同：前者是当前 15 份来源 manifest 的受控核验集合；后者是 D046 分层注册表及其派生/候选记录集合。报告或答辩中必须附带统计范围与日期，避免将两者合并成单一总数。
+两套统计的范围不同：前者是当前 15 份来源 manifest 的受控核验集合；后者是 D046 分层注册表及其派生/候选记录集合。对外报告必须附带统计范围与日期，避免将两者合并成单一总数。
 
 | 数据层 | 代表资源 | 当前用途 | 禁止外推 |
 | --- | --- | --- | --- |
@@ -157,7 +157,7 @@
 
 | 检查 | 结果 | 说明 |
 | --- | --- | --- |
-| 官方赛题与技术资料 | 已读取 | 原始 PDF 存在；技术文档文本抽取可复核 |
+| 设备与输入技术资料 | 已读取 | 原始资料受控保存；技术文档文本抽取可复核 |
 | 活动文档审计 | 通过 | 23 份活动文档，0 error、0 warning |
 | 项目 readiness | 通过 | 开发运行 0 error、2 warning；严格运行 0 error、0 warning |
 | 严格运行预检 | 通过 | 模型、sidecar、ffmpeg、ffprobe 均可用 |
@@ -174,11 +174,11 @@
 
 ### F1：通用开发配置的任务契约校验失败
 
-`configs/inference/osteo_vision.yml` 和严格比赛配置中的骨活性候选均使用 `dual_channel_image`，而 `configs/tasks/osteo_vision.yml` 的 `input_contract.input_types` 未包含该输入类型。对严格比赛配置执行通用 `validate_config_file` 时得到：`Model 1: Invalid input type: dual_channel_image`。
+`configs/inference/osteo_vision.yml` 和生产配置中的骨活性候选均使用 `dual_channel_image`，而 `configs/tasks/osteo_vision.yml` 的 `input_contract.input_types` 未包含该输入类型。对生产配置执行通用 `validate_config_file` 时得到：`Model 1: Invalid input type: dual_channel_image`。
 
 - 影响范围：配置静态校验与开发档位一致性；不影响本轮已通过的严格运行预检。
 - 当前事实：严格配置可通过 runtime readiness，其模型清单中的主线仅使用 `2d_image`；通用开发配置的全量模型注册仍存在契约偏差。
-- 对外口径：严格比赛主线“可预检并可运行”；通用开发配置“待修正输入类型契约后再作为完整有效配置使用”。
+- 当前事实：生产主线“可预检并可运行”；通用开发配置“待修正输入类型契约后再作为完整有效配置使用”。
 - 建议处置：在任务输入契约中受控加入 `dual_channel_image`，或将相关候选模型输入类型转换为既有契约语义；同时补充配置校验回归测试。
 
 ### F2：质量门记录中的历史测试总数不可与当前输出混用
@@ -195,7 +195,7 @@
 
 ## 9. 后续报告与展示写法
 
-后续 README、可行性报告、答辩稿、UI 文案和证据导出统一采用以下写法：
+后续 README、可行性报告、UI 文案和证据导出统一采用以下写法：
 
 - “平台支持官方 4K JPEG/MP4 文件输入；企业设备接口由设备侧负责。”
 - “主线模型在 D046/OFDVDnet 公开离体荧光代理上的工程指标为 Dice 0.917681、IoU 0.848335。”
@@ -207,13 +207,12 @@
 
 ## 10. 权威引用入口
 
-- 官方技术参数摘录：`research/reports/planning/official_technical_document_extracted_text.md`
+- 设备技术参数摘录：`research/reports/planning/device_input_spec_extracted_text.md`
 - 当前目标母稿：`research/reports/planning/osteo_vision_platform_target_zh.md`
 - 当前平台状态：`docs/project_summary.md`
-- 当前严格配置：`configs/inference/osteo_vision_competition_strict.yml`
+- 当前生产配置：`configs/inference/osteo_vision_strict.yml`
 - 任务输出契约：`configs/tasks/osteo_vision.yml`
 - 当前标准演示资产说明：`frontend/public/showcase/README.md`
 - 数据层级登记：`research/datasets/public-candidates/d046_fluorescence_osteomyelitis_videos/derived/layered_registry_20260711/layered_dataset_registry.csv`
 - 主线选型报告：`research/reports/modeling/keyframe_model_selection_summary_20260715_zh.md`
 - 稳定性收尾证据：`research/reports/release/runtime_stability_closeout_20260721_zh.md`
-- 2026-07-26 精简提交稿：`research/reports/submission/challenge_cup_report_draft_20260721/challenge_cup_concise_feasibility_report_20260726_zh.md`

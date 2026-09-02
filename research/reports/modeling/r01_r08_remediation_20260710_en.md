@@ -2,14 +2,14 @@
 
 ## 1. Verdict
 
-The R01-R08 competition engineering remediation was implemented and reviewed on 10-11 July 2026. Each item now has code, tests, runtime evidence, or an evidence index within the current proxy-engineering scope. All reported model metrics use pseudo-labels or prompt-assisted seeds from public non-target-domain D046 videos. They do not estimate intraoperative ICG jaw-osteomyelitis clinical performance.
+The R01-R08 platform engineering remediation was implemented and reviewed on 10-11 July 2026. Each item now has code, tests, runtime evidence, or an evidence index within the current proxy-engineering scope. All reported model metrics use pseudo-labels or prompt-assisted seeds from public non-target-domain D046 videos. They do not estimate intraoperative ICG jaw-osteomyelitis clinical performance.
 
 | ID | Issue | Status | Primary evidence |
 |---|---|---|---|
 | R01 | Source-video leakage | Completed | 48 source groups; train/val/test groups 28/14/6; `leakage_detected=false` |
 | R02 | All-zero multi-mask model | Engineering fix completed | Independent heads, validity masks, per-head thresholds; zero empty-mask rate on test |
 | R03 | Credibility of historical 0.9093 | Completed | Historical value withdrawn as generalization evidence; test Dice 0.9214, video-bootstrap 95% CI 0.9127-0.9302 |
-| R04 | Final competition evidence chain | Competition index completed | Evidence organized by contrast agent, fusion, AI, device boundary, and medical boundary |
+| R04 | Final platform evidence chain | Platform index completed | Evidence organized by contrast agent, fusion, AI, device boundary, and medical boundary |
 | R05 | White-light/fluorescence AI | Proxy architecture and interface verified | Four ablations run; runtime permission blocks configured execution and preserves traditional fusion |
 | R06 | Dynamic ICG quantification | Decoded-frame software path verified | Decoded pixel/ROI intensity, background correction, normalization, time-to-peak, slope, AUC, and QC |
 | R07 | 4K analysis stability | Public non-target-domain keyframe validation completed | Long MP4, multiple frame rates, unreadable encoding, derived 4K JPEG, 45 tiles, fallback, and memory observation |

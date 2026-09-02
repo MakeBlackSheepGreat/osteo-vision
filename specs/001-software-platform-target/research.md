@@ -50,7 +50,7 @@ analysis.
 the local filesystem, and preserve long-lived reports in `research/reports/`
 with transient runs in `artifacts/`.
 
-**Rationale**: The competition target values reproducibility, low operational
+**Rationale**: The platform target values reproducibility, low operational
 overhead, and local inspectability more than distributed infrastructure.
 
 **Alternatives considered**:
@@ -80,7 +80,7 @@ integration without changing the case-level workflow.
 
 **Decision**: Keep Gradio as a temporary bridge only.
 
-**Rationale**: It is useful for smoke-testable platform workflows and competition demos, but
+**Rationale**: It is useful for smoke-testable platform workflows and platform demos, but
 the target architecture should be a Vue frontend plus Python backend.
 
 **Alternatives considered**:

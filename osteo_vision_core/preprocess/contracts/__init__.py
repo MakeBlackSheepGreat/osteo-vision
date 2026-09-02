@@ -1,4 +1,4 @@
-"""Preprocessing contracts for the medical imaging competition framework.
+"""Preprocessing contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for preprocessing, validation, and post-processing.
 """

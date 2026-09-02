@@ -4,7 +4,7 @@
 
 当前不建议把主线 checkpoint 从 ConvNeXt-style 3D 代理分割模型切换到 MONAI SegResNetDS。本轮已在原 ConvNeXt-style checkpoint 上继续训练 1500 batch，并把更优的续训候选提升为本地 `d025_lesion_smoke.pt` 主线 checkpoint。
 
-主要原因是：在同样使用 D025 CBCT lesion ROI 64³ 缓存、209 例训练和 53 例验证的设置下，SegResNetDS 的 Mean Dice 和 Mean IoU 低于当前 ConvNeXt-style baseline。续训后的 ConvNeXt-style 主线进一步提升到 Mean Dice 0.6567、Mean IoU 0.5553，并且 Mean HD95 降至 15.2370；比赛演示阶段应继续保留 ConvNeXt-style 路线。
+主要原因是：在同样使用 D025 CBCT lesion ROI 64³ 缓存、209 例训练和 53 例验证的设置下，SegResNetDS 的 Mean Dice 和 Mean IoU 低于当前 ConvNeXt-style baseline。续训后的 ConvNeXt-style 主线进一步提升到 Mean Dice 0.6567、Mean IoU 0.5553，并且 Mean HD95 降至 15.2370；平台演示阶段应继续保留 ConvNeXt-style 路线。
 
 ## 对比表
 

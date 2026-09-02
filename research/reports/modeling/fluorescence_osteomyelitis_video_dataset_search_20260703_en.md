@@ -10,7 +10,7 @@ No directly usable public “jaw osteomyelitis ICG fluorescence surgery MP4 data
 2. **Bone/infection/osteomyelitis ICG clinical studies**: medically relevant, but the public material is generally papers, trial protocols, figures, or supplements rather than raw downloadable MP4 videos.
 3. **Jaw osteonecrosis / jaw osteomyelitis fluorescence-guided surgery literature**: anatomically close, but mostly autofluorescence, tetracycline/minocycline fluorescence, or VELscope studies; raw videos are not openly available.
 
-The project should not depend on finding an open jaw osteomyelitis fluorescence MP4 dataset. The practical route is to use public FGS videos for competition point 1 and video processing, use bone/infection ICG studies as medical rationale, and use CBCT-derived pseudo-videos plus public CBCT datasets for competition point 2 platform validation training.
+The project should not depend on finding an open jaw osteomyelitis fluorescence MP4 dataset. The practical route is to use public FGS videos for fluorescence processing, use bone/infection ICG studies as medical rationale, and use CBCT-derived pseudo-videos plus public CBCT datasets for platform validation training.
 
 ## Candidate Ranking
 
@@ -29,7 +29,7 @@ The project should not depend on finding an open jaw osteomyelitis fluorescence 
 2. Implement a triple-view splitter to extract reference, fluorescence, and overlay videos.
 3. Generate cine MP4 videos from D025 and the 4-5 available hospital CBCT cases.
 4. Create `video_dataset_candidate_inventory.csv` with modality, ICG status, bone/infection relevance, oral relevance, downloadability, training value, and demo-only flags.
-5. Reframe competition point 2 as “CBCT lesion proxy + ICG video perfusion/enhancement proxy + physician review” rather than real ICG osteomyelitis segmentation.
+5. Reframe the second multimodal capability as “CBCT lesion proxy + ICG video perfusion/enhancement proxy + physician review” rather than real ICG osteomyelitis segmentation.
 
 ## References
 

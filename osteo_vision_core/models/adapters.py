@@ -1111,7 +1111,7 @@ def model_spec_from_mapping(mapping: dict[str, Any]) -> ModelSpec:
         device_policy=str(mapping.get("device_policy", "auto")),
         precision=str(mapping.get("precision", "fp32")),
         enabled=bool(mapping.get("enabled", True)),
-        intended_use=str(mapping.get("intended_use", "research_competition_platform_validation")),
+        intended_use=str(mapping.get("intended_use", "research_platform_validation")),
         clinical_claim_allowed=bool(mapping.get("clinical_claim_allowed", False)),
         extra=dict(mapping.get("extra") or {}),
     )

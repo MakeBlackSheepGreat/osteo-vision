@@ -4,9 +4,9 @@
 
 ## 结论
 
-本轮补上赛题官方输入到 AI 辅助判读之间的一段短板：JPEG 荧光图像和 MP4 关键帧现在可以进入 2D fluorescence hotspot segmentation baseline，输出二值掩码、候选区、量化摘要和证据图。
+本轮补上设备输入到 AI 辅助判读之间的一段短板：JPEG 荧光图像和 MP4 关键帧现在可以进入 2D fluorescence hotspot segmentation baseline，输出二值掩码、候选区、量化摘要和证据图。
 
-这仍是启发式基线，不是训练完成的临床模型；它的价值是让赛点二在官方 JPEG/MP4 输入上有一个可跑、可导出、可复核的最小闭环。
+这仍是启发式基线，不是训练完成的临床模型；它的价值是让平台在 JPEG/MP4 输入上有一个可跑、可导出、可复核的最小闭环。
 
 ## 代码与配置
 
@@ -46,7 +46,7 @@
 
 ### MP4 / 关键帧
 
-MP4 分析现在不仅抽取 keyframes，还会对每个 keyframe 运行热点分割，并写出面向赛题闭环的“分割结果 + 荧光叠加结果”：
+MP4 分析现在不仅抽取 keyframes，还会对每个 keyframe 运行热点分割，并写出面向平台闭环的“分割结果 + 荧光叠加结果”：
 
 - `fused_outputs.hotspot_outputs`
 - `quantitative_summary.hotspot_frame_count`

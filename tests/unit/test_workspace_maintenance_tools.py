@@ -147,9 +147,10 @@ def test_active_documentation_audit_detects_stale_entry_and_version_drift(tmp_pa
         "python check_env.py\n"
         "research/planning/engineering_preparation.md\n"
         "software_focused_realistic_platform_zh.md\n"
-        "competition_feasibility_report.md\n",
+        "legacy_feasibility_report.md\n",
         encoding="utf-8",
     )
+    (tmp_path / "README.md").write_text("平台软件\u6bd4\u8d5b\u7248说明。\n", encoding="utf-8")
     for relative, version in (
         ("package.json", "0.3.0-rc.2"),
         ("package-lock.json", "0.3.0-rc.2"),
@@ -171,6 +172,7 @@ def test_active_documentation_audit_detects_stale_entry_and_version_drift(tmp_pa
         "stage_label",
         "superseded_target_path",
         "version_mismatch",
+        "activity_specific_language",
     }.issubset(codes)
 
 

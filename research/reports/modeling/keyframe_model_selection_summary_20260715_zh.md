@@ -5,7 +5,7 @@
 - 推荐候选族：`residual_attention_unet_keyframe_segmenter`。
 - 验证集选定 checkpoint：`C:\Users\876762330\Desktop\projects\osteo-vision\artifacts\checkpoints\osteo_vision\keyframe_residual_attention_unet_s20260715_20260715.pt`。
 - 锁定阈值：`0.4`。
-- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与比赛闭环门控。
+- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与平台闭环门控。
 
 ## 独立测试集比较
 

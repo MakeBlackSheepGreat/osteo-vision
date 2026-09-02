@@ -85,7 +85,7 @@
   },
   "runtime_allowed": false,
   "clinical_claim_allowed": false,
-  "medical_boundary": "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the competition mainline, cannot establish jaw-osteomyelitis clinical performance, and requires physician-reviewed bone gates.",
+  "medical_boundary": "Synthetic non-target-domain proxy training only. The checkpoint cannot replace the production mainline, cannot establish jaw-osteomyelitis clinical performance, and requires physician-reviewed bone gates.",
   "generated_at_utc": "2026-07-18T13:45:10.521408+00:00",
   "engineering_ready": true,
   "target_domain_promotion_ready": false,

@@ -54,7 +54,7 @@ class ModelSpec:
     device_policy: str = "auto"
     precision: str = "fp32"
     enabled: bool = True
-    intended_use: str = "research_competition_platform_validation"
+    intended_use: str = "research_platform_validation"
     clinical_claim_allowed: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 

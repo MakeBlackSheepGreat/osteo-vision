@@ -9,7 +9,7 @@
 
 ## [Unreleased]
 
-- 当前工作区运行基线：Python 3.11、Vue + FastAPI、严格配置 `configs/inference/osteo_vision_competition_strict.yml`。
+- 当前工作区运行基线：Python 3.11、Vue + FastAPI、严格配置 `configs/inference/osteo_vision_strict.yml`。
 
 ### 性能与稳定性收尾
 
@@ -22,14 +22,14 @@
 
 ### 目录与交付完整性
 
-- 明确 `output/`、`outputs/`、`tmp/` 与 `artifacts/` 的单向职责，并为挑战杯报告包建立分章源稿、图包、最小重建材料和提交入口索引。
-- 挑战杯图包的公开或合成重建材料收敛到 `assets/sources/`；图包清单同步登记来源、SHA256、文件大小和版本化运行指标来源。
+- 明确 `output/`、`outputs/`、`tmp/` 与 `artifacts/` 的单向职责，并为历史报告包建立分章源稿、图包、最小重建材料和入口索引。
+- 报告图包的公开或合成重建材料收敛到 `assets/sources/`；图包清单同步登记来源、SHA256、文件大小和版本化运行指标来源。
 - 两个 DOCX 构建入口限制 Markdown 图片与源稿目录边界；缺失图片直接失败，并以临时文件原子替换输出。
 
 ### 验证
 
 - 当前完整核心测试 `607 passed`，后端测试 `288 passed`，前端 Vitest `211 passed, 1 skipped`。
-- Ruff、Black、isort、严格 mypy、Python compileall、`vue-tsc`、Vite build、pre-commit、活动文档审计和严格运行预检通过。
+- Ruff、Black、isort、严格 mypy、Python compileall、`vue-tsc`、Vite build、pre-commit、当前文档审计和运行预检通过。
 - 本轮收尾审计：`research/reports/release/runtime_stability_closeout_20260721_zh.md`。
 
 ## [0.3.0-rc.2] - 2026-07-19
@@ -37,10 +37,10 @@
 ### 工程整理
 
 - 统一 Python 包、根 Node 工作区和 Vue 前端版本为 `0.3.0-rc.2`。
-- 重写中英文项目入口、快速开始、工程框架、系统架构、项目结构和研究报告索引，活动文档全部指向当前运行入口与目录。
-- 将早期可行性材料、阶段性规划、框架脚手架和 2026-07-11 提交包迁入带日期的 `archive/`，保留追溯说明。
+- 重写中英文项目入口、快速开始、工程框架、系统架构、项目结构和研究报告索引，当前文档全部指向现行运行入口与目录。
+- 将早期可行性材料、阶段性规划、框架脚手架和历史交付包迁入带日期的 `archive/`，保留追溯说明。
 - 删除失效的 `check_all.py`、`check_env.py` 和独立 `mypy.ini`；质量配置统一进入 `pyproject.toml`、`.pre-commit-config.yaml`、`Makefile` 与 `tools/`。
-- 新增有边界的工作区清理器、活动文档审计器、核心热路径基准和目录 README；清理器保护病例、标注、训练、数据集、checkpoint 与研发证据。
+- 新增有边界的工作区清理器、当前文档审计器、核心热路径基准和目录 README；清理器保护病例、标注、训练、数据集、checkpoint 与研发证据。
 - 全量 Python 首方代码完成 Black 与 isort 规范化，历史格式债务清零。
 
 ### 性能
@@ -68,7 +68,7 @@
 ### 验证
 
 - 核心测试 `603 passed`，后端测试 `281 passed`，前端 Vitest `207 passed, 1 skipped`，Playwright E2E `5 passed`。
-- Ruff、Black、isort、严格 mypy、Python 3.11 compileall、`vue-tsc`、Vite build、项目 readiness、严格运行预检和活动文档审计通过。
+- Ruff、Black、isort、严格 mypy、Python 3.11 compileall、`vue-tsc`、Vite build、项目 readiness、运行预检和当前文档审计通过。
 - 15 份数据 manifest 的 47/47 条记录与 138/138 个文件通过来源、许可字段和 SHA256 校验，总计 5,514,559,510 字节。
 - 四项性能基准输出一致性全部通过；严格运行配置 SHA256 为 `9a2247035c27ba8f142d628f721bfb61d2e9b296a1201ccef375a98fc5f5e855`。
 
@@ -87,7 +87,7 @@
 ### 变更
 
 - 前端按数据准入、病例档案、病例工作台、三维导航、医生复核和报告导出的临床工程流程重组，并加入日间/夜间主题。
-- 比赛启动入口收敛为根目录 `start_platform.cmd`，实际逻辑由 `scripts/start_platform.ps1` 承载，默认执行严格运行预检和模型预热。
+- 平台启动入口收敛为根目录 `start_platform.cmd`，实际逻辑由 `scripts/start_platform.ps1` 承载，默认执行严格运行预检和模型预热。
 - 清理过时桌面入口、模板训练器、旧 DOCX 生成器和一次性下载脚本；现行训练、验证和下载工具统一位于 `scripts/` 与 `tools/`。
 
 ### 患者安全
@@ -133,7 +133,7 @@
 - **.rules/skill-pipeline-creation.md** - 流水线创建技能
 - **.rules/skill-evaluation-metrics.md** - 评估指标技能
 - **.rules/skill-configuration-management.md** - 配置管理技能
-- **.rules/skill-competition-integration.md** - 比赛集成技能
+- **.rules/skill-platform-integration.md** - 平台集成技能
 
 #### 契约接口
 

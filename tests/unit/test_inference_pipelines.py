@@ -54,7 +54,7 @@ def test_explicit_runtime_without_adapter_fails_closed(fixture_dir, tmp_path) ->
                     "runtime_profile": "strict_test",
                     "strict_startup": True,
                     "model_version": "strict-test",
-                    "task_package": "configs/tasks/medical_competition_demo.yml",
+                    "task_package": "configs/tasks/medical_demo.yml",
                     "default_task_type": "segmentation",
                     "use_fixture_model": False,
                     "model_selection_policy": "explicit",

@@ -83,11 +83,11 @@ def check_runtime_readiness(
 
     if require_strict:
         if not strict:
-            errors.append({"code": "competition_launcher_requires_strict_startup"})
-        if profile != "competition_strict":
+            errors.append({"code": "strict_launcher_requires_strict_startup"})
+        if profile != "strict_runtime":
             errors.append(
                 {
-                    "code": "competition_launcher_requires_competition_profile",
+                    "code": "strict_launcher_requires_strict_profile",
                     "configured_profile": profile,
                 }
             )

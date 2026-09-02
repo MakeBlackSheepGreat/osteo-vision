@@ -2,7 +2,7 @@ paths_config: configs/paths.example.yml
 runtime:
   model_version: micf-fixture-v0
   framework_version: v2
-  task_package: configs/tasks/medical_competition_demo.yml
+  task_package: configs/tasks/medical_demo.yml
   default_task_type: classification
   default_threshold: 0.5
   low_confidence_margin: 0.1
@@ -11,7 +11,7 @@ runtime:
   checkpoint_path: artifacts/checkpoints/demo_model.pt
   allow_fixture_on_missing_checkpoint: true
   model_selection_policy: fixture_fallback
-  disclaimer: Platform software for research and competition validation. This result is not a clinical diagnosis and must not replace physician review.
+  disclaimer: Platform software for research and engineering validation. This result is not a clinical diagnosis and must not replace physician review.
   models:
     - model_id: biomedclip_zero_shot
       family: vlm_encoder
@@ -67,7 +67,7 @@ runtime:
       device_policy: auto
       precision: fp32
       enabled: true
-      intended_use: reproducible segmentation competition baseline
+      intended_use: reproducible segmentation platform baseline
       clinical_claim_allowed: false
     - model_id: monai_bundle_baseline
       family: monai_bundle

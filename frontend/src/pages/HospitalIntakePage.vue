@@ -410,7 +410,7 @@ const form = reactive({
   receivedBy: "project_receiver",
   receivedAt: localDateTime,
   authorizationStatus: "pending" as HospitalAuthorizationStatus,
-  usageScope: "competition_research_validation",
+  usageScope: "research_validation",
   deidentificationConfirmed: false,
   deidentificationMethod: "",
   mappingHeldByInstitution: false,
@@ -684,7 +684,7 @@ function startNewBatch() {
     receivedBy: "project_receiver",
     receivedAt: localDateTime,
     authorizationStatus: "pending" as HospitalAuthorizationStatus,
-    usageScope: "competition_research_validation",
+    usageScope: "research_validation",
     deidentificationConfirmed: false,
     deidentificationMethod: "",
     mappingHeldByInstitution: false,
@@ -743,9 +743,9 @@ function artifactAttachmentHealthy(attachment: HospitalIntakeArtifactAttachment)
 
 function findingMessage(finding: IntakeFinding): string {
   const messages: Record<string, string> = {
-    official_image_format_mismatch: "图像可读取，但文件不符合赛题设备要求的 JPEG 规格。",
-    official_image_resolution_mismatch: "图像可读取，但分辨率不符合赛题设备的 3840x2160 规格。",
-    official_video_resolution_mismatch: "视频可读取，但分辨率不符合赛题设备的 3840x2160 规格。",
+    official_image_format_mismatch: "图像可读取，但文件不符合项目输入规范设备要求的 JPEG 规格。",
+    official_image_resolution_mismatch: "图像可读取，但分辨率不符合项目输入规范设备的 3840x2160 规格。",
+    official_video_resolution_mismatch: "视频可读取，但分辨率不符合项目输入规范设备的 3840x2160 规格。",
     official_video_rotation_present: "视频包含旋转元数据，分析前需要统一画面方向。",
     official_video_codec_unverified: "视频编码超出平台当前完成验证的编码集合。",
     ffprobe_unavailable: "当前环境无法使用 ffprobe，编码、码率和旋转信息检查能力受限。",

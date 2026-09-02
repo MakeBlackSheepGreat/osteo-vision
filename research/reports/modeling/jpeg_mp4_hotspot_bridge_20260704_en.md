@@ -46,7 +46,7 @@ Verified under the real config:
 
 ### MP4 / Keyframes
 
-MP4 analysis now extracts keyframes, runs hotspot segmentation on each keyframe, and writes the competition-facing "segmentation result + fluorescence overlay result" contract:
+MP4 analysis now extracts keyframes, runs hotspot segmentation on each keyframe, and writes the platform-facing "segmentation result + fluorescence overlay result" contract:
 
 - `fused_outputs.hotspot_outputs`
 - `quantitative_summary.hotspot_frame_count`

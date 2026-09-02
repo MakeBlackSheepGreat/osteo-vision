@@ -284,11 +284,11 @@ def train_patient_conditioned(
     }
     medical_boundary = (
         "Non-target-domain proxy pretraining only; the auxiliary image channel is not fluorescence, "
-        "physician review is required, and this checkpoint cannot replace the competition mainline model."
+        "physician review is required, and this checkpoint cannot replace the platform mainline model."
         if data_source["mode"] == "manifest"
         else (
             "Procedural non-target-domain engineering training only; physician review is required and "
-            "the checkpoint cannot replace the competition mainline model."
+            "the checkpoint cannot replace the platform mainline model."
         )
     )
     checkpoint_payload = {

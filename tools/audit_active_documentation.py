@@ -25,8 +25,8 @@ REQUIRED_ACTIVE_DOCUMENTS = (
     "research/README.md",
     "research/reports/README.md",
     "research/reports/release/README.md",
-    "research/reports/submission/README.md",
-    "research/reports/submission/osteo_vision_technical_solution_20260719_zh.md",
+    "research/reports/release/platform_evidence_manifest.yml",
+    "research/reports/planning/device_input_spec_extracted_text.md",
     "specs/001-software-platform-target/quickstart.md",
     "specs/001-software-platform-target/spec.md",
     "specs/001-software-platform-target/plan.md",
@@ -37,10 +37,10 @@ REQUIRED_ACTIVE_DOCUMENTS = (
 )
 OPTIONAL_ACTIVE_DOCUMENTS = (
     "research/reports/planning/osteo_vision_platform_target_zh.md",
-    "research/reports/planning/official_technical_document_alignment_zh.md",
+    "research/reports/planning/platform_input_boundary_zh.md",
     "research/reports/planning/three_priority_capabilities_target_20260717_zh.md",
 )
-SUBMISSION_MANIFEST = "research/reports/submission/evidence_manifest.yml"
+PLATFORM_MANIFEST = "research/reports/release/platform_evidence_manifest.yml"
 STALE_RULES = (
     (re.compile(r"\bcurrent\s+V[123]\b", re.IGNORECASE), "stage_label", "Replace current-stage V1/V2/V3 wording."),
     (re.compile(r"当前\s*V[123]\s*平台"), "stage_label", "Replace current-stage V1/V2/V3 wording."),
@@ -61,14 +61,23 @@ STALE_RULES = (
         "Use the current platform target under research/reports/planning.",
     ),
     (
-        re.compile(r"competition_feasibility_report\.md"),
+        re.compile(r"legacy_feasibility_report\.md"),
         "archived_feasibility_path",
-        "Use the current official competition alignment report.",
+        "Use the current official platform alignment report.",
     ),
     (
         re.compile(r"官方设备实时视频流"),
         "unsupported_official_interface",
         "Official material confirms JPEG and MP4 file output only.",
+    ),
+)
+# Active documentation stays product-focused. Historical archives and vendor snapshots
+# are intentionally outside ``active_documents`` and keep their original wording.
+ACTIVITY_LANGUAGE_RULES = (
+    (
+        re.compile(r"\u6311\u6218\u676f|\u6bd4\u8d5b|\u7ade\u8d5b|\u8d5b\u9898|\u7b54\u8fa9|\u8bc4\u59d4"),
+        "activity_specific_language",
+        "Remove activity-specific wording from active documentation.",
     ),
 )
 LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -107,6 +116,9 @@ def _audit_text(path: Path, root: Path) -> list[Finding]:
         return [Finding("error", "invalid_utf8", relative, None, str(exc))]
     findings: list[Finding] = []
     for pattern, code, message in STALE_RULES:
+        for match in pattern.finditer(text):
+            findings.append(Finding("error", code, relative, _line_number(text, match.start()), message))
+    for pattern, code, message in ACTIVITY_LANGUAGE_RULES:
         for match in pattern.finditer(text):
             findings.append(Finding("error", code, relative, _line_number(text, match.start()), message))
     for match in LINK_PATTERN.finditer(text):
@@ -169,21 +181,21 @@ def audit_versions(root: Path) -> list[Finding]:
     return findings
 
 
-def audit_submission_manifest(root: Path, expected_version: str) -> list[Finding]:
-    manifest_path = root / SUBMISSION_MANIFEST
+def audit_platform_manifest(root: Path, expected_version: str) -> list[Finding]:
+    manifest_path = root / PLATFORM_MANIFEST
     if not manifest_path.is_file():
         return [
             Finding(
-                "error", "missing_submission_manifest", SUBMISSION_MANIFEST, None, "Submission manifest is missing."
+                "error", "missing_platform_manifest", PLATFORM_MANIFEST, None, "Platform evidence manifest is missing."
             )
         ]
     try:
         payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
     except (OSError, UnicodeError, yaml.YAMLError) as exc:
-        return [Finding("error", "invalid_submission_manifest", SUBMISSION_MANIFEST, None, str(exc))]
+        return [Finding("error", "invalid_platform_manifest", PLATFORM_MANIFEST, None, str(exc))]
     if not isinstance(payload, dict):
         return [
-            Finding("error", "invalid_submission_manifest", SUBMISSION_MANIFEST, None, "Manifest must be a mapping.")
+            Finding("error", "invalid_platform_manifest", PLATFORM_MANIFEST, None, "Manifest must be a mapping.")
         ]
 
     findings: list[Finding] = []
@@ -192,8 +204,8 @@ def audit_submission_manifest(root: Path, expected_version: str) -> list[Finding
         findings.append(
             Finding(
                 "error",
-                "submission_version_mismatch",
-                SUBMISSION_MANIFEST,
+                "platform_manifest_version_mismatch",
+                PLATFORM_MANIFEST,
                 None,
                 f"Expected {expected_version}; observed {observed_version or '<missing>'}.",
             )
@@ -203,8 +215,8 @@ def audit_submission_manifest(root: Path, expected_version: str) -> list[Finding
         findings.append(
             Finding(
                 "error",
-                "invalid_submission_evidence_list",
-                SUBMISSION_MANIFEST,
+                "invalid_platform_evidence_list",
+                PLATFORM_MANIFEST,
                 None,
                 "evidence_files must be a list.",
             )
@@ -216,10 +228,10 @@ def audit_submission_manifest(root: Path, expected_version: str) -> list[Finding
             findings.append(
                 Finding(
                     "error",
-                    "missing_submission_evidence",
-                    relative or SUBMISSION_MANIFEST,
+                    "missing_platform_evidence",
+                    relative or PLATFORM_MANIFEST,
                     None,
-                    "Required versioned submission evidence is missing.",
+                    "Required versioned platform evidence is missing.",
                 )
             )
 
@@ -245,7 +257,7 @@ def audit_submission_manifest(root: Path, expected_version: str) -> list[Finding
             Finding(
                 "error",
                 "missing_strict_config",
-                strict_config or SUBMISSION_MANIFEST,
+                strict_config or PLATFORM_MANIFEST,
                 None,
                 "Strict config is missing.",
             )
@@ -335,7 +347,7 @@ def run_audit(root: Path) -> dict[str, object]:
         findings.extend(audit_versions(root))
         with (root / "pyproject.toml").open("rb") as handle:
             expected_version = canonical_version(str(tomllib.load(handle)["project"]["version"]))
-        findings.extend(audit_submission_manifest(root, expected_version))
+        findings.extend(audit_platform_manifest(root, expected_version))
     except (KeyError, OSError, tomllib.TOMLDecodeError) as exc:
         findings.append(Finding("error", "invalid_pyproject_version", "pyproject.toml", None, str(exc)))
     errors = [finding for finding in findings if finding.level == "error"]

@@ -32,7 +32,7 @@ def fuse_white_light_fluorescence(
     background_percentile: float = 5.0,
     prefer_gpu: bool = True,
 ) -> dict[str, Any]:
-    """Create pseudo-color fluorescence evidence for the local competition platform."""
+    """Create pseudo-color fluorescence evidence for the local platform."""
     white_path = Path(white_light_path)
     fluor_path = Path(fluorescence_path)
     root = ensure_dir(output_dir)

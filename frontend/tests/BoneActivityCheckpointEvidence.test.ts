@@ -51,7 +51,7 @@ describe("BoneActivityCheckpointEvidencePanel", () => {
     expect(wrapper.text()).toContain("工程证据已生成");
     expect(wrapper.text()).toContain("已执行并保存证据");
     expect(wrapper.text()).toContain("非目标域代理 · D074-open-bone-fluorescence-proxy");
-    expect(wrapper.text()).toContain("禁止替换比赛主线");
+    expect(wrapper.text()).toContain("禁止替换生产主线");
     expect(wrapper.text()).toContain(CHECKPOINT_SHA);
     expect(wrapper.text()).toContain(MANIFEST_SHA);
     expect(wrapper.text()).toContain(NPZ_SHA);

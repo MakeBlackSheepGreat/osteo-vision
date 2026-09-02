@@ -6,7 +6,7 @@ Date: 2026-07-04
 
 The tetracycline and bone-autofluorescence materials are useful for the contrast-agent rationale and surgical boundary argument, but they are not direct MP4 training data for the current segmentation model.
 
-Given that near-term contrast-agent synthesis and wet-lab validation are difficult, these papers should support the competition report's contrast-agent section: bone-affinity fluorescence, viable-versus-necrotic bone contrast, and autofluorescence-guided jaw necrosis surgery provide a defensible future validation path. The software work should continue to prioritize official MP4/JPEG input, fluorescence fusion, frame-level segmentation, overlay display, physician review, and evidence export.
+Given that near-term contrast-agent synthesis and wet-lab validation are difficult, these papers should support the platform's contrast-agent research: bone-affinity fluorescence, viable-versus-necrotic bone contrast, and autofluorescence-guided jaw necrosis surgery provide a defensible future validation path. The software work should continue to prioritize MP4/JPEG input, fluorescence fusion, frame-level segmentation, overlay display, physician review, and evidence export.
 
 ## Local Materials
 

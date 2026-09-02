@@ -96,20 +96,20 @@ def test_candidate_runtime_gate_requires_4k_preflight_and_keeps_production_confi
         {
             "passed": True,
             "strict_startup": True,
-            "runtime_profile": "competition_strict",
+            "runtime_profile": "strict_runtime",
             "config_sha256": "candidate-config-sha",
             "verified_models": [{"model_id": model_id, "checkpoint_sha256": digest, "runtime_allowed": True}],
         },
     )
-    competition_flow = _write_json(
-        tmp_path / "competition_flow.json",
+    platform_flow = _write_json(
+        tmp_path / "platform_flow.json",
         {
             "case_id": "case_candidate_gate",
             "runtime": {
                 "config_bound": True,
                 "readiness_passed": True,
                 "strict_startup": True,
-                "runtime_profile": "competition_strict",
+                "runtime_profile": "strict_runtime",
                 "config_sha256": "candidate-config-sha",
             },
             "models": {
@@ -168,7 +168,7 @@ def test_candidate_runtime_gate_requires_4k_preflight_and_keeps_production_confi
         {
             "passed": True,
             "strict_startup": True,
-            "runtime_profile": "competition_strict",
+            "runtime_profile": "strict_runtime",
             "config_sha256": production_digest,
         },
     )
@@ -181,27 +181,27 @@ def test_candidate_runtime_gate_requires_4k_preflight_and_keeps_production_confi
         tiling_smoke_path=smoke,
         mainline_comparator_path=comparator,
         runtime_preflight_path=preflight,
-        competition_flow_path=competition_flow,
+        platform_flow_path=platform_flow,
         production_preflight_path=production_preflight,
         production_config_path=production,
     )
 
     assert report["technical_gate_passed"] is True
-    assert report["competition_runtime_selected"] is False
+    assert report["platform_runtime_selected"] is False
     assert report["automatic_replacement_performed"] is False
     assert report["checks"]["production_config_candidate_not_selected"] is True
     assert report["mainline_comparison"]["strictly_comparable"] is True
     assert report["runtime_risks"]["continuous_playback_full_evidence_latency"] is True
     assert report["checks"]["production_strict_runtime_remains_ready"] is True
-    assert report["checks"]["competition_flow_candidate_exercised"] is True
-    assert report["checks"]["competition_flow_no_heuristic_fallback"] is True
-    assert report["checks"]["competition_flow_frame_models_verified"] is True
-    assert report["checks"]["competition_flow_frame_probability_files_verified"] is True
-    assert report["competition_flow"]["executed_model_ids"] == [model_id]
-    assert report["competition_flow"]["frame_evidence"]["frame_count"] == 1
+    assert report["checks"]["platform_flow_candidate_exercised"] is True
+    assert report["checks"]["platform_flow_no_heuristic_fallback"] is True
+    assert report["checks"]["platform_flow_frame_models_verified"] is True
+    assert report["checks"]["platform_flow_frame_probability_files_verified"] is True
+    assert report["platform_flow"]["executed_model_ids"] == [model_id]
+    assert report["platform_flow"]["frame_evidence"]["frame_count"] == 1
 
 
-def test_candidate_runtime_gate_rejects_competition_flow_fallback(tmp_path: Path) -> None:
+def test_candidate_runtime_gate_rejects_platform_flow_fallback(tmp_path: Path) -> None:
     checkpoint = tmp_path / "candidate.pt"
     checkpoint.write_bytes(b"candidate")
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
@@ -259,7 +259,7 @@ def test_candidate_runtime_gate_rejects_competition_flow_fallback(tmp_path: Path
         {
             "passed": True,
             "strict_startup": True,
-            "runtime_profile": "competition_strict",
+            "runtime_profile": "strict_runtime",
             "config_sha256": "candidate-config-sha",
             "verified_models": [{"model_id": model_id, "checkpoint_sha256": digest, "runtime_allowed": True}],
         },
@@ -271,7 +271,7 @@ def test_candidate_runtime_gate_rejects_competition_flow_fallback(tmp_path: Path
                 "config_bound": True,
                 "readiness_passed": True,
                 "strict_startup": True,
-                "runtime_profile": "competition_strict",
+                "runtime_profile": "strict_runtime",
                 "config_sha256": "candidate-config-sha",
             },
             "models": {
@@ -310,7 +310,7 @@ def test_candidate_runtime_gate_rejects_competition_flow_fallback(tmp_path: Path
         {
             "passed": True,
             "strict_startup": True,
-            "runtime_profile": "competition_strict",
+            "runtime_profile": "strict_runtime",
             "config_sha256": hashlib.sha256(production.read_bytes()).hexdigest(),
         },
     )
@@ -323,15 +323,15 @@ def test_candidate_runtime_gate_rejects_competition_flow_fallback(tmp_path: Path
         tiling_smoke_path=smoke,
         mainline_comparator_path=comparator,
         runtime_preflight_path=preflight,
-        competition_flow_path=flow,
+        platform_flow_path=flow,
         production_preflight_path=production_preflight,
         production_config_path=production,
     )
 
     assert report["technical_gate_passed"] is False
-    assert report["checks"]["competition_flow_passed"] is False
-    assert report["checks"]["competition_flow_candidate_exercised"] is False
-    assert report["checks"]["competition_flow_no_heuristic_fallback"] is False
-    assert report["checks"]["competition_flow_probability_map_exported"] is False
-    assert report["checks"]["competition_flow_frame_models_verified"] is False
-    assert report["checks"]["competition_flow_frame_probability_files_verified"] is False
+    assert report["checks"]["platform_flow_passed"] is False
+    assert report["checks"]["platform_flow_candidate_exercised"] is False
+    assert report["checks"]["platform_flow_no_heuristic_fallback"] is False
+    assert report["checks"]["platform_flow_probability_map_exported"] is False
+    assert report["checks"]["platform_flow_frame_models_verified"] is False
+    assert report["checks"]["platform_flow_frame_probability_files_verified"] is False

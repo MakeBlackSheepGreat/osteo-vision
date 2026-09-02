@@ -9,7 +9,7 @@
 
 ## Requirement Completeness
 
-- [x] CHK001 Are the three competition value areas mapped to explicit platform capabilities and user stories? [Completeness, Spec §Project Scope Alignment, Spec §User Scenarios]
+- [x] CHK001 Are the three platform value areas mapped to explicit platform capabilities and user stories? [Completeness, Spec §Project Scope Alignment, Spec §User Scenarios]
   - Evidence: spec maps pseudo-color fluorescence enhancement, AI-assisted review, and standardized output/collaboration; README now lists the runnable loop.
 - [x] CHK002 Are the boundaries between fluorescence analysis, AI review, and result export fully described without requiring device acquisition layers? [Completeness, Spec §Project Scope Alignment, Constitution §I]
   - Evidence: spec and AGENTS exclude device SDK/acquisition; platform focuses on software-side analysis, review, and export.
@@ -42,7 +42,7 @@
 - [x] CHK013 Are all user-facing and report-facing outputs required to include platform safety-boundary disclaimers? [Completeness, Spec §FR-007, Constitution §II]
   - Evidence: backend disclaimers are included in case creation, reports, Markdown output, DICOM Secondary Capture, and schema docs.
 - [x] CHK014 Are prohibited claims specified clearly enough to prevent automatic diagnosis, definitive surgical instruction, and unsupported clinical performance wording? [Clarity, Spec §FR-007, Spec §SC-005]
-  - Evidence: AGENTS and spec require research/competition wording and prohibit automatic diagnosis claims.
+  - Evidence: AGENTS and spec require research/platform wording and prohibit automatic diagnosis claims.
 - [ ] CHK015 Are physician review states required for every AI-generated candidate region before final export? [Completeness, Spec §FR-004, Spec §FR-005, Constitution §II]
   - Remaining gap: export includes review state, but the backend does not yet block export when candidates are still `review_required`.
 - [x] CHK016 Are requirements defined for cases where the reviewer disagrees with all AI candidates or creates an ROI manually? [Coverage, Spec §US2, Spec §Edge Cases]
@@ -80,7 +80,7 @@
 
 ## Non-Functional Requirements
 
-- [x] CHK029 Are local deployment assumptions, supported operating systems, and browser expectations specified for the competition workstation workflow? [Completeness, Plan §Target Platform]
+- [x] CHK029 Are local deployment assumptions, supported operating systems, and browser expectations specified for the local workstation workflow? [Completeness, Plan §Target Platform]
   - Evidence: plan states browser-based local workstation deployment; README and quickstart document backend and frontend ports.
 - [ ] CHK030 Are performance targets expressed as measurable limits for representative case loading, ROI interaction, and export? [Gap, Plan §Performance Goals]
   - Remaining gap: smoke timing exists, but formal limits are not set.
@@ -106,7 +106,7 @@
 
 ## Dependencies And Assumptions
 
-- [x] CHK039 Is the local single-user competition workstation assumption documented consistently across spec, plan, tasks, and quickstart? [Assumption, Tasks §Clarification Assumption, Plan §Scale/Scope]
+- [x] CHK039 Is the local single-user local workstation assumption documented consistently across spec, plan, tasks, and quickstart? [Assumption, Tasks §Clarification Assumption, Plan §Scale/Scope]
   - Evidence: plan and quickstart describe local workstation deployment and small-team/single-case demo scope.
 - [x] CHK040 Are out-of-scope dependencies such as device SDKs, HIS/EMR/PACS, full patient management, and automatic diagnosis consistently excluded? [Consistency, Spec §Out of Scope, Plan §Constraints, Constitution §I]
   - Evidence: spec, plan, and AGENTS exclude these dependencies.
@@ -118,7 +118,7 @@
 ## Open Follow-Up Items
 
 - Define objective warning taxonomy for low-confidence, low-usability, unusable, weak signal, blur, occlusion, timing mismatch, codec failure, and rotation metadata.
-- Add export blocking or review-state policy for unresolved `review_required` candidates if the competition report requires strict physician sign-off.
+- Add export blocking or review-state policy for unresolved `review_required` candidates if the platform report requires strict physician sign-off.
 - Add performance targets for representative 4K JPEG/MP4 upload, keyframe extraction, ROI interaction, export, and 1-10 minute proxy videos.
 - Write DICOM SR/SEG roadmap and validator plan; current output remains DICOM Secondary Capture only.
 - Add automated wording checks for unsupported diagnosis and clinical-performance claims.

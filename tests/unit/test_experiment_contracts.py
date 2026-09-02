@@ -11,7 +11,7 @@ def test_experiment_spec_schema_requires_contract_fields() -> None:
     spec = experiment_spec_from_mapping(
         {
             "experiment_id": "demo_exp",
-            "task_package": "configs/tasks/medical_competition_demo.yml",
+            "task_package": "configs/tasks/medical_demo.yml",
             "manifest_path": "tests/fixtures/benchmark_manifest_v2.csv",
             "model_spec": {"model_id": "fixture_default", "family": "fixture"},
             "split_strategy": {"type": "fixed"},
@@ -34,8 +34,8 @@ def test_model_lifecycle_schemas_include_safety_boundary() -> None:
     model_card = ModelCard(
         model_id="fixture_default",
         model_family="fixture",
-        intended_use="research_competition_platform_validation",
-        task_package="medical_competition_demo",
+        intended_use="research_platform_validation",
+        task_package="medical_demo",
         training_data={},
         metrics={},
     )
@@ -44,7 +44,7 @@ def test_model_lifecycle_schemas_include_safety_boundary() -> None:
         checkpoint_hash="abc",
         source_run_id="run_001",
         model_id="fixture_default",
-        task_package="medical_competition_demo",
+        task_package="medical_demo",
         metrics={},
     )
     promotion = PromotionRecord(

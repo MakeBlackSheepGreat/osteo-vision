@@ -19,18 +19,18 @@
 - 医生复核、独立身份、训练准入、目标域晋级双签与哈希链。
 - JSON、Markdown、CSV、DICOM Secondary Capture 与 ZIP 证据包。
 - CBCT/STL 导入、硬组织代理建模、对象树、L1 静态配准和 L2 离线位姿回放。
-- 挑战杯工程展示页：公开 D024 三维下颌参考与 D083 人体 ICG 视频关键帧构成术前三维、术中判读、离线空间验证、证据回顾四段式展示。
+- 三维与视频示例页：公开 D024 三维下颌参考与 D083 人体 ICG 视频关键帧构成术前三维、术中判读、离线空间验证、证据回顾四段式展示。
 - 严格运行预检、checkpoint sidecar、启动预热、前后端单测和桌面 E2E。
 - 实时参数限流、重复帧去重、离线回放 CSV 原子写入、已核验 PTS 复用与二进制 STL 分块校验。
 
 ## 当前严格主线
 
-- 运行配置：`configs/inference/osteo_vision_competition_strict.yml`
+- 运行配置：`configs/inference/osteo_vision_strict.yml`
 - 分割模型：`keyframe_residual_attention_unet_s20260715_20260715`
 - 运行阈值：`0.4`
 - 4K tile：`512`，overlap：`64`
 - 实时帧：最长边 `960`，JPEG overlay，AMP，禁用 TTA
-- 启发式回退：比赛严格模式关闭
+- 启发式回退：严格运行模式关闭
 
 代理测试指标 Dice `0.9177`、IoU `0.8483`。这些指标来自公开异域或伪标注代理数据，不能推导目标域临床性能。
 
@@ -72,15 +72,15 @@
 
 ## 收尾审计
 
-2026-07-26 完成当前可运行代码的稳定性、目录职责与热路径复核：实时流参数在超界、非有限值或格式错误时回退到有界安全值并写入警告；浏览器帧按证据规范路径去重；L2 回放的 CSV 证据在异常中保持旧文件可用；二进制 STL 解析避免 Python 逐三角形解包。质量峰值关键帧复用候选阶段质量指标，MP4 播放同步以缓存索引和二分查找定位最近帧；挑战杯图包的公开或合成最小重建材料收敛到报告包内，并由 SHA256 清单登记。DOCX 构建器限制图片和源稿位于受控报告目录，缺图直接失败。`backend/tests` 的 `352` 项测试全部通过，`tests/unit + tests/smoke + backend/tests/unit` 共 `812` 项通过；后端与共享核心 `201` 个源码文件通过 mypy，Ruff 全量检查通过。收尾证据见 `research/reports/release/runtime_stability_closeout_20260721_zh.md`。
+2026-07-26 完成当前可运行代码的稳定性、目录职责与热路径复核：实时流参数在超界、非有限值或格式错误时回退到有界安全值并写入警告；浏览器帧按证据规范路径去重；L2 回放的 CSV 证据在异常中保持旧文件可用；二进制 STL 解析避免 Python 逐三角形解包。质量峰值关键帧复用候选阶段质量指标，MP4 播放同步以缓存索引和二分查找定位最近帧；报告图包的公开或合成最小重建材料收敛到报告包内，并由 SHA256 清单登记。DOCX 构建器限制图片和源稿位于受控报告目录，缺图直接失败。`backend/tests` 的 `352` 项测试全部通过，`tests/unit + tests/smoke + backend/tests/unit` 共 `812` 项通过；后端与共享核心 `201` 个源码文件通过 mypy，Ruff 全量检查通过。收尾证据见 `research/reports/release/runtime_stability_closeout_20260721_zh.md`。
 
 ## 权威入口
 
 - 平台说明：`README_CN.md`
 - 目录职责：`docs/project_structure.md`
 - 工程架构：`docs/development_framework.md`
-- 严格运行：`configs/inference/osteo_vision_competition_strict.yml`
+- 严格运行：`configs/inference/osteo_vision_strict.yml`
 - 固定目标：`research/reports/planning/three_priority_capabilities_target_20260717_zh.md`
 - 最新版本证据：`research/reports/release/`
-- 当前提交材料：`research/reports/submission/`
+- 当前证据索引：`research/reports/release/platform_evidence_manifest.yml`
 - 历史材料：`research/reports/archive/` 与日期化报告

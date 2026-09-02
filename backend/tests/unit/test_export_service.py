@@ -53,7 +53,7 @@ def test_export_service_writes_reports(tmp_path: Path) -> None:
     assert dicom.PatientIdentityRemoved == "YES"
     assert dicom.Rows > 0
     assert dicom.Columns > 0
-    assert "Platform software for research and competition validation" in Path(response.report_path).read_text(
+    assert "Platform software for research and engineering validation" in Path(response.report_path).read_text(
         encoding="utf-8"
     )
 

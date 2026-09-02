@@ -5,7 +5,7 @@
 - Technical gate passed: `True`
 - Candidate model: `keyframe_residual_attention_unet_s20260715_20260715`
 - Threshold: `0.4`
-- Candidate selected by competition config: `False`
+- Candidate selected by production config: `False`
 - Automatic replacement performed: `False`
 - Failed checks: `[]`
 
@@ -39,7 +39,7 @@
 - Continuous-playback full-evidence latency risk: `True`.
 - Candidate end-to-end P95 is `5776.683` ms. This supports offline full-evidence keyframes and cannot sustain per-frame playback refresh.
 
-## Full Competition Flow
+## Full Platform Flow
 
 - Full flow passed: `True`; case: `case_9667cba505`.
 - Configured model: `keyframe_residual_attention_unet_s20260715_20260715`; executed models: `['keyframe_residual_attention_unet_s20260715_20260715']`.
@@ -49,9 +49,9 @@
 
 ## Configuration Boundary
 
-- Current competition segmentation model: `convnext2d_keyframe_proxy_segmenter`.
-- Current competition required models: `['convnext2d_keyframe_proxy_segmenter']`.
-- The candidate remains outside the competition config; this run produced isolated candidate-gate evidence.
+- Current production segmentation model: `convnext2d_keyframe_proxy_segmenter`.
+- Current production required models: `['convnext2d_keyframe_proxy_segmenter']`.
+- The candidate remains outside the production config; this run produced isolated candidate-gate evidence.
 - Mainline strict preflight after the gate: `True`.
 
 ## Medical Boundary

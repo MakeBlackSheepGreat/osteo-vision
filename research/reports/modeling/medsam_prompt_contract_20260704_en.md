@@ -37,7 +37,7 @@ Outputs follow the existing segmentation adapter shape:
 - `quantification.positive_area_fraction`
 - warning: `medsam_like_prompt_fallback_non_diagnostic`
 
-## Value for the Competition Loop
+## Value for the Platform Loop
 
 1. Provides a runnable "clinician ROI/bbox -> promptable segmentation -> mask/overlay -> clinician review" interface.
 2. Preserves a stable output contract for later real MedSAM/SAM2 checkpoint integration.
@@ -48,7 +48,7 @@ Outputs follow the existing segmentation adapter shape:
 - No real MedSAM2 checkpoint is available.
 - Current scope is 2D prompt fallback only, with no video propagation, 3D CBCT prompting, or learned mask refinement.
 - Masks are generated from prompt geometry, not learned lesion boundaries.
-- Outputs are research/competition validation platform evidence and require physician review.
+- Outputs are research validation platform evidence and require physician review.
 
 ## Verification
 

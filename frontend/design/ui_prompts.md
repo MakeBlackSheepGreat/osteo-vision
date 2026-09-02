@@ -164,7 +164,7 @@ LEFT COLUMN (wider):
 
 RIGHT COLUMN (narrower):
 - White card "输出边界"
-- Paragraph of descriptive text: "导出内容面向科研演示、竞赛汇报和医生复核记录。
+- Paragraph of descriptive text: "导出内容面向科研演示、研发汇报和医生复核记录。
   报告中的候选区域、荧光统计和图像证据均需结合术中视野与医生判断。"
 
 Below the two cards, optionally show a preview area with thumbnails of exported artifacts:
@@ -191,7 +191,7 @@ Centered on a light blue-gray #f3f6fa background:
 - A large white card (max-width 420px) with subtle blue-gray border and generous padding.
 - Top: platform logo placeholder (a simple blue medical cross or microscope icon).
 - Title: "颌骨骨髓炎术中辅助决策平台" in large bold dark text.
-- Subtitle: "科研与竞赛平台验证" in small gray uppercase-style label.
+- Subtitle: "科研与研发平台验证" in small gray uppercase-style label.
 - Two text inputs: "工号 / 用户名", "密码" (with placeholder dots).
 - A primary blue button spanning full width: "进入工作台".
 - Below button: small gray text "仅供科研演示，不用于临床诊断".

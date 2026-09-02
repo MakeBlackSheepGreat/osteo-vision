@@ -41,7 +41,7 @@ function backendEnvironment(resourcesRoot) {
     OSTEO_ANNOTATION_STORE_PATH: join(userArtifacts, "manual_annotations", "annotations.sqlite"),
     OSTEO_PROMOTION_APPROVAL_STORE_PATH: join(userArtifacts, "promotion_approvals", "approvals.sqlite"),
     OSTEO_JOB_STORE_PATH: join(userArtifacts, "jobs", "jobs.json"),
-    OSTEO_INFERENCE_CONFIG: join(runtimeAssets, "configs", "inference", "osteo_vision_competition_strict.yml"),
+    OSTEO_INFERENCE_CONFIG: join(runtimeAssets, "configs", "inference", "osteo_vision_strict.yml"),
     OSTEO_VIDEO_MANIFEST_PATH: join(runtimeAssets, "demo_data", "ofdvdnet", "ofdvdnet_demo_manifest.csv"),
     OSTEO_OFDVD_MANIFEST_PATH: join(runtimeAssets, "demo_data", "ofdvdnet", "ofdvdnet_demo_manifest.csv"),
     OSTEO_BACKEND_PORT: String(BACKEND_PORT),

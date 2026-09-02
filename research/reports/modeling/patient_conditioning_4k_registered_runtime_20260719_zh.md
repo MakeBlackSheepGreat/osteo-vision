@@ -7,19 +7,19 @@
 
 验证官方输入边界下的 3840×2160 白光/荧光 JPEG 能通过双通道配准安全门，并在开发配置中实际执行患者条件代理 checkpoint，生成影像基础概率、患者条件概率、空间差异图和模型不确定性四类证据。验证同时要求代理模型保持零空间调制、禁止替换主线和医生复核边界。
 
-## 2. 输入与严格比赛流
+## 2. 输入与严格平台流
 
-可配准代理输入位于 `artifacts/platform_competition/competition_flow_three_priority_registered_20260719/input/`：
+可配准代理输入位于 `artifacts/platform_validation/platform_flow_three_priority_registered_20260719/input/`：
 
 | 输入 | 尺寸 | 字节数 | SHA256 |
 | --- | ---: | ---: | --- |
-| `competition_white_4k.jpg` | 3840×2160 | 689,677 | `db40d9ff75b39cbd8084ab5d5378c599bb4d15d49bab991089a7514a93b28d8a` |
-| `competition_icg_4k.jpg` | 3840×2160 | 563,413 | `986aaa1b78f4c38104333312cdee22096684913612fcd036c89207dd6e7a76d8` |
-| `competition_4k_proxy.mp4` | 3840×2160，6 帧 | 290,480 | `69000d11fd7e644efd546058d8f68bef8bc05426b335c351f6a818c0d836a95e` |
+| `platform_white_4k.jpg` | 3840×2160 | 689,677 | `db40d9ff75b39cbd8084ab5d5378c599bb4d15d49bab991089a7514a93b28d8a` |
+| `platform_icg_4k.jpg` | 3840×2160 | 563,413 | `986aaa1b78f4c38104333312cdee22096684913612fcd036c89207dd6e7a76d8` |
+| `platform_4k_proxy.mp4` | 3840×2160，6 帧 | 290,480 | `69000d11fd7e644efd546058d8f68bef8bc05426b335c351f6a818c0d836a95e` |
 
 代理生成器使用固定随机种子构造跨通道共享纹理，使白光和荧光代理保留可检测的共同几何结构。该纹理只用于工程配准验证，输入清单保持 `not_real_patient_data=true`。
 
-严格配置 `osteo_vision_competition_strict.yml` 的完整比赛流病例为 `case_98d0ff0d9c`。运行结果：
+严格配置 `osteo_vision_strict.yml` 的完整平台流病例为 `case_98d0ff0d9c`。运行结果：
 
 - 运行配置绑定、严格启动和模型预检全部通过。
 - JPEG 与 MP4 均匹配官方 4K 格式档案。
@@ -28,7 +28,7 @@
 - keyframe fallback 未触发，视频逐帧概率证据完整。
 - 严格配置未登记患者条件候选，输出 `patient_conditioned_model_not_configured` 安全回退。
 
-机器摘要位于 `artifacts/platform_competition/competition_flow_three_priority_registered_20260719/competition_flow_demo_check_summary.json`，SHA256 为 `c28a171f8bdc306c9253fe90851d7997520cc8fa4f3a08320a7f033750a71f1a`。
+机器摘要位于 `artifacts/platform_validation/platform_flow_three_priority_registered_20260719/platform_flow_demo_check_summary.json`，SHA256 为 `c28a171f8bdc306c9253fe90851d7997520cc8fa4f3a08320a7f033750a71f1a`。
 
 ## 3. 开发配置患者条件运行
 
@@ -63,7 +63,7 @@
 
 ## 5. 自动化验证
 
-- `tests/unit/test_competition_flow_demo_check.py`：8 项通过。
+- `tests/unit/test_platform_flow_demo_check.py`：8 项通过。
 - `backend/tests/unit/test_patient_conditioning_analysis.py`：5 项通过。
 - `frontend/tests/PatientConditioningEvidence.test.ts`：2 项通过。
 - Vue TypeScript 检查、Ruff、Black 和 `git diff --check` 通过。

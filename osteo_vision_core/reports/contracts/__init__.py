@@ -1,4 +1,4 @@
-"""Report contracts for the medical imaging competition framework.
+"""Report contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for report generation, validation, and writing.
 """

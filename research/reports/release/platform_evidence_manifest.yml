@@ -1,0 +1,46 @@
+schema_version: osteo-vision-platform-evidence-manifest-v1
+project_version: 0.3.0-rc.2
+strict_config: configs/inference/osteo_vision_strict.yml
+evidence_files:
+  - README.md
+  - README_CN.md
+  - docs/quickstart.md
+  - docs/project_summary.md
+  - docs/project_structure.md
+  - docs/development_framework.md
+  - docs/export_schema_v1.md
+  - docs/three_d_renderer_runtime.md
+  - research/README.md
+  - research/reports/README.md
+  - research/reports/release/README.md
+  - research/reports/release/runtime_stability_closeout_20260721_zh.md
+  - research/reports/release/v0.3.0-rc.2_20260719_zh.md
+  - research/reports/planning/platform_input_boundary_zh.md
+  - research/reports/planning/device_input_spec_extracted_text.md
+  - research/reports/planning/three_priority_capabilities_target_20260717_zh.md
+  - research/reports/planning/three_priority_capabilities_acceptance_v1_zh.md
+  - research/reports/modeling/keyframe_model_selection_summary_20260715_zh.md
+  - research/reports/modeling/keyframe_residual_attention_4k_runtime_gate_20260715_zh.md
+  - research/reports/modeling/keyframe_residual_attention_live_fast_runtime_gate_20260715_zh.md
+  - research/reports/modeling/patient_conditioning_4k_registered_runtime_20260719_zh.md
+  - research/reports/modeling/bone_activity_multitask_d074_proxy_20260719.json
+  - research/datasets/public-candidates/three_priority_manifest_verification_20260719_d095.json
+  - tests/fixtures/platform/platform_white_4k.jpg
+  - tests/fixtures/platform/platform_icg_4k.jpg
+  - backend/osteo_vision_api/services/live_frame_service.py
+  - backend/osteo_vision_api/services/manual_annotation_service.py
+  - backend/osteo_vision_api/services/static_registration_service.py
+  - backend/osteo_vision_api/services/offline_pose_replay_service.py
+  - osteo_vision_core/models/keyframe_segmenter.py
+  - osteo_vision_core/models/patient_conditioned_runtime.py
+  - osteo_vision_core/models/bone_activity_runtime.py
+  - tools/run_platform_flow_demo_check.py
+  - tools/verify_three_priority_dataset_manifests.py
+local_runtime_evidence:
+  - artifacts/performance/core_hotpaths_current.json
+  - artifacts/release/v0.3.0-rc.2/dataset_manifest_verification.json
+boundaries:
+  literature: 文献、公开数据库和官方资料支撑机理与验证设计，不代表本项目原创实验结果。
+  proxy_engineering: 公开异域视频、伪标注、公开 CBCT 和代理临床表用于软件链路、训练复现和相对比较。
+  target_domain: 真实颌骨骨髓炎白光/ICG 联合病例与医生像素级金标准当前为零。
+  navigation: L1 静态仿体和 L2 离线回放属于工程验证，真实术中导航未就绪。

@@ -1,4 +1,4 @@
-"""Validate public real-video inputs against the competition 4K JPEG/MP4 workflow.
+"""Validate public real-video inputs against the platform 4K JPEG/MP4 workflow.
 
 The run keeps source-domain disclosures attached to every result. It benchmarks
 selected-keyframe analysis and does not claim full-frame real-time inference.

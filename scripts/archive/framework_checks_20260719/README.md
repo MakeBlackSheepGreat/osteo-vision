@@ -6,7 +6,7 @@
 
 当前检查入口：
 
-- `make docs-audit`：活动文档、版本和本地链接。
+- `make docs-audit`：当前文档、版本和本地链接。
 - `make check-all`：静态检查、类型检查及核心、后端、前端测试。
-- `make readiness`：比赛严格配置、模型和运行环境就绪检查。
+- `make readiness`：严格运行配置、模型和运行环境就绪检查。
 - `make performance-baseline`：核心热路径性能与输出一致性基准。

@@ -12,7 +12,7 @@ description: "Task list for Osteo Vision software platform target"
 
 **Organization**: Tasks are grouped by user story so each story can be implemented, tested, and demonstrated independently.
 
-**Clarification Assumption**: The competition workstation profile assumes local single-user operation with de-identified samples and local evidence bundles. If the access model changes later, update `spec.md`, `data-model.md`, and this task list before implementation.
+**Clarification Assumption**: The local workstation profile assumes local single-user operation with de-identified samples and local evidence bundles. If the access model changes later, update `spec.md`, `data-model.md`, and this task list before implementation.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -32,7 +32,7 @@ description: "Task list for Osteo Vision software platform target"
 - [X] T006 Create backend package markers in `backend/osteo_vision_api/__init__.py` and `backend/tests/__init__.py`
 - [X] T007 [P] Create backend app settings module in `backend/osteo_vision_api/core/settings.py`
 - [X] T008 [P] Create backend application factory in `backend/osteo_vision_api/api/app.py`
-- [X] T009 Document the local single-user competition workstation assumption in `specs/001-software-platform-target/quickstart.md`
+- [X] T009 Document the local single-user local workstation assumption in `specs/001-software-platform-target/quickstart.md`
 
 ---
 
@@ -247,10 +247,10 @@ bone-activity spectrum review, and magnification-aware 3D registration before mo
 - [X] T136 Upgrade strict L2 to pose-manifest v3 and threshold-policy v2; bind FFprobe-PTS magnification/working-distance rates, intrinsics-switch rate, calibration ambiguity, and A/B/A oscillation to nine approved safety parameters, fail closed to L0, persist frame/summary evidence, and expose the result in the frontend
 - [X] T137 Download, inspect, and register D090 three-video human breast sentinel-node ICG and D091 two-video human hepatic ICG proxies; extend unified provenance verification to 11 manifests, 43 records, 106 files, and 5,437,811,619 verified bytes while preserving non-jaw, non-target-domain, and training-ineligible boundaries
 - [X] T138 Synchronize trusted physician-reviewed `ignore` annotations into candidate, frame, video-manifest, artifact, and `bone_activity_spectrum-v2` evidence; reject untrusted states and fail closed on source, dimension, mask-integrity, or checksum mismatch
-- [X] T139 Implement the SHA256-bound `PatientConditionedSegmenterAdapter`, evidence outputs, and image-only safety fallback; register the KiTS23 proxy as a development-only explicit candidate, verify the registered checkpoint end to end with generated evidence, exact conditioned/image-only equality, zero delta, and runtime replacement closed, and keep it absent from the strict competition configuration
+- [X] T139 Implement the SHA256-bound `PatientConditionedSegmenterAdapter`, evidence outputs, and image-only safety fallback; register the KiTS23 proxy as a development-only explicit candidate, verify the registered checkpoint end to end with generated evidence, exact conditioned/image-only equality, zero delta, and runtime replacement closed, and keep it absent from the strict platform configuration
 - [X] T140 Integrate patient-conditioned comparison into `AnalysisService`, API routes, and the local job worker; select exactly one trusted accepted/modified `exposed_bone` annotation bound to the active white-light JPEG, persist artifacts and reason codes, and fail closed on ambiguous or invalid gates
 - [X] T141 Expose patient-conditioned image-only, conditioned, difference, uncertainty, provenance, and fallback evidence in the case workspace plus structured JSON, Markdown, quantification CSV, and export bundle regression coverage
-- [X] T142 Make the official 4K proxy pair deterministically registration-verifiable, bind input SHA256, official profile and registration evidence into the strict competition summary, execute the development patient-conditioned checkpoint on the registered pair, verify four 4K evidence images with exact image-only fallback, localize all safety reasons, and complete day/night desktop browser QA
+- [X] T142 Make the official 4K proxy pair deterministically registration-verifiable, bind input SHA256, official profile and registration evidence into the strict platform summary, execute the development patient-conditioned checkpoint on the registered pair, verify four 4K evidence images with exact image-only fallback, localize all safety reasons, and complete day/night desktop browser QA
 - [X] T143 Reconfirm the three capabilities as fixed continuing goals, assign public/proxy dataset acquisition to the project side, register D092 PMCanalSeg and D093 MRONJ SPECT/CT figure assets, and extend unified provenance verification to 13 manifests
 - [X] T144 Implement `clinical-feature-vector-v1` with explicit list completeness, present/missing/OOD masks, runtime rebuild and checksum validation, checkpoint-consumed versus spatially-applied evidence, frontend visibility, and JSON/Markdown/CSV export coverage without retraining
 - [X] T145 Run the D036 public-label digital mandible through the real FastAPI L1/L2 path with checksum-bound evidence, dual-calibration selection, same-L1-chain verification, tamper rejection, physician-review fallback to L0, and closed physical/navigation claims

@@ -2,7 +2,7 @@
 Sync Impact Report
 Version change: unratified template -> 1.0.0
 Modified principles:
-- Placeholder principle 1 -> I. Competition-Scoped Software Platform
+- Placeholder principle 1 -> I. Platform Scope
 - Placeholder principle 2 -> II. Medical Safety and Physician Review
 - Placeholder principle 3 -> III. Configurable Interfaces and Replaceable Models
 - Placeholder principle 4 -> IV. Data Governance and Provenance
@@ -26,7 +26,7 @@ Follow-up TODOs:
 
 ## Core Principles
 
-### I. Competition-Scoped Software Platform
+### I. Platform Scope
 The project MUST remain a software platform for jaw osteomyelitis intraoperative
 fluorescence interpretation. Features MUST serve at least one of the three
 post-acquisition layers: fluorescence analysis, AI + physician review, or result
@@ -34,12 +34,12 @@ export. Device drivers, hospital HIS/EMR/PACS integration, full patient
 administration, and clinical diagnosis workflows are out of scope unless a
 separate plan justifies them as future extensions.
 
-Rationale: The competition asks for a complete technical solution around the
-white-light/ICG dual-channel observation workflow, while the current delivery
-must stay small enough to finish as pure software.
+Rationale: The platform focuses on a complete software workflow around
+white-light/ICG dual-channel observation while keeping device and hospital
+integrations behind explicit extension boundaries.
 
 ### II. Medical Safety and Physician Review
-All outputs MUST be framed as research and competition validation evidence produced by the platform. ICG
+All outputs MUST be framed as research and engineering validation evidence produced by the platform. ICG
 MUST be described as a perfusion, vascular permeability, and tissue-viability
 signal, not as a jaw osteomyelitis-specific probe. The system MUST preserve
 physician review states for AI candidates and MUST NOT present automatic
@@ -72,7 +72,7 @@ license, manifest, preprocessing, and run evidence in the approved project
 locations.
 
 Rationale: Reproducibility and privacy are both central to a medical imaging
-competition project. Missing provenance makes results hard to defend; careless
+project. Missing provenance makes results hard to defend; careless
 retention creates avoidable risk.
 
 ### V. Evidence-Driven Delivery
@@ -84,7 +84,7 @@ exception. Reports, metrics, screenshots, JSON outputs, and failure cases MUST
 be saved in the appropriate `research/reports/` or `artifacts/` location.
 
 Rationale: The project must be demonstrable, reproducible, and adjustable under
-competition time pressure. Evidence is the bridge between platform behavior and
+normal development and release pressure. Evidence is the bridge between platform behavior and
 credible presentation.
 
 ## Fixed Technical Boundaries
@@ -96,7 +96,7 @@ credible presentation.
 - 2D image and visualization stack: OpenCV, Pillow, matplotlib, NumPy, pandas,
   and scikit-learn.
 - Configuration format: YAML.
-- Temporary demo layer: Gradio is allowed for rapid competition demos and
+- Temporary demo layer: Gradio is allowed for rapid platform demos and
   smoke-testable platform workflows, but it is not the long-term frontend architecture.
 - Core entry boundaries: `configs/tasks/osteo_vision.yml`,
   `configs/inference/osteo_vision.yml`, `osteo_vision_core/models/adapters.py`,
@@ -111,9 +111,9 @@ credible presentation.
 2. A feature plan MUST pass the Constitution Check before implementation begins
    and again after design work changes the scope or architecture.
 3. New preprocessing, model integration, pipeline, metric, configuration, or
-   competition work MUST read and follow the matching `.agents/rules/skill-*.md` file.
+   platform work MUST read and follow the matching `.agents/rules/skill-*.md` file.
 4. New shared interfaces MUST include tests or a written exception in the plan.
-5. Reports generated for formal research or competition evidence SHOULD be
+5. Reports generated for formal research or engineering evidence SHOULD be
    bilingual Markdown files using `_zh.md` and `_en.md` suffixes when practical.
 6. Any clinical or performance claim MUST be tied to a dataset, manifest,
    evaluation protocol, and saved report.

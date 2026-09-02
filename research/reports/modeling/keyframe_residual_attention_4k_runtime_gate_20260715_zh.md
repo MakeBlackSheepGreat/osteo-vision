@@ -5,7 +5,7 @@
 - 技术门控通过：`True`
 - 候选模型：`keyframe_residual_attention_unet_s20260715_20260715`
 - 阈值：`0.4`
-- 比赛配置已选择候选：`False`
+- 生产配置已选择候选：`False`
 - 自动替换已执行：`False`
 - 失败检查：`[]`
 
@@ -39,7 +39,7 @@
 - 连续播放全证据延迟风险：`True`。
 - 候选端到端 P95 为 `5776.683` ms；该结果只支持离线关键帧全证据处理，无法支持逐帧实时播放刷新。
 
-## 完整比赛流
+## 完整平台流
 
 - 完整流程通过：`True`；病例：`case_9667cba505`。
 - 配置模型：`keyframe_residual_attention_unet_s20260715_20260715`；实际执行模型：`['keyframe_residual_attention_unet_s20260715_20260715']`。
@@ -49,9 +49,9 @@
 
 ## 配置边界
 
-- 当前比赛分割模型：`convnext2d_keyframe_proxy_segmenter`。
-- 当前比赛必需模型：`['convnext2d_keyframe_proxy_segmenter']`。
-- 候选模型仍未写入比赛配置；本轮仅生成独立候选门控配置与运行证据。
+- 当前生产分割模型：`convnext2d_keyframe_proxy_segmenter`。
+- 当前生产必需模型：`['convnext2d_keyframe_proxy_segmenter']`。
+- 候选模型仍未写入生产配置；本轮仅生成独立候选门控配置与运行证据。
 - 门控完成后主线严格预检：`True`。
 
 ## 医学边界

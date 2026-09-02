@@ -45,7 +45,7 @@ Therefore, the current benchmark is useful for checking whether a model can lear
 References:
 
 - https://arxiv.org/html/2411.17213v2
-- Local snapshot: `research/model-snapshots/code/nnunet/documentation/competitions/Toothfairy2/readme.md`
+- Local snapshot: `research/model-snapshots/code/nnunet/documentation/competitions/Toothfairy2/readme.md` (third-party documentation)
 
 Key choices:
 
@@ -169,7 +169,7 @@ Suggested labels:
 
 Purpose:
 
-- Provide a stable anatomical prior for the competition and demo system.
+- Provide a stable anatomical prior for the platform demonstration system.
 - Produce interpretable large-structure ROIs first.
 - Reduce class sparsity before moving to D024 full-39 or D036 full-42 labels.
 
@@ -303,4 +303,4 @@ Training:
 
 ## Medical Boundary
 
-This design supports a research and competition validation platform. D024/D036 are anatomical segmentation datasets, and D025 is a CBCT lesion-mask proxy dataset. They are not intraoperative ICG fluorescence labels or clinical jaw osteomyelitis outcome data. Model outputs should be framed as intraoperative reference signals, risk prompts, and physician-review assistance.
+This design supports a research validation platform. D024/D036 are anatomical segmentation datasets, and D025 is a CBCT lesion-mask proxy dataset. They are not intraoperative ICG fluorescence labels or clinical jaw osteomyelitis outcome data. Model outputs should be framed as intraoperative reference signals, risk prompts, and physician-review assistance.

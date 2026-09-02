@@ -1,6 +1,6 @@
 # 快速开始
 
-适用版本：`0.3.0-rc.2`。平台输出需要医生复核，仅供研发验证、比赛展示和受控工程评估。
+适用版本：`0.3.0-rc.2`。平台输出需要医生复核，仅供研发验证、平台展示和受控工程评估。
 
 ## 1. 环境
 
@@ -20,7 +20,7 @@ conda run -n osteo-vision python -m pip install -r requirements.txt
 npm --prefix frontend install
 ```
 
-## 2. 启动比赛严格模式
+## 2. 启动严格运行模式
 
 ```cmd
 start_platform.cmd
@@ -40,7 +40,7 @@ start_platform.cmd -NoBrowser -Headless
 
 根目录启动器依次检查：
 
-- 比赛严格配置及其哈希。
+- 严格运行配置及其哈希。
 - 主线 checkpoint 与 SHA256 sidecar。
 - FFmpeg 和 ffprobe。
 - 隔离病例数据库与本地写入目录。
@@ -84,7 +84,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_three_d_ru
 主平台与渲染运行时一起启动：
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictCompetition
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start_platform.ps1 -StrictRuntime
 ```
 
 独立运行时通过 `/runtime-manifest.json` 确认服务身份。需跳过三维进程时，根目录启动入口追加 `-SkipThreeDRuntime`。主平台的病例、CBCT/STL 建模、L1/L2、安全状态、二维证据和医生复核不依赖该渲染进程保持可用。
@@ -95,7 +95,7 @@ Gradio 入口仅用于框架兼容性检查：
 conda run -n osteo-vision python app/main.py --config configs/inference/osteo_vision.yml
 ```
 
-比赛展示与医生工作流统一使用 FastAPI + Vue 平台。
+平台展示与医生工作流统一使用 FastAPI + Vue 平台。
 
 ## 4. 复核身份
 
@@ -137,7 +137,7 @@ start_platform.cmd
 1. 在病例工作台选择“MP4 视频”。
 2. 选择“独立双通道视频”并分别上传白光、荧光 MP4；设备叠加 MP4 可选。也可选择“合成三视图示例”并选中 `OFDVDNET_001`。
 3. 保持自动偏移，或填写荧光/设备叠加的毫秒偏移。点击“准备同步预览”。
-4. 检查共同有效区间、同步状态和配准可用状态。容器起始时间差超过 `33.34 ms` 时会显示复核提示，比赛演示仍可继续。
+4. 检查共同有效区间、同步状态和配准可用状态。容器起始时间差超过 `33.34 ms` 时会显示复核提示，平台演示仍可继续。
 5. 点击“运行双通道融合分析”。四宫格按白光原始视频、荧光原始/配准后、软件融合/设备叠加、AI 风险与不确定性组织。
 
 同步播放器以白光为主时钟，通道漂移超过 `80 ms` 时自动校正。分析采用最多 2–120 对同步关键帧，默认 12 对；界面明确标记“关键帧同步结果”。OFDVDnet 属于公开非目标域代理，不能作为真实术中 ICG 颌骨骨髓炎性能证据。
@@ -145,8 +145,8 @@ start_platform.cmd
 ## 6. 运行与模型核验
 
 ```powershell
-conda run -n osteo-vision python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_competition_strict.yml --require-strict
-conda run -n osteo-vision python scripts/model_inventory.py --config configs/inference/osteo_vision_competition_strict.yml
+conda run -n osteo-vision python tools/check_runtime_readiness.py --config configs/inference/osteo_vision_strict.yml --require-strict
+conda run -n osteo-vision python scripts/model_inventory.py --config configs/inference/osteo_vision_strict.yml
 conda run -n osteo-vision python tools/check_project_readiness.py
 ```
 
@@ -175,14 +175,14 @@ make release-check
 make release-build
 ```
 
-比赛流程与 4K 稳定性：
+平台流程与 4K 稳定性：
 
 ```powershell
 conda run -n osteo-vision python tools/run_platform_smoke.py
 conda run -n osteo-vision python tools/run_official_4k_pressure_smoke.py --frames 6 --keyframes 3
 conda run -n osteo-vision python tools/run_mp4_edge_case_smoke.py --frames 48 --keyframes 5 --fps 6
 conda run -n osteo-vision python tools/run_keyframe_tiling_smoke.py --width 3840 --height 2160
-conda run -n osteo-vision python tools/run_competition_flow_demo_check.py
+conda run -n osteo-vision python tools/run_platform_flow_demo_check.py
 ```
 
 上述 smoke 使用合成或公开非目标域代理数据，结果只说明工程链路与输出完整性。
@@ -193,7 +193,7 @@ conda run -n osteo-vision python tools/run_competition_flow_demo_check.py
 conda run -n osteo-vision python tools/benchmark_core_hotpaths.py --repeats 3 --output artifacts/performance/core_hotpaths_current.json
 ```
 
-输出记录运行环境、三个核心热路径的优化前后中位耗时、加速比和输出一致性。模型端优化继续使用 4K tiling、live fast-output 和完整比赛流工具，在相同输入、checkpoint、分辨率和运行次数下对比。
+输出记录运行环境、三个核心热路径的优化前后中位耗时、加速比和输出一致性。模型端优化继续使用 4K tiling、live fast-output 和完整平台流工具，在相同输入、checkpoint、分辨率和运行次数下对比。
 
 ## 9. 文档与目录检查
 

@@ -1,4 +1,4 @@
-"""Engine contracts for the medical imaging competition framework.
+"""Engine contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for inference, training, and benchmarking.
 """

@@ -288,11 +288,11 @@ def run_live_fast_output_gate(
             frontend_profile["max_long_side"] == BROWSER_MAX_LONG_SIDE
             and frontend_profile["jpeg_quality_fraction"] == BROWSER_JPEG_QUALITY / 100.0
         ),
-        "competition_runtime_replacement_performed": False,
+        "platform_runtime_replacement_performed": False,
     }
     checks["pass"] = (
-        all(value for key, value in checks.items() if key != "competition_runtime_replacement_performed")
-        and checks["competition_runtime_replacement_performed"] is False
+        all(value for key, value in checks.items() if key != "platform_runtime_replacement_performed")
+        and checks["platform_runtime_replacement_performed"] is False
     )
     return {
         "schema_version": "osteo-vision-keyframe-live-fast-output-gate-v2",
@@ -334,7 +334,7 @@ def run_live_fast_output_gate(
             "production_sha256_before": config_hashes_before["production"],
             "production_sha256_after": config_hashes_after["production"],
             "production_unchanged": production_unchanged,
-            "competition_runtime_selected": production_model_id,
+            "platform_runtime_selected": production_model_id,
             "automatic_replacement_performed": False,
         },
         "checks": checks,
@@ -738,7 +738,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "previous_convnext_strict_runtime_snapshot.yml"
         ),
     )
-    parser.add_argument("--production-config", default="configs/inference/osteo_vision_competition_strict.yml")
+    parser.add_argument("--production-config", default="configs/inference/osteo_vision_strict.yml")
     parser.add_argument(
         "--source-image",
         default=None,

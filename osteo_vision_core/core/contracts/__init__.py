@@ -1,4 +1,4 @@
-"""Core contracts for the medical imaging competition framework.
+"""Core contracts for the Osteo Vision medical imaging platform.
 
 This module defines the core interfaces and protocols that all modules should implement.
 """

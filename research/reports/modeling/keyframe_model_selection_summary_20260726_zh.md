@@ -5,7 +5,7 @@
 - 推荐候选族：`residual_attention_unet_keyframe_segmenter`。
 - 验证集选定 checkpoint：`C:\Users\876762330\Desktop\projects\osteo-vision\artifacts\checkpoints\osteo_vision\keyframe_residual_attention_unet_s20260726_20260727.pt`。
 - 锁定阈值：`0.35`。
-- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与比赛闭环门控。
+- 当前保持 `runtime_replacement_allowed=false`，进入严格 4K tiled 与平台闭环门控。
 
 ## 独立测试集比较
 
@@ -31,7 +31,7 @@
 
 4K 门控要求为：官方 4K 尺寸、CUDA 执行、tiled 模式、45 个切片、输出尺寸一致、确定性掩膜、模型 P95 不高于 3000 ms、峰值显存不高于 2048 MB，以及候选区面积位于预设安全范围。五个模型均满足上述检查。
 
-Residual Attention U-Net 在多随机种子均值和验证集选定 checkpoint 的锁定测试中均为最高 Dice/IoU。它仍需完成严格比赛配置绑定与 MP4 比赛流门控，才可替换当前比赛运行配置。
+Residual Attention U-Net 在多随机种子均值和验证集选定 checkpoint 的锁定测试中均为最高 Dice/IoU。它仍需完成生产配置绑定与 MP4 平台流门控，才可替换当前生产运行配置。
 
 ## 证据边界
 

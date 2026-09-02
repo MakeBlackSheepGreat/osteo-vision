@@ -1,4 +1,4 @@
-"""Dataset contracts for the medical imaging competition framework.
+"""Dataset contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for dataset loading, splitting, and management.
 """

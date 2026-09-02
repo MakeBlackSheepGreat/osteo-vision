@@ -5,8 +5,8 @@ from osteo_vision_core.core.task_package import load_task_package
 
 
 def test_task_package_loads() -> None:
-    package = load_task_package("configs/tasks/medical_competition_demo.yml")
-    assert package.task_id == "medical_competition_demo"
+    package = load_task_package("configs/tasks/medical_demo.yml")
+    assert package.task_id == "medical_demo"
     assert "classification" in package.pipelines
     assert package.safety["clinical_claim_allowed"] is False
 

@@ -1,7 +1,7 @@
 # 13 篇文献元数据、开放获取与本地存档核验
 
 核验日期：2026-07-28
-范围：`competition_advisor_suggestions_feasibility_20260717_zh.md` 中四环素/骨活性、Evans blue、多模态模型与不确定性相关的 13 篇带 DOI 文献。DailyMed、openFDA 与无 DOI 的历史毒性记录不在本清单。
+范围：造影剂与骨活性研究资料中四环素/骨活性、Evans blue、多模态模型与不确定性相关的 13 篇带 DOI 文献。DailyMed、openFDA 与无 DOI 的历史毒性记录不在本清单。
 
 ## 方法与边界
 

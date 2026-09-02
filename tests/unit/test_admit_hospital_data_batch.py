@@ -22,7 +22,7 @@ def _manifest_payload(relative_path: str, *, batch_id: str = "hospital-batch-001
         "received_by": "project_receiver",
         "received_at": datetime.now(timezone.utc).isoformat(),
         "authorization_status": "approved",
-        "usage_scope": "competition_research_validation",
+        "usage_scope": "platform_research_validation",
         "deidentification_confirmed": True,
         "deidentification_method": "hospital export review",
         "mapping_held_by_institution": True,

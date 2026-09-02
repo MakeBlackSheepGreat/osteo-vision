@@ -50,7 +50,7 @@ class JobConflictError(RuntimeError):
 
 
 class JobRegistry:
-    """Small persistent job tracker for local competition platform workflows."""
+    """Small persistent job tracker for local platform software workflows."""
 
     def __init__(self, storage_path: str | Path | None = None) -> None:
         self._jobs: dict[str, dict[str, Any]] = {}

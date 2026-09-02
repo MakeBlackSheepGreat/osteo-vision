@@ -61,7 +61,7 @@ TRAINING_INTAKE_ADMISSION_STATES = {"engineering_analysis_ready", "target_regist
 TRAINING_SCOPE_TOKENS = {"train", "training"}
 TRAINING_SCOPE_DENY_MARKERS = {
     "analysis only",
-    "competition only",
+    "platform only",
     "exclude training",
     "no training",
     "not for training",
@@ -740,7 +740,7 @@ class ManualAnnotationService:
         return bool(
             intake.authorization_status == "approved"
             and intake.deidentification_confirmed
-            and any(marker in scope for marker in ("analysis", "research", "competition", "export", "train"))
+            and any(marker in scope for marker in ("analysis", "research", "platform", "export", "train"))
         )
 
     def _register_training_manifest(self, summary: AnnotationTrainingManifestSummary) -> None:

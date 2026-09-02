@@ -40,7 +40,7 @@ def _batch_payload(batch_id: str, uploaded: dict[str, Any], **overrides: Any) ->
         "received_by": "project_receiver",
         "received_at": datetime.now(timezone.utc).isoformat(),
         "authorization_status": "approved",
-        "usage_scope": "competition_research_validation",
+        "usage_scope": "research_validation",
         "deidentification_confirmed": True,
         "deidentification_method": "institutional export review",
         "mapping_held_by_institution": True,
@@ -86,7 +86,7 @@ def test_hospital_batch_admission_persists_case_provenance_and_checksums(
     assert record["target_domain_flag"] is True
     assert record["review_state"] == "review_required"
     assert record["training_eligible"] is False
-    assert "图像可读取，但分辨率不符合赛题设备的 3840x2160 规格。" in {item["message"] for item in record["warnings"]}
+    assert "图像可读取，但分辨率不符合项目输入规范设备的 3840x2160 规格。" in {item["message"] for item in record["warnings"]}
     assert Path(payload["report_path"]).is_file()
     assert Path(payload["csv_path"]).is_file()
 

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const frontendRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(frontendRoot, "..", "..");
 const outputRoot = path.join(repoRoot, "output", "playwright", "desktop-real-test");
-const defaultCompetitionRoot = path.join(repoRoot, "artifacts", "release", "competition-disc");
+const defaultPlatformRoot = path.join(repoRoot, "artifacts", "release", "offline-release");
 const physicianToken = "playwright-physician-token-20260715";
 
 const options = parseOptions(process.argv.slice(2));
@@ -65,9 +65,9 @@ function resolvePackageRoot(explicitRoot) {
   if (explicitRoot) candidates.push(path.resolve(explicitRoot));
   const desktopRoot = path.join(repoRoot, "artifacts", "release", "desktop", "Osteo Vision Platform-win32-x64");
   candidates.push(desktopRoot);
-  if (fs.existsSync(defaultCompetitionRoot)) {
-    for (const name of fs.readdirSync(defaultCompetitionRoot)) {
-      const candidate = path.join(defaultCompetitionRoot, name);
+  if (fs.existsSync(defaultPlatformRoot)) {
+    for (const name of fs.readdirSync(defaultPlatformRoot)) {
+      const candidate = path.join(defaultPlatformRoot, name);
       if (fs.existsSync(path.join(candidate, "Osteo Vision Platform.exe"))) candidates.push(candidate);
     }
   }

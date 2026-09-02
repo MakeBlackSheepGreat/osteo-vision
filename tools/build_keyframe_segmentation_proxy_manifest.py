@@ -1,7 +1,7 @@
 """Build a pseudo-labeled keyframe segmentation manifest from JPEG/MP4 inputs.
 
 The output manifest can be passed to scripts/train_keyframe_segmentation_proxy.py.
-It is a proxy-data builder for the competition software loop, not a target-domain
+It is a proxy-data builder for the platform software loop, not a target-domain
 clinical annotation workflow.
 """
 

@@ -75,7 +75,7 @@ ROI source priority:
 
 Each fallback is recorded in the manifest warnings to avoid overstating proxy ROI quality.
 
-## Value for the Competition Pipeline
+## Value for the Platform Pipeline
 
 1. Provides a stable CBCT ROI crop before 3D proxy segmentation training.
 2. Creates a clean replacement boundary for future DentalSegmentator checkpoint inference: produce an anatomy mask, then reuse this contract.
@@ -87,7 +87,7 @@ Each fallback is recorded in the manifest warnings to avoid overstating proxy RO
 - DentalSegmentator is a dental/maxillofacial CT/CBCT anatomy segmentation tool, not a jaw osteomyelitis lesion model.
 - The current implementation does not run a DentalSegmentator checkpoint.
 - D024/D025/D036, CBCT-derived ROIs, and public anatomy masks are proxy or non-target-domain data.
-- Outputs are research/competition validation platform evidence and must not replace physician diagnosis.
+- Outputs are research validation platform evidence and must not replace physician diagnosis.
 
 ## Verification
 

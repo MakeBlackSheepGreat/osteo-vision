@@ -305,7 +305,7 @@ children.push(
   new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { before: 150, after: 70 },
-    children: [run("r28 竞赛光盘运行包使用说明", { size: 39, color: COLORS.ink, bold: true })],
+    children: [run("r28 研发光盘运行包使用说明", { size: 39, color: COLORS.ink, bold: true })],
   }),
   new Paragraph({
     alignment: AlignmentType.CENTER,
@@ -318,14 +318,14 @@ children.push(
     ["文档项目", "发行信息"],
     [
       ["平台版本", "r28，Windows x64 离线发行包"],
-      ["运行包目录", "Osteo-Vision-Competition-Disc-win32-x64-20260831-r28"],
+      ["运行包目录", "Osteo-Vision-Offline-Release-win32-x64-20260831-r28"],
       ["唯一启动入口", "Osteo Vision Platform.exe"],
       ["ZIP SHA256", "以随包 release-manifest.json 与交付校验记录为准"],
       ["医学用途边界", "研发验证与医生复核参考，不作为临床诊断结论。"],
     ],
     [3000, CONTENT_WIDTH - 3000],
   ),
-  paragraph("本手册按正式比赛光盘运行包编写。压缩包用于传输；在另一台电脑上使用前，需先完整解压到本地文件夹，再从该文件夹双击启动入口。", { before: 140, after: 0, size: 19, color: COLORS.muted }),
+  paragraph("本手册按正式离线发行包运行包编写。压缩包用于传输；在另一台电脑上使用前，需先完整解压到本地文件夹，再从该文件夹双击启动入口。", { before: 140, after: 0, size: 19, color: COLORS.muted }),
 );
 
 children.push(
@@ -470,7 +470,7 @@ children.push(
 );
 
 children.push(
-  h1("09 推荐比赛演示路径"),
+  h1("09 推荐平台演示路径"),
   paragraph("以下路径覆盖 r28 的离线输入、融合处理、AI 辅助、人工复核、三维参考和证据导出主流程。"),
   table(
     ["顺序", "建议操作", "可见证据"],
@@ -525,7 +525,7 @@ children.push(
 const doc = new Document({
   creator: "Osteo Vision Team",
   title: "Osteo Vision r28 使用说明",
-  description: "竞赛光盘 Windows 离线运行包使用说明，含真实桌面测试截图。",
+  description: "研发光盘 Windows 离线运行包使用说明，含真实桌面测试截图。",
   styles: {
     default: {
       document: {

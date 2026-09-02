@@ -27,7 +27,7 @@ def extract_keyframes(
 ) -> dict[str, Any]:
     """Extract deterministic preview and evidence keyframes from an MP4 file.
 
-    The competition-facing path needs representative frame evidence without
+    The platform-facing path needs representative frame evidence without
     decoding long 4K videos end to end. The default strategy probes a bounded
     uniform candidate pool, scores frame quality plus fluorescence-like signal,
     then stores the best temporally separated frames.

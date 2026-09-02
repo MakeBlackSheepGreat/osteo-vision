@@ -10,14 +10,14 @@
 | `frontend/` | 平台前端 | Vue 桌面工作站、组件、类型与前端测试 | 源码跟踪，依赖和构建忽略 |
 | `frontend/three-d-runtime/` | 独立三维渲染运行时 | 独立 Vue/Vite/Three.js 包、场景测试、锁文件和静态运行时标识 | 源码与 lockfile 跟踪，`node_modules/` 与 `dist/` 忽略 |
 | `osteo_vision_core/` | 核心库 | 推理、模型、数据、指标、I/O、导航 | 跟踪 |
-| `configs/` | 运行配置 | 任务、研发与比赛严格配置 | 公共配置跟踪，本机覆盖忽略 |
+| `configs/` | 运行配置 | 任务、研发与严格运行配置 | 公共配置跟踪，本机覆盖忽略 |
 | `scripts/` | 工程脚本 | 启动、训练、评估、实验和模型清单 | 跟踪 |
 | `tools/` | 核验工具 | 准入、下载、smoke、性能、证据与清理 | 跟踪 |
 | `tests/` | 核心测试 | unit、smoke、integration、fixtures | 跟踪，小型 fixture 例外 |
 | `docs/` | 当前文档 | 快速开始、架构、目录、导出和审批 | 跟踪，内容保持当前 |
 | `research/` | 研究证据 | 文献、来源清单、建模报告、计划和归档 | 小型证据跟踪，大文件忽略 |
 | `artifacts/` | 本地运行与临时产物 | 病例运行证据、UI 验收截图、文档临时物、checkpoint、报告、数据库与性能结果 | `.gitkeep` 外默认忽略 |
-| `app/` | 兼容入口 | Gradio 框架兼容性检查 | 跟踪，不作为比赛主界面 |
+| `app/` | 兼容入口 | Gradio 框架兼容性检查 | 跟踪，不作为平台主界面 |
 | `packaging/` | 打包 | 桌面与发布打包说明 | 跟踪 |
 | `specs/` | 规格 | Spec Kit 功能规格与任务 | 跟踪 |
 
@@ -33,13 +33,14 @@
 - `research/README.md`
 - `CHANGELOG.md` 的最新版本节
 - `research/reports/release/README.md`
-- `research/reports/submission/README.md`
+- `research/reports/release/README.md`
+- `research/reports/release/platform_evidence_manifest.yml`
 
 活动文档禁止引用已删除目录、旧阶段编号、已归档提交包和冻结时瞬时 Git 状态。
 
 ## 历史证据
 
-日期化研究报告、训练报告和 release 快照记录生成时事实。它们保持原日期、配置和声明边界。旧提交包移动到 `research/reports/archive/submission_<date>/`，被替换的规划与早期可行性材料进入带日期的 archive 子目录；各归档目录通过 README 说明原因与后继入口。
+日期化研究报告、训练报告和 release 快照记录生成时事实。它们保持原日期、配置和声明边界。被替换的规划与早期可行性材料进入带日期的 `archive/` 子目录；各归档目录通过 README 说明原因与后继入口。
 
 历史证据中的旧模型、旧指标和旧 Git 状态不能覆盖当前配置、最新 release 索引或可运行代码事实。
 
@@ -57,11 +58,9 @@
 
 本地目录的职责保持单向：`artifacts/ui/playwright/` 只放置可再现的前端或浏览器验收截图；`research/datasets/<dataset-id>/derived/` 只放置受控数据整合输出；`artifacts/tmp/` 只放置阶段性中间工作物；其余 `artifacts/` 承担可追溯运行证据。生成器需要在 manifest、日志或同级说明中给出来源、生成入口与用途边界。这样可避免把报告提交件、源码和本地运行物混放。
 
-## 挑战杯报告包
+## 发布证据
 
-挑战杯当前报告工作物集中在 `research/reports/submission/challenge_cup_report_draft_20260721/`。该目录内的 `Cap1_*.md` 至 `Cap9_*.md` 为分章源稿，`challenge_cup_*_zh.md` 为聚合稿，`assets/sources/` 保存最小公开或合成重建输入，`assets/manifest.json` 记录图包，DOCX/PDF 为可交付渲染件。目录内的 README 记录构建入口、当前推荐件和医学声明边界。
-
-`research/reports/submission/` 根目录只保留活动提交入口、构建器和提交说明。冻结或被替换的报告包应迁入 `research/reports/archive/` 并保留日期与后继入口，当前阶段不要删除任何现有报告、图片或渲染中间物。
+`research/reports/release/` 保存版本快照、平台证据 manifest 和可再生成的发布索引。大体积渲染件、原始影像与运行输出继续按 `.gitignore` 规则保留在本机受控目录。
 
 安全清理预览：
 
@@ -88,7 +87,7 @@ conda run -n osteo-vision python tools/clean_workspace.py --apply
 - 性能与 smoke 运行输出进入 `artifacts/`。
 - 浏览器验收截图进入 `artifacts/ui/playwright/`；文档渲染与人工检查临时物进入 `artifacts/tmp/`。
 - 数据集整合结果进入所属数据集的 `derived/`，不得再创建根目录 `outputs/`。
-- 过期提交材料进入 `research/reports/archive/`，不得留在当前 `submission/`。
+- 过期材料进入 `research/reports/archive/`，当前入口只引用 `release/`。
 
 ## 自动审计
 

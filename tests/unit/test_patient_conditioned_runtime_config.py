@@ -15,7 +15,7 @@ from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision.yml"
-STRICT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision_competition_strict.yml"
+STRICT_CONFIG = ROOT / "configs" / "inference" / "osteo_vision_strict.yml"
 PATIENT_MODEL_ID = "patient_conditioned_kits23_proxy_candidate"
 MAINLINE_MODEL_ID = "keyframe_residual_attention_unet_s20260715_20260715"
 MANIFEST_SHA256 = "27f1fe208cea184e0ee069ae16165b1d63cc766dcf8d291ebb3602d4cff4e1e3"
@@ -163,7 +163,7 @@ def test_registered_patient_candidate_runs_hash_bound_image_only_fallback(tmp_pa
     assert Path(result.prediction["evidence_manifest_path"]).is_file()
 
 
-def test_competition_strict_inventory_excludes_unpromoted_patient_candidate(monkeypatch) -> None:
+def test_strict_inventory_excludes_unpromoted_patient_candidate(monkeypatch) -> None:
     strict_runtime = _runtime(STRICT_CONFIG)
     strict_model_ids = {str(item["model_id"]) for item in strict_runtime["models"]}
     monkeypatch.setattr("osteo_vision_core.models.runtime_preflight.find_runtime_executable", lambda name: f"C:/tools/{name}.exe")

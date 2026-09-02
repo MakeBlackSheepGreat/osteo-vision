@@ -11,7 +11,7 @@ from osteo_vision_core.experiments.spec import write_experiment_spec
 def test_v2_task_package_drives_v3_experiment_flow(tmp_path) -> None:
     spec = ExperimentSpec(
         experiment_id="integration_v3",
-        task_package="configs/tasks/medical_competition_demo.yml",
+        task_package="configs/tasks/medical_demo.yml",
         manifest_path="tests/fixtures/benchmark_manifest_v2.csv",
         model_spec={
             "model_id": "fixture_default",
@@ -55,4 +55,4 @@ def test_v2_task_package_drives_v3_experiment_flow(tmp_path) -> None:
     assert checkpoint["clinical_claim_allowed"] is False
     assert promotion["clinical_claim_allowed"] is False
     assert promotion["promoted"] is True
-    assert "Platform software for research and competition validation" in model_card["disclaimer"]
+    assert "Platform software for research and engineering validation" in model_card["disclaimer"]

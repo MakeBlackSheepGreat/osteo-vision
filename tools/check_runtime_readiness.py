@@ -21,7 +21,7 @@ def main() -> int:
     parser.add_argument(
         "--require-strict",
         action="store_true",
-        help="Fail unless the selected config is the fail-closed competition profile.",
+        help="Fail unless the selected config is the fail-closed platform profile.",
     )
     args = parser.parse_args()
     report = check_runtime_readiness(args.config, require_strict=args.require_strict)

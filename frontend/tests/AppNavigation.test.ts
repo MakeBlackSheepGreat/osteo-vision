@@ -43,7 +43,7 @@ describe("App navigation", () => {
     expect(wrapper.findAll(".ov-nav-pill .app-icon")).toHaveLength(8);
     expect(wrapper.find(".app-sidebar").exists()).toBe(false);
     expect(wrapper.find(".runtime-status").exists()).toBe(false);
-    expect(wrapper.text()).not.toContain("比赛严格运行");
+    expect(wrapper.text()).not.toContain("严格运行运行");
   });
 
   it("keeps every page lazy-loaded and recovers unknown URLs", () => {

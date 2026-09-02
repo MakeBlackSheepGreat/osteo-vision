@@ -1,4 +1,4 @@
-"""Pipeline contracts for the medical imaging competition framework.
+"""Pipeline contracts for the Osteo Vision medical imaging platform.
 
 This module defines the interfaces for pipelines and pipeline registries.
 """
