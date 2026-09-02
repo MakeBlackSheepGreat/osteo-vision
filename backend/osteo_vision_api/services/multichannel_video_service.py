@@ -381,7 +381,7 @@ class MultichannelVideoService:
         if len(suffix) != 16 or any(char not in "0123456789abcdef" for char in suffix):
             raise MultichannelVideoError("multichannel_session_id_invalid", "多通道会话 ID 无效。")
         path = self.root / case.case_id / session_id / "session.json"
-        session = self._load_cached_session(path, case, require_case_assets=False)
+        session = self._load_cached_session(path, case, require_case_assets=False, allow_blocked=True)
         if session is None:
             raise MultichannelVideoError("multichannel_session_not_found", "未找到多通道视频会话。")
         return session
@@ -927,10 +927,22 @@ class MultichannelVideoService:
         case: CaseRecord,
         *,
         require_case_assets: bool = True,
+        allow_blocked: bool = False,
     ) -> MultichannelVideoSession | None:
         try:
             session = MultichannelVideoSession.model_validate_json(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            return None
+        # A blocked session records the failure inputs and may have been created
+        # before a desktop release migrated its bundled demo paths. Re-run the
+        # preparation request so a later click can recover after the inputs are fixed.
+        if session.status == "blocked" and not allow_blocked:
+            return None
+        # A composite session may be persisted as degraded when splitting
+        # failed (for example while FFmpeg was unavailable). Such a session
+        # has no analyzable channels, so a later preparation request must retry
+        # with the current runtime while preserving the old evidence on disk.
+        if session.status == "degraded" and not session.analysis_allowed and not allow_blocked:
             return None
         if require_case_assets and session.paired_sequence_manifest:
             known = {asset.input_id for asset in case.inputs}

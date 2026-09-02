@@ -8,6 +8,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 
 from backend.osteo_vision_api.api.app import create_app
+from backend.osteo_vision_api.domains.cases.schemas import MultichannelVideoChannel, MultichannelVideoSession
 from backend.osteo_vision_api.services import multichannel_video_service
 
 
@@ -321,6 +322,95 @@ def test_paired_video_session_blocks_a_damaged_channel(tmp_path, monkeypatch) ->
         ["multichannel_input_invalid"],
         ["multichannel_video_unreadable"],
     ]
+
+
+def test_blocked_session_is_recomputed_after_the_input_is_fixed(tmp_path, monkeypatch) -> None:
+    client, case_id, artifact_root = _client(tmp_path, monkeypatch)
+    white = artifact_root / "white.mp4"
+    fluorescence = artifact_root / "fluorescence.mp4"
+    _write_video(white, fps=8.0, frame_count=16, value=30)
+    fluorescence.write_bytes(b"not-an-mp4")
+    request = {
+        "mode": "paired_videos",
+        "white_light_path": str(white),
+        "fluorescence_path": str(fluorescence),
+        "keyframe_count": 3,
+    }
+
+    blocked = client.post(f"/cases/{case_id}/multichannel-video-sessions", json=request).json()
+    assert blocked["status"] == "blocked"
+    _write_video(fluorescence, fps=8.0, frame_count=16, value=60)
+
+    retried = client.post(f"/cases/{case_id}/multichannel-video-sessions", json=request)
+
+    assert retried.status_code == 200
+    payload = retried.json()
+    assert payload["session_id"] == blocked["session_id"]
+    assert payload["status"] == "ready"
+    assert payload["analysis_allowed"] is True
+
+
+def test_unavailable_degraded_composite_session_is_recomputed_on_retry(tmp_path, monkeypatch) -> None:
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    source = artifact_root / "composite.mp4"
+    _write_video(source, fps=5.0, frame_count=10, value=70)
+    manifest = tmp_path / "ofdvdnet.csv"
+    manifest.write_text(
+        "record_id,dataset_id,video_path,original_filename,view_layout,overlay_xyxy,"
+        "fluorescence_xyxy,reference_xyxy,readable,domain_boundary\n"
+        f"OFDVDNET_001,D046,{source},sample.mp4,three_views,0|0|32|24,32|0|64|24,"
+        "0|24|32|48,True,public proxy\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OSTEO_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("OSTEO_CASE_STORE_PATH", str(tmp_path / "cases.sqlite"))
+    monkeypatch.setenv("OSTEO_VIDEO_MANIFEST_PATH", str(tmp_path / "missing-videos.csv"))
+    monkeypatch.setenv("OSTEO_OFDVD_MANIFEST_PATH", str(manifest))
+    monkeypatch.setattr(multichannel_video_service, "find_runtime_executable", lambda _name: None)
+    client = TestClient(create_app())
+    case_id = client.post("/cases", json={"title": "composite retry"}).json()["case_id"]
+    request = {"mode": "composite_layout", "composite_record_id": "OFDVDNET_001"}
+
+    degraded = client.post(f"/cases/{case_id}/multichannel-video-sessions", json=request).json()
+    assert degraded["status"] == "degraded"
+    assert degraded["analysis_allowed"] is False
+
+    def fake_paired(self, case, _request, session_id, _session_dir):
+        channels = [
+            MultichannelVideoChannel(
+                role=role,
+                input_id=f"{session_id}:{role}",
+                path=str(source),
+                probe={"readable": True, "duration_sec": 2.0},
+                source_boundary="test",
+            )
+            for role in ("white_light", "fluorescence", "device_overlay")
+        ]
+        return (
+            MultichannelVideoSession(
+                schema_version="osteo-vision-multichannel-video-session-v1",
+                session_id=session_id,
+                case_id=case.case_id,
+                mode="composite_layout",
+                status="ready",
+                analysis_allowed=True,
+                channels=channels,
+                synchronization_tolerance_ms=33.34,
+                synchronization_status="aligned",
+                source_boundary="test",
+            ),
+            case,
+        )
+
+    monkeypatch.setattr(multichannel_video_service.MultichannelVideoService, "_paired_session", fake_paired)
+    retried = client.post(f"/cases/{case_id}/multichannel-video-sessions", json=request)
+
+    assert retried.status_code == 200
+    payload = retried.json()
+    assert payload["session_id"] == degraded["session_id"]
+    assert payload["status"] == "ready"
+    assert payload["analysis_allowed"] is True
 
 
 def test_partial_pair_extraction_keeps_a_degraded_analyzable_session(tmp_path, monkeypatch) -> None:

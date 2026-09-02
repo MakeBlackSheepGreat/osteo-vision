@@ -35,94 +35,95 @@
       </div>
     </header>
 
-    <div v-if="loading" class="state-message">正在处理，请等待后端返回结果。</div>
-    <div v-else-if="error" class="state-message error">{{ error }}</div>
-    <div v-else-if="!hasCase" class="state-message muted">空白预览态，运行后同步真实输出。</div>
-    <AnalysisJobPanel
-      v-if="activeAnalysisJobId"
-      :job-id="activeAnalysisJobId"
-      :status="activeAnalysisJobStatus"
-      :error="activeAnalysisJobError"
-      :progress="activeAnalysisJobProgress"
-      :timed-out="lastAnalysisJobTimedOut"
-      :loading="loading"
-      :canceling="activeAnalysisJobCanceling"
-      @refresh="emit('refreshJob')"
-      @cancel="emit('cancelJob')"
-      @retry="emit('retryJob')"
-    />
-    <AnalysisExportPanel
-      v-if="exportPath"
-      :export-path="exportPath"
-      :export-links="exportLinks"
-      :export-summary="exportSummary"
-      :artifact-entries="exportArtifactEntries"
-      :case-id="caseId"
-    />
+    <div class="analysis-scroll-region">
+      <div v-if="loading" class="state-message">正在处理，请等待后端返回结果。</div>
+      <div v-else-if="error" class="state-message error">{{ error }}</div>
+      <div v-else-if="!hasCase" class="state-message muted">空白预览态，运行后同步真实输出。</div>
+      <AnalysisJobPanel
+        v-if="activeAnalysisJobId"
+        :job-id="activeAnalysisJobId"
+        :status="activeAnalysisJobStatus"
+        :error="activeAnalysisJobError"
+        :progress="activeAnalysisJobProgress"
+        :timed-out="lastAnalysisJobTimedOut"
+        :loading="loading"
+        :canceling="activeAnalysisJobCanceling"
+        @refresh="emit('refreshJob')"
+        @cancel="emit('cancelJob')"
+        @retry="emit('retryJob')"
+      />
+      <AnalysisExportPanel
+        v-if="exportPath"
+        :export-path="exportPath"
+        :export-links="exportLinks"
+        :export-summary="exportSummary"
+        :artifact-entries="exportArtifactEntries"
+        :case-id="caseId"
+      />
 
-    <MultichannelVideoWorkspace
-      v-if="multichannelModeActive"
-      :mode="videoMode"
-      :session="multichannelSession"
-      :channel-paths="multichannelChannelPaths"
-      :task2-result="multichannelTask2Result"
-      :ai-preview-src="multichannelAiPreviewSrc"
-      :ai-view-sources="multichannelAiViewSources"
-      :live-frame-record="multichannelLiveFrameRecord"
-      :live-fusion-src="multichannelLiveFusionSrc"
-      :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
-      :live-fusion-status="multichannelLiveFusionStatus"
-      :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && !analysisExpanded"
-      :realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
-      :live-overlay-src="liveOverlaySrc"
-      :live-inference-view-sources="liveInferenceViewSources"
-      :live-frame-status="liveFrameStatus"
-      :white-camera-stream="multichannelWhiteCameraStream"
-      :fluorescence-camera-stream="multichannelFluorescenceCameraStream"
-      @live-frame="emit('multichannelLiveFrame', $event)"
-    />
-    <AnalysisQuadGrid
-      v-else
-      ref="analysisQuadGridRef"
-      :panels="previewPanels"
-      :camera-stream="cameraStream"
-      :camera-active="cameraActive"
-      :camera-status-label="cameraStatusLabel"
-      :video-playback="videoPlayback"
-      :current-playback-time="currentPlaybackTime"
-      :playback-duration="playbackDuration"
-      :playback-seek-time-sec="playbackSeekTimeSec"
-      :playback-seek-token="playbackSeekToken"
-      :live-overlay-src="liveOverlaySrc"
-      :live-inference-view-sources="liveInferenceViewSources"
-      :live-frame-status="liveFrameStatus"
-      :live-model-latency-ms="liveModelLatencyMs"
-      :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
-      @playback-state-change="handleInlinePlaybackState"
-      @playback-started="handleInlinePlaybackStarted"
-      @playback-paused="handleInlinePlaybackPaused"
-      @playback-ended="handleInlinePlaybackEnded"
-      @playback-frame-requested="handleInlinePlaybackFrameRequested"
-    />
+      <MultichannelVideoWorkspace
+        v-if="multichannelModeActive"
+        :mode="videoMode"
+        :session="multichannelSession"
+        :channel-paths="multichannelChannelPaths"
+        :task2-result="multichannelTask2Result"
+        :ai-preview-src="multichannelAiPreviewSrc"
+        :ai-view-sources="multichannelAiViewSources"
+        :live-frame-record="multichannelLiveFrameRecord"
+        :live-fusion-src="multichannelLiveFusionSrc"
+        :live-registered-fluorescence-src="multichannelLiveRegisteredFluorescenceSrc"
+        :live-fusion-status="multichannelLiveFusionStatus"
+        :realtime-analysis-enabled="multichannelRealtimeAnalysisEnabled && !analysisExpanded"
+        :realtime-analysis-busy="multichannelRealtimeAnalysisBusy"
+        :live-overlay-src="liveOverlaySrc"
+        :live-inference-view-sources="liveInferenceViewSources"
+        :live-frame-status="liveFrameStatus"
+        :white-camera-stream="multichannelWhiteCameraStream"
+        :fluorescence-camera-stream="multichannelFluorescenceCameraStream"
+        @live-frame="emit('multichannelLiveFrame', $event)"
+      />
+      <AnalysisQuadGrid
+        v-else
+        ref="analysisQuadGridRef"
+        :panels="previewPanels"
+        :camera-stream="cameraStream"
+        :camera-active="cameraActive"
+        :camera-status-label="cameraStatusLabel"
+        :video-playback="videoPlayback"
+        :current-playback-time="currentPlaybackTime"
+        :playback-duration="playbackDuration"
+        :playback-seek-time-sec="playbackSeekTimeSec"
+        :playback-seek-token="playbackSeekToken"
+        :live-overlay-src="liveOverlaySrc"
+        :live-inference-view-sources="liveInferenceViewSources"
+        :live-frame-status="liveFrameStatus"
+        :live-model-latency-ms="liveModelLatencyMs"
+        :live-end-to-end-latency-ms="liveEndToEndLatencyMs"
+        @playback-state-change="handleInlinePlaybackState"
+        @playback-started="handleInlinePlaybackStarted"
+        @playback-paused="handleInlinePlaybackPaused"
+        @playback-ended="handleInlinePlaybackEnded"
+        @playback-frame-requested="handleInlinePlaybackFrameRequested"
+      />
 
-    <VideoStreamSyncPanel
-      v-if="showVideoArtifacts && videoPlayback"
-      :video-playback="videoPlayback"
-      :nearest-frame-detail="nearestPlaybackFrameDetail"
-      :loading="loading"
-      :editor-open="maskEditorOpen"
-      :generate-available="boneGateGenerateAvailable(nearestPlaybackFrameDetail)"
-      :edit-available="boneGateEditAvailable(nearestPlaybackFrameDetail)"
-      :generate-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'generate')"
-      :edit-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'edit')"
-      @jump-to-frame="jumpPlaybackToDetail"
-      @generate-bone-gate="generateBoneGateForNearestFrame"
-      @edit-bone-gate="openBoneGateEditorForNearestFrame"
-    />
+      <VideoStreamSyncPanel
+        v-if="showVideoArtifacts && videoPlayback"
+        :video-playback="videoPlayback"
+        :nearest-frame-detail="nearestPlaybackFrameDetail"
+        :loading="loading"
+        :editor-open="maskEditorOpen"
+        :generate-available="boneGateGenerateAvailable(nearestPlaybackFrameDetail)"
+        :edit-available="boneGateEditAvailable(nearestPlaybackFrameDetail)"
+        :generate-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'generate')"
+        :edit-unavailable-reason="boneGateActionReason(nearestPlaybackFrameDetail, 'edit')"
+        @jump-to-frame="jumpPlaybackToDetail"
+        @generate-bone-gate="generateBoneGateForNearestFrame"
+        @edit-bone-gate="openBoneGateEditorForNearestFrame"
+      />
 
-    <AnalysisFusionEvidencePanel v-if="showVideoArtifacts && fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
+      <AnalysisFusionEvidencePanel v-if="showVideoArtifacts && fusionEvidenceSummary" :summary="fusionEvidenceSummary" />
 
-    <section v-if="showVideoArtifacts && hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
+      <section v-if="showVideoArtifacts && hotspotTimelineTotalCount" class="hotspot-timeline" aria-label="MP4 分割时间轴">
       <header>
         <AppIcon name="video" />
         <strong>MP4 分割时间轴</strong>
@@ -419,8 +420,8 @@
           </button>
         </div>
       </details>
-    </section>
-
+      </section>
+    </div>
   </section>
 
   <section
@@ -874,12 +875,24 @@ defineExpose({
 <style scoped>
 .analysis-card {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--ov-border);
   border-radius: 6px;
   padding: 16px;
   background: var(--ov-bg-elevated);
   box-shadow: var(--ov-shadow);
+  overflow: hidden;
+}
+
+.analysis-scroll-region {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .analysis-header,
@@ -930,15 +943,24 @@ defineExpose({
 
 .analysis-summary-strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
   min-width: 0;
+  min-height: 32px;
   margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.analysis-summary-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .summary-chip {
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 6px;
   align-items: center;
   max-width: 100%;
@@ -961,7 +983,6 @@ defineExpose({
 .summary-chip span {
   min-width: 0;
   overflow-wrap: anywhere;
-  white-space: normal;
 }
 
 .summary-chip strong {
@@ -969,7 +990,6 @@ defineExpose({
   color: var(--ov-text);
   font-size: 12px;
   overflow-wrap: anywhere;
-  white-space: normal;
 }
 
 .header-export-button {

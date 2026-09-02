@@ -135,7 +135,8 @@
         >
           <ThreeDRendererRuntimeEmbed
             v-if="store.currentCase"
-            :case-id="store.currentCase.case_id"
+            :case-id="runtimeReferenceId ? undefined : store.currentCase.case_id"
+            :reference-id="runtimeReferenceId || undefined"
             :scene-version="store.currentCase.version"
             @select-candidate-frame="selectCandidateFrame"
           />
@@ -244,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, nextTick, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AppButton from "@/components/AppButton.vue";
@@ -268,6 +269,14 @@ const threeDEvidence = computed<ThreeDEvidence | null>(() => {
   if (isRecord(caseEvidence) && Object.keys(caseEvidence).length) return caseEvidence as ThreeDEvidence;
   const runEvidence = latestRun.value?.fused_outputs?.three_d_evidence;
   return isRecord(runEvidence) ? (runEvidence as ThreeDEvidence) : null;
+});
+// Standard demo cases carry the D024 reference object in their object tree while
+// their evidence has no case-owned model path. Use the controlled public reference
+// so the isolated renderer can show the model and still preserve the L0 safety gate.
+const runtimeReferenceId = computed(() => {
+  if (!store.currentCase) return "";
+  if (store.currentCase.case_id === "case_standard_demo") return "d024";
+  return stringFrom(threeDEvidence.value?.model_path).trim() ? "" : "d024";
 });
 const navigationReady = computed(() => {
   const value = threeDEvidence.value?.navigation_ready;
@@ -350,7 +359,22 @@ watch(
 
 async function refreshCase() {
   const caseId = store.currentCase?.case_id || stringQuery(route.query.caseId);
-  if (caseId) await store.loadCase(caseId);
+  if (!caseId) return;
+
+  const scrollPosition = { left: window.scrollX, top: window.scrollY };
+  await store.loadCase(caseId);
+  await nextTick();
+  restoreScrollPosition(scrollPosition);
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => {
+      restoreScrollPosition(scrollPosition);
+    });
+  }
+}
+
+function restoreScrollPosition(position: { left: number; top: number }) {
+  if (Math.abs(window.scrollX - position.left) < 0.5 && Math.abs(window.scrollY - position.top) < 0.5) return;
+  window.scrollTo({ ...position, behavior: "auto" });
 }
 
 function selectCandidateFrame(payload: Omit<NavigationFrameSelection, "caseId">) {
@@ -385,6 +409,7 @@ function numberFrom(value: unknown): number | null {
 <style scoped>
 .navigation-workspace {
   min-height: 100dvh;
+  overflow-anchor: none;
   padding: var(--ov-page-top) var(--ov-page-inline) var(--ov-page-bottom);
   background: var(--ov-shell-background);
   color: var(--ov-text);
@@ -413,6 +438,14 @@ function numberFrom(value: unknown): number | null {
 
 .navigation-workspace__header > div:first-child {
   min-width: 0;
+}
+
+.navigation-workspace__header .ov-title-lead > .app-icon,
+.navigation-empty-workbench__left-rail .navigation-empty-workbench__panel-title > .app-icon {
+  align-self: center;
+  margin: 0;
+  transform: none;
+  vertical-align: middle;
 }
 
 .navigation-workspace__header p,
@@ -670,6 +703,9 @@ function numberFrom(value: unknown): number | null {
 }
 
 .navigation-empty-workbench__panel-title > .app-icon {
+  align-self: center;
+  display: grid;
+  flex: 0 0 17px;
   width: 17px;
   height: 17px;
   color: var(--ov-primary-strong);

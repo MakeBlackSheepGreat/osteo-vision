@@ -192,6 +192,11 @@ body,
   color: var(--ov-text);
 }
 
+/* Keep the page viewport width stable when a view grows past the fold. */
+html {
+  overflow-y: scroll;
+}
+
 body,
 button,
 input,

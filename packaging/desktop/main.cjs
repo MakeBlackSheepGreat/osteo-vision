@@ -1,12 +1,16 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, session } = require("electron");
 const { appendFileSync, existsSync, mkdirSync } = require("node:fs");
 const { join } = require("node:path");
 
 const { registerDesktopLifecycle } = require("./desktopLifecycle.cjs");
+const { registerMediaPermissions } = require("./desktopPermissions.cjs");
 const { startManagedBackend, terminateProcessTree, waitForBackendReady } = require("./runtimeSupervisor.cjs");
+const { startRuntimeServer, stopRuntimeServer } = require("./runtimeServer.cjs");
 
 const BACKEND_PORT = 8001;
+const THREE_D_RUNTIME_PORT = 5175;
 let backendChild = null;
+let threeDRuntimeServer = null;
 let logFile = "";
 
 function writeLog(message) {
@@ -38,9 +42,11 @@ function backendEnvironment(resourcesRoot) {
     OSTEO_PROMOTION_APPROVAL_STORE_PATH: join(userArtifacts, "promotion_approvals", "approvals.sqlite"),
     OSTEO_JOB_STORE_PATH: join(userArtifacts, "jobs", "jobs.json"),
     OSTEO_INFERENCE_CONFIG: join(runtimeAssets, "configs", "inference", "osteo_vision_competition_strict.yml"),
+    OSTEO_VIDEO_MANIFEST_PATH: join(runtimeAssets, "demo_data", "ofdvdnet", "ofdvdnet_demo_manifest.csv"),
+    OSTEO_OFDVD_MANIFEST_PATH: join(runtimeAssets, "demo_data", "ofdvdnet", "ofdvdnet_demo_manifest.csv"),
     OSTEO_BACKEND_PORT: String(BACKEND_PORT),
     OSTEO_FRONTEND_PORT: "0",
-    OSTEO_ALLOWED_ORIGINS: "file://,null",
+    OSTEO_ALLOWED_ORIGINS: "file://,null,http://127.0.0.1:5175,http://localhost:5175",
   };
 }
 
@@ -48,12 +54,19 @@ async function shutdownBackend() {
   const result = await terminateProcessTree(backendChild);
   writeLog(`Backend shutdown attempted=${result.attempted} forced=${result.forced}`);
   backendChild = null;
+  if (threeDRuntimeServer) {
+    const server = threeDRuntimeServer;
+    threeDRuntimeServer = null;
+    await stopRuntimeServer(server);
+    writeLog("Three-dimensional runtime server stopped");
+  }
 }
 
 async function startApplication() {
   const logsDir = app.getPath("logs");
   mkdirSync(logsDir, { recursive: true });
   logFile = join(logsDir, "desktop-runtime.log");
+  registerMediaPermissions(session.defaultSession, writeLog);
   const resourcesRoot = packagedResourcesRoot();
   const executable = backendExecutable(resourcesRoot);
   if (!existsSync(executable)) {
@@ -70,12 +83,17 @@ async function startApplication() {
   backendChild.on("exit", (code, signal) => writeLog(`Backend exited code=${code} signal=${signal}`));
 
   await waitForBackendReady({ url: `http://127.0.0.1:${BACKEND_PORT}/ready` });
+  const threeDRuntimeRoot = join(resourcesRoot, "three_d_runtime");
+  threeDRuntimeServer = startRuntimeServer({ root: threeDRuntimeRoot, port: THREE_D_RUNTIME_PORT });
+  writeLog(`Three-dimensional runtime server started at http://127.0.0.1:${THREE_D_RUNTIME_PORT}`);
   const window = new BrowserWindow({
     width: 1500,
     height: 980,
     minWidth: 1180,
     minHeight: 760,
-    show: false,
+    // Show immediately; waiting solely for ready-to-show can leave the packaged
+    // window invisible on machines where the renderer delays that event.
+    show: true,
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
@@ -83,12 +101,12 @@ async function startApplication() {
       sandbox: true,
     },
   });
-  window.once("ready-to-show", () => window.show());
   window.webContents.on("render-process-gone", (_event, details) => {
     writeLog(`Renderer exited: ${details.reason}`);
     app.quit();
   });
   await window.loadFile(join(resourcesRoot, "frontend", "index.html"));
+  window.show();
 }
 
 registerDesktopLifecycle({ app, shutdown: shutdownBackend, log: writeLog });

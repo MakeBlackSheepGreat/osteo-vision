@@ -258,6 +258,27 @@ describe("CaseWorkspaceControls video stream area", () => {
     expect(wrapper.text()).toContain("三通道已准备");
   });
 
+  it("exposes a retry action when a composite session is degraded", async () => {
+    const wrapper = mount(CaseWorkspaceControls, {
+      props: {
+        ...baseProps,
+        videoMode: "composite_layout",
+        selectedVideoCandidateId: "OFDVDNET_001",
+        multichannelSession: {
+          analysis_allowed: false,
+          status: "degraded",
+        } as unknown as MultichannelVideoSession,
+      },
+      global: { stubs: { AppIcon: true, SectionHeading: true } },
+    });
+
+    expect(wrapper.text()).toContain("三通道未就绪");
+    const retry = wrapper.findAll("button").find((button) => button.text().includes("重试并开启双通道实时分析"));
+    expect(retry).toBeDefined();
+    await retry?.trigger("click");
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(1);
+  });
+
   it("uses one primary command to start and stop continuous multichannel analysis", async () => {
     const wrapper = mount(CaseWorkspaceControls, {
       props: { ...baseProps, videoMode: "paired_videos" },
@@ -265,20 +286,22 @@ describe("CaseWorkspaceControls video stream area", () => {
     });
 
     const start = wrapper.findAll("button").find((button) => button.text().includes("开启双通道实时分析"));
-    expect(start?.attributes("disabled")).toBeDefined();
+    expect(start?.attributes("disabled")).toBeUndefined();
+    await start?.trigger("click");
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(1);
     await wrapper.setProps({
       multichannelSession: { analysis_allowed: true } as unknown as MultichannelVideoSession,
     });
     expect(start?.attributes("disabled")).toBeUndefined();
     await start?.trigger("click");
-    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(1);
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(2);
 
     await wrapper.setProps({ multichannelRealtimeAnalysisEnabled: true });
     expect(wrapper.text()).toContain("关闭双通道实时分析");
     expect(wrapper.find('input[role="switch"]').exists()).toBe(false);
     const stop = wrapper.findAll("button").find((button) => button.text().includes("关闭双通道实时分析"));
     await stop?.trigger("click");
-    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(2);
+    expect(wrapper.emitted("toggleMultichannelRealtimeAnalysis")).toHaveLength(3);
   });
 
   it("emits each video workspace mode from the visible tabs", async () => {

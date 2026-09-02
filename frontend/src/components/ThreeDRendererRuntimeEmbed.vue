@@ -207,7 +207,9 @@ function postTheme() {
 }
 
 function handleRuntimeMessage(event: MessageEvent<RuntimeMessage>) {
-  if (event.origin !== runtimeOrigin.value || event.source !== runtimeFrame.value?.contentWindow) return;
+  // Electron sandboxed iframes may expose a different WindowProxy identity after reload;
+  // the dedicated runtime origin remains the trust boundary.
+  if (event.origin !== runtimeOrigin.value) return;
   const message = event.data;
   if (message?.protocol !== BRIDGE_PROTOCOL || typeof message.type !== "string") return;
   if (message.type === "runtime_ready") {

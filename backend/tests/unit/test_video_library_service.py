@@ -101,6 +101,33 @@ def test_video_library_merges_ofdvdnet_layout_metadata(tmp_path: Path) -> None:
     assert candidate["source_page_original_link"] == "https://example.test/ofdvdnet"
 
 
+def test_video_library_resolves_portable_ofdvdnet_paths_relative_to_manifest(tmp_path: Path) -> None:
+    demo_root = tmp_path / "demo_data" / "ofdvdnet"
+    video_dir = demo_root / "video"
+    preview_dir = demo_root / "previews"
+    video_dir.mkdir(parents=True)
+    preview_dir.mkdir()
+    source = video_dir / "OFDVDNET_001.mp4"
+    source.write_bytes(b"portable-demo-video")
+    preview = preview_dir / "OFDVDNET_001_full.jpg"
+    preview.write_bytes(b"portable-preview")
+    manifest = demo_root / "ofdvdnet_demo_manifest.csv"
+    manifest.write_text(
+        "record_id,dataset_id,video_path,original_filename,view_layout,overlay_xyxy,"
+        "fluorescence_xyxy,reference_xyxy,full_preview_path,readable,domain_boundary\n"
+        "OFDVDNET_001,D046,video/OFDVDNET_001.mp4,portable.mp4,three_views,0|0|32|24,32|0|64|24,"
+        "0|24|32|48,previews/OFDVDNET_001_full.jpg,True,public proxy\n",
+        encoding="utf-8",
+    )
+
+    candidate = VideoLibraryService(manifest, ofdvd_manifest_path=manifest).get_candidate("OFDVDNET_001")
+
+    assert candidate is not None
+    assert candidate["local_path"] == str(source.resolve())
+    assert candidate["channel_previews"]["full"] == str(preview.resolve())
+    assert candidate["system_readable"] is True
+
+
 def test_video_library_reuses_manifest_cache_and_invalidates_on_change(tmp_path: Path) -> None:
     first_video = tmp_path / "first.mp4"
     first_video.write_bytes(b"first")

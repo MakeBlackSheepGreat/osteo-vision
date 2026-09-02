@@ -15,6 +15,7 @@ from osteo_vision_core.core.paths import ensure_dir
 from osteo_vision_core.metrics.calibration import predictive_entropy
 from osteo_vision_core.models.video_signal_masks import save_video_signal_maps, video_signal_mask_contract
 from osteo_vision_core.preprocess.fluorescence import blend_pseudocolor_on_reference
+from osteo_vision_core.utils.runtime import get_device
 
 
 class ConvNeXtBlock2D(nn.Module):
@@ -97,9 +98,7 @@ def build_keyframe_segmenter(config: dict[str, Any] | None = None) -> nn.Module:
 
 
 def select_torch_device(policy: str = "auto") -> torch.device:
-    if policy in {"auto", "gpu", "cuda"} and torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
+    return torch.device(get_device(policy))
 
 
 def load_keyframe_segmenter_checkpoint(

@@ -63,6 +63,16 @@
           >
             选择 STL / GLB
           </AppButton>
+          <AppButton
+            size="sm"
+            icon="cube"
+            data-testid="load-example-modeling"
+            :disabled="uploading || modelingActive || loadingExample"
+            title="载入发行包内 D036 ToothFairy2 示例并提交建模"
+            @click="loadExampleModeling"
+          >
+            {{ loadingExample ? "正在载入示例" : "载入示例建模" }}
+          </AppButton>
         </div>
 
         <ul v-if="importedAssets.length" class="three-d-evidence-control__asset-list" aria-label="已选择文件">
@@ -74,7 +84,7 @@
             <span>{{ assetUploadLabel(asset) }}</span>
           </li>
         </ul>
-        <p v-else class="three-d-evidence-control__empty">尚未选择文件。CBCT 体数据与表面模型均会保留后端写入状态。</p>
+        <p v-else class="three-d-evidence-control__empty">等待 CBCT、STL 或 GLB 输入。</p>
 
         <label v-if="availableSourceKinds.length > 1" class="three-d-evidence-control__source-select">
           <span>建模来源</span>
@@ -227,7 +237,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import AppButton from "@/components/AppButton.vue";
-import { apiClient, type BackendJob } from "@/services/apiClient";
+import { apiClient, ApiError, type BackendJob } from "@/services/apiClient";
 import type { ThreeDEvidence, ThreeDSceneManifestV2 } from "@/types/case";
 import { abortableDelay, isAbortError } from "@/utils/abortableDelay";
 
@@ -286,6 +296,7 @@ const cbctInput = ref<HTMLInputElement | null>(null);
 const surfaceInput = ref<HTMLInputElement | null>(null);
 const importedAssets = ref<ImportedAsset[]>([]);
 const selectedSourceKind = ref<AssetKind>("cbct");
+const loadingExample = ref(false);
 const localEvidence = ref<ThreeDEvidence | null>(null);
 const modelingStatus = ref<ModelingStatus>("idle");
 const jobId = ref("");
@@ -556,9 +567,53 @@ async function uploadFiles(files: File[], kind: AssetKind) {
   }
 }
 
-async function submitModelingJob() {
+async function loadExampleModeling() {
+  if (loadingExample.value || modelingActive.value || uploading.value) return;
+  loadingExample.value = true;
+  errorMessage.value = "";
+  jobMessage.value = "正在读取发行包内 D036 ToothFairy2 示例。";
+  try {
+    const example = await apiClient.getThreeDModelingExample();
+    const sourcePath = textValue(example.source_path);
+    if (!sourcePath) throw new Error("发行包缺少 D036 示例体数据。");
+    const sourcePaths = Array.isArray(example.source_paths)
+      ? example.source_paths.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : [sourcePath];
+    importedAssets.value = [
+      {
+        id: `example-${String(example.example_id || "d036-toothfairy2")}`,
+        kind: "cbct",
+        name: textValue(example.source_original_filename) || "ToothFairy2F_001_0000.mha",
+        sizeBytes: Number(example.size_bytes) || 0,
+        uploadStatus: "uploaded",
+        serverPath: sourcePath,
+      },
+    ];
+    selectedSourceKind.value = "cbct";
+    jobMessage.value = "示例已载入，可提交三维建模任务。";
+    await submitModelingJob({
+      sourcePathOverride: sourcePath,
+      sourcePathsOverride: sourcePaths,
+      sourceOriginalFilenameOverride: textValue(example.source_original_filename),
+    });
+  } catch (error) {
+    errorMessage.value = errorMessageFromUnknown(error, "发行包内示例载入失败。");
+    jobMessage.value = "示例建模未能启动。";
+  } finally {
+    loadingExample.value = false;
+  }
+}
+
+async function submitModelingJob(
+  overrides: {
+    sourcePathOverride?: string;
+    sourcePathsOverride?: string[];
+    sourceOriginalFilenameOverride?: string;
+  } = {},
+) {
   const source = selectedSourceAsset();
-  if (!source?.serverPath) {
+  const sourcePath = overrides.sourcePathOverride || source?.serverPath;
+  if (!source || !sourcePath) {
     errorMessage.value = "请先完成至少一个 CBCT 或 STL / GLB 文件的后端上传。";
     return;
   }
@@ -575,10 +630,14 @@ async function submitModelingJob() {
   jobMessage.value = "正在提交三维建模任务。";
   try {
     const started = await apiClient.startThreeDModelingJob({
-      source_path: source.serverPath,
-      source_paths: source.kind === "cbct" ? uploadedAssets("cbct").flatMap((asset) => (asset.serverPath ? [asset.serverPath] : [])) : [source.serverPath],
+      source_path: sourcePath,
+      source_paths:
+        overrides.sourcePathsOverride ||
+        (source.kind === "cbct"
+          ? uploadedAssets("cbct").flatMap((asset) => (asset.serverPath ? [asset.serverPath] : []))
+          : [sourcePath]),
       source_role: source.kind === "cbct" ? "volume" : "surface",
-      source_original_filename: source.name,
+      source_original_filename: overrides.sourceOriginalFilenameOverride || source.name,
       case_id: props.caseId,
       dataset_id: "frontend_case_import",
       label_value: 1,
@@ -760,10 +819,29 @@ async function restoreModelingJob() {
     await pollModelingJob(storedJobId, polling);
   } catch (error) {
     if (!isPollingCurrent(polling) || isAbortError(error)) return;
+    if (error instanceof Error && error.name === "ApiError" && (error as ApiError).status === 404) {
+      clearPersistedModelingJob();
+      jobId.value = "";
+      modelingStatus.value = "idle";
+      modelingProgressPercent.value = 0;
+      modelingPhase.value = "idle";
+      errorMessage.value = "";
+      jobMessage.value = "上次建模任务已过期，请重新选择输入或载入示例建模。";
+      pollingPaused.value = false;
+      return;
+    }
     pollingPaused.value = true;
     errorMessage.value = errorMessageFromUnknown(error, "无法恢复三维建模任务状态。");
   } finally {
     if (pollingController === polling.controller) pollingController = null;
+  }
+}
+
+function clearPersistedModelingJob() {
+  try {
+    window.localStorage.removeItem(modelingJobStorageKey());
+  } catch {
+    // Storage may be unavailable in a restricted renderer.
   }
 }
 

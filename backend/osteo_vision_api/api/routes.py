@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter
@@ -47,6 +48,10 @@ from backend.osteo_vision_api.services.video_library_service import VideoLibrary
 from osteo_vision_core.core.config import load_yaml
 from osteo_vision_core.models.runtime_preflight import check_runtime_readiness
 from osteo_vision_core.preprocess.accelerated_fusion import warmup_fusion_accelerator
+from osteo_vision_core.utils.runtime import probe_accelerator
+
+
+logger = logging.getLogger(__name__)
 
 
 def build_router(settings: Settings) -> APIRouter:
@@ -63,9 +68,17 @@ def build_router(settings: Settings) -> APIRouter:
         )
     runtime_value = load_yaml(settings.inference_config_path).get("runtime")
     runtime = dict(runtime_value) if isinstance(runtime_value, dict) else {}
+    accelerator = probe_accelerator().to_dict()
+    logger.info(
+        "Accelerator selected device=%s gpu_enabled=%s fallback=%s reason=%s",
+        accelerator["selected_device"],
+        accelerator["gpu_acceleration_enabled"],
+        accelerator["fallback_active"],
+        accelerator["fallback_reason"],
+    )
     task2_fusion_warmup = {"requested": False, "gpu_ready": False, "cached": False}
     if runtime.get("warmup_task2_fusion") is True:
-        task2_fusion_warmup = warmup_fusion_accelerator(prefer_gpu=True)
+        task2_fusion_warmup = warmup_fusion_accelerator(prefer_gpu=bool(accelerator["gpu_acceleration_enabled"]))
     annotation_repository = AnnotationRepository(settings.annotation_store_path)
     analysis_service = AnalysisService(
         repo,
@@ -138,6 +151,7 @@ def build_router(settings: Settings) -> APIRouter:
             "promotion_trusted_keys": str(settings.promotion_trusted_keys_path),
             "inference_config": str(settings.inference_config_path),
             "runtime_readiness": runtime_readiness,
+            "accelerator": accelerator,
             "task2_fusion_warmup": task2_fusion_warmup,
         }
 

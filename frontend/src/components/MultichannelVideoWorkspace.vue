@@ -162,7 +162,7 @@
             </button>
           </div>
         </header>
-        <div class="media-viewport">
+        <div class="media-viewport fusion-viewport">
           <img
             v-if="liveFusionSrc && fusionView === 'software'"
             :src="liveFusionSrc"
@@ -1069,6 +1069,27 @@ onBeforeUnmount(() => {
   border: 1px solid var(--ov-border-strong);
   border-radius: 4px;
   background: var(--ov-bg-media);
+}
+
+.fusion-viewport {
+  background: #fff;
+}
+
+.fusion-viewport .empty-channel strong {
+  color: var(--ov-text);
+}
+
+.fusion-viewport .empty-channel span {
+  color: var(--ov-text-secondary);
+}
+
+.fusion-viewport .empty-channel :deep(.app-icon) {
+  color: var(--ov-primary-strong);
+}
+
+.inference-viewport,
+.inference-viewport :deep(.inference-view-media) {
+  background: #fff;
 }
 
 .refresh-badge {

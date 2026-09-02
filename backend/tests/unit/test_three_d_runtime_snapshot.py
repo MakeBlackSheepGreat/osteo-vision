@@ -5,7 +5,10 @@ import os
 from pathlib import Path
 
 from backend.osteo_vision_api.core.settings import Settings
-from backend.osteo_vision_api.services.three_d_runtime_snapshot import resolve_model_asset
+from backend.osteo_vision_api.services.three_d_runtime_snapshot import (
+    build_public_reference_snapshot,
+    resolve_model_asset,
+)
 
 
 def test_model_hash_cache_reloads_same_size_content_with_preserved_mtime(tmp_path: Path) -> None:
@@ -32,3 +35,26 @@ def test_model_hash_cache_reloads_same_size_content_with_preserved_mtime(tmp_pat
     assert first.sha256 == hashlib.sha256(original).hexdigest()
     assert second.sha256 == hashlib.sha256(replacement).hexdigest()
     assert second.sha256 != first.sha256
+
+
+def test_public_reference_uses_packaged_runtime_asset_before_user_artifacts(tmp_path: Path) -> None:
+    project_root = tmp_path / "runtime_assets"
+    packaged_reference = (
+        project_root
+        / "artifacts"
+        / "platform"
+        / "three_d_runtime"
+        / "references"
+        / "d024"
+        / "mandible_d024_0001.stl"
+    )
+    packaged_reference.parent.mkdir(parents=True)
+    packaged_reference.write_text("solid packaged-d024\\nendsolid packaged-d024\\n", encoding="utf-8")
+    settings = Settings(project_root=project_root, artifact_root=tmp_path / "user-artifacts")
+
+    snapshot = build_public_reference_snapshot("d024", settings)
+
+    assert snapshot is not None
+    assert snapshot.model_asset is not None
+    assert snapshot.model_asset.file_name == "mandible_d024_0001.stl"
+    assert snapshot.model_asset.size_bytes == packaged_reference.stat().st_size

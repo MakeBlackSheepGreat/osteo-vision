@@ -29,6 +29,10 @@
           <dt>模型校验</dt>
           <dd>{{ modelHashLabel }}</dd>
         </div>
+        <div>
+          <dt>计算</dt>
+          <dd>{{ acceleratorLabel }}</dd>
+        </div>
       </dl>
     </div>
   </section>
@@ -39,7 +43,7 @@ import { computed, onMounted, ref } from "vue";
 
 import AppIcon from "@/components/AppIcon.vue";
 import { getRuntimeReadiness } from "@/services/runtimeClient";
-import type { RuntimeReadiness } from "@/types/runtime";
+import type { AcceleratorRuntimeStatus, RuntimeReadiness } from "@/types/runtime";
 
 const emit = defineEmits<{
   blockingChange: [blocking: boolean];
@@ -47,6 +51,7 @@ const emit = defineEmits<{
 
 const expectStrict = import.meta.env.VITE_OSTEO_EXPECT_STRICT_RUNTIME === "true";
 const readiness = ref<RuntimeReadiness | null>(null);
+const accelerator = ref<AcceleratorRuntimeStatus | null>(null);
 const requestFailed = ref(false);
 const checking = ref(expectStrict);
 
@@ -91,12 +96,20 @@ const modelHashLabel = computed(() => {
   const hashes = readiness.value?.verified_models?.map((item) => shortHash(item.checkpoint_sha256)) ?? [];
   return hashes.length ? hashes.join(", ") : "无已验证模型";
 });
+const acceleratorLabel = computed(() => {
+  if (!accelerator.value) return "未读取";
+  if (accelerator.value.gpu_acceleration_enabled) {
+    return `GPU：${accelerator.value.gpu_name ?? "CUDA"}`;
+  }
+  return accelerator.value.fallback_active ? `CPU 降级：${fallbackReasonLabel(accelerator.value.fallback_reason)}` : "CPU 策略";
+});
 
 onMounted(async () => {
   emit("blockingChange", blocking.value);
   try {
     const response = await getRuntimeReadiness();
     readiness.value = response.runtime_readiness;
+    accelerator.value = response.accelerator ?? null;
   } catch {
     requestFailed.value = true;
   } finally {
@@ -107,6 +120,16 @@ onMounted(async () => {
 
 function shortHash(value?: string | null): string {
   return value ? value.slice(0, 12) : "不可用";
+}
+
+function fallbackReasonLabel(value?: string | null): string {
+  const labels: Record<string, string> = {
+    torch_unavailable: "Torch 运行时不可用",
+    cuda_unavailable: "CUDA 驱动或设备不可用",
+    cuda_device_missing: "未发现 CUDA 设备",
+    cuda_probe_failed: "CUDA 探测失败",
+  };
+  return value ? (labels[value] ?? value) : "未提供原因";
 }
 </script>
 
@@ -170,7 +193,7 @@ function shortHash(value?: string | null): string {
 
 .runtime-status__facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(90px, auto));
+  grid-template-columns: repeat(5, minmax(90px, auto));
   gap: 12px;
   margin: 0;
 }

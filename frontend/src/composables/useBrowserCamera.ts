@@ -101,7 +101,7 @@ export function useBrowserCamera(options: BrowserCameraOptions) {
     if (role === "fluorescence") {
       await refreshCameraDevices();
       if (!fluorescenceCameraDeviceId.value) {
-        options.onMessage?.("未检测到第二路可用摄像头，无法启动双通道实时分析。", "error");
+        options.onMessage?.("未检测到第二路可用摄像头，双通道分析暂不可用；单路实时分割仍可使用。", "info");
         return false;
       }
       if (fluorescenceCameraDeviceId.value === whiteCameraDeviceId.value) {

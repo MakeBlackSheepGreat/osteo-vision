@@ -211,6 +211,7 @@
             />
           </div>
         </details>
+        <div v-else class="evidence-disclosure evidence-disclosure-placeholder" aria-hidden="true"></div>
 
         <details v-if="showDebugPanel" class="debug-panel">
           <summary>开发调试数据</summary>
@@ -789,11 +790,9 @@ const liveInferenceViewSources = computed<InferenceViewSources>(() => {
 const liveOverlaySrc = computed(() => liveInferenceViewSources.value.signal ?? "");
 const liveFrameStatus = computed(() => {
   const result = liveFrameResult.value;
-  if (!result || !liveFrameIsDisplayable.value) return liveFrameStaleStatus.value;
-  if (!liveFrameIsCurrent.value) {
-    return liveFrameStaleStatus.value || "上一帧实时结果保留，正在处理下一帧。";
-  }
-  return `${liveFrameSource.value === "video" ? "MP4 实时分割" : "实时分割"}已更新 · ${result.frame_id.slice(-6)}`;
+  if (!result || !liveFrameIsDisplayable.value) return liveFrameStaleStatus.value || "等待实时结果";
+  if (!liveFrameIsCurrent.value) return "上一帧结果已保留，当前帧处理中";
+  return liveFrameSource.value === "video" ? "MP4 实时分割已连接" : "实时分割已连接";
 });
 const liveModelLatencyMs = computed(() =>
   liveFrameIsDisplayable.value
@@ -1205,7 +1204,11 @@ async function importSelectedVideoCandidate(): Promise<boolean> {
   }
   setOperationMessage("正在导入公开视频候选...");
   try {
-    store.currentCase = await apiClient.importVideoCandidate(store.currentCase.case_id, selectedVideoCandidateId.value);
+    await store.importVideoCandidate(selectedVideoCandidateId.value);
+    if (store.error) {
+      setOperationMessage(store.error, "error");
+      return false;
+    }
     const candidate = videoCandidates.value.find((item) => item.record_id === selectedVideoCandidateId.value);
     if (candidate?.local_path) {
       videoPath.value = candidate.local_path;
@@ -1247,7 +1250,12 @@ function sessionIncludesCompositeCandidate(
   caseRecord: CaseRecord,
   recordId: string,
 ): boolean {
-  if (!session || session.mode !== "composite_layout" || session.channels.length < 3) return false;
+  if (
+    !session
+    || session.mode !== "composite_layout"
+    || !session.analysis_allowed
+    || session.channels.length < 3
+  ) return false;
   const sessionInputIds = new Set(session.channels.map((channel) => channel.input_id));
   return caseRecord.inputs.some(
     (asset) =>
@@ -1389,7 +1397,11 @@ async function captureAndAnalyzeBrowserCameraFrame() {
   try {
     await analyzeBrowserCameraFrame(await captureCameraFrame());
   } catch (error) {
-    setOperationMessage(errorMessage(error), "error");
+    if (isTransientLiveError(error)) {
+      setOperationMessage("实时服务正在处理上一帧，已保留最近一次结果，请稍后重试。", "info");
+    } else {
+      setOperationMessage(errorMessage(error), "error");
+    }
   } finally {
     cameraManualAnalysisBusy.value = false;
   }
@@ -1490,7 +1502,10 @@ async function analyzeMultichannelLiveFrame(payload: { timeSec: number; reason: 
     );
   } catch (error) {
     if (requestController.signal.aborted || isAbortError(error)) return;
-    setOperationMessage(`双通道当前帧配准融合失败：${errorMessage(error)}`, "error");
+    setOperationMessage(
+      `双通道当前帧配准融合失败：${errorMessage(error)}`,
+      isTransientLiveError(error) ? "info" : "error",
+    );
   } finally {
     if (multichannelRealtimeRequestController === requestController) {
       multichannelRealtimeRequestController = null;
@@ -1559,7 +1574,10 @@ async function processMultichannelLiveAiQueue() {
           await new Promise<void>((resolve) => window.setTimeout(resolve, 1_000));
           continue;
         }
-        setOperationMessage(`当前帧 AI 分析失败：${errorMessage(error)}`, "error");
+        setOperationMessage(
+          `当前帧 AI 分析失败：${errorMessage(error)}`,
+          isTransientLiveError(error) ? "info" : "error",
+        );
       }
     }
   } finally {
@@ -1630,9 +1648,9 @@ async function analyzeCameraFrame(
     return;
   }
   const sourceLabel = context.source === "video" ? "MP4 实时分割" : "实时分割";
-  setOperationMessage(
-    context.trigger === "continuous" ? `正在刷新${sourceLabel} ${context.sequence}...` : `正在刷新${sourceLabel}...`,
-  );
+  if (context.trigger !== "continuous" || !operationMessage.value) {
+    setOperationMessage(context.trigger === "continuous" ? `${sourceLabel}持续分析中` : `正在处理${sourceLabel}...`);
+  }
   try {
     const result = await apiClient.analyzeLiveFrame(
       store.currentCase.case_id,
@@ -1692,8 +1710,13 @@ async function startContinuousCameraAnalysis() {
     return;
   }
   if (!cameraActive.value) {
-    setOperationMessage("请先开启摄像头。", "error");
-    return;
+    if (isOpeningCamera.value) return;
+    setOperationMessage("正在开启白光摄像头并准备实时分割...");
+    const opened = await startCameraInput();
+    if (!opened || !cameraActive.value) {
+      setOperationMessage("摄像头开启失败，无法启动实时分割。", "error");
+      return;
+    }
   }
   if (cameraManualAnalysisBusy.value) {
     setOperationMessage("当前手工关键帧仍在分析，完成后可启动连续实时分割。", "error");
@@ -1776,6 +1799,10 @@ function invalidateLiveFrameRequest(source?: "camera" | "video") {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
+}
+
+function isTransientLiveError(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 429 || error.status === 503);
 }
 
 function handleLiveFrameInvalidation(
@@ -2127,16 +2154,35 @@ async function runMultichannelAnalysis() {
   );
 }
 
-function toggleMultichannelRealtimeAnalysis() {
-  const session = activeMultichannelSession.value;
+async function toggleMultichannelRealtimeAnalysis() {
   if (multichannelRealtimeAnalysisEnabled.value) {
     invalidateLiveFrameRequest(activeAnalysisVideoMode.value === "browser_cameras" ? "camera" : "video");
     resetMultichannelRealtimeState();
     setOperationMessage("双通道实时分析已关闭，已停止持续处理当前播放画面。");
     return;
   }
-  if (!store.currentCase || !session?.analysis_allowed) {
-    setOperationMessage("请先准备可运行的双通道同步预览。", "error");
+  if (!store.currentCase) {
+    setOperationMessage("请先新建或加载病例，再开启双通道实时分析。", "error");
+    return;
+  }
+  if (multichannelPreparing.value) {
+    setOperationMessage("双通道同步预览正在准备，请等待当前准备完成后再点击。", "info");
+    return;
+  }
+
+  const requestedMode = activeAnalysisVideoMode.value;
+  let session = activeMultichannelSession.value;
+  if (!session?.analysis_allowed) {
+    const prepared = requestedMode === "browser_cameras"
+      ? await prepareBrowserCameraMultichannelSession()
+      : requestedMode === "composite_layout"
+        ? await ensureCompositeWorkspaceReady(selectedVideoCandidateId.value)
+        : await prepareMultichannelSession();
+    if (!prepared) return;
+    session = activeMultichannelSession.value;
+  }
+  if (!session?.analysis_allowed) {
+    setOperationMessage("当前双通道输入未形成可运行的同步会话，请检查两路视频或摄像头。", "error");
     return;
   }
   multichannelRealtimeAnalysisEnabled.value = true;
@@ -2689,6 +2735,13 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   box-shadow: var(--ov-shadow);
 }
 
+.evidence-disclosure-placeholder {
+  height: 49.333px;
+  min-height: 49.333px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .evidence-disclosure > summary {
   display: flex;
   flex-wrap: wrap;
@@ -3076,6 +3129,32 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
   }
 }
 
+@media (min-width: 960px) {
+  .workspace-grid {
+    align-items: stretch;
+  }
+
+  .workspace-sidebar,
+  .analysis-column {
+    min-height: 0;
+    height: min(1100px, calc(100dvh - 180px));
+    max-height: calc(100dvh - 180px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .analysis-column {
+    grid-template-rows: minmax(0, 1fr) 49.333px;
+  }
+
+  .case-workspace :deep(.analysis-card) {
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 100%;
+  }
+}
+
 @media (max-width: 959px) {
   .case-workspace {
     padding: 14px;
@@ -3087,6 +3166,14 @@ function roiHintsFromCurrentCase(): Array<Record<string, unknown>> {
 
   .workspace-sidebar {
     grid-template-columns: 1fr;
+  }
+
+  .analysis-column {
+    grid-template-rows: none;
+  }
+
+  .evidence-disclosure-placeholder {
+    display: none;
   }
 
   .workspace-title h1 {

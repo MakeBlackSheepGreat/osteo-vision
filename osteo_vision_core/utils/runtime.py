@@ -46,6 +46,144 @@ class RuntimeEnvironment:
         }
 
 
+@dataclass(frozen=True)
+class AcceleratorRuntimeStatus:
+    """Selected compute path and the evidence used to select it."""
+
+    requested_policy: str
+    selected_device: str
+    gpu_acceleration_enabled: bool
+    fallback_active: bool
+    fallback_reason: str | None
+    torch_version: str | None
+    cuda_runtime_version: str | None
+    gpu_count: int
+    gpu_name: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested_policy": self.requested_policy,
+            "selected_device": self.selected_device,
+            "gpu_acceleration_enabled": self.gpu_acceleration_enabled,
+            "fallback_active": self.fallback_active,
+            "fallback_reason": self.fallback_reason,
+            "torch_version": self.torch_version,
+            "cuda_runtime_version": self.cuda_runtime_version,
+            "gpu_count": self.gpu_count,
+            "gpu_name": self.gpu_name,
+        }
+
+
+def probe_accelerator(policy: str = "auto", *, torch_module: Any | None = None) -> AcceleratorRuntimeStatus:
+    """Select CUDA when it is usable and retain a reasoned CPU fallback otherwise."""
+
+    requested_policy = _resolve_accelerator_policy(policy)
+    if requested_policy == "cpu":
+        return AcceleratorRuntimeStatus(
+            requested_policy=requested_policy,
+            selected_device="cpu",
+            gpu_acceleration_enabled=False,
+            fallback_active=False,
+            fallback_reason="cpu_policy",
+            torch_version=_torch_version(torch_module),
+            cuda_runtime_version=None,
+            gpu_count=0,
+            gpu_name=None,
+        )
+
+    try:
+        module = torch_module
+        if module is None:
+            import torch as module
+    except Exception:
+        return AcceleratorRuntimeStatus(
+            requested_policy=requested_policy,
+            selected_device="cpu",
+            gpu_acceleration_enabled=False,
+            fallback_active=True,
+            fallback_reason="torch_unavailable",
+            torch_version=None,
+            cuda_runtime_version=None,
+            gpu_count=0,
+            gpu_name=None,
+        )
+
+    try:
+        if not bool(module.cuda.is_available()):
+            return AcceleratorRuntimeStatus(
+                requested_policy=requested_policy,
+                selected_device="cpu",
+                gpu_acceleration_enabled=False,
+                fallback_active=True,
+                fallback_reason="cuda_unavailable",
+                torch_version=_torch_version(module),
+                cuda_runtime_version=_cuda_version(module),
+                gpu_count=0,
+                gpu_name=None,
+            )
+        gpu_count = int(module.cuda.device_count())
+        if gpu_count < 1:
+            return AcceleratorRuntimeStatus(
+                requested_policy=requested_policy,
+                selected_device="cpu",
+                gpu_acceleration_enabled=False,
+                fallback_active=True,
+                fallback_reason="cuda_device_missing",
+                torch_version=_torch_version(module),
+                cuda_runtime_version=_cuda_version(module),
+                gpu_count=0,
+                gpu_name=None,
+            )
+        gpu_name = str(module.cuda.get_device_name(0))
+    except Exception:
+        return AcceleratorRuntimeStatus(
+            requested_policy=requested_policy,
+            selected_device="cpu",
+            gpu_acceleration_enabled=False,
+            fallback_active=True,
+            fallback_reason="cuda_probe_failed",
+            torch_version=_torch_version(module),
+            cuda_runtime_version=_cuda_version(module),
+            gpu_count=0,
+            gpu_name=None,
+        )
+
+    return AcceleratorRuntimeStatus(
+        requested_policy=requested_policy,
+        selected_device="cuda",
+        gpu_acceleration_enabled=True,
+        fallback_active=False,
+        fallback_reason=None,
+        torch_version=_torch_version(module),
+        cuda_runtime_version=_cuda_version(module),
+        gpu_count=gpu_count,
+        gpu_name=gpu_name,
+    )
+
+
+def _resolve_accelerator_policy(policy: str) -> str:
+    requested = str(policy or "auto").strip().lower()
+    if requested == "cuda":
+        requested = "gpu"
+    if requested not in {"auto", "cpu", "gpu", "multi_gpu"}:
+        requested = "auto"
+    override = os.environ.get("OSTEO_ACCELERATOR_POLICY", "").strip().lower()
+    if requested == "auto" and override in {"auto", "cpu", "gpu", "multi_gpu", "cuda"}:
+        return "gpu" if override == "cuda" else override
+    return requested
+
+
+def _torch_version(torch_module: Any | None) -> str | None:
+    value = getattr(torch_module, "__version__", None)
+    return str(value) if value else None
+
+
+def _cuda_version(torch_module: Any | None) -> str | None:
+    version = getattr(torch_module, "version", None)
+    value = getattr(version, "cuda", None)
+    return str(value) if value else None
+
+
 def detect_environment() -> RuntimeEnvironment:
     """
     Detect current runtime environment.
@@ -58,16 +196,18 @@ def detect_environment() -> RuntimeEnvironment:
     gpu_count = 0
     gpu_names: list[str] = []
 
-    try:
-        import torch
+    accelerator = probe_accelerator()
+    cuda_available = accelerator.gpu_acceleration_enabled
+    cuda_version = accelerator.cuda_runtime_version
+    gpu_count = accelerator.gpu_count
+    gpu_names = [accelerator.gpu_name] if accelerator.gpu_name else []
+    if cuda_available:
+        try:
+            import torch
 
-        cuda_available = torch.cuda.is_available()
-        if cuda_available:
-            cuda_version = torch.version.cuda
-            gpu_count = torch.cuda.device_count()
-            gpu_names = [torch.cuda.get_device_name(i) for i in range(gpu_count)]
-    except ImportError:
-        pass
+            gpu_names = [str(torch.cuda.get_device_name(index)) for index in range(gpu_count)]
+        except Exception:
+            pass
 
     return RuntimeEnvironment(
         python_version=sys.version,
@@ -93,29 +233,7 @@ def get_device(policy: str = "auto") -> str:
     Returns:
         Device string ("cpu", "cuda", "cuda:0", etc.)
     """
-    if policy == "cpu":
-        return "cpu"
-
-    if policy in ("gpu", "multi_gpu"):
-        try:
-            import torch
-
-            if torch.cuda.is_available():
-                return "cuda"
-        except ImportError:
-            pass
-        return "cpu"
-
-    # Auto policy
-    try:
-        import torch
-
-        if torch.cuda.is_available():
-            return "cuda"
-    except ImportError:
-        pass
-
-    return "cpu"
+    return probe_accelerator(policy).selected_device
 
 
 def get_available_gpus() -> list[dict[str, Any]]:
@@ -142,7 +260,7 @@ def get_available_gpus() -> list[dict[str, Any]]:
                         "minor": props.minor,
                     }
                 )
-    except ImportError:
+    except Exception:
         pass
 
     return gpus

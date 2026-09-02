@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="runtime-shell" :class="{ 'is-embedded': embedded }" :data-theme="theme">
     <header class="runtime-shell__header">
       <div class="runtime-shell__title">
@@ -116,7 +116,7 @@ import { fetchCaseSnapshot, fetchReferenceSnapshot } from "./services/threeDRunt
 import type { RuntimeBridgeMessage, RuntimeCandidate, SelectedCandidate, ThreeDRuntimeSnapshot } from "./types";
 
 const BRIDGE_PROTOCOL = "osteo-vision-three-d-runtime-bridge-v1";
-const DEFAULT_PARENT_ORIGINS = ["http://127.0.0.1:5174", "http://localhost:5174"];
+const DEFAULT_PARENT_ORIGINS = ["http://127.0.0.1:5174", "http://localhost:5174", "file://", "null"];
 const THEME_STORAGE_KEY = "osteo-vision-theme";
 type ThemeName = "light" | "dark";
 
@@ -189,7 +189,7 @@ onMounted(() => {
   applyTheme(theme.value);
   window.addEventListener("message", handleBridgeMessage);
   announceRuntimeReady();
-  if (window.parent === window && (activeCaseId.value || activeReferenceId.value)) void loadSnapshot();
+  if (activeCaseId.value || activeReferenceId.value) void loadSnapshotWithRetry();
 });
 
 onBeforeUnmount(() => {
@@ -226,7 +226,7 @@ async function loadSnapshot() {
 }
 
 function reloadSnapshot() {
-  void loadSnapshot();
+  void loadSnapshotWithRetry();
 }
 
 function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
@@ -240,6 +240,10 @@ function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
   const requestId = message.request_id?.trim();
   if (!requestId) return;
   if (message.type === "load_case" && message.case_id) {
+    if (isSceneLoading(message.case_id, "")) {
+      activeRequestId.value = requestId;
+      return;
+    }
     if (isActiveSceneRequest(requestId, message.case_id, "")) {
       if (snapshot.value && !loading.value) notifyParent("scene_loaded", "受控三维场景快照已载入。");
       return;
@@ -248,10 +252,14 @@ function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
     activeCaseId.value = message.case_id;
     activeReferenceId.value = "";
     if (message.theme) applyTheme(message.theme, { persist: true });
-    void loadSnapshot();
+    void loadSnapshotWithRetry();
     return;
   }
   if (message.type === "load_reference" && message.reference_id) {
+    if (isSceneLoading("", message.reference_id)) {
+      activeRequestId.value = requestId;
+      return;
+    }
     if (isActiveSceneRequest(requestId, "", message.reference_id)) {
       if (snapshot.value && !loading.value) notifyParent("scene_loaded", "受控三维场景快照已载入。");
       return;
@@ -260,7 +268,7 @@ function handleBridgeMessage(event: MessageEvent<RuntimeBridgeMessage>) {
     activeReferenceId.value = message.reference_id;
     activeCaseId.value = "";
     if (message.theme) applyTheme(message.theme, { persist: true });
-    void loadSnapshot();
+    void loadSnapshotWithRetry();
   }
 }
 
@@ -294,6 +302,18 @@ function parentOriginHint(): string {
   }
 }
 
+async function loadSnapshotWithRetry() {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await loadSnapshot();
+    if (snapshot.value) return;
+    await new Promise((resolve) => window.setTimeout(resolve, 300 * (attempt + 1)));
+  }
+}
+
+function isSceneLoading(caseId: string, referenceId: string): boolean {
+  return loading.value && activeCaseId.value === caseId && activeReferenceId.value === referenceId;
+}
+
 function isAllowedParent(event: MessageEvent<RuntimeBridgeMessage>): boolean {
   if (window.parent === window || event.source !== window.parent) return false;
   if (!parentOrigins.includes(event.origin)) return false;
@@ -303,8 +323,7 @@ function isAllowedParent(event: MessageEvent<RuntimeBridgeMessage>): boolean {
 
 function notifyParent(type: string, message: string, candidate?: SelectedCandidate) {
   if (window.parent === window) return;
-  const targetOrigin = verifiedParentOrigin.value;
-  if (!targetOrigin) return;
+  const targetOrigin = verifiedParentOrigin.value === "null" ? "*" : verifiedParentOrigin.value || parentOriginHint() || "*";
   window.parent.postMessage(
     {
       protocol: BRIDGE_PROTOCOL,
@@ -395,7 +414,9 @@ function queryValue(name: string): string {
 function configuredParentOrigins(): string[] {
   const configured = import.meta.env.VITE_OSTEO_MAIN_APP_ORIGIN?.trim();
   const values: string[] = configured ? configured.split(",") : DEFAULT_PARENT_ORIGINS;
-  return values.map((value: string) => value.trim()).filter((value: string) => /^https?:\/\//.test(value));
+  return values
+    .map((value: string) => value.trim())
+    .filter((value: string) => value === "null" || value === "file://" || /^https?:\/\//.test(value));
 }
 
 function toggleTheme() {

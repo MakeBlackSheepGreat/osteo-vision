@@ -198,6 +198,25 @@ def router(
 ) -> APIRouter:
     api = APIRouter()
 
+    @api.get("/three-d/modeling-examples/d036-toothfairy2")
+    def get_d036_modeling_example() -> dict[str, Any]:
+        """Return portable paths for the D036 example shipped with the release."""
+        volume = "research/datasets/public-candidates/d036_toothfairy2/raw/Dataset112_ToothFairy2/imagesTr/ToothFairy2F_001_0000.mha"
+        volume_path = (settings.project_root / volume).resolve()
+        if not volume_path.is_file():
+            raise HTTPException(status_code=404, detail="D036 示例建模数据未随当前运行包提供")
+        return {
+            "example_id": "d036-toothfairy2",
+            "title": "D036 ToothFairy2 下颌示例建模",
+            "source_path": volume,
+            "source_paths": [volume],
+            "source_role": "volume",
+            "source_original_filename": "ToothFairy2F_001_0000.mha",
+            "dataset_id": "D036_ToothFairy2",
+            "label_value": 1,
+            "size_bytes": volume_path.stat().st_size,
+        }
+
     @api.post("/three-d/modeling-jobs")
     def start_three_d_modeling_job(
         request: ThreeDModelingRequest,

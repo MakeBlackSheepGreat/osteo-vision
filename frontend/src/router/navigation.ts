@@ -1,6 +1,6 @@
 import type { AppIconName } from "@/components/appIcons";
 
-export type NavigationGroupKey = "clinical" | "data" | "engineering";
+export type NavigationGroupKey = "clinical" | "data";
 
 export interface NavigationItem {
   to: string;
@@ -36,11 +36,6 @@ export const navigationGroups: NavigationGroup[] = [
       { to: "/data", label: "视频库", icon: "video", group: "data", order: 70 },
       { to: "/dataset-review", label: "静态数据复核", icon: "database", group: "data", order: 80 },
     ],
-  },
-  {
-    key: "engineering",
-    label: "三维与展示",
-    items: [{ to: "/showcase", label: "工程展示", icon: "layers", group: "engineering", order: 100 }],
   },
 ];
 

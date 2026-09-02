@@ -129,7 +129,11 @@ class VideoLibraryService:
 
     def _candidate_payload(self, row: dict[str, str]) -> dict[str, Any]:
         is_ofdvd = row.get("_manifest_kind") == "ofdvdnet" or bool(row.get("view_layout"))
-        local_path = row.get("video_path", "") if is_ofdvd else row.get("local_path", "")
+        manifest_path = self.ofdvd_manifest_path if is_ofdvd else self.manifest_path
+        local_path = _resolve_manifest_path(
+            row.get("video_path", "") if is_ofdvd else row.get("local_path", ""),
+            manifest_path,
+        )
         path = _safe_path(local_path)
         suffix = path.suffix.lower() if path is not None else ""
         exists = bool(path is not None and _path_exists(path) and _path_is_file(path))
@@ -170,10 +174,10 @@ class VideoLibraryService:
             ),
             "channel_previews": (
                 {
-                    "full": row.get("full_preview_path", ""),
-                    "device_overlay": row.get("overlay_preview_path", ""),
-                    "fluorescence": row.get("fluorescence_preview_path", ""),
-                    "white_light": row.get("reference_preview_path", ""),
+                    "full": _resolve_manifest_path(row.get("full_preview_path", ""), manifest_path),
+                    "device_overlay": _resolve_manifest_path(row.get("overlay_preview_path", ""), manifest_path),
+                    "fluorescence": _resolve_manifest_path(row.get("fluorescence_preview_path", ""), manifest_path),
+                    "white_light": _resolve_manifest_path(row.get("reference_preview_path", ""), manifest_path),
                 }
                 if is_ofdvd
                 else {}
@@ -300,3 +304,16 @@ def _safe_path(value: Any) -> Path | None:
         return Path(value)
     except (OSError, TypeError, ValueError):
         return None
+
+
+def _resolve_manifest_path(value: Any, manifest_path: Path | None) -> str:
+    """Resolve a portable manifest entry relative to its manifest file."""
+    if not isinstance(value, str) or not value.strip():
+        return ""
+    try:
+        path = Path(value.strip()).expanduser()
+        if not path.is_absolute() and manifest_path is not None:
+            path = manifest_path.parent / path
+        return str(path.resolve(strict=False))
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return value

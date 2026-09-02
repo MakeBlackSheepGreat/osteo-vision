@@ -223,10 +223,6 @@ describe("ThreeDRuntimeApp", () => {
     await flushPromises();
     expect(wrapper.get(".runtime-shell").classes()).toContain("is-embedded");
     expect(wrapper.find(".runtime-shell__header").exists()).toBe(true);
-    expect(runtimeClientMocks.fetchCaseSnapshot).not.toHaveBeenCalled();
-
-    window.dispatchEvent(bridgeMessage(parentWindow, "case_embedded"));
-    await flushPromises();
     expect(runtimeClientMocks.fetchCaseSnapshot).toHaveBeenCalledTimes(1);
     expect(runtimeClientMocks.fetchCaseSnapshot).toHaveBeenCalledWith("case_embedded");
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import math
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 import cv2
@@ -22,7 +23,7 @@ from backend.osteo_vision_api.services.video_library_service import VideoLibrary
 
 STANDARD_DEMO_CASE_ID = "case_standard_demo"
 STANDARD_DEMO_VIDEO_RECORD_ID = "OFDVDNET_001"
-STANDARD_DEMO_VERSION = 7
+STANDARD_DEMO_VERSION = 9
 STANDARD_DEMO_ANNOTATION_RUN_ID = "standard_demo_ofdvdnet_annotation_frames"
 STANDARD_DEMO_ANNOTATION_FRAME_FRACTIONS = (0.16, 0.5, 0.84)
 STANDARD_DEMO_ANNOTATION_BOUNDARY = (
@@ -30,6 +31,7 @@ STANDARD_DEMO_ANNOTATION_BOUNDARY = (
     "not real intraoperative ICG jaw osteomyelitis data."
 )
 DEMO_CASE_CATALOG_VERSION = 1
+_STANDARD_DEMO_LOCK = RLock()
 DEMO_CASE_CATALOG = (
     (STANDARD_DEMO_CASE_ID, "张三 · OFDVDnet 三视图荧光代理示例"),
     ("case_demo_li_si", "李四 · 荧光融合工程示例"),
@@ -57,11 +59,19 @@ class StandardDemoCaseService:
         self.annotation_frame_root = Path(artifact_root or "artifacts/platform") / "standard_demo_annotation_frames"
 
     def ensure_case(self) -> CaseRecord:
+        # The desktop shell can request the standard case from the route watcher and
+        # the automation harness at the same time. Keep the read/prepare/save cycle atomic.
+        with _STANDARD_DEMO_LOCK:
+            return self._ensure_case()
+
+    def _ensure_case(self) -> CaseRecord:
         existing = self.repo.get(STANDARD_DEMO_CASE_ID)
+        candidate = self._selected_video_candidate()
         if (
             existing is not None
             and existing.review_summary.get("standard_demo_version") == STANDARD_DEMO_VERSION
             and existing.review_summary.get("multichannel_session_status") in {"ready", "degraded", "blocked"}
+            and self._existing_demo_matches_candidate(existing, candidate)
         ):
             return existing
 
@@ -110,7 +120,6 @@ class StandardDemoCaseService:
                     },
                 }
             )
-        candidate = self._selected_video_candidate()
         if candidate is not None:
             try:
                 case = self.input_service.add_inputs(case, [self._video_input(candidate)])
@@ -367,6 +376,45 @@ class StandardDemoCaseService:
             if isinstance(candidate, dict) and candidate.get("system_readable"):
                 return candidate
         return None
+
+    @staticmethod
+    def _existing_demo_matches_candidate(
+        case: CaseRecord,
+        candidate: dict[str, Any] | None,
+    ) -> bool:
+        """Allow cached demos only when their packaged video still points at the active release."""
+        demo_assets = [
+            asset
+            for asset in case.inputs
+            if asset.channel == InputChannel.VIDEO
+            and (
+                asset.metadata.get("standard_demo") is True
+                or asset.metadata.get("record_id") == STANDARD_DEMO_VIDEO_RECORD_ID
+            )
+        ]
+        if candidate is None:
+            # A release without the optional proxy video should remain an empty,
+            # repeatable fallback rather than retaining a stale absolute path.
+            return not demo_assets
+        if len(demo_assets) != 1:
+            return False
+        asset = demo_assets[0]
+        expected_path = StandardDemoCaseService._normalize_path(candidate.get("local_path"))
+        actual_path = StandardDemoCaseService._normalize_path(asset.path)
+        if not expected_path or expected_path != actual_path:
+            return False
+        expected_record_id = str(candidate.get("record_id") or "")
+        actual_record_id = str(asset.metadata.get("record_id") or "")
+        return bool(expected_record_id and expected_record_id == actual_record_id)
+
+    @staticmethod
+    def _normalize_path(value: Any) -> str:
+        if not isinstance(value, (str, Path)) or not str(value).strip():
+            return ""
+        try:
+            return str(Path(value).expanduser().resolve(strict=False)).casefold()
+        except (OSError, RuntimeError, TypeError, ValueError):
+            return ""
 
     @staticmethod
     def _video_input(candidate: dict[str, Any]) -> InputCreateRequest:

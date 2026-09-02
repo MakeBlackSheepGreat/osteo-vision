@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import { apiClient, type BackendJob, type BackendJobProgress } from "../services/apiClient";
+import { ApiError, apiClient, type BackendJob, type BackendJobProgress } from "../services/apiClient";
 import type {
   CaseInputDraft,
   CaseRecord,
@@ -11,6 +11,7 @@ import type {
 } from "../types/case";
 
 let loadCaseRequestId = 0;
+let caseMutationQueue: Promise<void> = Promise.resolve();
 
 export const useCaseStore = defineStore("case", {
   state: () => ({
@@ -26,6 +27,7 @@ export const useCaseStore = defineStore("case", {
     lastAnalysisJobTimedOut: false,
     analysisJobPolling: false,
     navigationFrameSelection: null as NavigationFrameSelection | null,
+    caseMutationCount: 0,
   }),
   actions: {
     selectNavigationFrame(selection: NavigationFrameSelection | null) {
@@ -66,26 +68,18 @@ export const useCaseStore = defineStore("case", {
     },
     async importInputs(inputs: CaseInputDraft[]) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.addInputs(this.currentCase.case_id, inputs);
+        await this.withCaseMutation((caseId) => apiClient.addInputs(caseId, inputs));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "输入写入失败";
-      } finally {
-        this.loading = false;
       }
     },
     async saveClinicalContext(context: ClinicalContext) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.updateClinicalContext(this.currentCase.case_id, context);
+        await this.withCaseMutation((caseId) => apiClient.updateClinicalContext(caseId, context));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "临床上下文保存失败";
-      } finally {
-        this.loading = false;
       }
     },
     async runAnalysis(
@@ -94,19 +88,10 @@ export const useCaseStore = defineStore("case", {
       selectedInputIds: string[] = [],
     ) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.startAnalysis(
-          this.currentCase.case_id,
-          parameters,
-          roiHints,
-          selectedInputIds,
-        );
+        await this.withCaseMutation((caseId) => apiClient.startAnalysis(caseId, parameters, roiHints, selectedInputIds));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "分析运行失败";
-      } finally {
-        this.loading = false;
       }
     },
     async runAnalysisJob(
@@ -244,18 +229,15 @@ export const useCaseStore = defineStore("case", {
     },
     async exportCase() {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        const caseId = this.currentCase.case_id;
-        const result = await apiClient.exportCase(caseId);
-        this.exportResult = result;
-        this.exportPath = result.bundle_path;
-        this.currentCase = await apiClient.getCase(caseId);
+        await this.withCaseMutation(async (caseId) => {
+          const result = await apiClient.exportCase(caseId);
+          this.exportResult = result;
+          this.exportPath = result.bundle_path;
+          return apiClient.getCase(caseId);
+        });
       } catch (error) {
         this.error = error instanceof Error ? error.message : "证据包导出失败";
-      } finally {
-        this.loading = false;
       }
     },
     resetCaseScopedState() {
@@ -271,14 +253,10 @@ export const useCaseStore = defineStore("case", {
     },
     async addReviewEvent(action: string, targetId: string, afterState?: string) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.addReviewEvent(this.currentCase.case_id, action, targetId, afterState);
+        await this.withCaseMutation((caseId) => apiClient.addReviewEvent(caseId, action, targetId, afterState));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "复核记录写入失败";
-      } finally {
-        this.loading = false;
       }
     },
     async updateRegion(
@@ -288,26 +266,18 @@ export const useCaseStore = defineStore("case", {
       label?: string,
     ) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.updateRegion(this.currentCase.case_id, regionId, reviewState, geometry, label);
+        await this.withCaseMutation((caseId) => apiClient.updateRegion(caseId, regionId, reviewState, geometry, label));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "ROI 复核写入失败";
-      } finally {
-        this.loading = false;
       }
     },
     async addRegionFromCandidate(candidateId: string) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.addRegionFromCandidate(this.currentCase.case_id, candidateId);
+        await this.withCaseMutation((caseId) => apiClient.addRegionFromCandidate(caseId, candidateId));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "候选区转 ROI 失败";
-      } finally {
-        this.loading = false;
       }
     },
     async updateCandidateRegionState(
@@ -318,37 +288,25 @@ export const useCaseStore = defineStore("case", {
       reviewerNotes?: string,
     ) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.updateCandidateRegion(
-          this.currentCase.case_id,
+        await this.withCaseMutation((caseId) => apiClient.updateCandidateRegion(
+          caseId,
           candidateId,
           reviewState,
           geometry,
           label,
           reviewerNotes,
-        );
+        ));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "候选区复核状态写入失败";
-      } finally {
-        this.loading = false;
       }
     },
     async generateCandidateBoneGateMask(candidateId: string, geometry?: Record<string, unknown>) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.generateCandidateBoneGateMask(
-          this.currentCase.case_id,
-          candidateId,
-          geometry,
-        );
+        await this.withCaseMutation((caseId) => apiClient.generateCandidateBoneGateMask(caseId, candidateId, geometry));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "骨面门控生成失败";
-      } finally {
-        this.loading = false;
       }
     },
     async saveCandidateBoneGateMaskEdit(
@@ -358,20 +316,52 @@ export const useCaseStore = defineStore("case", {
       reviewerNotes?: string,
     ) {
       if (!this.currentCase) return;
-      this.loading = true;
-      this.error = "";
       try {
-        this.currentCase = await apiClient.saveCandidateBoneGateMaskEdit(
-          this.currentCase.case_id,
+        await this.withCaseMutation((caseId) => apiClient.saveCandidateBoneGateMaskEdit(
+          caseId,
           candidateId,
           maskPngBase64,
           reviewState,
           reviewerNotes,
-        );
+        ));
       } catch (error) {
         this.error = error instanceof Error ? error.message : "骨面 mask 修改保存失败";
+      }
+    },
+    async importVideoCandidate(recordId: string) {
+      if (!this.currentCase) return;
+      try {
+        await this.withCaseMutation((caseId) => apiClient.importVideoCandidate(caseId, recordId));
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : "公开视频候选写入失败";
+      }
+    },
+    async withCaseMutation(operation: (caseId: string) => Promise<CaseRecord>): Promise<CaseRecord | null> {
+      const caseId = this.currentCase?.case_id;
+      if (!caseId) return null;
+      this.error = "";
+      this.caseMutationCount += 1;
+      this.loading = true;
+      const task = caseMutationQueue.then(async () => {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const updated = await operation(caseId);
+            if (this.currentCase?.case_id === caseId) this.currentCase = updated;
+            return updated;
+          } catch (error) {
+            if (!isCaseVersionConflict(error) || attempt > 0) throw error;
+            const refreshed = await apiClient.getCase(caseId);
+            if (this.currentCase?.case_id === caseId) this.currentCase = refreshed;
+          }
+        }
+        return null;
+      });
+      caseMutationQueue = task.then(() => undefined, () => undefined);
+      try {
+        return await task;
       } finally {
-        this.loading = false;
+        this.caseMutationCount = Math.max(0, this.caseMutationCount - 1);
+        if (this.caseMutationCount === 0) this.loading = false;
       }
     },
   },
@@ -387,4 +377,10 @@ function stringFrom(value: unknown): string {
 
 function recordFrom(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isCaseVersionConflict(error: unknown): error is ApiError {
+  if (!(error instanceof ApiError) || error.status !== 409) return false;
+  const detail = recordFrom(error.body) && recordFrom(error.body.detail) ? error.body.detail : null;
+  return detail?.code === "case_version_conflict";
 }

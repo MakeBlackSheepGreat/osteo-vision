@@ -75,11 +75,24 @@ describe("case workspace live preview retention", () => {
     expect(source).toContain("preferredCompositeCandidate(videoCandidates.value, requestedRecordId)");
     expect(source).toContain("caseIncludesVideoCandidate(currentCase, candidate)");
     expect(source).toContain("sessionIncludesCompositeCandidate(multichannelSession.value");
+    expect(source).toContain("|| !session.analysis_allowed");
     expect(source).toContain("return prepareMultichannelSession();");
     expect(source).toContain('if (mode === "composite_layout")');
     expect(source).toContain("void ensureCompositeWorkspaceReady();");
     expect(controls).toContain(':show-actions="false"');
     expect(workspace).toContain('`${expectedChannelCount} 路待接入`');
     expect(workspace).not.toContain('{ label: "已选通道", value: `${channelCount} 路`');
+  });
+
+  it("recovers a blocked composite session from the primary realtime action", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/pages/CaseWorkspacePage.vue"), "utf8");
+    const toggleIndex = source.indexOf("async function toggleMultichannelRealtimeAnalysis");
+    const compositeRecoveryIndex = source.indexOf(
+      'requestedMode === "composite_layout"\n        ? await ensureCompositeWorkspaceReady(selectedVideoCandidateId.value)',
+    );
+
+    expect(toggleIndex).toBeGreaterThan(-1);
+    expect(compositeRecoveryIndex).toBeGreaterThan(toggleIndex);
+    expect(source).toContain("双通道同步预览正在准备，请等待当前准备完成后再点击。");
   });
 });

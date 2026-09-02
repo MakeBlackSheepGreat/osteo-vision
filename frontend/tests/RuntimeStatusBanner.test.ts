@@ -6,6 +6,17 @@ function readyPayload(profile: "development" | "competition_strict") {
   return {
     status: "ok",
     inference_config: `configs/inference/${profile}.yml`,
+    accelerator: {
+      requested_policy: "auto",
+      selected_device: "cuda",
+      gpu_acceleration_enabled: true,
+      fallback_active: false,
+      fallback_reason: null,
+      torch_version: "2.11.0",
+      cuda_runtime_version: "12.8",
+      gpu_count: 1,
+      gpu_name: "NVIDIA Test GPU",
+    },
     runtime_readiness: {
       passed: true,
       runtime_profile: profile,
@@ -72,6 +83,7 @@ describe("RuntimeStatusBanner", () => {
     expect(wrapper.text()).toContain("比赛严格运行已核验");
     expect(wrapper.text()).toContain("segmenter");
     expect(wrapper.text()).toContain("abcdef123456");
+    expect(wrapper.text()).toContain("GPU：NVIDIA Test GPU");
     expect(wrapper.find(".runtime-status--success").exists()).toBe(true);
     expect(wrapper.emitted("blockingChange")?.at(-1)).toEqual([false]);
   });

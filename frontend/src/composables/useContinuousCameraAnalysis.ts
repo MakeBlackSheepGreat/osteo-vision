@@ -262,7 +262,7 @@ export function useContinuousCameraAnalysis(options: ContinuousCameraAnalysisOpt
         notifyFrameInvalidated("timed_out", context);
         options.onMessage?.(
           `实时分割请求超过 ${formatDelay(requestTimeoutMs)}，已取消；将在 ${formatDelay(nextDelayMs)}后重试。`,
-          "error",
+          "info",
         );
         return;
       }
@@ -277,7 +277,10 @@ export function useContinuousCameraAnalysis(options: ContinuousCameraAnalysisOpt
         return;
       }
       const errorText = continuousAnalysisErrorText(error);
-      options.onMessage?.(`${errorText}；将在 ${formatDelay(nextDelayMs)}后重试。`, "error");
+      options.onMessage?.(
+        `${errorText}；将在 ${formatDelay(nextDelayMs)}后重试。`,
+        isServiceBusyError(error) ? "info" : "error",
+      );
     } finally {
       window.clearTimeout(timeoutId);
       if (activeRequest === request) activeRequest = null;

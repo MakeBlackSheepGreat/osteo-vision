@@ -98,3 +98,16 @@ def test_root_resolution_deduplicates_artifact_and_manifest_roots(tmp_path: Path
     assert len(artifact_roots) == len(set(artifact_roots))
     assert len(video_roots) == len(set(video_roots))
     assert _manifest_parent(settings.video_manifest_path) == artifact_root.resolve()
+
+
+def test_packaged_demo_data_is_an_allowed_preview_root(tmp_path: Path) -> None:
+    client, settings, _ = _client(tmp_path)
+    demo_preview = tmp_path / "demo_data" / "ofdvdnet" / "previews" / "sample.jpg"
+    demo_preview.parent.mkdir(parents=True)
+    demo_preview.write_bytes(b"demo")
+
+    response = client.get("/files/preview", params={"path": str(demo_preview)})
+
+    assert response.status_code == 200
+    assert response.content == b"demo"
+    assert (settings.project_root / "demo_data").resolve() in _artifact_roots(settings)

@@ -50,11 +50,6 @@ export const router = createRouter({
       component: () => import("@/pages/ReportPreviewPage.vue"),
       meta: { navigation: navigationMetaByPath["/report"] },
     },
-    {
-      path: "/showcase",
-      component: () => import("@/pages/ChallengeCupShowcasePage.vue"),
-      meta: { navigation: navigationMetaByPath["/showcase"] },
-    },
     { path: "/:pathMatch(.*)*", redirect: "/case" },
   ],
 });

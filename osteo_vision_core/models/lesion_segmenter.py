@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from osteo_vision_core.core.paths import ensure_dir
+from osteo_vision_core.utils.runtime import get_device
 
 
 class ConvNeXtBlock3D(nn.Module):
@@ -87,9 +88,7 @@ def build_tiny_lesion_segmenter(config: dict[str, Any] | None = None) -> TinyLes
 
 
 def select_torch_device(policy: str = "auto") -> torch.device:
-    if policy in {"auto", "gpu", "cuda"} and torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
+    return torch.device(get_device(policy))
 
 
 def load_npz_image(input_path: str | Path) -> np.ndarray:

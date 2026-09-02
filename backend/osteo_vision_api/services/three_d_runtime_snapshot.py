@@ -112,6 +112,11 @@ class ResolvedThreeDModelAsset:
 def build_case_snapshot(case: CaseRecord, settings: Settings) -> ThreeDRuntimeSnapshot:
     evidence = effective_three_d_evidence(case)
     model_asset = resolve_model_asset(settings, evidence.get("model_path"))
+    # Older persisted demo cases may contain the development machine's absolute
+    # D024 path. Keep the packaged standard case portable by resolving the
+    # controlled reference asset when the evidence explicitly identifies D024.
+    if model_asset is None and _is_d024_demo_case(case, evidence):
+        model_asset = resolve_model_asset(settings, str(_reference_model_path(settings)))
     latest_run = case.analysis_runs[-1] if case.analysis_runs else None
     return _build_snapshot(
         case_id=case.case_id,
@@ -124,6 +129,14 @@ def build_case_snapshot(case: CaseRecord, settings: Settings) -> ThreeDRuntimeSn
         model_asset=model_asset,
         asset_url=f"/three-d-runtime/v1/cases/{case.case_id}/assets/model",
     )
+
+
+def _is_d024_demo_case(case: CaseRecord, evidence: Mapping[str, Any]) -> bool:
+    if case.case_id == "case_standard_demo":
+        return True
+    source_policy = str(case.review_summary.get("three_d_source_policy", "")).lower()
+    model_source = str(evidence.get("model_source", "")).lower()
+    return "d024" in source_policy or "d024" in model_source
 
 
 def build_public_reference_snapshot(reference_id: str, settings: Settings) -> ThreeDRuntimeSnapshot | None:
@@ -505,9 +518,12 @@ def _reference_model_path(settings: Settings) -> Path:
             if D024_REFERENCE_MODEL_PATH.is_absolute()
             else settings.project_root / D024_REFERENCE_MODEL_PATH
         )
-    return (
-        settings.artifact_root / "three_d_runtime" / "references" / D024_REFERENCE_ID / D024_REFERENCE_MODEL_FILE_NAME
-    )
+    packaged_reference = settings.project_root / "artifacts" / "platform" / "three_d_runtime" / "references" / (
+        D024_REFERENCE_ID
+    ) / D024_REFERENCE_MODEL_FILE_NAME
+    if packaged_reference.is_file():
+        return packaged_reference
+    return settings.artifact_root / "three_d_runtime" / "references" / D024_REFERENCE_ID / D024_REFERENCE_MODEL_FILE_NAME
 
 
 def _reference_timestamp(asset: ResolvedThreeDModelAsset | None) -> str:

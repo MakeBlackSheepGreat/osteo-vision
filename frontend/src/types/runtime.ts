@@ -20,6 +20,18 @@ export interface RuntimeToolStatus {
   required: boolean;
 }
 
+export interface AcceleratorRuntimeStatus {
+  requested_policy: string;
+  selected_device: "cpu" | "cuda";
+  gpu_acceleration_enabled: boolean;
+  fallback_active: boolean;
+  fallback_reason?: string | null;
+  torch_version?: string | null;
+  cuda_runtime_version?: string | null;
+  gpu_count: number;
+  gpu_name?: string | null;
+}
+
 export interface RuntimeReadiness {
   passed: boolean;
   runtime_profile: string;
@@ -39,4 +51,5 @@ export interface ReadyResponse {
   status: "ok" | "degraded";
   inference_config: string;
   runtime_readiness: RuntimeReadiness;
+  accelerator?: AcceleratorRuntimeStatus;
 }

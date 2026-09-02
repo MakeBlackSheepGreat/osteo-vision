@@ -542,6 +542,9 @@ export const apiClient = {
       body: JSON.stringify(parameters),
     });
   },
+  getThreeDModelingExample(exampleId = "d036-toothfairy2"): Promise<Record<string, unknown>> {
+    return request<Record<string, unknown>>(`/three-d/modeling-examples/${encodeURIComponent(exampleId)}`);
+  },
   getThreeDModelingJob(jobId: string): Promise<BackendJob> {
     return request<BackendJob>(`/three-d/modeling-jobs/${jobId}`);
   },

@@ -15,7 +15,7 @@
       <small v-if="jobProgressMessage(progress)">
         {{ jobProgressMessage(progress) }} · {{ jobProgressPercent(progress) }}%
       </small>
-      <small v-if="error">{{ error }}</small>
+      <small v-if="error" class="job-error">{{ error }}</small>
       <small v-else-if="canceling">正在提交取消请求。</small>
       <small v-else-if="timedOut">任务可能仍在后台运行，可继续查询状态。</small>
     </div>

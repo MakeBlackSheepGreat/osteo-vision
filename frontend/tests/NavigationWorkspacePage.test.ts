@@ -24,6 +24,14 @@ describe("NavigationWorkspacePage", () => {
     expect(controlSource).toMatch(/\.three-d-evidence-control--panel \.three-d-evidence-control__submit-actions > :deep\(\.app-button\)\s*\{[\s\S]*?flex:\s*1 1 100%;/);
   });
 
+  it("preserves the viewport scroll position while synchronizing a loaded case", () => {
+    const pageSource = readFileSync(resolve(process.cwd(), "src/pages/NavigationWorkspacePage.vue"), "utf8");
+
+    expect(pageSource).toMatch(/const scrollPosition = \{ left: window\.scrollX, top: window\.scrollY \};/);
+    expect(pageSource).toMatch(/function restoreScrollPosition\(position: \{ left: number; top: number \}\)[\s\S]*?window\.scrollTo\(\{ \.\.\.position, behavior: "auto" \}\);/);
+    expect(pageSource).toMatch(/\.navigation-workspace\s*\{[\s\S]*?overflow-anchor:\s*none;/);
+  });
+
   it("reads candidates and registration evidence from the shared case store", async () => {
     const router = createRouter({
       history: createMemoryHistory(),

@@ -183,12 +183,14 @@
             <AppButton
               :variant="multichannelRealtimeAnalysisEnabled ? 'secondary' : 'primary'"
               size="sm"
-              :icon="multichannelRealtimeAnalysisEnabled ? 'stop' : 'play'"
+              :icon="multichannelRealtimeAnalysisEnabled ? 'stop' : multichannelPreparing ? 'load' : 'play'"
               block
-              :disabled="!multichannelRealtimeAnalysisEnabled && (loading || analysisJobPolling || !multichannelSession?.analysis_allowed)"
+              :aria-busy="multichannelPreparing"
+              :title="multichannelPreparing ? '正在准备双通道同步预览，请稍候。' : multichannelSession && !multichannelSession.analysis_allowed ? '当前会话未就绪，点击后将重新准备三通道。' : undefined"
+              :disabled="!multichannelRealtimeAnalysisEnabled && (loading || analysisJobPolling || multichannelPreparing || isUploadingVideo)"
               @click="emit('toggleMultichannelRealtimeAnalysis')"
             >
-              {{ multichannelRealtimeAnalysisEnabled ? "关闭双通道实时分析" : "开启双通道实时分析" }}
+              {{ multichannelRealtimeActionLabel }}
             </AppButton>
           </div>
           <label class="field compact-field">
@@ -321,8 +323,14 @@
         </AppButton>
       </div>
 
-      <p v-if="operationMessage" class="operation-message" :class="{ error: operationMessageType === 'error' }">
-        {{ operationMessage }}
+      <p
+        class="operation-message"
+        :class="{ error: operationMessageType === 'error', empty: !operationMessage }"
+        aria-live="polite"
+        :title="operationMessage || undefined"
+      >
+        <span v-if="operationMessage">{{ operationMessage }}</span>
+        <span v-else aria-hidden="true">&nbsp;</span>
       </p>
       <input
         ref="whiteLightFileInput"
@@ -433,7 +441,7 @@
               size="sm"
               :icon="multichannelRealtimeAnalysisEnabled ? 'stop' : 'play'"
               block
-              :disabled="!multichannelRealtimeAnalysisEnabled && !cameraMultichannelSession?.analysis_allowed"
+              :disabled="!multichannelRealtimeAnalysisEnabled && (cameraOpening || cameraFluorescenceOpening)"
               @click="emit('toggleMultichannelRealtimeAnalysis')"
             >
               {{ multichannelRealtimeAnalysisEnabled ? "关闭双通道实时分析" : "开启双通道实时分析" }}
@@ -447,10 +455,11 @@
               size="sm"
               icon="camera"
               block
-              :disabled="cameraFluorescenceOpening"
+              :disabled="cameraFluorescenceOpening || !fluorescenceCameraOptions.length"
+              :title="fluorescenceCameraOptions.length ? '连接第二路摄像头后可开启双通道分析。' : '当前仅检测到一路摄像头，单路实时分割仍可使用。'"
               @click="emit('startFluorescenceCamera')"
             >
-              {{ cameraFluorescenceOpening ? "请求荧光摄像头权限中" : "连接荧光摄像头" }}
+              {{ cameraFluorescenceOpening ? "请求荧光摄像头权限中" : fluorescenceCameraOptions.length ? "连接荧光摄像头" : "暂无第二路摄像头" }}
             </AppButton>
             <AppButton
               variant="secondary"
@@ -490,7 +499,20 @@
             <p class="camera-control-note">{{ cameraContinuousAnalysisStatus }} · 上一帧完成后立即处理当前画面</p>
           </template>
         </template>
-        <p v-else class="camera-control-note">连接摄像头后可抓取关键帧或启动连续实时分割。</p>
+        <template v-else>
+          <AppButton
+            variant="primary"
+            size="sm"
+            icon="play"
+            block
+            :disabled="cameraOpening || cameraContinuousAnalysisStarting"
+            :aria-busy="cameraOpening || cameraContinuousAnalysisStarting"
+            @click="emit('startContinuousCameraAnalysis')"
+          >
+            {{ cameraOpening ? "正在开启摄像头" : cameraContinuousAnalysisStarting ? "实时分割启动中" : "开始实时分割" }}
+          </AppButton>
+          <p class="camera-control-note">点击后将自动开启白光摄像头并启动连续实时分割。</p>
+        </template>
       </div>
     </section>
 
@@ -671,12 +693,15 @@ const selectedCompositeCandidate = computed(() =>
 );
 const videoInputStatusLabel = computed(() => {
   if (props.videoMode === "composite_layout") {
-    if (props.multichannelSession) return "三通道已准备";
+    if (props.multichannelSession?.analysis_allowed) return "三通道已准备";
+    if (props.multichannelSession) return "三通道未就绪";
     if (props.multichannelPreparing || props.isLoadingVideoCandidates) return "正在准备三通道";
     if (selectedCompositeCandidate.value) return "三通道等待重试";
     return "等待 OFDVDnet 候选";
   }
-  return props.multichannelSession ? "同步会话已准备" : props.videoReady ? "已导入病例" : "待选择文件";
+  if (props.multichannelSession?.analysis_allowed) return "同步会话已准备";
+  if (props.multichannelSession) return "同步会话未就绪";
+  return props.videoReady ? "已导入病例" : "待选择文件";
 });
 const multichannelPrepareLabel = computed(() => {
   if (props.multichannelPreparing) {
@@ -686,6 +711,14 @@ const multichannelPrepareLabel = computed(() => {
     return "重试三通道准备";
   }
   return "准备同步预览";
+});
+const multichannelRealtimeActionLabel = computed(() => {
+  if (props.multichannelRealtimeAnalysisEnabled) return "关闭双通道实时分析";
+  if (props.multichannelPreparing) return "正在准备双通道实时分析";
+  if (props.multichannelSession && !props.multichannelSession.analysis_allowed) {
+    return "重试并开启双通道实时分析";
+  }
+  return "开启双通道实时分析";
 });
 const fluorescenceCameraOptions = computed(() =>
   props.cameraDevices.filter((device) => device.deviceId !== props.whiteCameraDeviceId),
@@ -1216,6 +1249,12 @@ function shortInputPath(path: string): string {
 }
 
 .operation-message {
+  box-sizing: border-box;
+  display: flex;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  align-items: center;
   margin: 9px 0 0;
   border-left: 3px solid var(--ov-border-accent);
   padding: 5px 0 5px 8px;
@@ -1223,6 +1262,18 @@ function shortInputPath(path: string): string {
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.operation-message > span {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.operation-message.empty {
+  border-color: transparent;
+  background: transparent;
 }
 
 .operation-message.error {

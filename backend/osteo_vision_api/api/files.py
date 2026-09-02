@@ -81,12 +81,13 @@ def router(settings: Settings) -> APIRouter:
 
 
 def _artifact_roots(settings: Settings) -> tuple[Path, ...]:
-    # artifact_root 可能由测试或部署环境覆盖；project_root/artifacts 是本仓库默认运行产物目录。
+    # artifact_root 可能由测试或部署环境覆盖；运行包的只读 demo_data 也属于受控预览根。
     return tuple(
         dict.fromkeys(
             (
                 settings.artifact_root.resolve(strict=False),
                 (settings.project_root / "artifacts").resolve(strict=False),
+                (settings.project_root / "demo_data").resolve(strict=False),
             )
         )
     )
