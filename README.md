@@ -398,7 +398,7 @@ npm run offline-release:package
 
 当前工程版本为 0.3.0-rc.2，严格运行配置为 configs/inference/osteo_vision_strict.yml，主线模型为 keyframe_residual_attention_unet_s20260715_20260715。版本变更、迁移影响和验证摘要记录在 CHANGELOG.md 与 research/reports/release/。
 
-本项目按 LICENSE 中的 MIT 条款发布。公开数据、第三方模型代码和外部资产遵循各自许可；使用前请核对来源清单和授权范围。
+本项目按 LICENSE 中的 Apache License 2.0 条款发布。公开数据、第三方模型代码和外部资产遵循各自许可；使用前请核对来源清单和授权范围。
 
 ---
 
