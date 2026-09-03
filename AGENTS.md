@@ -92,6 +92,7 @@
 - 平台同时维护网页开发版与 Windows 桌面发行版，修改时先判定目标运行形态并遵循对应入口。网页前端源码位于 `frontend/src/`，后端源码位于 `backend/osteo_vision_api/`；开发启动使用 `start_platform.cmd` 或 `scripts/start_platform.ps1 -StrictRuntime`，浏览器访问 `http://127.0.0.1:5174/`。网页前端生产构建使用 `npm --prefix frontend run build`，生成的 `frontend/dist/` 仅为派生产物，禁止直接手改。
 - 桌面版宿主与生命周期代码固定在 `packaging/desktop/`，打包脚本为 `scripts/build_desktop_package.ps1`，统一命令为 `npm run desktop:package`。桌面版前端仍修改 `frontend/src/`，后端仍修改 `backend/osteo_vision_api/` 和 `osteo_vision_core/`；打包脚本负责以桌面资源基址构建前端、PyInstaller 后端、模型和 FFmpeg 运行时。禁止直接修改 `artifacts/release/desktop/` 内的 Electron、前端、后端或运行时文件，任何修订都必须回写源码后重新打包。
 - 每次涉及网页或桌面版的改动，至少运行对应质量门：网页改动运行 `npm --prefix frontend run typecheck` 与 `npm --prefix frontend run build`；后端改动运行相关 `pytest`；桌面版改动额外运行 `npm run desktop:test`、`pytest backend/tests/unit/test_desktop_runtime_shutdown.py -q`，并实机确认启动包的 `/ready`、关闭主窗口后的端口关闭、后端进程树退出与无残留平台 GPU 计算进程。桌面发行物路径固定为 `artifacts/release/desktop/Osteo Vision Platform-win32-x64/Osteo Vision Platform.exe`。
+- 用户指定的历史发行版本与交付物属于受保护资产，包含 `v0.3.0-rc.2-r28` 及其 Windows 运行包。清理源码、缓存或旧产物前必须保留远端发行资产、Git 标签、可校验的本地恢复目录或等价备份；需要释放磁盘空间时先核对恢复证据，不得直接删除用户仍需使用的发行版本。恢复发行包应保留分卷、SHA256 清单、解压目录和可重复执行的恢复脚本。
 - 必须使用 UTF-8 编码读取、写入和修改文本文件。
 - 根目录 `boots.md` 维护后端生产代码与后端测试代码清单、最近一次优化对象、变更内容、验证证据和剩余候选；开始后端性能或健壮性优化前必须先读取它，完成后必须回写，生成目录和临时产物不得混入清单。
 - 迁移大体积数据、病例输入或运行产物到仓库外部前，必须先验证仅含源码与受控配置的仓库仍可完成依赖安装、静态检查、测试和安全降级启动；路径必须通过本机配置或环境变量注入，缺失外部数据时提供明确状态与可追溯降级，不得依赖开发机绝对路径。
